@@ -12,6 +12,7 @@ mod air_missiles;
 mod air_supply;
 mod air_weapons;
 mod animation_feed;
+mod attack_heights;
 mod attack_passes;
 mod attack_runs;
 mod battle_authority;

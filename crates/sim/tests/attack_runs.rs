@@ -13,8 +13,8 @@ const RUN_CRUISE_KMH: f64 = 540.0;
 const RUN_TURN_DEG_S: f64 = 60.0;
 const RUN_EDGE_MARGIN_M: f64 = 300.0;
 const RUN_ROLL_IN_S: f64 = 0.8;
-const RUN_BOMB_CEILING_M: f64 = 200.0;
-const RUN_STRAFE_CEILING_M: f64 = 130.0;
+pub(crate) const RUN_BOMB_CEILING_M: f64 = 200.0;
+pub(crate) const RUN_STRAFE_CEILING_M: f64 = 130.0;
 const RUN_GRAVITY_MPS2: f64 = 9.81;
 const RUN_BOMB_GRAVITY_SCALE: f64 = 4.5;
 const RUN_GUN_RANGE_M: f64 = 900.0;
@@ -104,7 +104,7 @@ pub(crate) fn run_field(rules: serde_json::Value, units: serde_json::Value) -> s
 
 /// A test jet carrying `weapons` at `RUN_START` on the run field, heading
 /// east, under an explicit attack order on the ground at `aim`.
-fn run_battle(weapons: &[&str], aim: [f64; 2]) -> sim::battle::Battle {
+pub(crate) fn run_battle(weapons: &[&str], aim: [f64; 2]) -> sim::battle::Battle {
     let mut battle = run_field(
         run_rules(weapons),
         json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),

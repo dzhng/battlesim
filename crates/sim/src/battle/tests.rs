@@ -109,6 +109,7 @@ fn upgrading_a_jets_move_breaks_off_its_run() {
         phase: crate::air::pass::PassPhase::Dive,
         weapon: crate::air::pass::PassWeapon::Gun,
         agl: 120.0,
+        run_agl: Some(120.0),
         heading: 0.0,
     });
     air.pass_release = true;

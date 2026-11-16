@@ -5,7 +5,7 @@ use contract::map::MoverClass;
 use contract::observation::MoveState;
 
 use crate::math::{Obb2, V2};
-use crate::units::Unit;
+use crate::units::{Unit, UnitOrder};
 use crate::world::WorldGeometry;
 
 use super::traffic::{gives_way, in_the_way};
@@ -68,16 +68,21 @@ pub(super) fn step_vehicle(
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
         units[i].shunt = None;
-        // With no orders, tracks pivot a gun fixed in the hull onto its
-        // target (D8); wheels cannot turn on the spot, so they hold fire.
+        // At rest, a gun fixed in the hull is brought onto its target (D8).
+        // Tracks pivot onto whatever it engages; wheels cannot turn on the
+        // spot and hold fire, except under an attack order, which pivots any
+        // hull (a deliberate game rule, listed in development.md).
         let unit = &mut units[i];
-        let automatic = unit
+        let attacking = matches!(unit.orders.front(), Some(UnitOrder::Attack { .. }));
+        let tracked = unit.ground().drive.is_some_and(|d| d.tracked);
+        let face = unit
             .reach
             .face
-            .filter(|_| unit.orders.is_empty() && unit.ground().drive.is_some_and(|d| d.tracked));
-        unit.turn_to = automatic.or(unit.turn_to);
+            .filter(|_| attacking || (unit.orders.is_empty() && tracked));
+        unit.turn_to = face.or(unit.turn_to);
         if units[i].route.is_none() && units[i].turn_to.is_some() {
-            drive::pivot(ctx, &mut units[i], dt, automatic.is_none(), traffic);
+            let ordered = face.is_none() || attacking;
+            drive::pivot(ctx, &mut units[i], dt, ordered, traffic);
         } else {
             units[i].drive_speed_mps = 0.0;
         }

@@ -7,7 +7,7 @@ use contract::ids::{Side, UnitId};
 use contract::random::Rng;
 use contract::scenario::FixedWingFlight;
 use serde_json::json;
-use sim::air::pass::{advance, begin, choose_weapon, PassPhase, PassWeapon};
+use sim::air::pass::{advance, begin, choose_weapon, PassAim, PassPhase, PassWeapon};
 use sim::air::{Bounds, FixedWingState};
 use sim::fixtures::{self, test_rules};
 use sim::flight::Release;
@@ -100,16 +100,16 @@ fn air_battle() -> sim::battle::Battle {
     sim::battle::Battle::new(&setup, 1)
 }
 
-fn wing() -> FixedWingFlight {
+pub(crate) fn wing() -> FixedWingFlight {
     serde_json::from_value(test_rules()["air"]["fixed_wing"].clone()).unwrap()
 }
 
 /// Bounds far beyond any pass in the pass tests: no edge guard.
-fn far() -> Bounds {
+pub(crate) fn far() -> Bounds {
     Bounds::new(v2(-100_000.0, -100_000.0), v2(100_000.0, 100_000.0))
 }
 
-fn state(agl: f64) -> FixedWingState {
+pub(crate) fn state(agl: f64) -> FixedWingState {
     FixedWingState {
         pos: v3(0.0, 0.0, agl),
         heading: 0.0,
@@ -127,7 +127,6 @@ fn a_bombing_run_releases_at_its_release_point_and_is_over() {
     let aim = v3(1000.0, 0.0, 0.0);
     let mut plan = begin(
         &state(250.0),
-        0.0,
         &wing_limits(),
         aim,
         PassWeapon::Bomb,
@@ -140,19 +139,24 @@ fn a_bombing_run_releases_at_its_release_point_and_is_over() {
         ahead_m: 300.0,
         at: v2(700.0, 0.0),
     };
+    let aim_at = PassAim {
+        point: aim,
+        release,
+    };
     // 100 m/s in 0.6 s steps: 60 m a step.
     let dt = 0.6;
     let mut released_at = None;
     for step in 0..20 {
-        let mut current = state(plan.agl);
+        let agl = plan.agl;
+        let mut current = state(agl);
         current.pos.x = step as f64 * 60.0;
         let (_, cue) = advance(
             &mut plan,
             &current,
+            agl,
             &wing_limits(),
             &far(),
-            aim,
-            &release,
+            &aim_at,
             dt,
         );
         if cue {
@@ -177,17 +181,19 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
     let aim = v3(1000.0, 0.0, 0.0);
     let mut plan = begin(
         &state(150.0),
-        0.0,
         &wing_limits(),
         aim,
         PassWeapon::Bomb,
         &wing(),
         &mut Rng::new(7),
     );
-    let release = Release {
-        fall_s: 3.0,
-        ahead_m: 300.0,
-        at: v2(700.0, 0.0),
+    let aim_at = PassAim {
+        point: aim,
+        release: Release {
+            fall_s: 3.0,
+            ahead_m: 300.0,
+            at: v2(700.0, 0.0),
+        },
     };
     // The east edge lies just past the aim: by the release point the jet,
     // heading straight at it, is at its point of no return.
@@ -199,63 +205,13 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
     // Nose-on, 400 m short of its release point: it commits.
     let mut current = state(plan.agl);
     current.pos.x = 300.0;
-    advance(&mut plan, &current, &limits, &bounds, aim, &release, 0.05);
+    advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
     assert_eq!(plan.phase, PassPhase::Dive);
     // 100 m/s in 0.05 s steps: this step would carry it to the release point.
     current.pos.x = 697.0;
-    let (_, cue) = advance(&mut plan, &current, &limits, &bounds, aim, &release, 0.05);
+    let (_, cue) = advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
     assert!(!cue, "released as the edge guard turned it away");
     assert_eq!(plan.phase, PassPhase::LineUp);
-}
-
-#[test]
-fn pass_height_is_seeded_between_floor_and_ceiling() {
-    let p = begin(
-        &state(250.0),
-        0.0,
-        &wing_limits(),
-        v3(1000.0, 0.0, 0.0),
-        PassWeapon::Bomb,
-        &wing(),
-        &mut Rng::new(9),
-    );
-    assert!((100.0..=200.0).contains(&p.agl));
-}
-
-#[test]
-fn a_jet_below_the_ceiling_doesnt_climb_to_start() {
-    let p = begin(
-        &state(150.0),
-        0.0,
-        &wing_limits(),
-        v3(1000.0, 0.0, 0.0),
-        PassWeapon::Bomb,
-        &wing(),
-        &mut Rng::new(9),
-    );
-    assert!(p.agl <= 150.0);
-}
-
-/// The pass ceiling is a height above the ground under the jet: over a
-/// rise, a jet already under it keeps its height above ground rather than
-/// counting the rise as height of its own.
-#[test]
-fn a_pass_over_raised_ground_keeps_the_height_above_it() {
-    let wing = wing();
-    let limits = wing_limits();
-    let under = (limits.floor_agl_m + wing.strafe_ceiling_m) * 0.5;
-    for ground in [5.0, 60.0] {
-        let p = begin(
-            &state(ground + under),
-            ground,
-            &limits,
-            v3(1000.0, 0.0, ground),
-            PassWeapon::Gun,
-            &wing,
-            &mut Rng::new(9),
-        );
-        assert_eq!(p.agl, under, "over {ground} m ground");
-    }
 }
 
 #[test]

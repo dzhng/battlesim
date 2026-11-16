@@ -200,7 +200,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         let mut rng = Rng::new(mix(ctx.seed ^ u64::from(unit.id.0)));
                         let mut plan = pass::begin(
                             &state,
-                            ctx.world.height_at(state.pos.x, state.pos.y).unwrap_or(0.0),
                             &limits,
                             point,
                             weapon,
@@ -221,8 +220,11 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .pass
                         .as_mut()
                         .expect("a pass was begun");
+                    let agl_m =
+                        state.pos.z - ctx.world.height_at(state.pos.x, state.pos.y).unwrap_or(0.0);
+                    let aim = pass::PassAim { point, release };
                     let (intent, cue) =
-                        pass::advance(pass, &state, &limits, &bounds, point, &release, dt);
+                        pass::advance(pass, &state, agl_m, &limits, &bounds, &aim, dt);
                     pass_release_now = cue;
                     intent
                 } else {

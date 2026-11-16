@@ -119,6 +119,35 @@ test("the selection's growth is heard: the units it gained, and the one clicked 
   hook.unmount();
 });
 
+test("Ctrl-click adds an own unit to the selection and toggles it back out", () => {
+  const observation = {
+    own: [own(1, "test_rifle"), own(2, "test_supply"), own(3, "test_tank")],
+    contacts: [],
+  } as unknown as ObservationView;
+  const { client } = recordingClient();
+  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
+  const left = (unit: number, ctrl: boolean, time: number) =>
+    act(() =>
+      hook.result.current.onPointer({
+        unit,
+        button: "left",
+        shift: false,
+        ctrl,
+        x: 0,
+        y: 0,
+        time,
+        ground: [0, 0],
+      }),
+    );
+
+  left(1, false, 0);
+  left(2, true, 1000);
+  expect(hook.result.current.selected).toEqual([1, 2]);
+  left(1, true, 2000);
+  expect(hook.result.current.selected).toEqual([2]);
+  hook.unmount();
+});
+
 test("every order's acknowledgement is heard with its order, a refusal too", async () => {
   // A unit answers an order once the authority accepts it, and says so when it refuses.
   const refusal = { reason: "no_valid_destination" };

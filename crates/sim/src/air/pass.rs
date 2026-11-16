@@ -71,8 +71,13 @@ pub struct PassPlan {
     pub aim: V3,
     pub phase: PassPhase,
     pub weapon: PassWeapon,
-    /// The seeded height the runs are flown at, in metres above ground.
+    /// The seeded height a run is flown at, in metres above ground, between
+    /// the floor and its weapon's ceiling: the lowest a run comes down to.
     pub agl: f64,
+    /// The height this run is flown at, in metres above ground, once its
+    /// descent has begun: its seeded height or, lower than that, its own.
+    /// `None` while it climbs back toward cruise between runs.
+    pub run_agl: Option<f64>,
     /// The bearing of the line flown through the aim: away from it lining
     /// up, toward it turning in, and in a run the one it committed along.
     pub heading: f64,
@@ -122,27 +127,18 @@ pub fn firing_range_m(
     }
 }
 
-/// Start an attack from `state`, flying over ground `ground_m` high, lining
-/// up. Its existing height above that ground is retained when already under
-/// its weapon's ceiling; otherwise a deterministic height in the permitted
-/// band is used.
+/// Start an attack from `state`, lining up, with a seeded run height
+/// between the floor and its weapon's ceiling.
 pub fn begin(
     state: &FixedWingState,
-    ground_m: f64,
     limits: &FixedWingLimits,
     aim: V3,
     weapon: PassWeapon,
     air: &FixedWingFlight,
     rng: &mut Rng,
 ) -> PassPlan {
-    let max = ceiling(weapon, air);
     let floor = limits.floor_agl_m;
-    let current = state.pos.z - ground_m;
-    let agl = if current <= max {
-        current.max(floor)
-    } else {
-        floor + rng.unit() * (max - floor)
-    };
+    let agl = floor + rng.unit() * (ceiling(weapon, air) - floor);
     let heading = libm::atan2(aim.y - state.pos.y, aim.x - state.pos.x);
     PassPlan {
         target: Target::Ground(aim),
@@ -150,16 +146,17 @@ pub fn begin(
         phase: PassPhase::LineUp,
         weapon,
         agl,
+        run_agl: None,
         heading,
     }
 }
 
-fn line(plan: &PassPlan) -> Intent {
-    Intent::Line {
-        through: plan.aim.xy(),
-        heading: plan.heading,
-        agl: plan.agl,
-    }
+/// Where a pass aims this tick, and where its weapon must leave the jet to
+/// reach it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PassAim {
+    pub point: V3,
+    pub release: Release,
 }
 
 /// The circle a turn toward `aim` at its turn rate flies, on the side it lies,
@@ -177,8 +174,32 @@ fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2
     )
 }
 
+/// How far the jet has left to fly to its release point turning in: round
+/// its turn toward the aim until the nose comes on it, then straight along
+/// that line to the release, its forward throw short of the aim.
+fn run_in_m(state: &FixedWingState, limits: &FixedWingLimits, aim: &PassAim) -> f64 {
+    let at = aim.point.xy();
+    let (centre, radius) = turn_circle(state, limits, at);
+    let from_centre = at - centre;
+    let d = from_centre.length();
+    if d <= radius {
+        // Inside its own turn the nose never comes on: it lines up again.
+        return f64::INFINITY;
+    }
+    let to_aim = at - state.pos.xy();
+    let side = wrap_angle(libm::atan2(to_aim.y, to_aim.x) - state.heading).signum();
+    // The nose comes on where the line to the aim leaves the circle.
+    let tangent = libm::atan2(from_centre.y, from_centre.x) - side * libm::acos(radius / d);
+    let jet = state.pos.xy() - centre;
+    let turn =
+        (side * wrap_angle(tangent - libm::atan2(jet.y, jet.x))).rem_euclid(core::f64::consts::TAU);
+    let straight = libm::sqrt(d * d - radius * radius) - aim.release.ahead_m;
+    turn * radius + straight.max(0.0)
+}
+
 /// Fly one tick of lining up (`plan` is lining up or turning in and does not
-/// commit this tick): move it to the phase it flies and return the intent.
+/// commit this tick): move it to the phase it flies and return the line it
+/// flies, a point on it and its heading.
 fn line_up(
     plan: &mut PassPlan,
     state: &FixedWingState,
@@ -187,7 +208,7 @@ fn line_up(
     release: &Release,
     guarded: bool,
     dt: f64,
-) -> Intent {
+) -> (V2, f64) {
     let aim = plan.aim.xy();
     let to_aim = aim - state.pos.xy();
     let distance = to_aim.length();
@@ -264,11 +285,7 @@ fn line_up(
         _ => (out, through),
     };
     plan.heading = heading;
-    Intent::Line {
-        through,
-        heading,
-        agl: plan.agl,
-    }
+    (through, heading)
 }
 
 /// Advance the attack by one tick inside `bounds` and return the steering
@@ -288,15 +305,59 @@ fn line_up(
 /// lines up again at once, rolling into its break from wings level. A run
 /// the edge guard takes is broken and releases nothing; it lines up again
 /// too.
+///
+/// Off each run the jet climbs back toward its cruise height, from the tick
+/// after its release. It dives to the run's height from wherever the climb
+/// has reached (`agl_m`, its height above the ground under it) once,
+/// turning in, it is near enough its release point that a descent at its
+/// climb rate just gets it down there, or as it commits, whichever comes
+/// first. A turn in it abandons climbs again.
 pub fn advance(
+    plan: &mut PassPlan,
+    state: &FixedWingState,
+    agl_m: f64,
+    limits: &FixedWingLimits,
+    bounds: &Bounds,
+    aim: &PassAim,
+    dt: f64,
+) -> (Intent, bool) {
+    let (through, heading, cue) = advance_phase(plan, state, limits, bounds, aim, dt);
+    match plan.phase {
+        // It pulls up only after the release: a bomb leaving a climbing jet
+        // would carry the climb and fall long.
+        PassPhase::LineUp if !cue => plan.run_agl = None,
+        PassPhase::LineUp => {}
+        PassPhase::TurnIn | PassPhase::Dive if plan.run_agl.is_none() => {
+            let descent_s = (agl_m - plan.agl).max(0.0) / limits.climb_mps.max(f64::MIN_POSITIVE);
+            let near = run_in_m(state, limits, aim) <= state.speed_mps * descent_s;
+            if near || plan.phase == PassPhase::Dive {
+                plan.run_agl = Some(plan.agl.min(agl_m).max(limits.floor_agl_m));
+            }
+        }
+        PassPhase::TurnIn | PassPhase::Dive => {}
+    }
+    let intent = Intent::Line {
+        through,
+        heading,
+        agl: plan.run_agl.unwrap_or(limits.cruise_agl_m),
+    };
+    (intent, cue)
+}
+
+/// One tick of the runs' phases: the line flown (a point on it and its
+/// heading), and whether this is the tick the weapon is released.
+fn advance_phase(
     plan: &mut PassPlan,
     state: &FixedWingState,
     limits: &FixedWingLimits,
     bounds: &Bounds,
-    aim: V3,
-    release: &Release,
+    aim: &PassAim,
     dt: f64,
-) -> (Intent, bool) {
+) -> (V2, f64, bool) {
+    let PassAim {
+        point: aim,
+        release,
+    } = *aim;
     let speed = state.speed_mps.max(1.0);
     let guarded = edge_guarded(state, limits, bounds, dt);
     if plan.phase != PassPhase::Dive {
@@ -311,16 +372,14 @@ pub fn advance(
             plan.phase = PassPhase::Dive;
             plan.heading = bearing;
         } else {
-            return (
-                line_up(plan, state, limits, bounds, release, guarded, dt),
-                false,
-            );
+            let (through, heading) = line_up(plan, state, limits, bounds, &release, guarded, dt);
+            return (through, heading, false);
         }
     }
-    let intent = line(plan);
+    let (through, heading) = (plan.aim.xy(), plan.heading);
     if guarded {
         plan.phase = PassPhase::LineUp;
-        return (intent, false);
+        return (through, heading, false);
     }
     let forward = v2(libm::cos(plan.heading), libm::sin(plan.heading));
     let step = speed * dt;
@@ -329,5 +388,5 @@ pub fn advance(
     if cue {
         plan.phase = PassPhase::LineUp;
     }
-    (intent, cue)
+    (through, heading, cue)
 }
