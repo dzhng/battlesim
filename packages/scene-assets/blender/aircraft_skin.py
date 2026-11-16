@@ -28,8 +28,6 @@ with edges sharper than `sharp_deg` kept hard (the wings' and fins' edges).
 A `Probe` on the built shell seats the parts that sit on it (antennas,
 doors) where it is.
 """
-import hashlib
-import json
 import math
 import os
 import sys
@@ -43,37 +41,17 @@ from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from parts import mesh_part  # noqa: E402
+from skin_pins import pinned  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-PINS = HERE / "skins"
 # Triangles per tier for the shell, about what a lofted airframe spends.
 TRIS = (26000, 7000, 1500, 450)
 # The longest edge round a canopy's rim per tier, so its glass meets the skin cleanly.
 RIM_EDGE = (0.08, 0.16, 0.4, 1.0)
 # An intake mouth's grid per tier (across, up); the far tier has none.
 MOUTH_GRID = ((7, 6), (3, 3), (2, 2))
-# Every skin an export wore, path to sha256, for its receipt.
-WORN = {}
-
-
-def pinned(path):
-    """The pin of the skin at `path` (repo-relative), its hash checked."""
-    pins = {p["glb"]: p for f in sorted(PINS.glob("*.json")) for p in json.loads(f.read_text())}
-    pin = pins.get(path)
-    if pin is None:
-        raise ValueError(f"{path} is not pinned in skins/")
-    data = (REPO / path).read_bytes()
-    if data.startswith(b"version https://git-lfs"):
-        raise ValueError(f"{path} is an LFS pointer: pull it first (git lfs pull -I {path})")
-    got = hashlib.sha256(data).hexdigest()
-    if got != pin["sha256"]:
-        raise ValueError(f"{path} has sha256 {got}, pinned {pin['sha256']}")
-    WORN[path] = got
-    return pin
-
-
 def _bounds(bm):
     vs = [v.co for v in bm.verts]
     return (Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs))),

@@ -29,6 +29,20 @@ async function clickUnit(page, unit, button = "left") {
   await page.mouse.click(css[0], css[1], { button });
 }
 
+/** Frame every body of `unit`: a check that counts them must not lose one to
+ *  the edge of the picture when the squad stands spread out. */
+async function frameAll(page, unit) {
+  const bodies = unit.members.length ? unit.members : [unit.position];
+  const centre = [0, 1, 2].map((i) => bodies.reduce((sum, b) => sum + b[i], 0) / bodies.length);
+  const reach = Math.max(...bodies.map((b) => Math.hypot(b[0] - centre[0], b[1] - centre[1])));
+  await page.evaluate(
+    ({ centre, distance }) =>
+      window.__lab.setCamera({ ...window.__lab.camera(), target: centre, distance, pitch: 0.55 }),
+    { centre, distance: 22 + 3 * reach },
+  );
+  await page.evaluate(() => window.__lab.frame());
+}
+
 async function frameOn(page, unit) {
   // The outer body can be far from a spread squad's anchor. Frame the same
   // point we click so that the army HUD cannot intercept its attack click.
@@ -52,7 +66,7 @@ const drawnStandIns = (page) =>
   );
 
 async function checkBlocks(ctx, page, unit, meshHalf, label) {
-  await frameOn(page, unit);
+  await frameAll(page, unit);
   const models = await drawnStandIns(page);
   const picks = await lab(page, () => window.__lab.instances());
   const positions = unit.members.length ? unit.members : [unit.position];
@@ -170,7 +184,7 @@ export async function run(ctx) {
       ["vehicle", vehicle],
       ["squad", squad],
     ]) {
-      await frameOn(page, unit);
+      await frameAll(page, unit);
       remaining.push(...(await drawnStandIns(page)));
       const models = await lab(page, () => window.__lab.route.drawnModels());
       const positions = unit.members.length ? unit.members : [unit.position];

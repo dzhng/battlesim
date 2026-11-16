@@ -274,6 +274,193 @@
       "licence": "CC-BY-SA-4.0",
       "sha256": "6dd8e6e5b33fe816babc4c4b0cbb273dbe83b33b68273f5b32ac326fadc17180",
       "note": "AK-12 6P70 (2016) in a digital camouflage finish, three-quarter: adjustable stock, collimator on the dust-cover rail, slotted handguard, muzzle device."
+    },
+    {
+      "file": "french_cce-three_quarter_front.jpg",
+      "variant": "french_cce",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015931).jpg",
+      "author": "U.S. Army Reserve photo by Michel Sauret",
+      "licence": "public-domain",
+      "sha256": "d2862309352e28d56781104026985555623f819ce7277c0d3949974a0323c1c7",
+      "note": "French infantryman (92e RI, Saber Junction 23, Sept. 2023) standing beside a VBCI, front-left quarter, full body: CCE uniform, coyote plate carrier with chest pouches and name tape, helmet hidden under a scrim of burlap, HK416 F with optic held low, brown boots."
+    },
+    {
+      "file": "french_cce-three_quarter_front-2.jpg",
+      "variant": "french_cce",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:92e_régiment_d’infanterie_at_JMRC_(8009910).jpg",
+      "author": "U.S. Army photo by Sgt. Christian Aquino",
+      "licence": "public-domain",
+      "sha256": "8dcc7eee59ddd922f91b8dfffce5c9431e0c586af8c6ee5e4c19756b65a05d33",
+      "note": "French squad (92e RI, Saber Junction 23, Sept. 2023) walking in file, front quarter, full body: CCE uniforms, coyote plate carriers with pouches, helmets dressed in burlap scrim, HK416 F rifles, flag patches; sunny, small figures."
+    },
+    {
+      "file": "french_cce-front.jpg",
+      "variant": "french_cce",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015944).jpg",
+      "author": "U.S. Army Reserve photo by Michel Sauret",
+      "licence": "public-domain",
+      "sha256": "22a2292bb30fdf88db58ccdc7587ec55e8222b34419eb74e38d6b75552e22d9e",
+      "note": "Three French soldiers (92e RI, Sept. 2023) standing, front, knees up: CCE uniforms; F3-type helmets, one bare coyote with NVG shroud and rails, two covered or scrimmed; coyote modular plate carriers with magazine and utility pouches; HK416 F rifles with training markers."
+    },
+    {
+      "file": "french_cce-side.jpg",
+      "variant": "french_cce",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015938).jpg",
+      "author": "U.S. Army Reserve photo by Michel Sauret",
+      "licence": "public-domain",
+      "sha256": "86f86fbdcbd64169093447d6379115809aae03244d53f9833c34488fba6524f5",
+      "note": "French sergeant (92e RI, Sept. 2023) moving, near left profile, upper body only: covered F3 helmet showing its side rail and chinstrap, coyote plate carrier shoulder and side pouches, CCE sleeve with flag and rank patches, HK416 F carried."
+    },
+    {
+      "file": "french_cce-three_quarter_rear.jpg",
+      "variant": "french_cce",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015935).jpg",
+      "author": "U.S. Army Reserve photo by Michel Sauret",
+      "licence": "public-domain",
+      "sha256": "a51ed44fb9a92c0fa087a577106d7bbd45570b0080fa5f9276a832aa87049e6b",
+      "note": "French soldier (92e RI, Sept. 2023) running, from behind and left, full body: back panel of the coyote plate carrier (laser-cut slots), dump pouch and belt, CCE trousers, covered helmet with scrim; VBCI behind."
+    },
+    {
+      "file": "french_cce-detail.jpg",
+      "variant": "french_cce",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015943).jpg",
+      "author": "U.S. Army Reserve photo by Michel Sauret",
+      "licence": "public-domain",
+      "sha256": "f9302c607c1f77f425cfcc835b8b372d76cbeeb0e8336bbbd66321f05a92d470",
+      "note": "French soldier (92e RI, Sept. 2023) portrait, front, waist up: F3 helmet with scrimmed cover and NVG shroud, headset, mesh face scarf, coyote plate carrier front, CCE jacket, HK416 F-C with holographic sight held across the chest."
+    },
+    {
+      "file": "pla_type21-three_quarter_rear.jpg",
+      "variant": "pla_type21",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PLASHOOTER2021̠closeup01.jpg",
+      "author": "Ministry of Defence of the Russian Federation (mil.ru)",
+      "licence": "CC-BY-4.0",
+      "sha256": "ac6dddaf330d3c79347842923d592709dc8d5469c197cc5178a979333d5bc93b",
+      "note": "PLA soldier aiming at the 2021 International Army Games (frame from a mil.ru video), from behind and right, waist up: Xingkong woodland uniform (Type 19/21 cut not settled by the photo), Xingkong plate carrier with laser-cut panels and belt pouches, high-cut helmet with Xingkong cover, rails and headset (model not identified), QBZ-191 with optic."
+    },
+    {
+      "file": "pla_type21-side.jpg",
+      "variant": "pla_type21",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PLA-TACSHOOTER2021.png",
+      "author": "Ministry of Defence of the Russian Federation (mil.ru)",
+      "licence": "CC-BY-4.0",
+      "sha256": "3b113a630e6b9ca657259353bdd40d453b3762a9ff4c521a6f7fcd2fa6b6388e",
+      "note": "PLA soldier aiming round a post at the 2021 International Army Games (cropped from a mil.ru video), near left profile from slightly behind, knees up: Xingkong woodland uniform, Xingkong plate carrier side and back, leg pouch and holster, covered high-cut helmet with headset, QBZ-191 with optic. Converted from PNG."
+    },
+    {
+      "file": "pla_type21-detail.jpg",
+      "variant": "pla_type21",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PLASHOOTER2021̠closeup02.jpg",
+      "author": "Ministry of Defence of the Russian Federation (mil.ru)",
+      "licence": "CC-BY-4.0",
+      "sha256": "50f9db06c7bc486505bf0b95d62ac467b82f0b38ee54c07d7d41c71d357cee50",
+      "note": "PLA soldier aiming (2021 International Army Games, mil.ru video frame), close-up from the right: Xingkong helmet cover over a high-cut shell with side rails and headset, Xingkong sleeve with arm patch and pocket, QBZ-191 with magnified optic."
+    },
+    {
+      "file": "pla_type21-detail-2.jpg",
+      "variant": "pla_type21",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Xingkong_Starry_Sky_Jungle_Type_19_compared_to_Type_21_blouse.png",
+      "author": "Tahazu",
+      "licence": "CC0-1.0",
+      "sha256": "b44bda6da36a251abd376122b12c308ff0334e11b3393219578f4cb26eddedd4",
+      "note": "Type 21 (left) and Type 19 (right) field blouses in Xingkong jungle (woodland) camouflage, flat lay, front: pattern colours and scale, pocket and collar cut. Converted from PNG on white."
+    },
+    {
+      "file": "pla_type21-detail-3.jpg",
+      "variant": "pla_type21",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Xingkong_Starry_Sky_Jungle_Type_19_compared_to_Type_21_trousers.png",
+      "author": "Tahazu",
+      "licence": "CC0-1.0",
+      "sha256": "47e15df527d383774f6d1246c1242b00428ea0f92ba3a1e72914e065dd8cb358",
+      "note": "Type 21 (left) and Type 19 (right) trousers in Xingkong jungle (woodland) camouflage, flat lay, front: cargo pockets and knee shaping. Converted from PNG on white."
+    },
+    {
+      "file": "qbz191-side.jpg",
+      "variant": "qbz191",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:QBZ191zhuhai_(cropped).jpg",
+      "author": "Dan3031949",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "e6d8da527fba8758ed6c49daaed29323c39309ea079c82a1ca22064617a0ef6e",
+      "note": "QBZ-191 at the 2021 China Airshow on a display stand, right side: grey polymer folding and telescoping stock, flat-top receiver rail, ribbed handguard, curved polymer magazine, flip sights, muzzle device."
+    },
+    {
+      "file": "qbz191-side-2.jpg",
+      "variant": "qbz191",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:QBZ191_20250921.jpg",
+      "author": "颐园居",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "bb3f26c8f561de4ed459194ae21bd0a039fd6e4ebbe9d9652a4fbcecefaf11e3",
+      "note": "QBZ-191 (2025) on a display table, left side from slightly in front: black finish, magnified optic on the receiver rail, folding stock, curved magazine, long barrel and brake."
+    },
+    {
+      "file": "qbz191-detail.jpg",
+      "variant": "qbz191",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:QBZ-191_laser_dry_fire.jpg",
+      "author": "u/Key-Needleworker-702 on reddit",
+      "licence": "CC-BY-4.0",
+      "sha256": "fb213f4ca653af77962de803f9de656b6faad7ed9f43cff7dcadc975bfbdd121",
+      "note": "QBZ-191 of the PLA Hong Kong Garrison held in hand at the 2026 open day, right side: laser dry-fire unit on the front rail, black receiver and handguard, stock folded out; Xingkong trousers behind."
+    },
+    {
+      "file": "hk416f-side.jpg",
+      "variant": "hk416f",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:HK416.jpg",
+      "author": "Dybdal.",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "79e0a575c8d5e0c3c1c18f33798c9814688955e3c06601d6bcc437ab860e33b6",
+      "note": "HK416N (Norwegian Army, 2008) on white, right side: the HK416 receiver, free-float rail, collapsible stock and steel magazine the HK416 F shares; stand-in, the F has ambidextrous A5 controls and a 14.5 in barrel; red dot and vertical grip here are Norwegian fit."
+    },
+    {
+      "file": "hk416f-side-2.jpg",
+      "variant": "hk416f",
+      "view": "side",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:Hk-416.png",
+      "author": "Anynobody",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "56e6d62a4d1d574eede8a84a12ec9a9ba3afd9e5183f7b62a7a0d3749a0a7484",
+      "note": "Drawing of the HK416, both sides, short and medium barrels: receiver, rail, stock and magazine profile; not the F's A5 lower. Converted from PNG on white."
+    },
+    {
+      "file": "hk416f-detail.jpg",
+      "variant": "hk416f",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015943).jpg",
+      "author": "U.S. Army Reserve photo by Michel Sauret",
+      "licence": "public-domain",
+      "sha256": "f9302c607c1f77f425cfcc835b8b372d76cbeeb0e8336bbbd66321f05a92d470",
+      "note": "French soldier holding an HK416 F-C across the chest (Saber Junction 23, Sept. 2023): ambidextrous A5 lower, rail handguard, holographic sight, HK stock; same photo as french_cce-detail.jpg."
     }
   ],
   "gaps": [
@@ -281,6 +468,9 @@
     "us_army_ocp: no top view (none expected for infantry).",
     "eastern_emr: no side profile or field photo from behind in Ratnik kit; the three-quarter rear is a 2014 parade rehearsal with older helmets and vests on some soldiers.",
     "both: team weapons (machine gun, AT launcher) deployed and carried are not covered in this pass.",
-    "german_flecktarn: shared with europe_recon_patrol_light_patrol; no straight rear of a standing soldier; the side view is a 2026 open day, whose coyote carrier differs from the Flecktarn carriers of the other photos (the look takes Flecktarn)."
+    "german_flecktarn: shared with europe_recon_patrol_light_patrol; no straight rear of a standing soldier; the side view is a 2026 open day, whose coyote carrier differs from the Flecktarn carriers of the other photos (the look takes Flecktarn).",
+    "french_cce: Saber Junction 23 (Sept. 2023, 92e RI) photos only; no straight rear; the side view is upper body; helmets are mostly scrimmed or covered, and only one bare F3-type helmet shows its shell (front).",
+    "pla_type21: no licensable front or three-quarter front of a PLA soldier in Xingkong woodland with helmet and carrier; the field photos are 2021 Army Games video frames from the side and behind, and whether the uniform is the Type 19 or Type 21 cut is not settled by them; the flat lays give the Type 21 cut and pattern. The helmet in them is a covered high-cut shell, not confirmed as a QGF-11.",
+    "hk416f: no licensable clean side photo of the HK416 F itself (Commons' French Army photos are Licence Ouverte, which the library does not allow); an HK416N photo and an HK416 drawing stand in, and the French portrait shows the F-C from the front."
   ]
 }

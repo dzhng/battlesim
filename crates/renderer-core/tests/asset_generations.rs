@@ -13,6 +13,9 @@ mod rest_poses;
 #[path = "asset_generations/bodies.rs"]
 mod bodies;
 
+#[path = "asset_generations/stepping.rs"]
+mod stepping;
+
 use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};

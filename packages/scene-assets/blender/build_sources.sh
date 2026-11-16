@@ -18,8 +18,11 @@ blender() {
     return "$status"
   fi
 }
-# the test units' art (fixtures/units/test), never game content
-for variant in a b c; do blender infantry_kit.py at_carried "$variant"; done
+# the test units' art (fixtures/units/test), never game content; the soldiers
+# first, since the jeep's crew wear the test rifleman
+for kind in rifle recon at at_carried; do
+  for look in a b c; do blender infantry_kit.py "$kind" "$look"; done
+done
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck
 blender tank.py "$v/tank_wreck_hull.glb" --wreck --piece=hull

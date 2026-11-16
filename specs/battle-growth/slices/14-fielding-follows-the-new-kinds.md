@@ -47,6 +47,13 @@ that kind alone, counted the way `AdmissionWork` counts the rest; the fielded
 battle it yields equals a cold resolve of both kinds (the existing test's
 oracle).
 
+## Outcome
+
+Built with the first candidate, and more: the sections stay in Rust behind a
+handle, and assembly is incremental too, because confirm-first found it grew
+with every fielded kind. The final fielding step is under 1 ms. See the
+ledger, "Slice 14 as merged".
+
 ## Feedback that would change this slice
 
 The page turns out to read most of the sections. Then the delta is the only

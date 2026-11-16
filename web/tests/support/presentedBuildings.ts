@@ -74,7 +74,7 @@ export function presentBuildings(
       sun_elevation: sun?.elevation ?? 1,
       buildings: style,
     },
-    new Map(),
+    undefined,
     { placed, art, partBuilding: knowledge?.partBuilding, shells: knowledge?.shells },
   );
   if (sun) {

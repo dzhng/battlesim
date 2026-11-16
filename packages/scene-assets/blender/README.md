@@ -21,19 +21,46 @@ subject-owned default, so inspect its usage before replacing committed art.
 ## Source families and dependencies
 
 [Infantry clip export](clips_infantry.py) builds a hold family's animation library;
-[infantry kit export](infantry_kit.py) builds bodies and equipment using that rig.
-Each roster kit ([roster equipment](roster/infantry_equipment.py) `KITS`) names its
-weapon and the armies it is built in (`ARMIES`, named as its reference variants):
-each army's uniform print ([`textures.py`](textures.py) `UNIFORMS`), helmet,
-carrier and rifle on the same rig. A kit's first army is its default look; the
-others are the appearance's faction looks.
+[soldier assembly](infantry_kit.py) puts a generated body, gloves, weapon and
+sockets on that rig and exports the soldier, for the roster and for the test
+soldiers alike. Each roster kit ([the infantry roster](infantry_roster.py) `KITS`) names its
+weapon and the armies it is built in. An army is data
+([`roster/armies.json`](roster/armies.json)), named as its reference variant:
+its rifle, light machine gun, gloves, webbing, cloth colour and the
+prompts its generated bodies are made from. A kit's first army is its default
+look and writes `<mode>_<look>.glb`; every other army writes
+`<army>_<mode>_<look>.glb`.
+
+Every soldier wears a generated body ([`generated_body.py`](generated_body.py)):
+an image-to-3D generator's T-pose soldier, with its clothing, kit and head in
+one mesh. Each is paid for once and pinned in
+[`skins/infantry.json`](skins/infantry.json) by army, look and kind (read, like
+every skin pin, through [`skin_pins.py`](skin_pins.py)), with its hash,
+request, inputs and terms, and its files live in
+`assets/source/skins/infantry/`. A look with no pin is an export error that
+names the body's key and the commands that make it. The generation tool
+([`../tools/skin-generate.mjs`](../tools/skin-generate.mjs)) draws its input
+image from a prompt composed from `armies.json`, generates candidates, pins the
+chosen one with that prompt (so `status` shows a pin gone stale), and logs every
+paid call in [`skins/calls.jsonl`](skins/calls.jsonl): a request is resumed,
+never paid twice, and every candidate is kept. The body is fitted to the rig's
+rest pose, its limbs seated on their bones, and its weights taken from the
+rig's own body. Our gloves replace its hands. It keeps the generator's texture,
+regraded to the army's cloth colour, as an atlas (`textures.ATLASES`).
+Everything else is built here: the weapon, the sockets, AO, the tiers and the
+export. A test soldier wears a roster army's body (`TEST_BODIES`) with its test
+weapon and hold.
+
 Clips and meshes must retain the shared skeleton contract: regenerating one does
-not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
+not regenerate the other. The skeleton is the Quaternius rig's 65 joints plus
+`sling`, a child of `spine_03`: a slung launcher rides it on the back, and the
+death clips lay it on the ground beside the body. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
 
-Visible vehicle crew ([crew module](vehicle_crew.py)) reuse their faction's
-exported soldier art in fixed operating poses, from the soldier's tier 1 down
-and without the weapon. They belong to the vehicle's appearance and mount
+Visible vehicle crew ([crew module](vehicle_crew.py)) reuse the exported
+soldier art of the army their family names (`run(..., crew_army=...)`, that
+army's crew kit in [`armies.json`](roster/armies.json)) in fixed operating
+poses, from the soldier's tier 1 down and without the weapon. They belong to the vehicle's appearance and mount
 hierarchy, rather than adding simulation soldiers. Re-export their vehicles
 after changing the infantry source; the crew exporter preserves that source's
 exact textures and material masks on the crew's own materials only.
@@ -117,8 +144,8 @@ its references and kept in `guides/<family>.py` (exported with `--out`
 and `--no-lint`: the shipped model is untouched, and a guide carries none of
 its fittings), draw its guide views
 ([`skin_views.py`](skin_views.py)), generate and pin
-the skin from them ([`../tools/skin-generate.mjs`](../tools/skin-generate.mjs),
-paid, with `FAL_KEY`), measure it against that model
+the skin from them ([`../tools/skin-generate.mjs`](../tools/skin-generate.mjs)
+`airframe`, paid through Bento), measure it against that model
 ([`skin_register.py`](skin_register.py)) for the `lower` and `span` the
 family's spec gives `skin`, and check it on its sheet. A rotorcraft's frame leaves
 its blades out (`blade_*`): length nose to tail, width over the widest fixed

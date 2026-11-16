@@ -17,6 +17,13 @@ the step left. Its first question is answered; the second (does each cost
 divide by content) is still to take, on the tree with slice 13 in it. The
 numbers below are from before slice 13.
 
+## Outcome
+
+Built, with one change to the contract below: not one content a frame but a
+work budget a frame (24 ms), so small arrivals are not spread thin. An RPG
+team's longest frame is about 95 ms (it was about 215) with the stand-in on
+screen no longer than before. See the ledger, "Slice 12 as merged".
+
 ## What happens today
 
 Every count is already the new art's alone, and the frame is still long

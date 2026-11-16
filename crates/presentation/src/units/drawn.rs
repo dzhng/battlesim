@@ -21,7 +21,7 @@ use crate::seed::side_key;
 use crate::world::{Appearance, Trs, UnitsSection, Vec3};
 
 /// Each skinned body's dense clip table (raw f32 samples), by table name.
-pub type ClipTables = HashMap<String, Vec<f32>>;
+pub type ClipTables = HashMap<String, Arc<Vec<f32>>>;
 
 /// A model-space point placed at `position`, turned by `yaw` about +Z.
 fn placed(position: Vec3, yaw: f64, x: f64, y: f64, z: f64) -> Vec3 {
@@ -74,7 +74,7 @@ pub fn soldier_muzzle(
         table,
         muzzle: Some(muzzle),
         ..
-    } = units.appearances.get(name)?
+    } = units.appearances.get(name).map(AsRef::as_ref)?
     else {
         return None;
     };
@@ -104,7 +104,9 @@ pub fn vehicle_muzzle<'a>(
     worlds: &mut Vec<Mat4>,
 ) -> Option<(&'a str, Vec3)> {
     let name = units.resolve(&v.kind, &v.side, v.unit, 0, None, None)?;
-    let Appearance::Articulated { nodes, rig, .. } = units.appearances.get(name)? else {
+    let Appearance::Articulated { nodes, rig, .. } =
+        units.appearances.get(name).map(AsRef::as_ref)?
+    else {
         return None;
     };
     let role = units.types.get(&*v.kind)?.roles.get(mount)?;
@@ -214,7 +216,8 @@ impl DrawnModels {
             let Some(name) = self.units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
                 continue;
             };
-            let Some(Appearance::Articulated { nodes, rig, .. }) = self.units.appearances.get(name)
+            let Some(Appearance::Articulated { nodes, rig, .. }) =
+                self.units.appearances.get(name).map(AsRef::as_ref)
             else {
                 continue;
             };
@@ -284,7 +287,8 @@ impl DrawnModels {
             ) else {
                 continue;
             };
-            let Some(Appearance::Articulated { nodes, .. }) = self.units.appearances.get(name)
+            let Some(Appearance::Articulated { nodes, .. }) =
+                self.units.appearances.get(name).map(AsRef::as_ref)
             else {
                 continue;
             };

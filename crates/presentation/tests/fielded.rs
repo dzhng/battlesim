@@ -41,7 +41,7 @@ fn a_battle_reads_only_the_contents_it_names() {
         .unwrap();
     // Exactly what was named is read: nothing more, and nothing named in vain.
     assert_eq!(read.into_inner(), named);
-    let typed = sections.typed().unwrap();
+    let typed = sections;
     assert!(!typed.units.appearances.is_empty() && !typed.tables.is_empty());
 }
 
@@ -73,7 +73,7 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         .into_iter()
         .collect();
     let first_read = RefCell::new(BTreeSet::new());
-    first_fielding
+    let first_result = first_fielding
         .resolve(&mut facts, &|hash| {
             first_read.borrow_mut().insert(hash.to_owned());
             runtime.read(hash, "bundle.bin").map(Into::into)
@@ -103,6 +103,31 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         })
         .unwrap();
     assert_eq!(second_read.into_inner(), second_named);
+    for (name, appearance) in &first_result.units.appearances {
+        assert!(
+            std::sync::Arc::ptr_eq(appearance, &incremental.units.appearances[name]),
+            "existing appearance {name} stays shared"
+        );
+    }
+    assert!(std::sync::Arc::ptr_eq(
+        &first_result.units.types[&first[0]],
+        &incremental.units.types[&first[0]]
+    ));
+    assert_eq!(
+        incremental.work.appearances,
+        incremental
+            .units
+            .appearances
+            .keys()
+            .filter(|n| !first_result.units.appearances.contains_key(*n))
+            .count()
+    );
+
+    assert_eq!(
+        incremental.work.kinds,
+        both.len() - first.len(),
+        "only the added kind is assembled"
+    );
 
     let third_named = second_fielding.contents(&facts).unwrap();
     assert!(third_named.is_empty());
@@ -125,12 +150,40 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap();
-    assert_eq!(incremental.units, cold.units);
-    assert_eq!(incremental.effects, cold.effects);
+    assert_eq!(
+        serde_json::to_value(&incremental.units).unwrap(),
+        serde_json::to_value(&cold.units).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&incremental.effects).unwrap(),
+        serde_json::to_value(&cold.effects).unwrap()
+    );
     assert_eq!(incremental.tables, cold.tables);
-    assert_eq!(third.units, cold.units);
-    assert_eq!(third.effects, cold.effects);
+    assert_eq!(
+        serde_json::to_value(&third.units).unwrap(),
+        serde_json::to_value(&cold.units).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&third.effects).unwrap(),
+        serde_json::to_value(&cold.effects).unwrap()
+    );
     assert_eq!(third.tables, cold.tables);
+    let narrowed = first_fielding
+        .resolve(&mut facts, &|hash| panic!("cached kind read {hash}"))
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(&narrowed).unwrap(),
+        serde_json::to_value(&first_result).unwrap()
+    );
+    assert_eq!(narrowed.work.kinds, 0);
+    assert_eq!(narrowed.work.appearances, 0);
+    assert_eq!(third.work.kinds, 0);
+    assert_eq!(third.work.appearances, 0);
+    assert_eq!(
+        first_result.units.types[&both[1]].draws["blue"].hull.len(),
+        0,
+        "the earlier snapshot keeps its unfielded type"
+    );
 }
 
 #[test]
@@ -201,7 +254,7 @@ fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
     .resolve(&mut Facts::default(), &|_| {
         Err("unexpected bundle read".into())
     });
-    let error = result.err().expect("the missing gauge is refused");
+    let error = result.expect_err("the missing gauge is refused");
     assert!(
         error.contains(faction_appearance) && error.contains("track_gauge"),
         "{error}"
@@ -245,8 +298,6 @@ fn each_factions_gauge_drives_its_own_track_travel() {
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
-    .typed()
-    .unwrap()
     .units;
     let mut driver = PoseDriver::new(&units).unwrap();
     for yaw in [0.0, 0.5] {
@@ -283,4 +334,54 @@ fn each_factions_gauge_drives_its_own_track_travel() {
             pose.side
         );
     }
+}
+
+#[test]
+fn fielding_absorbs_one_content_then_resolves_without_reading_and_matches_cold() {
+    use presentation::assets::Runtime;
+    use presentation::fielded::{Facts, Fielding};
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let rules = sim::fixtures::test_rules();
+    let typed: contract::scenario::Rules = serde_json::from_value(rules.clone()).unwrap();
+    let catalog = typed.catalog.view();
+    let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
+    let settings =
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/presentation.json")).unwrap())
+            .unwrap();
+    let kinds = vec!["test_rifle".into(), "test_tank".into()];
+    let fielding = Fielding {
+        presentation: &settings,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &runtime.catalog,
+        kinds: &kinds,
+        factions: None,
+    };
+    let read = |hash: &str| runtime.read(hash, "bundle.bin").map(Into::into);
+    let cold = fielding.resolve(&mut Facts::default(), &read).unwrap();
+    let mut facts = Facts::default();
+    let pending = fielding.pending(&facts).unwrap();
+    assert!(pending.len() > 1, "fixture must need multiple contents");
+    for (index, content) in pending.iter().enumerate() {
+        fielding.absorb(&mut facts, content, &read).unwrap();
+        assert_eq!(
+            fielding.pending(&facts).unwrap().len(),
+            pending.len() - index - 1,
+            "one supplied content is absorbed without consuming the rest"
+        );
+    }
+    let warm = fielding
+        .resolve(&mut facts, &|hash| {
+            panic!("cached resolve must not read {hash}")
+        })
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(&warm.units).unwrap(),
+        serde_json::to_value(&cold.units).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&warm.effects).unwrap(),
+        serde_json::to_value(&cold.effects).unwrap()
+    );
+    assert_eq!(warm.tables, cold.tables);
 }

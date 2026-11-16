@@ -2,6 +2,7 @@
   "tolerances": {
     "ground_m": 0.01,
     "soldier_height_m": 0.05,
+    "soldier_lying_height_m": 0.6,
     "eye_m": 0.12,
     "muzzle_m": 0.1,
     "hull_extent_m": 0.1,
@@ -119,7 +120,8 @@
       "sample_hz": 30,
       "aim_reference": {
         "clip": "stand_aim",
-        "phase": 0
+        "phase": 0,
+        "sight_over_bore_m": 0.05
       },
       "clips": {
         "idle": {
@@ -4671,36 +4673,6 @@
         "phase": 0
       }
     },
-    "europe_atgm_team_akeron_mp_guard_a": {
-      "unit": "soldier",
-      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_a.glb",
-      "basis_yaw_deg": 90,
-      "skeleton": "quaternius-ubc-rifle",
-      "far_pose": {
-        "clip": "idle",
-        "phase": 0
-      }
-    },
-    "europe_atgm_team_akeron_mp_guard_b": {
-      "unit": "soldier",
-      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_b.glb",
-      "basis_yaw_deg": 90,
-      "skeleton": "quaternius-ubc-rifle",
-      "far_pose": {
-        "clip": "idle",
-        "phase": 0
-      }
-    },
-    "europe_atgm_team_akeron_mp_guard_c": {
-      "unit": "soldier",
-      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_c.glb",
-      "basis_yaw_deg": 90,
-      "skeleton": "quaternius-ubc-rifle",
-      "far_pose": {
-        "clip": "idle",
-        "phase": 0
-      }
-    },
     "fgm_148_javelin_team_active_a": {
       "unit": "soldier",
       "source": "assets/source/roster/infantry/fgm_148_javelin_team/active_a.glb",
@@ -4790,7 +4762,7 @@
     },
     "fgm_148_javelin_team_europe_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_active_a.glb",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/french_cce_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -4803,7 +4775,7 @@
     },
     "fgm_148_javelin_team_europe_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_active_b.glb",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/french_cce_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -4816,7 +4788,7 @@
     },
     "fgm_148_javelin_team_europe_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_active_c.glb",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/french_cce_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -4829,7 +4801,7 @@
     },
     "fgm_148_javelin_team_europe_carried_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_carried_a.glb",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/french_cce_carried_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -4839,7 +4811,7 @@
     },
     "fgm_148_javelin_team_europe_carried_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_carried_b.glb",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/french_cce_carried_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -4849,7 +4821,7 @@
     },
     "fgm_148_javelin_team_europe_carried_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_carried_c.glb",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/french_cce_carried_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -4867,7 +4839,7 @@
         "phase": 0
       },
       "factions": {
-        "europe": "europe_recon_patrol_light_patrol_active_a"
+        "europe": "rifle_squad_french_active_a"
       }
     },
     "fgm_148_javelin_team_guard_b": {
@@ -4880,7 +4852,7 @@
         "phase": 0
       },
       "factions": {
-        "europe": "europe_recon_patrol_light_patrol_active_b"
+        "europe": "rifle_squad_french_active_b"
       }
     },
     "fgm_148_javelin_team_guard_c": {
@@ -4893,7 +4865,7 @@
         "phase": 0
       },
       "factions": {
-        "europe": "europe_recon_patrol_light_patrol_active_c"
+        "europe": "rifle_squad_french_active_c"
       }
     },
     "us_force_recon_recon_patrol_active_a": {
@@ -5031,7 +5003,7 @@
     },
     "assault_squad_eastern_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/assault_squad/eastern_active_a.glb",
+      "source": "assets/source/roster/infantry/assault_squad/eastern_emr_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5054,7 +5026,7 @@
     },
     "assault_squad_eastern_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/assault_squad/eastern_active_b.glb",
+      "source": "assets/source/roster/infantry/assault_squad/eastern_emr_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5077,7 +5049,7 @@
     },
     "assault_squad_eastern_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/assault_squad/eastern_active_c.glb",
+      "source": "assets/source/roster/infantry/assault_squad/eastern_emr_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5101,7 +5073,7 @@
     },
     "rifle_squad_eastern_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/rifle_squad/eastern_active_a.glb",
+      "source": "assets/source/roster/infantry/rifle_squad/eastern_emr_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5111,7 +5083,27 @@
     },
     "rifle_squad_europe_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/rifle_squad/europe_active_a.glb",
+      "source": "assets/source/roster/infantry/rifle_squad/german_flecktarn_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "rifle_squad_pla_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/pla_type21_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "rifle_squad_french_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/french_cce_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5135,7 +5127,7 @@
     },
     "rifle_squad_eastern_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/rifle_squad/eastern_active_b.glb",
+      "source": "assets/source/roster/infantry/rifle_squad/eastern_emr_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5145,7 +5137,27 @@
     },
     "rifle_squad_europe_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/rifle_squad/europe_active_b.glb",
+      "source": "assets/source/roster/infantry/rifle_squad/german_flecktarn_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "rifle_squad_pla_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/pla_type21_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "rifle_squad_french_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/french_cce_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5169,7 +5181,7 @@
     },
     "rifle_squad_eastern_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/rifle_squad/eastern_active_c.glb",
+      "source": "assets/source/roster/infantry/rifle_squad/eastern_emr_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5179,7 +5191,27 @@
     },
     "rifle_squad_europe_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/rifle_squad/europe_active_c.glb",
+      "source": "assets/source/roster/infantry/rifle_squad/german_flecktarn_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "rifle_squad_pla_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/pla_type21_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "rifle_squad_french_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/french_cce_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5267,7 +5299,7 @@
     },
     "machine_gunner_eastern_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_a.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_emr_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5281,7 +5313,7 @@
     },
     "machine_gunner_europe_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/machine_gunner/europe_active_a.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/german_flecktarn_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5361,7 +5393,7 @@
     },
     "fim_92_stinger_team_europe_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_a.glb",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/german_flecktarn_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -5429,7 +5461,7 @@
     },
     "fim_92_stinger_team_europe_carried_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_a.glb",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/german_flecktarn_carried_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5489,7 +5521,7 @@
     },
     "machine_gunner_eastern_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_b.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_emr_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5503,7 +5535,7 @@
     },
     "machine_gunner_europe_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/machine_gunner/europe_active_b.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/german_flecktarn_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5583,7 +5615,7 @@
     },
     "fim_92_stinger_team_europe_active_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_b.glb",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/german_flecktarn_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -5651,7 +5683,7 @@
     },
     "fim_92_stinger_team_europe_carried_b": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_b.glb",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/german_flecktarn_carried_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5711,7 +5743,7 @@
     },
     "machine_gunner_eastern_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_c.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_emr_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5725,7 +5757,7 @@
     },
     "machine_gunner_europe_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/machine_gunner/europe_active_c.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/german_flecktarn_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5805,7 +5837,7 @@
     },
     "fim_92_stinger_team_europe_active_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_c.glb",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/german_flecktarn_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -5873,7 +5905,7 @@
     },
     "fim_92_stinger_team_europe_carried_c": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_c.glb",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/german_flecktarn_carried_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {

@@ -26,6 +26,7 @@ the material's extras, and gives a cutout or blended material its glTF alpha
 mode. Everything here is numpy on fixed seeds and zlib at a fixed level: the
 same recipe writes the same bytes.
 """
+import hashlib
 import json
 import math
 import struct
@@ -532,120 +533,6 @@ def burnt_metal():
     return Baked(col, chips(613, 12, bias=0.1), normals_from_height(blur(h), 1.0), 1.0 - 0.3 * pits, 0.93)
 
 
-def _camo_print(blobs, seed, scale_cells):
-    """A printed multi-colour camouflage: layered, warped blobs with crisp edges."""
-    col = np.broadcast_to(np.array(blobs[0]), (SIZE, SIZE, 3)).copy()
-    for k, (colour, level) in enumerate(blobs[1:]):
-        f = warp(fbm(scale_cells, seed + k * 13, 5), 4, seed + k * 13 + 1, cells=12)
-        col = mix(col, colour, smoothstep(level - 0.004, level + 0.004, f))
-    return col
-
-
-@recipe("multicam_ripstop", tile=0.42, wear=(0.075, 0.058, 0.04, 1.0))
-def multicam_ripstop():
-    """Printed multi-terrain camouflage on nylon-cotton ripstop: khaki ground,
-    green and brown blotches, light flecks, dark branches; the ripstop grid,
-    faded print and seam folds in the normal."""
-    col = _camo_print([(0.14, 0.133, 0.092), ((0.2, 0.188, 0.14), 0.72), ((0.066, 0.086, 0.046), 0.52),
-                       ((0.105, 0.075, 0.047), 0.6), ((0.042, 0.034, 0.026), 0.68)], 701, 7)
-    branch = np.abs(warp(fbm(6, 711, 4), 8, 712) - 0.5)
-    col = mix(col, (0.05, 0.045, 0.034), smoothstep(0.02, 0.01, branch) * 0.5)
-    return _ripstop(col, 713)
-
-
-def _ripstop(col, seed):
-    """Finish a printed camouflage as nylon-cotton ripstop: faded print, the
-    ripstop grid, weave and seam folds in the normal. -> Baked."""
-    fade = fbm(4, seed, 4)
-    col = col * (0.9 + 0.2 * fade)[..., None]
-    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float)
-    grid = np.maximum(smoothstep(0.8, 1.0, np.cos(xx / SIZE * 64 * math.pi * 2)),
-                      smoothstep(0.8, 1.0, np.cos(yy / SIZE * 64 * math.pi * 2)))
-    w = weave(128, seed + 2, 0.4)
-    h = w * 0.08 + grid * 0.1 + folds(seed + 4, 2) * 2.5
-    col = col * (0.97 + 0.05 * grid)[..., None]
-    # cloth is matte: its folds and weave occlude the sky, so it takes little sheen
-    return Baked(col, 0.25 + 0.75 * fbm(8, seed + 6, 4), normals_from_height(h, 1.0), 0.72 + 0.1 * folds(seed + 4, 2), 0.97)
-
-
-# An army's uniform print (`UNIFORMS`): the recipe its uniform, carrier,
-# pouches and helmet cover are printed in. Prints stay in the dark,
-# desaturated range the battle's sun needs, and each reads by its mean at
-# battle distance: OCP sandy khaki (it matches the US tan vehicles), MARPAT
-# woodland green-brown, Flecktarn yellow-green, EMR grey-green.
-UNIFORMS = {
-    "us_army_ocp": "ocp_ripstop",
-    "usmc_marpat": "marpat_ripstop",
-    "german_flecktarn": "flecktarn_ripstop",
-    "eastern_emr": "emr_ripstop",
-}
-
-
-def _pixels(block, seed, f_cells, g_cells):
-    """A digital print's two clustered fields, in square pixels `block`
-    texels across: `f` places the main tones, `g` the accents; each pixel
-    jittered so the clusters' edges break up."""
-    cell = lambda x: x[::block, ::block].repeat(block, 0).repeat(block, 1)
-    jitter = cell(np.random.default_rng(seed).random((SIZE, SIZE)))
-    f = cell(fbm(f_cells, seed + 2, 4)) + 0.1 * (jitter - 0.5)
-    g = cell(fbm(g_cells, seed + 4, 3)) + 0.1 * (jitter - 0.5)
-    return f, g
-
-
-@recipe("ocp_ripstop", tile=0.42, wear=(0.2, 0.17, 0.12, 1.0))
-def ocp_ripstop():
-    """US Army OCP (Scorpion W2) on ripstop: a sandy khaki ground under
-    smaller, softer blotches than multicam's of pale sand, olive, brown and a
-    little dark brown, with no branches."""
-    return _ripstop(_camo_print([(0.165, 0.145, 0.1), ((0.235, 0.21, 0.15), 0.68), ((0.08, 0.088, 0.052), 0.6),
-                                 ((0.12, 0.088, 0.055), 0.64), ((0.06, 0.048, 0.034), 0.77)], 2701, 8), 2713)
-
-
-@recipe("emr_ripstop", tile=0.42, wear=(0.15, 0.16, 0.11, 1.0))
-def emr_ripstop():
-    """Russian EMR (Digital Flora) on ripstop: square pixels about 7 mm
-    across, a pale grey-green ground under clustered light-olive, dark-green
-    and brown pixels and a few near-black ones."""
-    f, g = _pixels(4, 2801, 9, 13)  # 64 pixels across the 0.42 m tile
-    tones = np.array(((0.13, 0.14, 0.088), (0.078, 0.098, 0.052), (0.036, 0.052, 0.03), (0.07, 0.052, 0.034),
-                      (0.02, 0.022, 0.017)))
-    tone = np.where(f < 0.42, 0, np.where(f < 0.55, 1, 2))
-    tone = np.where((g > 0.6) & (tone > 0), 3, tone)
-    tone = np.where((g < 0.3) & (f > 0.6), 4, tone)
-    return _ripstop(tones[tone], 2813)
-
-
-@recipe("marpat_ripstop", tile=0.42, wear=(0.17, 0.155, 0.11, 1.0))
-def marpat_ripstop():
-    """USMC MARPAT woodland on ripstop: pixels about 3 mm across, finer than
-    EMR's, in broad clustered blotches of olive green and brown over a
-    khaki ground, with black pixels along the blotches' cores."""
-    f, g = _pixels(2, 2901, 7, 9)
-    tones = np.array(((0.15, 0.135, 0.095), (0.068, 0.082, 0.046), (0.078, 0.056, 0.036), (0.022, 0.022, 0.019)))
-    tone = np.where(f < 0.36, 0, np.where(g < 0.5, 1, 2))
-    tone = np.where((f > 0.66) & (np.abs(g - 0.5) < 0.12), 3, tone)
-    return _ripstop(tones[tone], 2913)
-
-
-@recipe("flecktarn_ripstop", tile=0.42, wear=(0.15, 0.16, 0.1, 1.0))
-def flecktarn_ripstop():
-    """German Flecktarn on ripstop: a pale yellow-green ground under round
-    dots about 1 to 2 cm across, gathered in drifts, of olive, dark green,
-    red-brown and a few black, each colour's drifts placed apart."""
-    col = np.broadcast_to(np.array((0.125, 0.135, 0.078)), (SIZE, SIZE, 3)).copy()
-    for k, (colour, level, cells, radius) in enumerate((
-            ((0.075, 0.088, 0.044), 0.52, 26, 0.44), ((0.032, 0.05, 0.024), 0.56, 30, 0.42),
-            ((0.078, 0.046, 0.028), 0.62, 34, 0.4), ((0.018, 0.018, 0.015), 0.72, 40, 0.34))):
-        seed = 3001 + 11 * k
-        drift = warp(fbm(5, seed, 4), 6, seed + 1)
-        f1, _, ident = worley(cells, seed + 3)
-        chance = np.random.default_rng(seed + 5).random(cells * cells)[ident]
-        size = radius * (0.7 + 0.5 * np.random.default_rng(seed + 7).random(cells * cells)[ident])
-        present = chance < smoothstep(level - 0.12, level + 0.12, drift)
-        col = mix(col, colour, present * smoothstep(size + 0.04, size - 0.04, f1))
-    return _ripstop(col, 3053)
-
-
 @recipe("cordura", tile=0.3, wear=(0.2, 0.18, 0.14, 1.0))
 def cordura():
     """Coarse nylon (plate carrier, pouches, webbing): a neutral light weave the
@@ -684,7 +571,7 @@ def gunmetal():
 
 @recipe("leather", tile=0.25, wear=(0.13, 0.1, 0.07, 1.0))
 def leather():
-    """Boot leather and suede: a neutral light grain the vertex colour tints, creased."""
+    """Leather (the gloves): a neutral light grain the vertex colour tints, creased."""
     f1, f2, _ = worley(48, 901)
     grain = smoothstep(0.0, 0.25, f2 - f1)
     crease = folds(903, 3)
@@ -704,21 +591,9 @@ def polymer():
     return Baked(col, 0.35 + 0.65 * fbm(10, 1005, 4), normals_from_height(stip, 0.8), 1.0, 0.42 + 0.18 * stip)
 
 
-@recipe("skin", tile=0.15, wear=(0.1, 0.08, 0.06, 0.8))
-def skin():
-    """Weathered skin: a neutral light ground the vertex colour tints (face, stubble,
-    lips), blotched warm and cool, with pores and a little oily sheen."""
-    blotch = fbm(6, 1151, 4)
-    pores = smoothstep(0.08, 0.0, worley(64, 1153)[0])
-    col = np.stack([0.8 + 0.06 * blotch, 0.78 - 0.02 * blotch, 0.77 - 0.04 * blotch], -1)
-    col = col * (1.0 - 0.08 * pores)[..., None]
-    h = -pores * 0.6 + fbm(24, 1155, 3) * 0.3
-    return Baked(col, 1.0, normals_from_height(h, 0.8), 1.0, 0.52 + 0.12 * blotch, tint=0.0)
-
-
 @recipe("hard_plastic", tile=0.25, wear=(0.2, 0.18, 0.14, 1.0))
 def hard_plastic():
-    """Knee pads and helmet fittings: moulded plastic, a light texture, scuffed."""
+    """Moulded plastic: a light texture, scuffed."""
     n = fbm(40, 1101, 3)
     col = np.broadcast_to(np.array((0.8, 0.8, 0.8)), (SIZE, SIZE, 3)) * (0.72 + 0.12 * n)[..., None]
     scuff = smoothstep(0.7, 0.9, fbm(20, 1103, 4))
@@ -1506,17 +1381,31 @@ def privet():
 
 
 # ---------------------------------------------------------------- UVs and the GLB
+# Materials that sample their own atlas through the mesh's own UVs rather than a
+# recipe: {material name: {"albedo"|"orm"|"normal": PNG bytes}}. `box_uv`
+# keeps their faces' UVs and `attach` embeds their images.
+ATLASES = {}
+
+
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each
     face projected along its dominant world axis (the rest pose), so every face
-    keeps the recipe's scale on every part and every tier."""
+    keeps the recipe's scale on every part and every tier. A face of an
+    `ATLASES` material keeps the UVs it has."""
     me = obj.data
+    atlas = {i for i, m in enumerate(me.materials) if m is not None and m.name in ATLASES}
+    kept = {li: tuple(me.uv_layers[0].data[li].uv) for poly in me.polygons if poly.material_index in atlas
+            for li in poly.loop_indices} if atlas and me.uv_layers else {}
     while me.uv_layers:
         me.uv_layers.remove(me.uv_layers[0])
     uv = me.uv_layers.new(name="UVMap")
     mw = obj.matrix_world
     nm = mw.to_3x3().inverted_safe().transposed()
     for poly in me.polygons:
+        if poly.material_index in atlas:
+            for li in poly.loop_indices:
+                uv.data[li].uv = kept[li]
+            continue
         size = tile if isinstance(tile, (int, float)) else tile.get(poly.material_index, 1.0)
         n = nm @ poly.normal
         ax = max(range(3), key=lambda i: abs(n[i]))
@@ -1598,7 +1487,8 @@ def attach(path, materials, worn=True, size=SIZE):
     data = open(path, "rb").read()
     jlen = struct.unpack_from("<I", data, 12)[0]
     doc = json.loads(data[20:20 + jlen])
-    if not any(m.get("name") in materials or m.get("name") in COVERAGE for m in doc.get("materials", [])):
+    if not any(m.get("name") in materials or m.get("name") in COVERAGE or m.get("name") in ATLASES
+               for m in doc.get("materials", [])):
         return []  # an export of plain opaque, untextured materials keeps its bytes
     rest = data[20 + jlen:]
     bin_ = bytearray(rest[8:8 + struct.unpack_from("<I", rest, 0)[0]]) if rest else bytearray()
@@ -1630,6 +1520,20 @@ def attach(path, materials, worn=True, size=SIZE):
             m["alphaMode"] = "BLEND"
             pbr = m.setdefault("pbrMetallicRoughness", {})
             pbr["baseColorFactor"] = [*pbr.get("baseColorFactor", [1.0, 1.0, 1.0, 1.0])[:3], value]
+        atlas = ATLASES.get(m.get("name"))
+        if atlas:  # its own images, its vertex colour a multiplier at COLOUR_SCALE; it never wears
+            used.add(m["name"])
+            key = "atlas_" + hashlib.sha256(atlas["albedo"]).hexdigest()[:12]
+            pbr = m.setdefault("pbrMetallicRoughness", {})
+            pbr["baseColorTexture"] = texture(key, "albedo", atlas["albedo"])
+            pbr["metallicRoughnessTexture"] = texture(key, "orm", atlas["orm"])
+            m["occlusionTexture"] = texture(key, "orm", atlas["orm"])
+            m["normalTexture"] = texture(key, "normal", atlas["normal"])
+            pbr["baseColorFactor"] = [1.0, 1.0, 1.0, 1.0]
+            pbr["metallicFactor"] = 1.0
+            pbr["roughnessFactor"] = 1.0
+            m.setdefault("extras", {})["colour_scale"] = COLOUR_SCALE
+            continue
         name = materials.get(m.get("name"))
         if not name:
             continue

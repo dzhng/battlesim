@@ -1,3 +1,4 @@
+import type { PresentedBattle } from "@web/battle/sim/presentation";
 import { act, cleanup } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { Feed } from "@web/feed";
@@ -17,8 +18,8 @@ test("a replaced session draws its new presentation without touching the retired
   const { ScenePresentation } = await import("@web/battle/sim/presentation");
   const before = new ScenePresentation(),
     after = new ScenePresentation();
-  before.setBattle({ world: {}, tables: new Map() });
-  after.setBattle({ world: {}, tables: new Map() });
+  before.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
+  after.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
   const observer = new Feed<ScenePresentationType | null>(before);
   let candidate = { picks: [box(170)] };
   const { advance, view } = await mount({ presentation: observer, frame: () => candidate });
@@ -71,8 +72,8 @@ test("a replacement drops a staged frame from the retired observer", async () =>
   const { ScenePresentation } = await import("@web/battle/sim/presentation");
   const before = new ScenePresentation(),
     after = new ScenePresentation();
-  before.setBattle({ world: {}, tables: new Map() });
-  after.setBattle({ world: {}, tables: new Map() });
+  before.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
+  after.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
   const observer = new Feed<ScenePresentationType | null>(before);
   const oldSubmitted = vi.fn();
   let candidate: ViewportFrame | null = { submitted: oldSubmitted };

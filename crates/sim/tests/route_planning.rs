@@ -497,95 +497,58 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
 }
 
 /// A side that learns of a body while a route is being searched gets a
-/// route that fits what it now knows, not one searched on the old picture.
+/// route that fits what it now knows, not one searched on the old picture:
+/// a wall closes the near gap while the tank's planner is still at work,
+/// and the tank never drives into the closed gap; it goes round by the far
+/// one and arrives. The planner hands back what it found; the tank checks
+/// it against everything its side learned since the search began.
 #[test]
 fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
-    use sim::math::v2;
-    use sim::navigation::{Mobility, NavBase, NavGrid, Plan};
-    use sim::route_planner::{Request, RoutePlanner};
-    use sim::world::WorldGeometry;
     // A wall with its nearer gap to the south; then a second wall closes it.
-    let wall = r#"{"kind":"wall","center":[200,110],"yaw":0,"half_extents":[0.4,45,0.6]}"#;
-    let closed = r#"{"kind":"wall","center":[200,32],"yaw":0,"half_extents":[0.4,34,0.6]}"#;
-    let picture = |props: &str| {
-        let map = serde_json::from_str(&format!(
-            r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[{props}]}}"#
-        ))
-        .unwrap();
-        let world = WorldGeometry::new(&map, &common::rules());
-        let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
-            &world,
-            world.props(),
-            0.3,
-        )));
-        (world, grid)
-    };
-    let both = format!("{wall},{closed}");
-    let ((_, before), (_, after)) = (picture(wall), picture(&both));
-    let rules = common::rules();
-    let tank = sim::units::ground_mobility(rules.catalog.by_id("test_tank"), &rules).unwrap();
-    let (from, goal) = (v2(100.0, 100.0), v2(300.0, 100.0));
-    let request = || Request {
-        side: Side::Blue,
-        from,
-        goal,
-        mobility: tank,
-        policy: RoutePolicy::Shortest,
-        detour: Vec::new(),
-        kept: None,
-        new_goal: true,
-    };
-    let fits = |grid: &NavGrid, plan: &Plan, m: &Mobility| match plan {
-        Plan::Route(route) => grid.route_fits(from, route, m),
-        Plan::Blocked(_) => false,
-    };
-    let roads = sim::navigation::RoadNet::default();
-    // How many 40-work ticks the search takes on the first picture.
-    let slow = contract::scenario::NavigationRules {
-        work_per_tick: 40,
-        ..rules.navigation
-    };
-    let mut twin = RoutePlanner::default();
-    twin.submit(UnitId(0), request());
-    let mut ticks = 0;
-    let old = loop {
-        ticks += 1;
-        if let Some((_, _, plan)) = twin
-            .advance(&slow, &roads, [Some((&before, 1)), None, None])
-            .pop()
-        {
-            break plan;
-        }
-    };
-    assert!(ticks > 3 && fits(&before, &old, &tank));
-    assert!(
-        !fits(&after, &old, &tank),
-        "the old route runs through the new wall"
+    let wall = json!({"kind":"wall","center":[200,110],"yaw":0,"half_extents":[0.4,45,0.6]});
+    let closed = json!({"kind":"wall","center":[200,32],"yaw":0,"half_extents":[0.4,34,0.6]});
+    let map = format!(
+        r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[{wall}]}}"#
     );
-    // The same search on a fresh grid (a grid keeps what earlier searches
-    // worked out), but the side learns of the second wall on its last tick:
-    // the grid it is searching takes the wall in, as a battle's does.
-    let (mut world, mut known) = picture(wall);
-    let mut planner = RoutePlanner::default();
-    planner.submit(UnitId(0), request());
-    for _ in 1..ticks {
-        assert!(planner
-            .advance(&slow, &roads, [Some((&known, 1)), None, None])
-            .is_empty());
-    }
-    let seen = world.add_prop(&serde_json::from_str(closed).unwrap());
-    let learned = [(seen, world.prop(seen).cloned())];
-    known.update(&world, learned.into_iter(), std::iter::empty());
-    let plan = loop {
-        if let Some((_, _, plan)) = planner
-            .advance(&slow, &roads, [Some((&known, 2)), None, None])
-            .pop()
-        {
-            break plan;
+    let mut setup = common::scenario(
+        &map,
+        json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }]),
+        json!([{ "tick": 3, "add_prop": closed }]),
+    );
+    // A busy planner: the search takes many ticks.
+    setup.rules.navigation.work_per_tick = 40;
+    let mut b = Battle::new(&setup, 1);
+    let goal = [300.0, 100.0];
+    send(&mut b, 1, go(&[0], goal));
+    let hz = b.rules().tick_hz as u64;
+    let mut planning_when_closed = false;
+    let mut through_gap = None;
+    for _ in 0..240 * hz {
+        b.step();
+        let tank = own(&b, 0);
+        if b.tick() == 3 {
+            planning_when_closed = tank.state == MoveState::Planning;
         }
-    };
-    assert!(fits(&known, &plan, &tank), "{plan:?}");
-    assert!(fits(&after, &plan, &tank), "{plan:?}");
+        // Never into the closed gap (south of the first wall, at x 200).
+        if (tank.position[0] - 200.0).abs() < 6.0 && tank.position[1] < 66.0 {
+            through_gap.get_or_insert(tank.position);
+        }
+        if tank.state == MoveState::Idle && b.tick() > 3 {
+            break;
+        }
+    }
+    assert!(
+        planning_when_closed,
+        "the wall must close while the route is searched"
+    );
+    assert_eq!(through_gap, None, "the tank drove into the closed gap");
+    let tank = own(&b, 0);
+    assert!(
+        (tank.position[0] - goal[0]).hypot(tank.position[1] - goal[1]) < 3.0,
+        "it never arrived: {:?} at {:?}",
+        tank.state,
+        tank.position
+    );
 }
 
 /// The moment a battle's planning grid has to keep up with: a jeep driving
@@ -740,7 +703,7 @@ fn checking_a_long_route_after_learning_stays_inside_the_tick_allowance() {
             "revision validation spent {} work in one tick",
             planner.spent()
         );
-        if let Some((_, _, plan)) = plans.first() {
+        if let Some((_, _, plan, _)) = plans.first() {
             let sim::navigation::Plan::Route(route) = plan else {
                 panic!("{plan:?}");
             };
@@ -864,7 +827,7 @@ fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
             &roads,
             [Some((&grid, 0)), None, None],
         );
-        if let Some((_, _, plan)) = plans.into_iter().next() {
+        if let Some((_, _, plan, _)) = plans.into_iter().next() {
             finished = Some(plan);
             break;
         }

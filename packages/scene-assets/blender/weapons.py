@@ -204,8 +204,76 @@ def ak12(mats, name="ak12"):
     ])
 
 
-# A squad rifle per army (`roster/infantry_equipment.py` ARMIES).
-RIFLES = {"m4a1": m4a1, "m27": m27, "g36": g36, "ak12": ak12}
+def hk416f(mats, name="hk416f"):
+    """France's HK416 F-S (the M27's receiver and piston upper, references in
+    rifle_squad): a shorter free-float rail with the barrel and its birdcage
+    standing past it, an Aimpoint-style red dot, a vertical grip, the HK
+    SlimLine stock and a polymer magazine."""
+    g, p, glass = "gun_black", "gun_polymer", "lens"
+    deg = math.radians
+    return _rifle_parts(mats, name, [
+        ("lower", box, dict(size=(0.032, 0.2, 0.052), loc=(0, -0.005, 0.0), bevel_=0.004), g),
+        ("magwell", box, dict(size=(0.036, 0.075, 0.056), loc=(0, -0.085, -0.03), bevel_=0.004), g),
+        ("mag_upper", box, dict(size=(0.028, 0.074, 0.11), loc=(0, -0.09, -0.095), bevel_=0.004, rot=(deg(-8), 0, 0)), p),
+        ("mag_lower", box, dict(size=(0.028, 0.07, 0.085), loc=(0, -0.073, -0.185), bevel_=0.004, rot=(deg(-20), 0, 0)), p),
+        ("trigger_guard", box, dict(size=(0.026, 0.065, 0.012), loc=(0, 0.015, -0.042)), g),
+        ("grip", box, dict(size=(0.032, 0.044, 0.105), loc=(0, 0.06, -0.05), bevel_=0.007, rot=(deg(20), 0, 0)), p),
+        ("upper", box, dict(size=(0.036, 0.2, 0.054), loc=(0, -0.03, 0.047), bevel_=0.004), g),
+        ("top_rail", box, dict(size=(0.026, 0.52, 0.014), loc=(0, -0.19, 0.08)), g),
+        ("charging_handle", box, dict(size=(0.05, 0.03, 0.014), loc=(0, 0.078, 0.07), bevel_=0.003), g),
+        ("rail_handguard", box, dict(size=(0.058, 0.3, 0.06), loc=(0, -0.28, 0.045), bevel_=0.008), g),
+        ("handguard_rail_l", box, dict(size=(0.012, 0.26, 0.022), loc=(0.034, -0.28, 0.045)), g),
+        ("handguard_rail_r", box, dict(size=(0.012, 0.26, 0.022), loc=(-0.034, -0.28, 0.045)), g),
+        ("barrel", cyl, dict(r=0.011, depth=0.2, loc=(0, -0.52, 0.045), axis="Y", seg=10), g),
+        ("gas_block", box, dict(size=(0.026, 0.03, 0.03), loc=(0, -0.45, 0.05), bevel_=0.003), g),
+        ("flash_hider", cyl, dict(r=0.016, depth=0.06, loc=(0, -0.645, 0.045), axis="Y", seg=10), g),
+        ("buffer_tube", cyl, dict(r=0.017, depth=0.2, loc=(0, 0.18, 0.045), axis="Y", seg=10), g),
+        ("stock", box, dict(size=(0.046, 0.17, 0.072), loc=(0, 0.285, 0.035), bevel_=0.012), p),
+        ("stock_heel", box, dict(size=(0.038, 0.09, 0.048), loc=(0, 0.32, -0.02), bevel_=0.008, rot=(deg(-25), 0, 0)), p),
+        ("butt_pad", box, dict(size=(0.048, 0.022, 0.118), loc=(0, 0.37, 0.02), bevel_=0.006), g),
+        ("optic_mount", box, dict(size=(0.03, 0.06, 0.025), loc=(0, -0.04, 0.094), bevel_=0.003), g),
+        ("optic", cyl, dict(r=0.024, depth=0.11, loc=(0, -0.04, 0.125), axis="Y", seg=14, bevel_=0.003), g),
+        ("optic_lens", cyl, dict(r=0.02, depth=0.004, loc=(0, -0.0965, 0.125), axis="Y", seg=14), glass),
+        ("vertical_grip", cyl, dict(r=0.015, depth=0.08, loc=(0, -0.3, -0.017), axis="Z", seg=10, bevel_=0.003), p),
+        ("light", cyl, dict(r=0.014, depth=0.08, loc=(-0.05, -0.38, 0.045), axis="Y", seg=10), g),
+        ("light_lens", cyl, dict(r=0.012, depth=0.004, loc=(-0.05, -0.422, 0.045), axis="Y", seg=10), glass),
+    ])
+
+
+def qbz191(mats, name="qbz191"):
+    """The PLA's QBZ-191 (references in rifle_squad): a conventional layout with
+    one long top rail over the receiver and an octagonal handguard, a QMK-152 3x
+    prism sight (a squat box), a telescoping stock with a raised cheek, a curved
+    5.8 mm polymer magazine and a short muzzle brake."""
+    g, p, glass = "gun_black", "gun_polymer", "lens"
+    deg = math.radians
+    return _rifle_parts(mats, name, [
+        ("lower", box, dict(size=(0.034, 0.21, 0.054), loc=(0, -0.005, 0.0), bevel_=0.005), p),
+        ("magwell", box, dict(size=(0.038, 0.078, 0.058), loc=(0, -0.085, -0.03), bevel_=0.005), p),
+        ("mag_upper", box, dict(size=(0.028, 0.072, 0.11), loc=(0, -0.092, -0.095), bevel_=0.004, rot=(deg(-10), 0, 0)), p),
+        ("mag_lower", box, dict(size=(0.028, 0.068, 0.09), loc=(0, -0.07, -0.188), bevel_=0.004, rot=(deg(-24), 0, 0)), p),
+        ("trigger_guard", box, dict(size=(0.026, 0.065, 0.012), loc=(0, 0.015, -0.042)), p),
+        ("grip", box, dict(size=(0.034, 0.046, 0.105), loc=(0, 0.06, -0.05), bevel_=0.008, rot=(deg(18), 0, 0)), p),
+        ("upper", box, dict(size=(0.04, 0.22, 0.056), loc=(0, -0.03, 0.048), bevel_=0.005), g),
+        ("top_rail", box, dict(size=(0.026, 0.66, 0.014), loc=(0, -0.26, 0.082)), g),
+        ("charging_handle", box, dict(size=(0.014, 0.03, 0.016), loc=(-0.026, -0.11, 0.06), bevel_=0.003), g),
+        ("handguard", cyl, dict(r=0.034, depth=0.34, loc=(0, -0.3, 0.046), axis="Y", seg=8), g),
+        ("barrel", cyl, dict(r=0.011, depth=0.13, loc=(0, -0.53, 0.046), axis="Y", seg=10), g),
+        ("muzzle_brake", cyl, dict(r=0.017, depth=0.07, loc=(0, -0.63, 0.046), axis="Y", seg=10), g),
+        ("buffer_tube", cyl, dict(r=0.018, depth=0.2, loc=(0, 0.18, 0.046), axis="Y", seg=10), g),
+        ("stock", box, dict(size=(0.05, 0.19, 0.08), loc=(0, 0.28, 0.03), bevel_=0.012), p),
+        ("stock_cheek", box, dict(size=(0.04, 0.12, 0.022), loc=(0, 0.28, 0.08), bevel_=0.008), p),
+        ("butt_pad", box, dict(size=(0.05, 0.022, 0.125), loc=(0, 0.37, 0.02), bevel_=0.006), g),
+        ("optic_mount", box, dict(size=(0.032, 0.07, 0.02), loc=(0, -0.04, 0.099), bevel_=0.003), g),
+        ("optic_body", box, dict(size=(0.048, 0.11, 0.046), loc=(0, -0.04, 0.128), bevel_=0.01), g),
+        ("optic_objective", cyl, dict(r=0.022, depth=0.024, loc=(0, -0.105, 0.128), axis="Y", seg=14, bevel_=0.003), g),
+        ("optic_lens", cyl, dict(r=0.018, depth=0.004, loc=(0, -0.118, 0.128), axis="Y", seg=14), glass),
+        ("light", cyl, dict(r=0.014, depth=0.07, loc=(-0.048, -0.4, 0.046), axis="Y", seg=10), g),
+    ])
+
+
+# A squad rifle per army (`roster/armies.json` rifle).
+RIFLES = {"m4a1": m4a1, "m27": m27, "g36": g36, "ak12": ak12, "hk416f": hk416f, "qbz191": qbz191}
 
 
 def dmr(mats, name="dmr"):
@@ -278,9 +346,9 @@ RIFLE_SCALE = 0.86
 
 # Rifle family (spike 03's holds): grip and support points in the weapon's frame; the
 # low-ready carry (stock at the right chest, muzzle forward-down and a little left);
-# the optic, 8 cm ahead of the eye when shouldered, halfway across toward the right
-# shoulder pocket; the kneel_fire recoil (frame, back m, up deg); prone with the butt
-# in the shoulder and the support hand 10 cm back on the handguard.
+# the top of the sight (the M68's), which the eye sits level with when shouldered; the kneel_fire
+# recoil (frame, back m, up deg). The support hand takes the support point, or as far
+# forward of the grip as the arm reaches (`Rig.within_reach`).
 RIFLE_HOLD = {
     "family": "rifle",
     "grip": (0, 0.06, -0.035),
@@ -288,15 +356,13 @@ RIFLE_HOLD = {
     "scale": RIFLE_SCALE,
     "low": weapon_matrix((-0.12, -0.22, 1.16), yaw_deg=25, pitch_deg=-38),
     "low_poles": ((-0.45, 0.25, 0.95), (0.35, -0.10, 0.85)),
-    "sight": (0, 0.005, 0.11),
-    "cheek_blend": 0.5,
+    "sight": (0, -0.04, 0.149),
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.06, 7.0), (8, 0.03, 3.5), (14, 0, 0), (36, 0, 0)),
-    "prone_butt": (0, 0.39, 0.03),
-    "prone_support_back": 0.1,
+    "butt": (0, 0.39, 0.03),
 }
 
 # Launcher family: the tube rides the right shoulder in the carry, level and pointing
-# forward; shouldered, the CLU's sight sits at the eye; the missile's launch jolt is
+# forward; shouldered, the CLU's eyepiece (`sight`) sits at the eye; the missile's launch jolt is
 # a short push back.
 LAUNCHER_HOLD = {
     "family": "launcher",
@@ -306,10 +372,8 @@ LAUNCHER_HOLD = {
     "low": weapon_matrix((-0.16, -0.15, 1.42), yaw_deg=4, pitch_deg=-18),
     "low_poles": ((-0.6, 0.1, 0.95), (0.4, -0.2, 1.0)),
     "sight": (0.14, 0.21, 0.13),
-    "cheek_blend": 0.0,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.03, 2.0), (9, 0.01, 0.8), (16, 0, 0), (36, 0, 0)),
-    "prone_butt": None,
-    "prone_support_back": 0.0,
+    "butt": None,
 }
 
 FAMILIES = {"rifle": RIFLE_HOLD, "launcher": LAUNCHER_HOLD}
