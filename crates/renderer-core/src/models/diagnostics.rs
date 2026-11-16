@@ -1,11 +1,14 @@
 //! Prepared populations and installed geometry, distinct from issued pass work.
 use super::*;
+use presentation::view::{MESH_SLOTS, TIERS};
 use serde_json::json;
 
 impl Models {
+    /// The non-building models prepared, per mesh slot (a prop's far mesh
+    /// is the fifth), and what they cost.
     pub fn diagnostics(&self) -> serde_json::Value {
-        let mut tiers = [0u64; presentation::view::TIERS];
-        let mut bodies = [0u64; presentation::view::TIERS];
+        let mut tiers = [0u64; MESH_SLOTS];
+        let mut bodies = [0u64; MESH_SLOTS];
         let (mut triangles, mut draws) = (0u64, 0u64);
         for run in &self.runs {
             let Some(row) = &self.rows[run.row] else {
@@ -45,8 +48,8 @@ impl Models {
     }
 
     pub fn building_diagnostics(&self) -> serde_json::Value {
-        let mut tiers = [0u64; presentation::view::TIERS];
-        let mut triangles = [0u64; presentation::view::TIERS];
+        let mut tiers = [0u64; TIERS];
+        let mut triangles = [0u64; TIERS];
         let mut record_bytes = 0;
         for run in &self.runs {
             let Some(row) = &self.rows[run.row] else {
@@ -84,16 +87,18 @@ impl Models {
 }
 
 impl Models {
+    /// What the last view drew of the static world: per building module its
+    /// four tiers, per prop appearance its five mesh slots.
     pub fn drawn_instances(&self) -> serde_json::Value {
         let mut buildings = Vec::new();
         let mut offsets = vec![None; self.rows.len()];
         for (index, row) in self.rows.iter().enumerate() {
             if row.as_ref().is_some_and(|row| row.building) {
                 offsets[index] = Some(buildings.len());
-                buildings.resize(buildings.len() + presentation::view::TIERS, 0u64);
+                buildings.resize(buildings.len() + TIERS, 0u64);
             }
         }
-        let mut props = std::collections::BTreeMap::<&str, [u64; presentation::view::TIERS]>::new();
+        let mut props = std::collections::BTreeMap::<&str, [u64; MESH_SLOTS]>::new();
         for run in self.runs.iter().filter(|run| run.pass == VIEW_PASS) {
             let Some(row) = &self.rows[run.row] else {
                 continue;
