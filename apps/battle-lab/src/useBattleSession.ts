@@ -37,10 +37,9 @@ import {
   attackGroundSpread,
   rulerAt,
   previewForIntent,
-  cursorForIntent,
-  cursorForRelease,
+  pointerCursor,
+  garrisonTarget,
   intentForOrder,
-  samePointerIntent,
 } from "./pointerPaint";
 import { OrderPreview } from "./orderPreview";
 import { usePreviewRevision } from "./previewRevision";
@@ -633,6 +632,16 @@ export function useBattleSession({
             rulesText,
           )
         : null;
+    const action = active
+      ? pointerCursor(
+          intent,
+          !held && pick?.unit != null,
+          !held && accepted && released && (shown?.tick ?? 0) < accepted.applied_tick
+            ? { released, ack: accepted }
+            : null,
+          { intent: queryIntent, preview: previewSnapshot },
+        )
+      : null;
     // An unload's destination carries the unload mark, held or released.
     const unloading = (!held && pending ? released?.kind : queryIntent.kind) === "unload";
     pointerPaint.update(
@@ -642,21 +651,10 @@ export function useBattleSession({
       metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
       attackGround,
       renderScale,
+      null,
+      garrisonTarget(action, intent, shown, drawnBuildings, surfaceZ),
     );
-    if (!active) return null;
-    // Over an own unit the arrow is plain, unless the click would board it.
-    if (!held && pick?.unit != null && intent.kind !== "board" && intent.kind !== "collect")
-      return "default";
-    if (!held && accepted && released && (shown?.tick ?? 0) < accepted.applied_tick) {
-      const action = cursorForRelease(intent, released, accepted);
-      if (action !== null) return action;
-    }
-    return cursorForIntent(
-      intent,
-      samePointerIntent(intent, queryIntent)
-        ? previewSnapshot
-        : { state: "pending", building: null },
-    );
+    return action;
   };
   /** Drag-select own units whose drawn position falls in the rectangle. */
   const onBox = useCallback(
@@ -711,6 +709,7 @@ export function useBattleSession({
     /** The currently selected reinforcement's live cursor ghost. */
     purchaseGhost: () => purchaseGhost.current,
     ruler: () => pointerPaint.shown,
+    garrisonTarget: () => pointerPaint.garrison,
     /** Space held: the order overlay shows every own unit (D2+). */
     showOrders: () => control.showOrders,
     acks: () => control.acks,

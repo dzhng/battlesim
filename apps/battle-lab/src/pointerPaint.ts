@@ -1,5 +1,6 @@
-// Pointer-following ground paint: the held destination/facing preview and
-// the Space range ruler share one feed, refreshed only when their geometry changes.
+// Pointer-following ground paint: the held destination/facing preview, the
+// Space range ruler and the outline of the building a garrison order would
+// enter share one feed, refreshed only when their geometry changes.
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import {
   EMPTY_MESH,
@@ -32,7 +33,7 @@ import {
 } from "@web/battle/present/rangeRuler";
 import type { PointerIntent } from "@web/battle/input/pointerIntent";
 import type { CursorAction } from "@web/battle/present/gameCursor";
-import type { OwnUnitView } from "@web/battle/sim/observationView";
+import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import type {
   MovePreviewRequest,
   MoveDestination,
@@ -42,7 +43,8 @@ import type {
   CommandAck,
 } from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
-import { orderView } from "./battleOverlay";
+import { garrisonTargetOutline, orderView } from "./battleOverlay";
+import type { BuildingIndex } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { OrderPreviewSnapshot } from "./orderPreview";
 import { Feed } from "@web/feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
@@ -88,6 +90,13 @@ export function attackGroundSpread(
 interface ShownRuler {
   ruler: RangeRuler;
   circle: UnitCircle | null;
+}
+
+/** The building under the pointer that the order there would garrison: its
+ *  prop, and its outline at a line width (`garrisonTargetOutline`). */
+export interface GarrisonTarget {
+  building: number;
+  outline: (line: number) => Mesh | null;
 }
 
 export type PointerPreview =
@@ -190,6 +199,8 @@ export class PointerPaint {
   private key = "";
   /** The ruler last shown, for the lab's probes. */
   shown: RangeRuler | null = null;
+  /** The building prop last outlined as a garrison target, for the probes. */
+  garrison: number | null = null;
 
   preview: readonly (DestinationMarker & { unit: number })[] = [];
 
@@ -238,11 +249,13 @@ export class PointerPaint {
     attackGround: AttackGroundSpread | null = null,
     renderScale = 1,
     placing: PurchaseGhost | null = null,
+    garrison: GarrisonTarget | null = null,
   ) {
     this.preview = preview;
     // A purchase being placed is under the pointer: its ghost shows its ring.
     const hover = placing && placementCircle(placing, this.units);
     this.shown = shown?.ruler ?? null;
+    this.garrison = garrison?.building ?? null;
     const rulerKey = shown
       ? [
           shown.ruler.unit,
@@ -268,7 +281,8 @@ export class PointerPaint {
     const hoverKey = hover
       ? `:${[...hover.c, hover.r, hover.facing ?? 0, metresPerPx].join()}`
       : ":";
-    const nextKey = key + spreadKey + hoverKey + `:${renderScale}`;
+    const nextKey =
+      key + spreadKey + hoverKey + `:${garrison?.building ?? ""}:${metresPerPx}:${renderScale}`;
     if (nextKey === this.key) return;
     this.key = nextKey;
     const spread = attackGround
@@ -285,9 +299,11 @@ export class PointerPaint {
           return mesh.build();
         })()
       : EMPTY_MESH;
+    const stroke = gameStroke(metresPerPx, renderScale);
     this.feed.set(
       concatMeshes([
         spread,
+        garrison?.outline(stroke(gameOrderStyle.line_px)) ?? EMPTY_MESH,
         shown
           ? buildRangeRuler(
               rulerLine(shown.ruler, shown.circle),
@@ -388,6 +404,43 @@ export function cursorForIntent(
     : intent.direction === "reverse"
       ? "reverse_move"
       : "default";
+}
+
+/** The cursor for the pointer's `intent`: plain over an own unit
+ *  (`overOwnUnit`) unless the click would board it; while a `release` of the
+ *  same action awaits its publication, what admission said; else what the
+ *  `query`'s preview answered, when it asked about this intent. */
+export function pointerCursor(
+  intent: PointerIntent,
+  overOwnUnit: boolean,
+  release: { released: PointerIntent; ack: CommandAck } | null,
+  query: { intent: PointerIntent; preview: OrderPreviewSnapshot },
+): CursorAction {
+  if (overOwnUnit && intent.kind !== "board" && intent.kind !== "collect") return "default";
+  const acknowledged = release && cursorForRelease(intent, release.released, release.ack);
+  if (acknowledged) return acknowledged;
+  return cursorForIntent(
+    intent,
+    samePointerIntent(intent, query.intent) ? query.preview : { state: "pending", building: null },
+  );
+}
+
+/** The building the garrison badge (`action`) offers for `intent`, outlined
+ *  as a held one is; null under any other cursor. */
+export function garrisonTarget(
+  action: CursorAction | null,
+  intent: PointerIntent,
+  shown: ObservationView | null,
+  buildings: Pick<BuildingIndex, "partBuilding" | "parts"> | null,
+  z: SurfaceHeight,
+): GarrisonTarget | null {
+  if (action !== "garrison" || intent.kind !== "occupy_building" || !shown || !buildings)
+    return null;
+  const { building } = intent;
+  return {
+    building,
+    outline: (line) => garrisonTargetOutline(shown, buildings, building, line, z),
+  };
 }
 
 /** Release acknowledgement corrects only the same pointer action. */
