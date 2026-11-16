@@ -1,5 +1,5 @@
 //! GPU occlusion regression over actual authored-model packing and exported
-//! x-ray shaders. Run under the repository GPU lock.
+//! x-ray shaders.
 mod support;
 use renderer_core::runtime::AdmissionWork;
 

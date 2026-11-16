@@ -2,8 +2,9 @@
 // the carriers' cards (their Seats rows, and their riders' compact cards
 // stacked under them, compact or opened), and the `controls` variant driven
 // by the player's own controls: right-click boarding both ways and its
-// cursor, a refusal at the squad, U then a click with its unload mark, and
-// U twice; and the `heli` variant, a transport helicopter boarding and
+// cursor, a squad too big for the carrier refused at the order, two squads
+// sharing one carrier and a third refused on arrival, U then a click with
+// its unload mark, and U twice; and the `heli` variant, a transport helicopter boarding and
 // unloading a squad from a low hover.
 import { openBattle, advance, lab, obs, until, snapshot } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
@@ -258,11 +259,15 @@ const cursorBecomes = (page, action) =>
       () => true,
       () => false,
     );
-/** The page point over own unit `id`: a metre up its hull, or its first
- *  soldier's chest (a squad is picked by its soldiers). */
+/** The page point over own unit `id`: a metre up its hull, or the chest of
+ *  its soldier furthest from every other own unit (a squad is picked by its
+ *  soldiers, and one just unloaded stands round its carrier). */
 async function over(page, id) {
-  const u = (await obs(page)).own.find((x) => x.id === id);
-  const p = u.members[0] ?? u.position;
+  const o = await obs(page);
+  const u = o.own.find((x) => x.id === id);
+  const others = o.own.filter((x) => x !== u && !x.hold).map((x) => x.position);
+  const clear = (p) => Math.min(...others.map((q) => Math.hypot(p[0] - q[0], p[1] - q[1])));
+  const p = u.members.toSorted((a, b) => clear(b) - clear(a))[0] ?? u.position;
   return project(page, [p[0], p[1], p[2] + 1]);
 }
 /** Where `id` rides, or null on the field. */
@@ -297,9 +302,10 @@ async function orderLine(ctx, page, goal, name) {
   await page.keyboard.up("Space");
 }
 
-/** The lab's carriers and squads paired by the catalog's seats against
- *  each squad's living soldiers: `squad` has more than carrier `small`
- *  seats but fits carrier `roomy`, and squad `fits` fits `small`. */
+/** The lab's carriers and squads paired by the catalog's seats against each
+ *  squad's living soldiers: `squad` has more than carrier `small` seats but
+ *  fits carrier `roomy`; the other squads, `sharers`, fit `roomy` together
+ *  and leave too few seats for `squad`; and `fits`, one of them, fits `small`. */
 async function pairs(page, start) {
   const repo = new URL("../../", import.meta.url).pathname;
   const kinds = [...new Set(start.own.map((u) => u.kind))];
@@ -316,17 +322,57 @@ async function pairs(page, start) {
     { repo, kinds },
   );
   const type = (u) => types.find((t) => t.kind === u.kind);
+  const size = (u) => u.members.length;
   const carriers = start.own.filter((u) => type(u).seats > 0);
   const squads = start.own.filter((u) => type(u).infantry);
   for (const squad of squads)
-    for (const small of carriers.filter((c) => type(c).seats < squad.members.length)) {
-      const roomy = carriers.find((c) => type(c).seats >= squad.members.length);
-      const fits = squads.find((s) => s !== squad && s.members.length <= type(small).seats);
-      if (roomy && fits)
-        return { squad: squad.id, small: small.id, roomy: roomy.id, fits: fits.id };
+    for (const small of carriers.filter((c) => type(c).seats < size(squad))) {
+      const roomy = carriers.find((c) => type(c).seats >= size(squad));
+      const sharers = squads.filter((s) => s !== squad);
+      const together = sharers.reduce((n, s) => n + size(s), 0);
+      const fits = sharers.find((s) => size(s) <= type(small).seats);
+      if (
+        roomy &&
+        fits &&
+        sharers.length > 1 &&
+        together <= type(roomy).seats &&
+        together + size(squad) > type(roomy).seats
+      )
+        return {
+          squad: squad.id,
+          small: small.id,
+          roomy: roomy.id,
+          fits: fits.id,
+          sharers: sharers.map((s) => s.id),
+        };
     }
-  throw new Error(`no too-big pair among the lab's units: ${JSON.stringify(types)}`);
+  throw new Error(`no too-big and sharing squads among the lab's units: ${JSON.stringify(types)}`);
 }
+
+/** The newest per-unit refusal callout: its text, its unit, and whether it
+ *  stands beside the top of that unit's card, on its right or left; null if
+ *  none shows within a few seconds. */
+const unitRefusal = (page) =>
+  page
+    .getByTestId("rejected-order")
+    .waitFor({ timeout: 5000 })
+    .then(() =>
+      page.evaluate(() => {
+        const m = document.querySelector("[data-testid=rejected-order]");
+        const card = document.querySelector(`.ro-unit[data-unit="${m.dataset.unit}"]`);
+        const a = m.getBoundingClientRect();
+        const b = card?.getBoundingClientRect();
+        return {
+          text: m.textContent.trim(),
+          unit: Number(m.dataset.unit),
+          besideCard:
+            !!b &&
+            Math.abs(a.top - b.top) < 2 &&
+            (Math.abs(a.left - b.right - 6) < 2 || Math.abs(a.right - b.left + 6) < 2),
+        };
+      }),
+    )
+    .catch(() => null);
 
 async function controls(ctx) {
   const url = new URL(ctx.url);
@@ -334,7 +380,8 @@ async function controls(ctx) {
   const page = await openBattle(ctx, { url: url.href });
   await advance(page, 2);
   const start = await obs(page);
-  const { squad, small, roomy, fits } = await pairs(page, start);
+  const { squad, small, roomy, fits, sharers } = await pairs(page, start);
+  const message = page.getByTestId("rejected-order");
 
   // A squad with more living soldiers than a carrier's seats: refused, said
   // at the squad.
@@ -360,27 +407,7 @@ async function controls(ctx) {
   await page.mouse.click(...at, { button: "right" });
   const tooBig = await ackAfter(page, seq);
   await advance(page, 2);
-  const message = page.getByTestId("rejected-order");
-  const refusal = await message
-    .waitFor({ timeout: 5000 })
-    .then(() =>
-      page.evaluate(() => {
-        const m = document.querySelector("[data-testid=rejected-order]");
-        const card = document.querySelector(`.ro-unit[data-unit="${m.dataset.unit}"]`);
-        const a = m.getBoundingClientRect();
-        const b = card?.getBoundingClientRect();
-        return {
-          text: m.textContent.trim(),
-          unit: Number(m.dataset.unit),
-          // Beside the card's top, on its right or left.
-          besideCard:
-            !!b &&
-            Math.abs(a.top - b.top) < 2 &&
-            (Math.abs(a.left - b.right - 6) < 2 || Math.abs(a.right - b.left + 6) < 2),
-        };
-      }),
-    )
-    .catch(() => null);
+  const refusal = await unitRefusal(page);
   await snapshot(ctx, page, "controls-refused.png");
   // Its moment passes (in real time) before the next shots.
   await message.waitFor({ state: "detached", timeout: 10000 });
@@ -394,24 +421,76 @@ async function controls(ctx) {
     JSON.stringify({ ack: tooBig.ack, refusal }),
   );
 
-  // Squads selected, right-click an own carrier: they board it.
+  // Two squads selected, right-click an own carrier: both board it and share
+  // its seats.
+  await select(page, sharers);
   at = await over(page, roomy);
   await page.mouse.move(...at);
   await cursorBecomes(page, "board");
   seq = await newestSeq(page);
   await page.mouse.click(...at, { button: "right" });
   const board = await ackAfter(page, seq);
-  const boarded = await until(page, (o) => host(o, squad) === roomy, 900, 30);
+  const shared = await until(page, (o) => sharers.every((id) => host(o, id) === roomy), 900, 30);
+  const roomyCard = (await carrierCards(page)).find((c) => c.unit === roomy);
   ctx.check(
-    "right-clicking an own carrier with a squad selected boards it, and the squad leaves the selection",
+    "right-clicking an own carrier with two squads selected boards both: they share its seats, its card counts them, and they leave the selection",
     board.order.kind === "board" &&
       board.order.carrier === roomy &&
-      !!boarded &&
+      JSON.stringify(board.order.units) === JSON.stringify(sharers) &&
+      !board.ack.error &&
+      board.ack.refused.length === 0 &&
+      !!shared &&
+      roomyCard?.seats.startsWith(`SEATS ${seated(shared, roomy)}/`) &&
+      JSON.stringify(roomyCard.riders.map((r) => r.unit)) === JSON.stringify(sharers) &&
       (await lab(page, () => window.__lab.route.selected())).length === 0,
-    JSON.stringify({ order: board.order, ack: board.ack }),
+    JSON.stringify({ order: board.order, ack: board.ack, roomyCard }),
   );
-  // Its deck card stays, dimmed as aboard, and picks its carrier.
-  const card = page.locator(`.hud-army-card[data-unit="${squad}"]`);
+  await snapshot(ctx, page, "controls-shared.png");
+
+  // The third squad, which fits the carrier alone, walks over to it full:
+  // the order is accepted, and the squad finds no room on arrival and stays
+  // on the field. Tick by tick, for the refusal is published on its tick.
+  await select(page, [squad]);
+  at = await over(page, roomy);
+  await page.mouse.move(...at);
+  await cursorBecomes(page, "board");
+  seq = await newestSeq(page);
+  await page.mouse.click(...at, { button: "right" });
+  const late = await ackAfter(page, seq);
+  let lateHeld = false;
+  let noRoom = null;
+  const turnedAway = await until(
+    page,
+    () => noRoom !== null,
+    900,
+    1,
+    (o) => {
+      lateHeld ||= !!o.own.find((u) => u.id === squad)?.hold;
+      noRoom ??= o.refusals.find((r) => r.unit === squad) ?? null;
+    },
+  );
+  const arrival = await unitRefusal(page);
+  await snapshot(ctx, page, "controls-no-room.png");
+  await message.waitFor({ state: "detached", timeout: 10000 });
+  const left = turnedAway?.own.find((u) => u.id === squad);
+  ctx.check(
+    "a squad that fits a carrier alone walks over to it full, finds no room on arrival, and stays on the field, said beside its card",
+    late.order.kind === "board" &&
+      late.order.carrier === roomy &&
+      !late.ack.error &&
+      late.ack.refused.length === 0 &&
+      noRoom?.reason === "capacity_full" &&
+      !lateHeld &&
+      left?.hold === null &&
+      left.goal === null &&
+      sharers.every((id) => host(turnedAway, id) === roomy) &&
+      arrival?.unit === squad &&
+      arrival.besideCard,
+    JSON.stringify({ order: late.order, ack: late.ack, noRoom, lateHeld, arrival }),
+  );
+
+  // A riding squad's deck card stays, dimmed as aboard, and picks its carrier.
+  const card = page.locator(`.hud-army-card[data-unit="${sharers[0]}"]`);
   const aboardCard = await card.getAttribute("data-aboard");
   await card.click();
   ctx.check(
@@ -422,24 +501,6 @@ async function controls(ctx) {
     String(aboardCard),
   );
   await snapshot(ctx, page, "controls-aboard-deck.png");
-
-  // A carrier selected, right-click an own squad: it drives over and collects it.
-  await select(page, [small]);
-  at = await over(page, fits);
-  await page.mouse.move(...at);
-  const collectCursor = await cursorBecomes(page, "board");
-  seq = await newestSeq(page);
-  await page.mouse.click(...at, { button: "right" });
-  const collect = await ackAfter(page, seq);
-  const collected = await until(page, (o) => host(o, fits) === small, 1200, 30);
-  ctx.check(
-    "right-clicking an own squad with a carrier selected collects it, under the board cursor",
-    collectCursor &&
-      collect.order.kind === "collect" &&
-      JSON.stringify(collect.order.squads) === JSON.stringify([fits]) &&
-      !!collected,
-    JSON.stringify({ order: collect.order, ack: collect.ack }),
-  );
 
   // The loaded roomy carrier: an ordinary move line, then U and a click to the same
   // point, whose line carries the unload mark.
@@ -461,33 +522,59 @@ async function controls(ctx) {
   await orderLine(ctx, page, goal, "unload-line");
   const out = await until(
     page,
-    (o) => host(o, squad) === null && !o.own.find((u) => u.id === squad).hold,
+    (o) => sharers.every((id) => !o.own.find((u) => u.id === id).hold),
     1500,
     30,
   );
-  const landed = out?.own.find((u) => u.id === squad);
   const carrierAt = out?.own.find((u) => u.id === roomy).position;
+  const landed = sharers.map((id) => out?.own.find((u) => u.id === id).position);
   ctx.check(
-    "U then a ground click drives the carrier there and unloads it",
+    "U then a ground click drives the carrier there and unloads every squad aboard",
     armed === "true" &&
       unloadCursor &&
       unload.order.kind === "unload" &&
       !!unload.order.goal &&
       !unload.ack.error &&
-      !!landed &&
+      !!out &&
       Math.hypot(carrierAt[0] - goal[0], carrierAt[1] - goal[1]) < 8 &&
-      Math.hypot(landed.position[0] - carrierAt[0], landed.position[1] - carrierAt[1]) < 10,
+      landed.every((p) => Math.hypot(p[0] - carrierAt[0], p[1] - carrierAt[1]) < 12),
     JSON.stringify({
       armed,
       unloadCursor,
       order: unload.order,
       ack: unload.ack,
       carrierAt,
-      landed: landed?.position,
+      landed,
     }),
   );
 
-  // U twice: the small carrier stops and unloads where it stands.
+  // A carrier selected, right-click an own squad: it drives over and collects it.
+  await select(page, [small]);
+  at = await over(page, fits);
+  await page.mouse.move(...at);
+  const collectCursor = await cursorBecomes(page, "board");
+  seq = await newestSeq(page);
+  await page.mouse.click(...at, { button: "right" });
+  const collect = await ackAfter(page, seq);
+  const collected = await until(page, (o) => host(o, fits) === small, 1200, 30);
+  ctx.check(
+    "right-clicking an own squad with a carrier selected collects it, under the board cursor",
+    collectCursor &&
+      collect.order.kind === "collect" &&
+      JSON.stringify(collect.order.squads) === JSON.stringify([fits]) &&
+      !!collected,
+    JSON.stringify({ order: collect.order, ack: collect.ack }),
+  );
+
+  // U twice: the small carrier stops and unloads where it stands. U reaches
+  // only a carrier the page has drawn with riders, so wait for its rider card.
+  await page.waitForFunction(
+    ({ small, fits }) =>
+      !!document.querySelector(
+        `.ro-unit[data-unit="${small}"] > .ro-aboard > [data-passenger][data-unit="${fits}"]`,
+      ),
+    { small, fits },
+  );
   await select(page, [small]);
   seq = await newestSeq(page);
   await page.keyboard.press("KeyU");

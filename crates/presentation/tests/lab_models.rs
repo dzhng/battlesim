@@ -447,10 +447,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
     p.install_lab_assets(
         [installed(
             &name,
-            Asset::Animated {
-                appearance: Box::new(appearance.as_ref().clone()),
-                table: Vec::new(),
-            },
+            Asset::animated(appearance.as_ref().clone(), Vec::new()),
         )]
         .into(),
         detail,

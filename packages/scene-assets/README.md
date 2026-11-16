@@ -37,7 +37,7 @@ does, and a kind that budgets its tiers budgets it as a fifth entry. A far
 mesh drops geometry and never reshapes it: the side's fog of war judges each
 surface by its own plane and facing, so every surface it draws is one tier 3
 draws, or the prop changes its look where it switches
-([why](../../specs/far-detail/decisions.md)). Units,
+([why](../../specs/done/far-detail/README.md)). Units,
 kits, trees, dressing and grass refuse one. A bundle records how many meshes
 each state has, so the format is the same with or without one.
 

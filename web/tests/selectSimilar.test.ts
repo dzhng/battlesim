@@ -62,7 +62,7 @@ test("a mixed selection's deploy reaches only the units that deploy", () => {
       id: 9,
       kind: "test_rifle",
       hold: {
-        host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+        host: { kind: "building", id: 3, center: [0, 0], half: [10, 10], seats: 12 },
         phase: "inside",
         progress: 1,
       },

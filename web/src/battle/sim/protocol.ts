@@ -48,15 +48,8 @@ export type Order =
   | { kind: "set_afterburner"; units: number[]; enabled: boolean }
   /** Set up in place (true) or pack for movement (false); others ignore it. */
   | { kind: "set_deployment"; units: number[]; deployed: boolean }
-  /** Walk one squad into a building; the complete squad must fit. */
-  | { kind: "garrison"; units: number[]; building: number }
-  | {
-      kind: "occupy_building";
-      units: number[];
-      building: number;
-      gesture: number;
-      facing?: number;
-    }
+  /** Walk each squad to the building and step in; each must fit whole. */
+  | { kind: "occupy_building"; units: number[]; building: number; gesture: number }
   /** Leave the building after a stationary timer. */
   | { kind: "exit_building"; units: number[] }
   | { kind: "board"; units: number[]; carrier: number; gesture: number }
@@ -97,7 +90,6 @@ export interface MovePreviewRequest {
 export interface BuildingPreviewRequest {
   units: number[];
   building: number;
-  facing?: number;
   queued?: boolean;
 }
 
@@ -106,12 +98,11 @@ export interface BuildingEntry {
   approach: [number, number];
 }
 
+/** Where each squad that can get there walks to enter; a squad its side's
+ *  ground can't take to the house has no entry. */
 export interface BuildingPlacement {
   building: number;
-  entrant: BuildingEntry | null;
-  destinations: MoveDestination[];
-  /** The bounded search could not finish proving availability. */
-  unproven?: boolean;
+  entries: BuildingEntry[];
 }
 
 /** The same per-unit destinations used when the move is committed. */

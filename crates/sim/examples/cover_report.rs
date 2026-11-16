@@ -216,9 +216,10 @@ fn trial(
             &mut b,
             Side::Red,
             1,
-            Order::Garrison {
+            Order::OccupyBuilding {
                 units: vec![UnitId(1)],
                 building: 0,
+                gesture: 0,
             },
         );
     }

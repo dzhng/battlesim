@@ -76,6 +76,7 @@ mod rivers;
 mod road_journeys;
 mod route_planning;
 mod sensing;
+mod shared_hosts;
 mod shot_at;
 mod shouts;
 mod side_topology;

@@ -35,7 +35,6 @@ fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
         host: crate::hold::Host::Building(building),
         phase: crate::hold::Phase::Inside,
         place: crate::hold::Place::Building(garrison::Garrison {
-            slots: Vec::new(),
             seats: vec![None; battle.units[1].members.len()],
             entry: center,
         }),

@@ -97,7 +97,6 @@ fn only_a_contract_breaking_refusal_is_malformed() {
         OrderError::NoValidDestination,
         OrderError::InsufficientCredits,
         OrderError::UnitLimitReached,
-        OrderError::BuildingOccupied,
         OrderError::CapacityFull,
         OrderError::NoRoomToUnload,
         OrderError::MatchFinished,

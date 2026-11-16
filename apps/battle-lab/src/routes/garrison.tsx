@@ -27,20 +27,23 @@ import { TickStatus } from "../TickStatus";
 
 // The garrison map's saved encounter
 // (`fixtures/maps/garrison/encounters/garrison.json`). Blue's two rifle squads
-// and a scout squad wait west of the building, out of
-// red's sight. Red's squad stands east, behind the building, holding fire, and
-// at first too far to make out anyone in the house (a building cuts sight's
-// reach to its occupants), so the scouts who walk in are HIDDEN. At the
-// encounter's scripted move it walks up to spot for red's tank 250 m east:
-// an enemy blue sees, seeing the occupants, ends HIDDEN. The tank holds fire
-// while blue's scouts walk in, enter and leave and a rifle squad takes the
-// building after them (the scene's entry steps), then opens fire at the
-// encounter's scripted engagement order and shells whatever occupants
-// its squad sees. Held until then so its fire (the HMG wears walls)
-// never brings the house down mid-entry: the entry steps measure the
-// stationary timer, not a collapse. Blue holds fire until fired on. The
+// and a scout squad wait west of the building, out of red's sight. The
 // building (prop 0) is the generator's three-storey corner shop, 12 × 12 m,
-// and takes one squad of up to 16 soldiers, seated on all three floors.
+// seated on all three floors; the encounter's own rules leave it seats for
+// the two rifle squads together, so they share it and the scouts, arriving
+// after them, find no room and stay outside. Red's squad stands east, behind
+// the building, holding fire, and at first too far to make out anyone in the
+// house (a building cuts sight's reach to its occupants), so the first rifle
+// squad in is HIDDEN. At the encounter's scripted move it walks up close
+// enough to see them: an enemy blue sees, seeing the occupants, ends HIDDEN.
+// Red's tank, 250 m east, holds fire while blue's squads walk in (the
+// scene's entry steps), then fires at will at the encounter's scripted tick:
+// at the occupants its squad spots, at their windows, until the house falls
+// on them. Held until
+// then so its fire never brings the house down mid-entry: the entry steps
+// measure the stationary timer, not a collapse. Blue holds fire until fired
+// on, and the scouts turned away wait at the door, where the house hides
+// them from both red units.
 const BUILDING = 0;
 // Keep direct fire from eliminating the occupants before the house falls;
 // collapse itself still decides which soldiers escape.
@@ -63,21 +66,27 @@ const SQUADS = [
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
-  "Scouts garrison": () => ({ kind: "garrison", units: [2], building: BUILDING }),
-  "Rifle squad #0 garrisons": () => ({ kind: "garrison", units: [0], building: BUILDING }),
-  "Scouts leave": () => ({ kind: "exit_building", units: [2] }),
-  // Back west, out of red's sight behind the house: a squad in the open
-  // behind it would be the tank's first target, one it holds fire on.
-  "Scouts fall back west": () => ({
+  "Rifle squad #0 garrisons": () => ({
+    kind: "occupy_building",
+    units: [0],
+    building: BUILDING,
+    gesture: 0,
+  }),
+  "Rifle squad #1 garrisons": () => ({
+    kind: "occupy_building",
+    units: [1],
+    building: BUILDING,
+    gesture: 0,
+  }),
+  "Scouts garrison": () => ({
+    kind: "occupy_building",
+    units: [2],
+    building: BUILDING,
+    gesture: 0,
+  }),
+  "Scouts cross the ruin": () => ({
     kind: "move",
     units: [2],
-    gesture: 1100,
-    goal: [250, 250],
-    route: "shortest",
-  }),
-  "Squad #1 crosses the ruin": () => ({
-    kind: "move",
-    units: [1],
     gesture: 1101,
     goal: [400, 250],
     route: "shortest",
@@ -179,7 +188,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     demo: (name: string) => runDemo(name),
     /** The tick red's squad starts its walk up to spot the occupants. */
     spotterWalksUp: scriptTick(battle, "move"),
-    /** The tick red's tank switches to fire at will: after every entry. */
+    /** The tick red's tank starts shelling the house: after every entry. */
     tankOpensFire: scriptTick(battle, "set_engagement"),
   };
 
@@ -188,7 +197,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
   const garrisoned = control.selectedUnits.some(inBuilding);
   return (
     <>
-      <RejectedOrder acks={control.acks} />
+      <RejectedOrder acks={control.acks} {...session.refusals} />
       <LabViewport
         fixture="garrison"
         world={worldFeed}
@@ -230,19 +239,22 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
           </button>
         </div>
         <div className="lab-legend">
-          <span className="lab-swatch lab-swatch-occupant" /> occupant at a perimeter slot ·{" "}
+          <span className="lab-swatch lab-swatch-occupant" /> occupant at a window ·{" "}
           <span className="lab-swatch lab-swatch-ruin" /> ruin
           <br />
-          <span className="lab-swatch lab-swatch-held" /> building a squad holds (own or seen enemy)
+          <span className="lab-swatch lab-swatch-held" /> held by blue ·{" "}
+          <span className="lab-swatch lab-swatch-held-enemy" /> by a seen enemy
           <br />
-          <span className="lab-swatch lab-swatch-fallen-blue" /> blue fallen ·{" "}
-          <span className="lab-swatch lab-swatch-impact" /> where a round struck (2 s)
+          <span className="lab-swatch lab-swatch-selected-ring" />
+          <span className="lab-swatch lab-swatch-route" /> selected squad's ring and route
+          <br />
+          <span className="lab-swatch lab-swatch-hovered-ring" /> hovered squad's ring
           <br />
           <span className="lab-swatch lab-swatch-tracer-own" /> blue rounds ·{" "}
-          <span className="lab-swatch lab-swatch-tracer-enemy" /> red rounds ·{" "}
-          <span className="lab-swatch lab-swatch-route" /> selected squad's route
+          <span className="lab-swatch lab-swatch-tracer-enemy" /> red rounds
           <br />
-          <span className="lab-swatch lab-swatch-unseen" /> ground blue cannot see
+          <span className="lab-swatch lab-swatch-impact" /> where a round struck (2 s) ·{" "}
+          <span className="lab-swatch lab-swatch-unseen" /> unseen ground
         </div>
         {SQUADS.filter(({ id }) => !own.some((u) => u.id === id)).map(({ id, kind }) => (
           <div key={id} className="lab-hint">

@@ -25,9 +25,10 @@ impl Defender {
         if !self.started {
             self.started = true;
             for &[unit, building] in &op.garrisons {
-                orders.push(Order::Garrison {
+                orders.push(Order::OccupyBuilding {
                     units: vec![UnitId(unit)],
                     building,
+                    gesture: 0,
                 });
             }
         }

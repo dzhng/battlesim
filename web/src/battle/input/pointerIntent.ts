@@ -90,14 +90,14 @@ export function dragFacing(pick: Pick<PointerPick, "ground" | "facingTo">): numb
   return Math.hypot(dx, dy) < MIN_FACING_DRAG_M ? undefined : Math.atan2(dy, dx);
 }
 
-/** A move or building intent turned the way a drag from its press to
- *  `release` points; any other intent as it is. */
+/** A move intent turned the way a drag from its press to `release` points;
+ *  any other intent as it is. */
 export function facedIntent(
   intent: PointerIntent,
   pick: Pick<PointerPick, "ground">,
   release?: [number, number] | null,
 ): PointerIntent {
-  if (intent.kind !== "move" && intent.kind !== "occupy_building") return intent;
+  if (intent.kind !== "move") return intent;
   return { ...intent, facing: dragFacing({ ground: pick.ground, facingTo: release }) };
 }
 
@@ -175,16 +175,12 @@ export function pointerIntent(
     const carriage = carriageIntent(pick, selected, own, yours, catalog);
     if (carriage) return carriage;
   }
+  // A building takes the squads selected; with none, the click falls
+  // through to the ground.
+  const squads = reach("garrison", selected, catalog, own).map((u) => u.id);
+  if (pick.building != null && mode === "move" && squads.length)
+    return { kind: "occupy_building", units: squads, building: pick.building, queued };
   const facing = dragFacing(pick);
-  if (pick.building != null && mode === "move") {
-    return {
-      kind: "occupy_building",
-      units,
-      building: pick.building,
-      queued,
-      ...(facing === undefined ? {} : { facing }),
-    };
-  }
   if (!pick.ground) return { kind: "blocked", disarm: false };
   if (mode === "attack_move") return { kind: "attack_move", units, goal: pick.ground, queued };
 

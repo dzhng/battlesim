@@ -8,9 +8,8 @@
  * queues), right-click on an own carrier or squad to board or collect (Shift
  * queues), Unload (U then a left-click, or U twice), leaving buildings, stop,
  * the fire-policy toggle, deploy/pack, popping smoke, and the acknowledgement
- * log. Keys come from `CommandBindings`. Building clicks send the complete selection for
- * authoritative entry and outside gathering; deploy, boarding, unloading and
- * leaving a building reach only capable units (`commandReach.ts`). Labs and the
+ * log. Keys come from `CommandBindings`. Building clicks, deploy, boarding,
+ * unloading and leaving a building reach only capable units (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. Its events (`UnitControlEvents`)
  * let the battle hear orders, their acknowledgements and the selection's growth
  * (the order flash, and the units' spoken answers). In a team battle it orders
@@ -212,8 +211,6 @@ export function useUnitControl(
           return `${order.enabled ? "afterburners on" : "afterburners off"}: ${order.units.map(unitName).join(", ")}`;
         case "set_deployment":
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
-        case "garrison":
-          return `garrison building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "occupy_building":
           return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":
@@ -326,22 +323,18 @@ export function useUnitControl(
       }
       setMode("move");
       const { queued, ...command } = intent;
-      if (command.kind === "move") {
-        const order =
-          command.route === "fastest"
-            ? { ...command, gesture: gestures.current.token() }
-            : gestures.current.rightClick(
-                pick,
-                command.units,
-                command.goal,
-                command.direction,
-                command.facing,
-              );
-        void issue(order, order.kind === "move" && queued);
-      } else if (command.kind === "attack") {
+      if (command.kind === "attack") {
         void issue(command, queued);
-      } else {
+      } else if (
+        command.kind === "attack_move" ||
+        command.kind === "unload" ||
+        (command.kind === "move" && command.route === "fastest")
+      ) {
         void issue({ ...command, gesture: gestures.current.token() }, queued);
+      } else {
+        // A walk a double right-click can hurry: on ground or to a host.
+        const order = gestures.current.rightClick(pick, command);
+        void issue(order, order.kind !== "upgrade_move" && queued);
       }
     },
     [issue, setMode, intentAt, catalog, player],
@@ -519,8 +512,6 @@ export function useUnitControl(
 
   return {
     refund: observation?.skirmish ? refund : undefined,
-    /** Someone selected can enter a building. */
-    entersBuildings: reach("garrison", selectedUnits, catalog, ownUnits()).length > 0,
     /** The units the player orders (`controlled`): the army row's. */
     controlled: yours,
     selected,

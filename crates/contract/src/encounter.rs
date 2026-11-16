@@ -283,7 +283,8 @@ pub enum Post {
     Column,
     /// A squad at the door of a building of the objective settlement, which
     /// it is ordered into as the battle starts: the whole squad within the
-    /// building's seats, one squad to a building.
+    /// building's seats, and each squad posted to a building of its own (a
+    /// posting choice; a building seats several squads in battle).
     Garrison,
     /// At the objective settlement's edge on a way in the attacker may
     /// take, facing down it: the road the attacker's column drives in by

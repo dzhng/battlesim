@@ -146,7 +146,9 @@
 .lab-swatch-scout,
 .lab-swatch-aim,
 .lab-swatch-reload,
-.lab-swatch-reach {
+.lab-swatch-reach,
+.lab-swatch-selected-ring,
+.lab-swatch-hovered-ring {
   width: 6px;
   height: 6px;
   border: 2px solid;
@@ -203,24 +205,36 @@
   background: rgba(140, 199, 255, 0.75);
   border-color: rgb(20, 31, 51);
 }
+/* A selected unit's order marks (`presentation.overlay.orders.selected`). */
 .lab-swatch-route {
   border-radius: 0;
   height: 3px;
   width: 14px;
   vertical-align: 3px;
-  background: rgb(214, 87, 184);
+  background: rgb(255, 153, 31);
+}
+.lab-swatch-selected-ring {
+  border-color: rgb(255, 153, 31);
+}
+/* A hovered unit's marker takes its card's colour (`gameOrderStyle.hovered`). */
+.lab-swatch-hovered-ring {
+  border-color: rgb(var(--hud-accent));
 }
 .lab-swatch-unseen {
   border-radius: 2px;
   background: rgb(58, 66, 52);
   border: 1px solid #777;
 }
-/* A held building's outline, in the HUD's own side colour. */
-.lab-swatch-held {
+/* A held building's outline, in the holder's HUD side colour. */
+.lab-swatch-held,
+.lab-swatch-held-enemy {
   border-radius: 1px;
   width: 7px;
   height: 7px;
-  border: 2px solid rgb(115, 219, 255);
+  border: 2px solid rgb(var(--hud-accent));
+}
+.lab-swatch-held-enemy {
+  border-color: rgb(var(--hud-enemy));
 }
 .lab-swatch-ruin {
   border-radius: 2px;

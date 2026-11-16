@@ -96,9 +96,16 @@ fn sample(b: &Battle) -> Sample {
     Sample {
         tick: b.tick(),
         distance: (units[0].position - units[1].position).length(),
-        identified: sim::sensing::evaluate(b.world(), &units, b.rules(), Side::Blue, |_| true)
-            .iter()
-            .any(|s| s.observer == UnitId(0) && s.target == UnitId(1)),
+        identified: sim::sensing::evaluate(
+            b.world(),
+            &units,
+            b.windows(),
+            b.rules(),
+            Side::Blue,
+            |_| true,
+        )
+        .iter()
+        .any(|s| s.observer == UnitId(0) && s.target == UnitId(1)),
         hidden: b
             .observe(Side::Red)
             .own

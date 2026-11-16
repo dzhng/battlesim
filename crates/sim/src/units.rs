@@ -204,10 +204,13 @@ pub enum UnitOrder {
         target: Target,
         last_known: Option<V2>,
     },
-    /// Walk to `approach` beside the building, then enter it (L08).
+    /// Walk to `approach` beside the building by `policy`, then enter it
+    /// (L08). A double right-click on `gesture` upgrades the walk.
     Garrison {
         building: PropId,
         approach: V2,
+        gesture: u64,
+        policy: RoutePolicy,
     },
     /// Leave the current building.
     Exit,
@@ -602,9 +605,6 @@ impl Unit {
         }
     }
 
-    /// Where movement should head now and by which policy: an ordered
-    /// destination, an attack's pursuit point or a building's approach. A unit
-    /// with a building (entering, inside or leaving) goes nowhere.
     /// The order at `index` lets the passengers out where it ends: an
     /// Unload follows it.
     pub fn unloads_after(&self, index: usize) -> bool {
@@ -621,6 +621,34 @@ impl Unit {
             .filter_map(|(k, o)| o.movement().map(|m| (m.destination, self.unloads_after(k))))
     }
 
+    /// Switch every walk `gesture` ordered to `route`, a building's walk in
+    /// included: a double right-click. The active walk replans. Whether any
+    /// walk changed.
+    pub fn upgrade_walks(&mut self, gesture: u64, route: RoutePolicy) -> bool {
+        let mut upgraded = false;
+        for (k, order) in self.orders.iter_mut().enumerate() {
+            let (walk, policy) = match order {
+                UnitOrder::Move(o) | UnitOrder::AttackMove(o) => (o.gesture, &mut o.policy),
+                UnitOrder::Garrison {
+                    gesture, policy, ..
+                } => (*gesture, policy),
+                _ => continue,
+            };
+            if walk == gesture && *policy != route {
+                *policy = route;
+                upgraded = true;
+                if k == 0 {
+                    self.route = None;
+                    self.planned_goal = None;
+                }
+            }
+        }
+        upgraded
+    }
+
+    /// Where movement should head now and by which policy: an ordered
+    /// destination, an attack's pursuit point or a building's approach. A unit
+    /// with a building (entering, inside or leaving) goes nowhere.
     pub fn movement_goal(&self) -> Option<(V2, RoutePolicy)> {
         if self.hold.is_some() {
             return None;
@@ -628,7 +656,9 @@ impl Unit {
         match self.orders.front()? {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
-            UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
+            UnitOrder::Garrison {
+                approach, policy, ..
+            } => Some((*approach, *policy)),
             UnitOrder::Exit
             | UnitOrder::Board { .. }
             | UnitOrder::Collect { .. }

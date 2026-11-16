@@ -143,7 +143,7 @@ pub struct CatalogDraft {
 struct BattleCatalog {
     units: Arc<UnitsSection>,
     tables: Arc<ClipTables>,
-    inverse_binds: HashMap<String, Vec<Mat4>>,
+    inverse_binds: HashMap<String, Arc<Vec<Mat4>>>,
     /// The staged battle this draft draws, when it carries one in.
     grown: Option<GrownBattle>,
 }
@@ -321,7 +321,13 @@ impl Presentation {
         detail: Detail,
         placements: BTreeMap<String, Placement>,
     ) -> Result<CatalogDraft, String> {
-        let assets = self.lab.assets.stage(wanted, facts)?;
+        let tables = self
+            .catalog_state
+            .staged
+            .as_ref()
+            .map(|s| &s.tables)
+            .or_else(|| self.loaded.as_ref().map(|l| l.tables.as_ref()));
+        let assets = self.lab.assets.stage(wanted, facts, tables)?;
         let battle = self.stage_battle_catalog(&assets)?;
         let (rows, _) = self
             .lab
@@ -500,24 +506,30 @@ impl Presentation {
         }
         let mut units = units.clone();
         let mut tables = tables.clone();
+        let mut inverse_binds = loaded.inverse_binds.clone();
         for (name, old) in &mut units.appearances {
             let Some(asset) = assets.get(name) else {
                 continue;
             };
-            let Asset::Animated { appearance, table } = asset else {
+            let Asset::Animated {
+                appearance,
+                table,
+                inverse_binds: inverse,
+            } = asset
+            else {
                 return Err(format!("{name}: battle appearance must remain animated"));
             };
             if std::mem::discriminant(old.as_ref()) != std::mem::discriminant(appearance.as_ref()) {
                 return Err(format!("{name}: battle appearance changed model kind"));
             }
-            *old = Arc::new(*appearance.clone());
-            if let Appearance::Skinned { table: key, .. } = Arc::make_mut(old) {
-                *key = format!("catalog:{name}");
-                tables.insert(key.clone(), table.clone().into());
+            *old = appearance.clone();
+            if let Appearance::Skinned { table: key, .. } = old.as_ref() {
+                tables.insert(key.clone(), table.clone());
+                inverse_binds.insert(name.clone(), inverse.clone());
             }
         }
         loaded.driver.validate_catalog(&units)?;
-        let mut inverse_binds = HashMap::new();
+
         for (name, a) in &units.appearances {
             let a = a.as_ref();
             if let Appearance::Skinned {
@@ -526,9 +538,21 @@ impl Presentation {
                 ..
             } = a
             {
-                inverse_binds.insert(name.clone(), skin::inverse_binds(joints, given));
+                // An appearance keeps its inverse binds while its record is the same shared one.
+                if !inverse_binds.contains_key(name)
+                    || (assets.get(name).is_none()
+                        && !loaded
+                            .units
+                            .appearances
+                            .get(name)
+                            .is_some_and(|old| std::ptr::eq(old.as_ref(), a)))
+                {
+                    inverse_binds
+                        .insert(name.clone(), Arc::new(skin::inverse_binds(joints, given)));
+                }
             }
         }
+        inverse_binds.retain(|name, _| units.appearances.contains_key(name));
         tables.retain(|key, _| {
             units
                 .appearances

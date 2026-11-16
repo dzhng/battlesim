@@ -91,6 +91,7 @@ pub enum Host {
         id: f64,
         center: Point2,
         half: Point2,
+        seats: f64,
     },
     Carrier {
         id: f64,

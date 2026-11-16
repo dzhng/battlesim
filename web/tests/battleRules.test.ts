@@ -34,7 +34,9 @@ test("wasm fielding admits an unmounted blast-only row and refuses mounted copie
       blast_only: { blast: original.blast, sound: { blast: original.sound.blast } },
     },
   });
-  const { rules } = await resolveCatalogSet("test");
+  const { rules, units } = await resolveCatalogSet("test");
+  // A whole unit type, so fielding gets as far as its mounts.
+  const tank = units.view.units.find((u: { id: string }) => u.id === "test_tank");
   const weapons = {
     ...rules.weapons,
     ambient_blast: { extends: "tank_he", name: "Ambient blast", appearance: "blast_only" },
@@ -44,7 +46,10 @@ test("wasm fielding admits an unmounted blast-only row and refuses mounted copie
   );
   for (const [catalog, mounted] of [
     [{ units: [], soldiers: {} }, false],
-    [{ units: [{ id: "gunner", mounts: [{ weapons: ["tank_ap", "ambient_blast"] }] }] }, true],
+    [
+      { units: [{ ...tank, id: "gunner", mounts: [{ weapons: ["tank_ap", "ambient_blast"] }] }] },
+      true,
+    ],
     [{ units: [], soldiers: { gunner: { mounts: [{ weapons: ["ambient_blast"] }] } } }, true],
   ] as const) {
     const fielding = new Fielding(

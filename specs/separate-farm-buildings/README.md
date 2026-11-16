@@ -32,7 +32,7 @@ odd it is.
 ## Approaches weighed
 
 - **A. Split only the garrison.** Group a building's parts by contact and
-  seat one squad per group. Facade edges already name their part
+  seat each group as its own host. Facade edges already name their part
   (`MaterializedEdge::part`), so seats and eyes filter cleanly. Small, but
   integrity stays per farm: shelling the barn still ejects all three squads,
   which a veteran would find ridiculous. A stopgap at best.

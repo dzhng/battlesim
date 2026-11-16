@@ -6,10 +6,11 @@ and their `impostor_px` data are separate production behavior and are not this
 experiment's contract.
 **Updated:** 2026-10-22.
 
-A coarser far *mesh* for props is planned separately in
-[far detail](../far-detail/README.md). It is not a card and does not answer this
-placeholder's questions; it does change the baseline any card would be
-measured against.
+A coarser far mesh for props shipped separately, in
+[far detail](../done/far-detail/README.md): parked cars now draw a coarser far
+*mesh*. It is not a card and does not answer this placeholder's questions; it
+does change the baseline any card would be measured against, and it records
+why a far prop may not be reshaped under the fog of war.
 
 ## Next Agent Prompt
 

@@ -321,6 +321,7 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
     let outcome = damage::resolve(
         &DamageContext {
             world: battle.world(),
+            windows: battle.windows(),
             ground: battle.ground(),
             arsenal: battle.arsenal(),
             rules: battle.rules(),
@@ -379,6 +380,7 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
         sim::supply::service(
             battle.world(),
             units,
+            battle.windows(),
             battle.arsenal(),
             battle.rules(),
             &[false, false],
@@ -610,6 +612,7 @@ fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
     damage::resolve(
         &DamageContext {
             world: battle.world(),
+            windows: battle.windows(),
             ground: battle.ground(),
             arsenal: battle.arsenal(),
             rules: battle.rules(),

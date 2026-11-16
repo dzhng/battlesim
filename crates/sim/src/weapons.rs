@@ -2,7 +2,7 @@
 //! Physical guns own aim and cycles (W01–W02); rounds leave only through flight.
 use contract::ballistics::Delivery;
 use contract::catalog::{AltitudeLayer, TypeIndex};
-use contract::command::{Engagement, TargetRef};
+use contract::command::TargetRef;
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId};
 use contract::scenario::{Armor, Rules};
@@ -11,15 +11,22 @@ use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 mod arsenal;
 pub use arsenal::{Arsenal, MountSpec, Weapon};
 mod admission;
+mod assessment;
 pub use admission::check_rules;
+use assessment::{assess, seen_soldiers, Assessed, Ready};
 mod bearing;
 mod cycle;
+mod fire_point;
+use fire_point::{fire_from, hides_behind, FirePoint};
 mod muzzle;
 mod observation;
 mod permission;
 use permission::permitted;
 pub mod operators;
+mod window_requests;
 pub use observation::{pose, readiness};
+
+pub use window_requests::{garrison_aims, MountAim, MountAims};
 pub mod tick;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
 pub use bearing::{nose_on, nose_on_bearing, Arc};
@@ -37,7 +44,7 @@ use crate::knowledge::SideKnowledge;
 use crate::lean;
 use crate::math::{body_distance, v2, v3, wrap_angle, V3};
 use crate::units::Unit;
-use crate::world::{Collider, PropId, WorldGeometry};
+use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
 
 /// Vehicle hull bodies take ids above every soldier id.
@@ -228,6 +235,7 @@ pub struct Shot {
 
 pub struct FireContext<'a> {
     pub world: &'a WorldGeometry,
+    pub windows: &'a crate::garrison::Windows,
     pub structures: &'a crate::structures::Structures,
     pub ground: &'a crate::ground::GroundLayer,
     pub arsenal: &'a Arsenal,
@@ -660,17 +668,13 @@ fn engage(
             Ok((s, _)) => Ok(s),
         }
     };
-    if let Some(garrison) = unit
-        .hold
-        .as_ref()
-        .filter(|_| unit.garrisoned())
-        .and_then(|hold| hold.building())
-    {
+    if unit.garrisoned() {
         let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
         let mut result = Err(ActionReason::NoFacingSlot);
         for k in candidates(unit, mount, spec) {
-            let Some(seat) = garrison
-                .seat(k)
+            let Some(seat) = ctx
+                .windows
+                .seat(unit, k)
                 .filter(|s| s.slot.faces(r.point.xy(), facing))
             else {
                 continue;
@@ -714,150 +718,6 @@ fn engage(
         })
         .find_map(|s| s.map(Ok))
         .unwrap_or(at_unit)
-}
-
-/// One mount's assessments this tick, by target: choosing its lock and then
-/// firing ask of the same target with the same world, so each target is
-/// assessed once (its line tests and firing solutions are the costly part).
-#[derive(Default)]
-struct Assessed {
-    values: Vec<(Target, Result<Ready, ActionReason>)>,
-    prospective_windows: bool,
-}
-
-/// A shot an assessment found: the kind it would load, how long its round
-/// flies to meet the target and where it meets it.
-#[derive(Clone, Copy)]
-struct Ready {
-    kind: usize,
-    time_of_flight_s: f64,
-    intercept: V3,
-}
-
-impl Assessed {
-    /// The kind this mount would load at `target`, or why it can't fire.
-    #[allow(clippy::too_many_arguments)]
-    fn target(
-        &mut self,
-        ctx: &FireContext,
-        unit: &Unit,
-        units: &[Unit],
-        mount: &Mount,
-        spec: &MountSpec,
-        target: Target,
-        resolved: &Resolved,
-    ) -> Result<usize, ActionReason> {
-        self.shot(ctx, unit, units, mount, spec, target, resolved)
-            .map(|ready| ready.kind)
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn shot(
-        &mut self,
-        ctx: &FireContext,
-        unit: &Unit,
-        units: &[Unit],
-        mount: &Mount,
-        spec: &MountSpec,
-        target: Target,
-        resolved: &Resolved,
-    ) -> Result<Ready, ActionReason> {
-        if let Some(&(_, a)) = self.values.iter().find(|(t, _)| *t == target) {
-            return a;
-        }
-        let a = if self.prospective_windows {
-            assess_windows(ctx, unit, units, mount, spec, target, resolved)
-        } else {
-            assess(ctx, unit, units, mount, spec, target, resolved)
-        };
-        self.values.push((target, a));
-        a
-    }
-}
-
-/// Could this mount shoot `target` now: permitted, with a usable kind and a
-/// clear solution. The kind it would load, or why not.
-fn assess(
-    ctx: &FireContext,
-    unit: &Unit,
-    units: &[Unit],
-    mount: &Mount,
-    spec: &MountSpec,
-    target: Target,
-    r: &Resolved,
-) -> Result<Ready, ActionReason> {
-    let k = preferred_kind(ctx, mount, spec, r);
-    let on_its_own = k.is_some_and(|k| ctx.arsenal.weapons[spec.kinds[k]].def.fires_on_its_own);
-    if !on_its_own && !permitted(ctx, unit, target) {
-        return Err(ActionReason::HoldingFire);
-    }
-    let k = k.ok_or(if mount.out_of_ammo() {
-        ActionReason::OutOfAmmo
-    } else {
-        ActionReason::NoCompatibleTarget
-    })?;
-    let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
-    if r.layer == AltitudeLayer::Ground {
-        let pass = unit.air.as_ref().and_then(|air| air.pass);
-        let bomb_pass = pass.is_some_and(|p| p.weapon == crate::air::pass::PassWeapon::Bomb);
-        // Bombs leave only on a bombing pass's release cue, never between
-        // passes (only a winged aircraft carries them: catalog admission).
-        let release_cue = bomb_pass && unit.air.as_ref().is_some_and(|air| air.pass_release);
-        match crate::air::pass::pass_weapon(weapon) {
-            Some(crate::air::pass::PassWeapon::Bomb) if !release_cue => {
-                return Err(ActionReason::HoldingFire);
-            }
-            Some(crate::air::pass::PassWeapon::Gun) if bomb_pass => {
-                return Err(ActionReason::NoCompatibleTarget);
-            }
-            _ => {}
-        }
-    }
-    // A seeker only acquires inside its authored forward cone.  Once the
-    // round is launched, its existing guidance contract takes over.
-    if let Some(fov) = weapon.seeker_fov_deg {
-        let bearing = bearing_from(unit, r.point);
-        let forward = if spec.turret { mount.bearing } else { unit.yaw };
-        if !seeker_in_fov(forward, bearing, fov) {
-            return Err(ActionReason::NoFacingSlot);
-        }
-    }
-    // A winged aircraft's flight, never a weapon, points the airframe, so a
-    // hull-fixed row it aims by the nose (unguided and powered: a fixed gun,
-    // a rocket pod) fires only nose-on. A seeker row aims by its cone, a
-    // guided one by its guidance and a bomb by its pass's release cue.
-    if unit.fixed_wing()
-        && hull_fixed(unit, spec)
-        && weapon.ballistics.guidance.is_none()
-        && weapon.ballistics.delivery == contract::ballistics::Delivery::Powered
-        && !r.fire(weapon).is_some_and(|fire| {
-            let cone = ctx.rules.air.fixed_wing.nose_on_deg.to_radians();
-            nose_on(unit, r.point, fire.range_m, cone)
-        })
-    {
-        return Err(ActionReason::NoFacingSlot);
-    }
-    // Shared identification supplies the target (or the interceptor lock a
-    // round); the launcher still needs a physical sight line to acquire and
-    // support it (P05).
-    let guided = ctx.arsenal.weapons[spec.kinds[k]]
-        .profile
-        .turn_rad_s
-        .is_some();
-    let anti_radiation_target = weapon.anti_radiation && r.emits;
-    if guided
-        && (!matches!(target, Target::Unit(_) | Target::Round(_)) && !anti_radiation_target
-            || !r.current
-            || (!anti_radiation_target
-                && !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point)))
-    {
-        return Err(ActionReason::NoOwnSight);
-    }
-    engage(ctx, unit, units, mount, spec, k, target, r).map(|s| Ready {
-        kind: k,
-        time_of_flight_s: s.time_of_flight_s,
-        intercept: s.intercept,
-    })
 }
 
 /// Whether a seeker can acquire a bearing inside its forward cone. This is
@@ -1496,22 +1356,9 @@ fn fire(
     } else {
         Vec::new()
     };
-    // Aim points: seen soldiers in turn, a sampled point in an area, or the point.
-    let seen: Vec<V3> = match target {
-        Target::Unit(u) if !units[u.0 as usize].is_vehicle() => knowledge
-            .track(u)
-            .map(|t| {
-                t.members
-                    .iter()
-                    .map(|&m| {
-                        units[u.0 as usize].members[m].exposed(ctx.tick)
-                            + v3(0.0, 0.0, ctx.rules.physics.infantry_aim_m)
-                    })
-                    .collect()
-            })
-            .unwrap_or_default(),
-        _ => Vec::new(),
-    };
+    // Aim points: seen soldiers in turn, from the one the assessment found,
+    // a sampled point in an area, or the point.
+    let seen = seen_soldiers(ctx, unit.side, units, target);
     // Cover comes from how the target is observed: a garrison at its
     // building's slots (Q22); a soldier aimed at in the open by his cover
     // body's tier (Q20), vehicles near him among them. Vehicles get none.
@@ -1539,6 +1386,10 @@ fn fire(
         {
             continue;
         }
+        let faces = |p| {
+            ctx.windows
+                .faces(unit, participant_of(unit, body), p, ctx.rules, ctx.tick)
+        };
         let point = match target {
             Target::Contact(c) => {
                 let contact = knowledge.ground_contact(c)?;
@@ -1549,13 +1400,11 @@ fn fire(
                     ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
                 )
             }
-            _ if !seen.is_empty() => seen[n % seen.len()],
+            _ if !seen.is_empty() => seen[(n + ready.soldier) % seen.len()],
             _ => r.point,
         };
         // A soldier whose slot does not face this round's point holds it.
-        if unit.garrisoned()
-            && !crate::garrison::faces(unit, participant_of(unit, body), point, ctx.rules, ctx.tick)
-        {
+        if unit.garrisoned() && !faces(point) {
             cycle.started = false;
             continue;
         }
@@ -1570,12 +1419,10 @@ fn fire(
             leaning: false,
         };
         let soldier = member.map(|k| &unit.members[k]);
-        let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
+        let turn = (0..seen.len()).map(|j| seen[(n + ready.soldier + j) % seen.len()]);
         let found = turn.chain([point]).find_map(|p| {
             // A farther candidate can face a different side of the building.
-            if unit.garrisoned()
-                && !crate::garrison::faces(unit, participant_of(unit, body), p, ctx.rules, ctx.tick)
-            {
+            if unit.garrisoned() && !faces(p) {
                 return None;
             }
             let from = match soldier {
@@ -1749,89 +1596,6 @@ fn fire(
     })
 }
 
-/// Where a soldier fires a round from.
-#[derive(Clone, Copy)]
-struct FirePoint {
-    origin: V3,
-    /// The body he leans round, which his rounds pass (the own-cover
-    /// rule): a round grazing its edge does not strike it.
-    past: Option<PropId>,
-    /// The friendly hull he leans round, which never withholds his shot.
-    hull: Option<UnitId>,
-    /// Fired from his lean point.
-    leaning: bool,
-}
-
-/// Where a soldier fires a round at `point` from, when it reaches:
-/// from his muzzle where he stands when the round reaches straight from
-/// there; else from his claimed lean point (while he is at the place it was
-/// claimed with) when it reaches from there. Either way his round passes
-/// the body he leans round. `None`: it reaches from neither. The line test
-/// is [`lean::reaches`], the one the cover search judges places by.
-fn fire_from(
-    ctx: &FireContext,
-    blockers: &[lean::Hull],
-    soldier: &crate::units::Soldier,
-    point: V3,
-    offset: V3,
-) -> Option<FirePoint> {
-    let muzzle = |p: crate::math::V2| {
-        p.with_z(ctx.world.height_at(p.x, p.y).unwrap_or(soldier.position.z)) + offset
-    };
-    let lean = soldier
-        .lean
-        .as_ref()
-        .filter(|l| (l.from - soldier.position.xy()).length() <= lean::AT_PLACE_M);
-    let past = lean.and_then(|l| l.past());
-    let hull = lean.and_then(|l| match l.body {
-        lean::Round::Hull(u) => Some(u),
-        lean::Round::Prop(_) => None,
-    });
-    let standing = soldier.position + offset;
-    if lean::reaches(ctx.world, blockers, standing, point, None) {
-        return Some(FirePoint {
-            origin: standing,
-            past,
-            hull,
-            leaning: false,
-        });
-    }
-    // Out on a burst, or tucked in long enough to lean out again.
-    let l = lean.filter(|l| {
-        (ctx.tick < soldier.leaning_until || ctx.tick >= soldier.tucked_until)
-            && lean::reaches(ctx.world, blockers, muzzle(l.at), point, past)
-    })?;
-    Some(FirePoint {
-        origin: muzzle(l.at),
-        past,
-        hull,
-        leaning: true,
-    })
-}
-
-/// Whether the first body on a soldier's straight line from `origin` to
-/// `point` is one he takes cover behind from it (Q20's test, the one that
-/// gives him a tier).
-fn hides_behind(ctx: &FireContext, soldier: &crate::units::Soldier, origin: V3, point: V3) -> bool {
-    let to = point - origin;
-    let len = to.length();
-    if len < 1e-6 {
-        return false;
-    }
-    let Some(hit) = ctx.world.raycast(origin, to * (1.0 / len), len) else {
-        return false;
-    };
-    let Collider::Prop(id) = hit.collider else {
-        return false;
-    };
-    let Some(prop) = ctx.world.prop(id) else {
-        return false;
-    };
-    let (at, reach) = (soldier.position.xy(), ctx.rules.cover.reach_m);
-    let radius = ctx.rules.physics.soldier_radius_m;
-    crate::cover::covers(&prop.footprint(), at, point.xy(), reach, radius)
-}
-
 /// Eligible carriers, independent of active choice: every living soldier
 /// carrying a squad weapon; otherwise its [`operator`].
 fn candidates<'a>(
@@ -1881,150 +1645,6 @@ fn participant_of(unit: &Unit, body: BodyId) -> usize {
         .iter()
         .position(|s| BodyId(s.id) == body)
         .expect("a shooter is a member")
-}
-
-/// A garrisoned squad's mounts that have something to face: each one's
-/// participants and the point it faces.
-pub struct MountAim {
-    pub members: Vec<usize>,
-    pub point: V3,
-    /// Authored physical ownership, independent of how many riflemen survive.
-    pub single_operator: bool,
-}
-pub type MountAims = Vec<MountAim>;
-
-/// Whether a carried gun could engage after taking a suitable window. The
-/// normal assessment owns range, trajectory and guidance LOS here too; only
-/// position and idle watching permission are projected. Known attackers still
-/// constrain return fire; a missing current window cannot prevent requesting one.
-fn assess_windows(
-    ctx: &FireContext,
-    unit: &Unit,
-    units: &[Unit],
-    mount: &Mount,
-    spec: &MountSpec,
-    target: Target,
-    resolved: &Resolved,
-) -> Result<Ready, ActionReason> {
-    let mut prospective = unit.clone();
-    if unit.attackers.is_empty() {
-        prospective.engagement = Engagement::FireAtWill;
-    }
-    let current = assess(ctx, &prospective, units, mount, spec, target, resolved);
-    if current.is_ok() || !permitted(ctx, &prospective, target) {
-        return current;
-    }
-    let g = unit
-        .hold
-        .as_ref()
-        .and_then(|hold| hold.building())
-        .expect("a garrison requests windows");
-    let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
-    for member in candidates(unit, mount, spec) {
-        for (seat, window) in g
-            .slots
-            .iter()
-            .enumerate()
-            .filter(|(_, w)| w.slot.faces(resolved.point.xy(), facing))
-        {
-            prospective.members[member].position = window.position;
-            prospective
-                .hold
-                .as_mut()
-                .unwrap()
-                .building_mut()
-                .unwrap()
-                .seats[member] = Some(seat);
-            let assessment = assess(ctx, &prospective, units, mount, spec, target, resolved);
-            if assessment.is_ok() {
-                return assessment;
-            }
-        }
-        prospective.members[member].position = unit.members[member].position;
-        prospective
-            .hold
-            .as_mut()
-            .unwrap()
-            .building_mut()
-            .unwrap()
-            .seats[member] = g.seats[member];
-    }
-    current
-}
-
-/// Each soldier requests a window for one weapon, using the same priority as
-/// active selection but assessing prospective windows. This breaks the circular
-/// dependency between a useful weapon and the window it needs, without letting
-/// an inactive rifle pull a launcher operator away from his target.
-pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims)> {
-    units
-        .iter()
-        .enumerate()
-        .filter(|(_, u)| u.alive() && u.garrisoned())
-        .map(|(i, u)| {
-            let specs = ctx.arsenal.specs(u.kind);
-            let plans: Vec<_> = u
-                .mounts
-                .iter()
-                .map(|m| {
-                    let spec = &specs[m.spec];
-                    let mut candidate = m.clone();
-                    let mut assessed = Assessed {
-                        prospective_windows: true,
-                        ..Default::default()
-                    };
-                    let explicit = u
-                        .attack_target()
-                        .filter(|&t| compatible(ctx, m, spec, t, units));
-                    let idle_reason =
-                        choose_lock(ctx, u, units, &mut candidate, spec, explicit, &mut assessed)
-                            .idle_reason;
-                    let target = m
-                        .support
-                        .map(|s| s.target)
-                        .or_else(|| candidate.lock.as_ref().map(|l| l.target))?;
-                    let r = resolve_for(ctx, u, m, spec, target, units)?;
-                    let assessment = assessed.shot(ctx, u, units, m, spec, target, &r);
-                    Some(MountPlan {
-                        stationary: false,
-                        idle_reason,
-                        resolved: Some(r),
-                        assessment: Some(assessment),
-                        kind: preferred_kind(ctx, m, spec, &r),
-                    })
-                })
-                .collect();
-            let choices: Vec<_> = (0..u.members.len())
-                .map(|member| {
-                    preferred_mount(
-                        u,
-                        member,
-                        specs,
-                        &ctx.arsenal.weapons,
-                        ctx.rules,
-                        &plans,
-                        false,
-                    )
-                })
-                .collect();
-            let aims = plans
-                .iter()
-                .enumerate()
-                .filter_map(|(m, plan)| {
-                    let r = plan.as_ref()?.resolved?;
-                    let members: Vec<_> = candidates(u, &u.mounts[m], &specs[u.mounts[m].spec])
-                        .filter(|&member| choices[member] == Some(m))
-                        .collect();
-                    (!members.is_empty()).then_some(MountAim {
-                        members,
-                        point: r.point,
-                        single_operator: !specs[u.mounts[m].spec].squad,
-                    })
-                })
-                .collect();
-            (i, aims)
-        })
-        .collect()
 }
 
 /// Whether a unit is fighting: a mount aiming at, reloading on, traversing to

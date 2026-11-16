@@ -26,7 +26,6 @@ use crate::world::{Prop, PropId, WorldGeometry};
 use traffic::hull_conflict;
 
 pub(crate) mod air;
-mod certify;
 mod changes;
 mod crowd;
 pub(crate) mod drive;
@@ -39,7 +38,6 @@ mod take_cover;
 mod traffic;
 mod vehicle;
 
-pub(crate) use certify::{certify_orders, ProofRequest};
 pub use drive::{final_facing, final_yaw};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
 pub use push::Shove;

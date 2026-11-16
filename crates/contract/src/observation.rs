@@ -431,11 +431,15 @@ pub enum HoldPhase {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum HostRef {
-    /// A placed building and its ground footprint.
+    /// A placed building, its ground footprint and its seat total: one
+    /// seat per window of its plan while a squad is inside or leaving, else
+    /// the windows its standing state offers. Every own squad holding it
+    /// shares those seats; the carrier's total is its type's.
     Building {
         id: u32,
         center: [f64; 2],
         half: [f64; 2],
+        seats: u32,
     },
     /// A carrier unit. Its geometry is read from the carrier's own row.
     Carrier { id: u32 },

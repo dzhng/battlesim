@@ -79,7 +79,10 @@ Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
 
 [Appearance replacement](src/runtime/assets.rs) stages a complete asset generation
-against the presentation's prospective catalog. A pending generation can warm
+against the presentation's prospective catalog. Pose data follows
+[presentation's sharing contract](../presentation/README.md#what-it-owns), so
+staging a renderer generation does not duplicate the scene's clip tables.
+A pending generation can warm
 one missing geometry key and its rest facts per step, retaining those rows
 until the existing admission finds every packed key. Dropping partial work
 releases its holders without changing live art; stepping changes neither the
