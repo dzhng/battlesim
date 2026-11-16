@@ -206,3 +206,15 @@ Decision 51 is moot for cars: the shipped far mesh adds no new parts.
 | 64 | How is a far part shaded in Blender? | As tier 3 is: same segment count, same paint split, and occluded by tier 3's parts. Before, a far part was occluded only by other far parts, so a far mesh baked lighter beside whatever it dropped. Found by slice 04; it replaces decision 29's provisional values. | sound |
 | 65 | Does the tactical view stay untouched? | Not for walls: at the shared threshold about 290 of 1,700 walls on screen at 260 m draw far, all in the far strip at the top of the frame. That is acceptable only for a far mesh that changes no pixel. | follows from 63 |
 
+## From the shadow arm's measurement, 2026-11-16
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 66 | Adopt "small off-view casters cast far"? | No. It wins three of three pairs at the wide hold, but by 0.49 ms of about 32 (1.5%), for exactly the predicted 2,785,360 fewer shadow triangles. Against that it adds a second shadow-tier rule for props, 3 MiB of GPU buffers, and about 100 mid-frame pixels at the day sun that move by up to 2 levels for a reason nobody established. The golden-hour frames did not change. The repository's rule is to spend margin on simplicity. The code and its five tests stay on branch `t3/far-detail-offview-casters-far` (`1db33f992`) if the user wants the half millisecond. | reviewer; user may reopen |
+| 67 | A final combined timing session against `staging`? | None. Each shipped piece carries its own interleaved measurement, and `staging` moves too fast for a baseline to stay meaningful. The closeout quotes the per-piece numbers. | reviewer, on the user's instruction not to over-verify |
+| 68 | Which jobs wait on a lock? | Only a frame-timing session takes the shared GPU lock. Pictures, recordings and tests take none. The plan first put every GPU job on the lock, which delayed the first push. | user |
+
+A correction the measurement made to the arm's own report: at the tactical
+hold it is not a no-op. 88 cars beyond 700 m in the widest cascade would cast
+with their far mesh.
+

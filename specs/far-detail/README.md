@@ -1,7 +1,7 @@
 # Far detail
 
 **Status:** 00, 01 and 02 are done; 03 (parked cars) is merged. 04 (walls)
-is on a third attempt and slice 03's shadow arm is being measured. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
+is on a third attempt. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -46,8 +46,8 @@ You are implementing `specs/far-detail/` on branch
 - **Two follow-ups to the car are in flight** on that branch: a helper fix so
   a far part is occluded as tier 3 is, and the same hidden-face reading for
   the car.
-- **Slice 03's shadow arm is being measured** on branch
-  `t3/far-detail-census-ceiling`, at the day sun and the lowest authored sun.
+- **Slice 03's shadow arm is measured and not adopted**
+  ([decision 66](decisions.md)): half a millisecond for a second shadow rule.
 - **On `staging` since 2026-11-16** (`916a75236`): slices 00 to 03, both
   spike verdicts and the helper docs. Later work is pushed as each piece is
   settled; merge `staging` little and often.
@@ -80,7 +80,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 - [x] 00: census of the wide view, and the ceiling probe's go or no-go → [slice 00](slices/00-census-and-ceiling.md)
 - [x] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
 - [x] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
-- [x] 03: parked cars carry one; the measured win (its shadow arm is still open) → [slice 03](slices/03-parked-car.md)
+- [x] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
 - [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)
 - [x] 05: spike, merging a block's props into one mesh: no-go ([verdict](assets/block-merge-verdict.md)) → [slice 05](slices/05-spike-block-merge.md)
 - [x] 06: spike, cluster detail for terrain: no-go at the count ([verdict](assets/terrain-verdict.md)) → [slice 06](slices/06-spike-terrain.md)

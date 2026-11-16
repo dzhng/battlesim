@@ -77,14 +77,9 @@ buildings, trees, units.
    paired crops for the user, wait about five minutes, then decide on the
    evidence, record it in [the ledger](../decisions.md), and close the shots.
 
-**One named extra arm**, on its own pass, after walls so it covers both kinds:
-*small off-view casters cast far.* A prop outside the view casts with its far
-mesh when it is small enough that it would draw it, and with tier 3 otherwise.
-Slice 03 counted 34,817 car casts at the wide hold that stay at tier 3 this
-way. They come from cars more than their radius plus 3 m outside the frustum,
-whose shadows cannot reach visible ground at this sun, so the arm should change
-no pixel there. Adopt it only if it wins by the same tripwires and a fresh
-critic finds no change, at this sun and at a low one.
+**The named extra arm, small off-view casters cast far, was built, measured
+and not adopted** ([decision 66](../decisions.md)). It stays on branch
+`t3/far-detail-offview-casters-far` (`1db33f992`).
 
 The second arm the plan first named, tier-3 cars casting far, is dropped
 unbuilt ([decision 48](../decisions.md)).
