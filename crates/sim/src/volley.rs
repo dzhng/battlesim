@@ -4,12 +4,12 @@
 //! runs, one run in which it fired. The last attack in a queue fires no
 //! volley; it keeps on until its target is dead or lost.
 
-/// The rows (a bit per mount index) that have ended a firing cycle at the
-/// target since something was first queued behind the attack. A cycle
-/// already under way then counts when it ends; a row not firing then must
-/// fire one whole cycle.
+/// What an attack has fired since something was first queued behind it.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Volley {
+    /// The rows (a bit per mount index) that have ended a firing cycle at
+    /// the target. A cycle already under way when counting began counts when
+    /// it ends; a row not firing then must fire one whole cycle.
     pub done: u64,
     /// A jet's run under way: it was diving at the last fire step.
     pub diving: bool,
@@ -24,18 +24,23 @@ pub struct RunFire {
     pub fired: bool,
     /// It is flying a run (committed, nose on the aim).
     pub diving: bool,
+    /// Rows still guiding a round at the target.
+    pub guiding: u64,
     /// It has a weapon to fly a run with, able to hurt the target.
     pub can_act: bool,
 }
 
 /// One tick's fire against the attack's target, measured after the fire
 /// step.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct VolleyFire {
     /// Rows working on the target: firing, aiming, reloading or traversing.
     pub working: u64,
     /// Rows that ended a firing cycle at the target this tick.
     pub ended: u64,
+    /// Rows still guiding a round at the target: a launcher must stand by
+    /// its missile until it lands.
+    pub guiding: u64,
     /// Something can still act on the target: for a ground point, a row
     /// working on it; for a unit or contact, a row that can hurt it, while
     /// one works on it or the unit can go after it.
@@ -48,7 +53,8 @@ impl Volley {
     /// working on it has too.
     pub fn observe(&mut self, fire: VolleyFire) -> bool {
         self.done |= fire.ended;
-        !fire.can_act || (self.done != 0 && fire.working & !self.done == 0)
+        let finished = self.done != 0 && fire.working & !self.done == 0;
+        fire.guiding == 0 && (!fire.can_act || finished)
     }
 
     /// Count this tick of a jet's runs; whether the attack can hand off: it
@@ -63,8 +69,9 @@ impl Volley {
         if !run.can_act {
             return true;
         }
-        let fired = ended && self.run_fired;
-        if ended {
+        // A run that fired counts once its missiles are down.
+        let fired = !self.diving && self.run_fired && run.guiding == 0;
+        if fired {
             self.run_fired = false;
         }
         fired
@@ -79,6 +86,7 @@ mod tests {
         VolleyFire {
             working,
             ended,
+            guiding: 0,
             can_act,
         }
     }
@@ -87,6 +95,7 @@ mod tests {
         RunFire {
             fired,
             diving,
+            guiding: 0,
             can_act: true,
         }
     }
@@ -123,6 +132,29 @@ mod tests {
     fn a_jet_with_nothing_to_run_with_hands_off_at_once() {
         let mut v = Volley::default();
         assert!(v.observe_run(RunFire::default()));
+    }
+
+    #[test]
+    fn a_launcher_guiding_its_missile_holds_the_volley() {
+        let mut v = Volley::default();
+        let guiding = VolleyFire {
+            guiding: 0b1,
+            ..fire(0b1, 0b1, true)
+        };
+        assert!(!v.observe(guiding));
+        assert!(v.observe(fire(0b1, 0, true)));
+    }
+
+    #[test]
+    fn a_run_waits_for_its_missiles_to_land() {
+        let mut v = Volley::default();
+        assert!(!v.observe_run(run(true, true)));
+        let guiding = RunFire {
+            guiding: 0b1,
+            ..run(false, false)
+        };
+        assert!(!v.observe_run(guiding));
+        assert!(v.observe_run(run(false, false)));
     }
 
     #[test]

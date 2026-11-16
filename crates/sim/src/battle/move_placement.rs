@@ -177,8 +177,7 @@ impl Battle {
             .into_iter()
             .map(|slot| {
                 let u = &self.units[slot.id.0 as usize];
-                let slot_point = slot.point;
-                let goal = slot_point.unwrap_or(u.position.xy());
+                let goal = slot.point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);
                 let living = if u.hull.is_some() {
@@ -189,7 +188,7 @@ impl Battle {
                 contract::command::MoveDestination {
                     unit: slot.id,
                     goal: [goal.x, goal.y],
-                    placed: slot_point.is_some(),
+                    placed: slot.point.is_some(),
                     facing: facing.unwrap_or(u.yaw),
                     spots: self.arrival_spots(
                         side,

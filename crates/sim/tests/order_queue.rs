@@ -162,6 +162,8 @@ fn a_move_queued_behind_an_attack_runs() {
     let mut c = Commander::new();
     let enemy = seen(&mut b);
     c.ok(&mut b, Side::Blue, attack(0, enemy));
+    // The attack is in the unit's queue before the move is placed behind it.
+    b.step();
     let goal = [200.0, 480.0];
     let queued = contract::command::CommandEnvelope {
         side: Side::Blue,
@@ -233,19 +235,19 @@ fn a_queued_attack_on_a_jet_starts_no_dogfight_before_its_turn() {
     c.ok(
         &mut b,
         Side::Blue,
-        drive([RUN_START[0], RUN_START[1] - 1500.0]),
+        drive([RUN_START[0] + 300.0, RUN_START[1] - 300.0]),
     );
     assert_eq!(c.send(&mut b, Side::Blue, attack(0, enemy), true), None);
-    for _ in 0..ticks(3.0) {
-        b.step();
-        let jet = b.unit(UnitId(0)).unwrap();
-        assert!(matches!(jet.orders.front(), Some(UnitOrder::Move(_))));
-        assert_eq!(
-            jet.air.unwrap().dogfight_target,
-            None,
-            "dogfighting before its turn"
-        );
-    }
+    let dogfight = |b: &Battle| b.unit(UnitId(0)).unwrap().air.unwrap().dogfight_target;
+    until(&mut b, ticks(120.0), "the attack's turn", |b| {
+        if !attacking(b, 0) {
+            assert_eq!(dogfight(b), None, "dogfighting before its turn");
+        }
+        attacking(b, 0)
+    });
+    until(&mut b, ticks(60.0), "the dogfight on its turn", |b| {
+        dogfight(b).is_some()
+    });
 }
 
 /// A skirmish where blue buys one `blue` (`unit`) and a rifle squad that
@@ -785,4 +787,38 @@ fn a_jets_attack_ends_when_its_side_loses_the_target() {
         b.unit(UnitId(2)).unwrap().alive(),
         "the squad was killed, not lost"
     );
+}
+
+/// An anti-tank team told to attack a vehicle, with a move queued, stays
+/// with its guided missile until it lands before moving on: a launcher that
+/// walked off would drop it.
+#[test]
+fn a_guided_missile_is_flown_home_before_the_attack_hands_off() {
+    let mut b = field(json!([
+        { "side": "blue", "kind": "test_at", "position": [200.0, 300.0], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_jeep", "position": [600.0, 300.0], "engagement": "return_fire_only" },
+    ]));
+    let mut c = Commander::new();
+    let enemy = seen(&mut b);
+    c.ok(&mut b, Side::Blue, attack(0, enemy));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([200.0, 450.0]), true),
+        None
+    );
+    b.step();
+    let guiding = |b: &Battle| {
+        b.unit(UnitId(0))
+            .unwrap()
+            .mounts
+            .iter()
+            .any(|m| m.support.is_some())
+    };
+    until(&mut b, ticks(60.0), "a missile in flight", guiding);
+    until(&mut b, ticks(60.0), "the attack handed off", |b| {
+        assert!(
+            attacking(b, 0) || !guiding(b),
+            "handed off with a missile in flight"
+        );
+        !attacking(b, 0)
+    });
 }

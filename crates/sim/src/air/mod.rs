@@ -212,7 +212,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .iter()
                         .find(|(w, _)| *w == weapon)
                         .map_or_else(|| at_the_aim(point), |(_, release)| *release);
-                    let lost = !knows_target(ctx.knowledge[unit.side.index()], target);
                     let pass = unit
                         .air
                         .as_mut()
@@ -220,10 +219,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .pass
                         .as_mut()
                         .expect("a pass was begun");
-                    // A run at a target its side has lost is over.
-                    if lost {
-                        pass.phase = pass::PassPhase::LineUp;
-                    }
                     let (intent, cue) =
                         pass::advance(pass, &state, &limits, &bounds, point, &release, dt);
                     pass_release_now = cue;

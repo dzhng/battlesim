@@ -142,3 +142,18 @@ rewritten from scratch at closeout.
   battle view and the garrison lab; a lab without it draws a garrison as a leg to a
   queued ring. *Agent*: the side's known props list only bodies that changed, so they
   can't place an intact building.
+
+## Review fixes (part 1)
+
+- **A launcher guiding a missile at the target holds the volley until the missile is
+  down** (and a jet's run likewise), so an ATGM team doesn't walk off and drop it. The
+  hand-off now runs after the fire step's launches, where a guided round's support is set.
+- **A queued Attack or AttackMove for a unit driving home is skipped whole**, side
+  effects included (fire at will, a dogfight), as `Unit::enqueue` drops it.
+- **Handing off clears the attack's chase point and dogfight link**; an attack left
+  with nothing behind it drops its volley count.
+- **A waiting attack whose turn comes during movement takes effect before the fire
+  step** too, not only at the next tick's start.
+- **Not done:** the acceptance tests' "fired before handing off" check counts every
+  mount's rounds, not only those at the target; the volley tests pin target-only cycle
+  ends directly.

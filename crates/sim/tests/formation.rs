@@ -46,6 +46,8 @@ fn a_destination_queued_behind_an_attack_is_placed() {
             .error,
         None
     );
+    // The attack is in the unit's queue before the move is placed behind it.
+    battle.step();
     let preview = battle
         .preview_move(
             Side::Blue,

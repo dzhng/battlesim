@@ -1228,9 +1228,9 @@ pub struct Reach {
     pub needs_closer: bool,
     /// The heading a gun fixed in the hull needs the body to turn to (D8).
     pub face: Option<f64>,
-    /// The mounts (a bit per index) working on the attack order's target
-    /// this tick: firing, aiming, reloading or traversing onto it.
-    pub ordered_firing: u64,
+    /// Mounts (a bit each) working on the attack order's target this
+    /// tick: firing, aiming, reloading, traversing or guiding.
+    pub ordered_working: u64,
     /// Some mount can hurt the attack order's target ([`compatible`]).
     pub can_damage: bool,
 }

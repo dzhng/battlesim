@@ -19,30 +19,17 @@ impl Battle {
     }
 
     /// Each attack that waited behind other orders takes effect now that its
-    /// turn has come.
-    fn start_waiting_attacks(&mut self) {
+    /// turn has come: before movement, and again before the fire step for
+    /// one whose turn came during movement.
+    pub(super) fn start_waiting_attacks(&mut self) {
         let due: Vec<(usize, Option<UnitId>)> = (self.units.iter().enumerate())
             .filter_map(|(i, unit)| match unit.orders.front() {
                 Some(UnitOrder::Attack {
                     target,
                     waiting: true,
                     ..
-                }) => Some((i, *target)),
+                }) => Some((i, dogfight_with(unit, *target, &self.units))),
                 _ => None,
-            })
-            .map(|(i, target)| {
-                let dogfight = match target {
-                    Target::Unit(other)
-                        if crate::air::dogfight::can_dogfight(
-                            &self.units[i],
-                            &self.units[other.0 as usize],
-                        ) =>
-                    {
-                        Some(other)
-                    }
-                    _ => None,
-                };
-                (i, dogfight)
             })
             .collect();
         for (i, dogfight) in due {
@@ -56,47 +43,63 @@ impl Battle {
 
     /// Each attack with an order queued behind it counts this tick's fire
     /// against its target, and hands off once its volley is done
-    /// ([`crate::volley`]). Measured right after the fire step, so the
-    /// rounds of the cycle or run that ends it have already left.
-    pub(super) fn hand_off_volleys(&mut self, shots: &[weapons::Shot]) {
+    /// ([`crate::volley`]): measured after the fire step's launches, so the
+    /// rounds of the cycle or run that ends it have left and a guided
+    /// round's launcher is known to be supporting it. Handing off, it drops
+    /// the attack's chase and dogfight; an attack left with nothing behind it
+    /// drops its count.
+    pub(super) fn hand_off_volleys(&mut self, shots: &[VolleyShot]) {
         let knowledge = &self.knowledge;
         for unit in &mut self.units {
-            if unit.orders.len() < 2 {
-                continue;
-            }
+            let queued = unit.orders.len() > 1;
             let (reach, garrisoned, layer) = (unit.reach, unit.garrisoned(), unit.layer());
             let pass = unit.air.as_ref().and_then(|air| air.pass);
-            let fixed_wing = unit.fixed_wing();
-            let id = unit.id;
+            let (fixed_wing, on_field, id) = (unit.fixed_wing(), unit.on_field(), unit.id);
+            let guiding_at = |target: Target| {
+                (unit.mounts.iter().enumerate())
+                    .filter(|(_, m)| m.support.as_ref().is_some_and(|s| s.target == target))
+                    .fold(0u64, |rows, (k, _)| rows | 1 << k)
+            };
             let Some(UnitOrder::Attack {
                 target,
                 waiting: false,
                 volley,
                 ..
-            }) = unit.orders.front_mut()
+            }) = unit.orders.front()
             else {
                 continue;
             };
             let target = *target;
-            let at_target = |s: &&weapons::Shot| s.unit == id && s.target == target;
-            let volley = volley.get_or_insert_default();
+            if !queued || !on_field {
+                if volley.is_some() && !queued {
+                    if let Some(UnitOrder::Attack { volley, .. }) = unit.orders.front_mut() {
+                        *volley = None;
+                    }
+                }
+                continue;
+            }
+            let guiding = guiding_at(target);
+            let at_target = |s: &&VolleyShot| s.unit == id && s.target == target;
+            let mut progress = volley.unwrap_or_default();
             // A jet attacks anything but an enemy jet in runs.
             let done = if fixed_wing
                 && !crate::air::dogfightable(&knowledge[unit.side.index()], target, layer)
             {
                 let hurts = matches!(target, Target::Ground(_)) || reach.can_damage;
-                volley.observe_run(crate::volley::RunFire {
+                progress.observe_run(crate::volley::RunFire {
                     fired: shots.iter().any(|s| at_target(&s)),
                     diving: pass.is_some_and(|p| p.phase == crate::air::pass::PassPhase::Dive),
+                    guiding,
                     can_act: hurts && pass.is_some(),
                 })
             } else {
-                let working = reach.ordered_firing;
-                volley.observe(crate::volley::VolleyFire {
+                let working = reach.ordered_working;
+                progress.observe(crate::volley::VolleyFire {
                     working,
                     ended: (shots.iter().filter(at_target))
                         .filter(|s| s.cycle_ended)
                         .fold(0, |rows, s| rows | 1 << s.mount),
+                    guiding,
                     can_act: match target {
                         Target::Ground(_) => working != 0,
                         _ => reach.can_damage && (working != 0 || !garrisoned),
@@ -105,6 +108,10 @@ impl Battle {
             };
             if done {
                 unit.orders.pop_front();
+                unit.pursuit = None;
+                crate::air::dogfight::clear(unit);
+            } else if let Some(UnitOrder::Attack { volley, .. }) = unit.orders.front_mut() {
+                *volley = Some(progress);
             }
         }
     }
@@ -165,6 +172,38 @@ impl Battle {
             if done {
                 unit.orders.pop_front();
             }
+        }
+    }
+}
+
+/// The enemy jet an attack on `target` sends `unit` after in a dogfight.
+pub(super) fn dogfight_with(unit: &Unit, target: Target, units: &[Unit]) -> Option<UnitId> {
+    match target {
+        Target::Unit(other)
+            if crate::air::dogfight::can_dogfight(unit, &units[other.0 as usize]) =>
+        {
+            Some(other)
+        }
+        _ => None,
+    }
+}
+
+/// What the volley count reads of one shot, kept past the fire step's
+/// launches.
+pub(super) struct VolleyShot {
+    unit: UnitId,
+    mount: usize,
+    target: Target,
+    cycle_ended: bool,
+}
+
+impl VolleyShot {
+    pub(super) fn of(shot: &weapons::Shot) -> Self {
+        VolleyShot {
+            unit: shot.unit,
+            mount: shot.mount,
+            target: shot.target,
+            cycle_ended: shot.cycle_ended,
         }
     }
 }

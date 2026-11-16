@@ -248,12 +248,14 @@ impl Battle {
                 }
             };
         }
+        // An attack whose turn came during movement acts from this fire step.
+        self.start_waiting_attacks();
         let aims = weapons::garrison_aims(&context!(), &self.units);
         self.windows
             .allocate(&mut self.units, &aims, &self.rules, self.tick);
         let shots =
             weapons::tick::advance(&context!(), &mut self.units, moved, &mut self.combat_rng);
-        self.hand_off_volleys(&shots);
+        let volley_shots: Vec<_> = shots.iter().map(attack_order::VolleyShot::of).collect();
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
@@ -306,6 +308,9 @@ impl Battle {
                 .heard(shooter.kind, shooter.mounts[shot.mount].spec);
             self.record_fire(shot.unit, heard);
         }
+        // After the launches, so a guided round's launcher is known to be
+        // supporting it.
+        self.hand_off_volleys(&volley_shots);
         fired
     }
 }

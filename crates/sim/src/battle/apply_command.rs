@@ -113,6 +113,10 @@ impl Battle {
                         }
                         continue;
                     }
+                    // Nothing follows a unit going home (`Unit::enqueue`).
+                    if queued && unit.withdrawing {
+                        continue;
+                    }
                     let destination = v2(slot.goal[0], slot.goal[1]);
                     controllers::fire_at_will(unit);
                     let order = UnitOrder::AttackMove(MoveOrder {
@@ -132,18 +136,13 @@ impl Battle {
                     return;
                 };
                 for id in units {
-                    let dogfight = match target {
-                        Target::Unit(other)
-                            if crate::air::dogfight::can_dogfight(
-                                &movers[id.0 as usize],
-                                &movers[other.0 as usize],
-                            ) =>
-                        {
-                            Some(other)
-                        }
-                        _ => None,
-                    };
+                    let dogfight =
+                        attack_order::dogfight_with(&movers[id.0 as usize], target, movers);
                     let unit = &mut movers[id.0 as usize];
+                    // Nothing follows a unit going home (`Unit::enqueue`).
+                    if queued && unit.withdrawing {
+                        continue;
+                    }
                     let waiting = queued && !unit.orders.is_empty();
                     if !waiting {
                         Self::take_effect(unit, dogfight);

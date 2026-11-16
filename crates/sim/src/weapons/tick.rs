@@ -113,7 +113,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
         let mut leaned: Vec<u32> = Vec::new();
         // Ordered target: some compatible mount can shoot it / none can reach it.
         let (mut ordered_ok, mut ordered_far) = (false, false);
-        let (mut ordered_firing, mut can_damage) = (0u64, false);
+        let (mut ordered_working, mut can_damage) = (0u64, false);
         let mut plans = Vec::with_capacity(units[i].mounts.len());
         for m in 0..units[i].mounts.len() {
             let unit = &units[i];
@@ -426,7 +426,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                     | ActionReason::Guiding
             );
             if working && ordered.is_some() && mount.lock.as_ref().map(|l| l.target) == ordered {
-                ordered_firing |= 1 << m;
+                ordered_working |= 1 << m;
             }
             units[i].mounts[m] = mount;
         }
@@ -450,7 +450,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             can_engage,
             needs_closer: ordered_far && !ordered_ok,
             face,
-            ordered_firing,
+            ordered_working,
             can_damage,
         };
     }
