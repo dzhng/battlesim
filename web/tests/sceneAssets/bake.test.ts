@@ -12,7 +12,7 @@ import { SCENERY_KINDS, type SceneryRule } from "@packages/scene-assets/src/scen
 import type { Catalog, FindingCode } from "@packages/scene-assets/src/schema.ts";
 import { AUTHORITY, bakedBundle, testCatalog, testSources, treeGlb } from "./synthetic";
 import { KIT, MODULES, cityCatalog, cityContext, citySources, kitGlb, testSet } from "./city";
-import { FAR_SLAB, farPropGlb, withFarCopy } from "./farProp";
+import { FAR_SLAB, farPropGlb, postsGlb, tinyPropGlb, twoToneGlb, withFarCopy } from "./farProp";
 
 async function bake() {
   const sources = testSources();
@@ -96,14 +96,17 @@ test("bundles decode to the kind, tiers and parts the catalog declared", async (
   expect(crate.states.map((s) => [s.name, s.bounds.max[2]])).toEqual([["default", 6]]);
 });
 
-/** The test catalog with the crate drawn by `source`: its bundle, read back
- *  from the bake's files through the one transport. */
-async function bakedCrate(source: Uint8Array) {
+/** The test catalog with the crate drawn by `source` on a box of `half`
+ *  extents: its bundle, read back from the bake's files through the one
+ *  transport. */
+async function bakedCrate(source: Uint8Array, half?: [number, number, number]) {
   const sources: Record<string, Uint8Array> = {
     ...testSources(),
     "assets/source/test-crate.glb": source,
   };
-  const result = await bakeCatalog(testCatalog(), async (path) => sources[path], {
+  const catalog = testCatalog();
+  if (half) catalog.appearances.crate.footprint_half_m = half;
+  const result = await bakeCatalog(catalog, async (path) => sources[path], {
     authority: AUTHORITY,
   });
   const errors = result.reports.flatMap((r) => r.findings.filter((f) => f.severity === "error"));
@@ -128,14 +131,79 @@ test("a static prop naming _LOD4 bakes a fifth, far mesh of only those meshes, t
   expect(state.tiers[3].indices.length / 3).toBe(24);
 });
 
-test("the same prop naming no _LOD4 bakes its four tiers to the bytes the far mesh leaves alone", async () => {
-  const plain = await bakedCrate(farPropGlb());
-  expect(plain.states.map((s) => s.tiers.length)).toEqual([4]);
-  // Dropping the far mesh from the far-carrying bundle gives the plain
-  // bundle's exact encoding: the far mesh touches nothing else.
-  const far = await bakedCrate(farPropGlb(1));
-  const without = { ...far, states: far.states.map((s) => ({ ...s, tiers: s.tiers.slice(0, 4) })) };
-  expect(encodeBundle(without)).toEqual(encodeBundle(plain));
+test("a far mesh, generated or authored, leaves the prop's tiers 0 to 3 as they were", async () => {
+  const four = (b: Awaited<ReturnType<typeof bakedCrate>>) =>
+    encodeBundle({ ...b, states: b.states.map((s) => ({ ...s, tiers: s.tiers.slice(0, 4) })) });
+  const generated = await bakedCrate(farPropGlb());
+  const authored = await bakedCrate(farPropGlb(1));
+  expect(generated.states[0].tiers).toHaveLength(5);
+  expect(four(generated)).toEqual(four(authored));
+});
+
+/** A baked mesh's faces: each triangle's outward normal axis ("+z", "-x"…),
+ *  and the name of the material it draws in. */
+function faces(
+  mesh: {
+    normals: Int16Array;
+    indices: ArrayLike<number>;
+    draws: { material: number; first: number; count: number }[];
+  },
+  materials: { name: string }[],
+) {
+  const out = new Map<string, Set<string>>();
+  for (const d of mesh.draws)
+    for (let i = d.first; i < d.first + d.count; i += 3) {
+      const n = Array.from(mesh.normals.subarray(mesh.indices[i] * 4, mesh.indices[i] * 4 + 3));
+      const axis = n.findIndex((x) => Math.abs(x) > 16000);
+      const key = `${n[axis] > 0 ? "+" : "-"}${"xyz"[axis]}`;
+      if (!out.has(key)) out.set(key, new Set());
+      out.get(key)!.add(materials[d.material].name);
+    }
+  return Object.fromEntries([...out].map(([k, v]) => [k, [...v]]));
+}
+
+test("a prop that names no far mesh gets a box: tier 3's height and plan, its top in what shows from above, its sides in what shows from the sides", async () => {
+  const block = await bakedCrate(twoToneGlb(), [5, 4, 3.1]);
+  const far = block.states[0].tiers[4];
+  expect(far.indices.length / 3).toBe(10);
+  const b = positionsBounds(far.positions);
+  [b.min, b.max].forEach((corner, i) =>
+    corner.forEach((v, axis) =>
+      expect(v).toBeCloseTo(
+        [
+          [-5, -4, 0],
+          [5, 4, 6.2],
+        ][i][axis],
+        4,
+      ),
+    ),
+  );
+  // No bottom: it stands on the ground.
+  expect(faces(far, block.materials)).toEqual({
+    "+z": ["roof"],
+    "-x": ["paint"],
+    "+x": ["paint"],
+    "-y": ["paint"],
+    "+y": ["paint"],
+  });
+});
+
+test("an airy prop's box covers about its plan, not its bounds", async () => {
+  // Two 0.2 m posts 4 m apart cover 0.08 m² of a 4.2 m square.
+  const posts = await bakedCrate(postsGlb(), [2.1, 2.1, 1.5]);
+  const b = positionsBounds(posts.states[0].tiers[4].positions);
+  const area = (b.max[0] - b.min[0]) * (b.max[1] - b.min[1]);
+  expect(area).toBeGreaterThan(0.04);
+  expect(area).toBeLessThan(0.16);
+  // About where the posts are on average, and as tall as they are.
+  expect(Math.abs(b.min[0] + b.max[0])).toBeLessThan(0.2);
+  expect(Math.abs(b.min[1] + b.max[1])).toBeLessThan(0.2);
+  expect(b.max[2]).toBeCloseTo(3, 4);
+});
+
+test("a prop whose tier 3 is already smaller than a box gets no far mesh", async () => {
+  const tiny = await bakedCrate(tinyPropGlb());
+  expect(tiny.states.map((s) => s.tiers.length)).toEqual([4]);
 });
 
 /** Each appearance's error codes, baking `catalog` (the test catalog, by
@@ -207,9 +275,11 @@ test("every state of an appearance carries a far mesh, or none does", async () =
   await withKind("test_burning", rule, async () => {
     const codes = (a: Uint8Array, b: Uint8Array) => kiosk("test_burning", { default: a, burnt: b });
     expect(await codes(farPropGlb(1), farPropGlb(1))).toEqual([]);
-    expect(await codes(farPropGlb(), farPropGlb())).toEqual([]);
-    expect(await codes(farPropGlb(1), farPropGlb())).toEqual(["structure.tier_count"]);
-    expect(await codes(farPropGlb(), farPropGlb(1))).toEqual(["structure.tier_count"]);
+    expect(await codes(tinyPropGlb(), tinyPropGlb())).toEqual([]);
+    expect(await codes(farPropGlb(1), tinyPropGlb())).toEqual(["structure.tier_count"]);
+    expect(await codes(tinyPropGlb(), farPropGlb(1))).toEqual(["structure.tier_count"]);
+    // A generated box gives way where another state can have none.
+    expect(await codes(farPropGlb(), tinyPropGlb())).toEqual([]);
   });
 });
 
@@ -223,7 +293,15 @@ test("a kind that budgets its tiers budgets its far mesh too", async () => {
     );
   expect(await budgeted([60, 48, 36, 24, 12], 1)).toEqual([]);
   expect(await budgeted([60, 48, 36, 24, 11], 1)).toEqual(["budget.tier_triangles"]);
-  // Four entries budget a prop that names no far mesh, and refuse one that does.
-  expect(await budgeted([60, 48, 36, 24])).toEqual([]);
+  // Four entries budget a prop with no far mesh, and refuse one that carries
+  // one, authored or generated.
+  const tiny = () =>
+    withKind(
+      "test_budgeted",
+      { states: ["default"], footprint: { kind: "prop" }, tier_triangles: [60, 48, 36, 24] },
+      () => kiosk("test_budgeted", { default: tinyPropGlb() }),
+    );
+  expect(await tiny()).toEqual([]);
   expect(await budgeted([60, 48, 36, 24], 1)).toEqual(["budget.tier_triangles"]);
+  expect(await budgeted([60, 48, 36, 24])).toEqual(["budget.tier_triangles"]);
 });

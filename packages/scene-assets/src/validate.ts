@@ -16,6 +16,7 @@ import { encodeBundle } from "./codec.ts";
 import { FACTIONS, type UnitCatalog } from "./units.ts";
 import { SCENERY_KINDS } from "./scenery.ts";
 import { farFindings, farStatesFindings } from "./farMesh.ts";
+import { farBoxesWhole, withFarBox } from "./farBox.ts";
 import {
   articulatedPositions,
   articulatedWorlds,
@@ -129,9 +130,11 @@ async function staticState(
   const built = buildStaticState(imported.scene, path, materials);
   findings.push(...built.findings);
   if (!built.tiers) return { state: null, findings };
+  const rule = SCENERY_KINDS[input.entry.scenery ?? ""];
+  // A prop whose source names no far mesh is given one (`farBox.ts`).
+  if (rule?.footprint.kind === "prop") built.tiers = withFarBox(built.tiers, materials.materials);
   const bounds = positionsBounds(built.tiers[0].positions);
   const judged = { name: state, tiers: built.tiers, bounds };
-  const rule = SCENERY_KINDS[input.entry.scenery ?? ""];
   const debris = rule?.debris?.state === state ? rule.debris : null;
   findings.push(...farFindings(path, input.entry.scenery, rule, built.tiers));
   // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
@@ -223,6 +226,7 @@ async function validateStaticAppearance(
   states.sort(
     (a, b) => Number(b.name === lead) - Number(a.name === lead) || a.name.localeCompare(b.name),
   );
+  farBoxesWhole(states);
   findings.push(...farStatesFindings(input.name, states));
   const pieces = SCENERY_KINDS[entry.scenery ?? ""]?.pieces ?? [];
   const debrisState = SCENERY_KINDS[entry.scenery ?? ""]?.debris?.state;
