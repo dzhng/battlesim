@@ -1,0 +1,25 @@
+{
+  "note": "Fresh paired control, 2026-11-15, base 811bb8c27. baseline.json's digest 60ede87ba60aab0b no longer reproduces: the generated map moved from layout-19/layout-presets-19 to layout-22/layout-presets-22. Same scene, settings and camera rule as baseline.json; only the state and the target (the harness's densest own soldier) differ.",
+  "scenario": "Metro XL",
+  "seed": 4,
+  "generator_version": "layout-22",
+  "preset_revision": "layout-presets-22",
+  "unitsPerSide": 100,
+  "graphics": "low",
+  "renderScale": 0.75,
+  "viewport": [1280, 720],
+  "canvas": [960, 540],
+  "tick": 90,
+  "digest": "ef325ab1cc76c583",
+  "target": [4864.0380859375, 4851.689453125, 0],
+  "yaw": -1.57,
+  "fovY": 0.8,
+  "aspect": 1.7777777778,
+  "near": 1,
+  "playerZoomMax": 19500,
+  "views": {
+    "close": { "distance": 65, "pitch": 0.85 },
+    "tactical": { "distance": 260, "pitch": 0.85 },
+    "wide": { "distance": 2400, "pitch": 0.8860277 }
+  }
+}
