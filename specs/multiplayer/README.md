@@ -23,7 +23,7 @@ Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
 **Done and committed:** slices 02 to 08, 10 to 18, 20 to 26 and 28, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
-as of the evening of 2026-11-15 (merge `bab8d3c95`). **Rooms work end to end on a local server:** two browsers
+as of 2026-11-16 (merge `cbff20c54`). **Rooms work end to end on a local server:** two browsers
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
 
@@ -33,14 +33,17 @@ and promote it, and build the native simulation for the battle server.
 
 1. **Slice 30,** one machine tries every draw: the fix for Play's 57
    seconds. With Codex.
-2. **Ship it.** Merge staging, run the plan's one full run (slice 27's
+2. **Slice 31,** a build is what both ends share. Without it the live
+   lobby refuses every player after each promotion of the site.
+3. **Ship it.** Merge staging, run the plan's one full run (slice 27's
    steps 1 and 2), review, put the lobby's address in
    `apps/battle-lab/src/online/server.json`, land on staging, promote, and
    deploy the lobby from the promoted site's commit: the lobby admits only
    pages of its own commit. Then slice 19, the milestone.
-3. **Slice 31,** the native simulation in the battle server, to be written
-   from slice 01's measurement once the site is live.
-4. **Slice 27's remaining steps:** the sweep, the docs check, the probes'
+4. **Slice 32,** the native simulation in the battle server, to be written
+   from slice 01's measurements (a native build at the `x86-64-v4` level)
+   once the site is live.
+5. **Slice 27's remaining steps:** the sweep, the docs check, the probes'
    removal, the plan archived.
 
 **The lobby is live** as the public app `battle-lobby` in the `armata`
@@ -176,6 +179,7 @@ Hosting
 - [x] [28 A battle in its own process](slices/28-battle-process.md)
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
 - [ ] [30 One machine tries every draw](slices/30-one-machine-every-draw.md)
+- [ ] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
 ## Contracts this changes
@@ -233,6 +237,7 @@ The page's battle code keeps speaking the existing page-to-authority protocol
 | 28 | A battle in its own process | → 26 | A room battle with one more process on the computer for each battle |
 | 29 | A sandbox for each battle | → 28 | A room battle through the deployed lobby, each battle on its own sandbox |
 | 30 | One machine tries every draw | → 29 | Play on an empty server in well under a minute |
+| 31 | A build is what both ends share | → 30 | A page plays on a lobby deployed from another commit when nothing they share differs |
 | 27 | Closeout | → all | The one full run; docs; the plan archived |
 
 The same graph, drawn: [roadmap.html](visualizations/roadmap.html).

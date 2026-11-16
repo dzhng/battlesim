@@ -205,5 +205,17 @@ by the second, on a Ryzen 9 9950X in France.
   tripled; any cap or charge the provider puts on a sandbox's traffic; a
   player on a poor link.
 
+- **Which CPU level a native build should ask for** (2026-11-16, a third
+  CPU model, a Ryzen 7 9700X; seven runs at once, so read them against
+  each other). Ticks over 33 ms in the same 200-unit fight: WebAssembly
+  18%, and 18% again after a second optimiser pass; native for any x86
+  20%; for the 2009 level (`x86-64-v2`) 16%; for the 2013 level (`v3`)
+  15.5%; for the AVX-512 level (`v4`) 12.6%; for this exact CPU 12.3%.
+  Median ticks were about a quarter shorter at `v4` than in WebAssembly.
+  Every native build ended on one digest. All three CPU models the
+  sandboxes have shown support `v4`. So: a third fewer late ticks here,
+  half on the EPYC, for a native build at `v4`; nothing to be had from
+  re-optimising the WebAssembly.
+
 **What this changed:** the user chose a sandbox for each battle (decision
 68, slices 28 and 29).

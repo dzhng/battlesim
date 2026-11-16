@@ -170,3 +170,38 @@ J. Sustained streams through a sandbox's token-protected HTTPS address from Cali
     delay above the best frame, ms: p50 3  p95 7  p99 8  max 99; gap between frames p95 35 p99 36 max 103
   10 x 480 kB/s asked (38.40 Mbit/s); delivered 4750 kB/s (38.00 Mbit/s) over 60 s; frames 17823, skipped 0
     delay above the best frame, ms: p50 4  p95 8  p99 11  max 292; gap between frames p95 36 p99 38 max 158
+
+K. Native builds at each x86 feature level and WebAssembly as shipped and after wasm-opt -O4, same code, one sandbox (AMD Ryzen 7 9700X, 8 vCPU), seven runs at once each on its own core, 2026-11-16.
+  model name	: AMD Ryzen 7 9700X 8-Core Processor
+  08:55:34 09:02:06 
+  == n-base (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 8.8 | 54.6 | 103.2 | 149 | 1048 
+   10 | 16.0 | 68.6 | 105.8 | 166 | 2626 
+  digest 250350246cade63b
+  == n-x86-64-v2 (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 7.2 | 42.8 | 77.1 | 111 | 773 
+   10 | 14.8 | 56.3 | 85.6 | 132 | 2101 
+  digest 250350246cade63b
+  == n-x86-64-v3 (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 7.0 | 42.0 | 75.8 | 110 | 750 
+   10 | 13.9 | 55.0 | 85.2 | 127 | 2033 
+  digest 250350246cade63b
+  == n-x86-64-v4 (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 6.6 | 37.1 | 65.0 | 140 | 595 
+   10 | 14.4 | 51.0 | 74.7 | 105 | 1671 
+  digest 250350246cade63b
+  == n-native (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 6.6 | 36.2 | 65.5 | 120 | 542 
+   10 | 14.9 | 50.7 | 73.9 | 115 | 1675 
+  digest 250350246cade63b
+  == w-shipped (minutes | mean | p50 | p95 | p99 | max | over)
+   5 | 15.5 | 9.3 | 47.5 | 86.2 | 143 | 1013 
+   10 | 24.9 | 17.5 | 58.2 | 88.3 | 133 | 2300 
+   whole | 20.2 | 14.6 | 52.9 | 86.9 | 143 | 3313 
+  digest 96b9a080ebb063fb
+  == w-o4 (minutes | mean | p50 | p95 | p99 | max | over)
+   5 | 15.4 | 9.1 | 47.5 | 86.4 | 136 | 1013 
+   10 | 24.5 | 17.3 | 56.1 | 87.3 | 128 | 2216 
+   whole | 20.0 | 14.7 | 51.8 | 86.7 | 136 | 3229 
+  digest 96b9a080ebb063fb
+  
