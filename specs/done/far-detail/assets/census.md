@@ -1,5 +1,8 @@
 # Census of the wide view
 
+> Recorded while the work was under way. Slice numbers name its build order,
+> and forecasts here were settled later: see [what shipped](../README.md).
+
 Which prop appearances cost the most at the wide hold today, counted.
 Recorded 2026-11-15 for [far detail](../README.md) on base
 commit 811bb8c27.

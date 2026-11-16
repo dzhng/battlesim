@@ -1,5 +1,8 @@
 # Ceiling probe
 
+> Recorded while the work was under way. Slice numbers name its build order,
+> and forecasts here were settled later: see [what shipped](../README.md).
+
 Does drawing the top kinds from a far-class mesh save GPU time at the wide
 hold, now that tiny visible props may skip their shadow? Measured 2026-11-15
 for [far detail](../README.md) on base commit 811bb8c27.

@@ -1,5 +1,8 @@
 # Terrain verdict
 
+> Recorded while the work was under way. Slice numbers name its build order,
+> and forecasts here were settled later: see [what shipped](../README.md).
+
 Would a cluster hierarchy, coarser far from the camera, save GPU time worth
 owning? The first rung of [far detail](../README.md)'s terrain spike, the count, recorded
 2026-11-15 on b0a60c7a3. No timing was run.
