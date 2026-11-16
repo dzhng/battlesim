@@ -510,9 +510,15 @@ function standingCircle(
   else if (!u.ringShared) circleMarker(paint, pen, circle, color);
 }
 
+/** A blocked route's warning ring round its goal. */
+const warningRing = (goal: P2): UnitCircle => ({ c: goal, r: BLOCKED_R, facing: null });
+
 /** A unit's queued legs after its goal: each a dashed route to a small
  *  ring, with an unload mark, pointing along the leg, where that step lets
- *  passengers out. */
+ *  passengers out. The first leaves the circle where the current order
+ *  ends: its destination's (`dest`), else a blocked route's warning ring.
+ *  A winged aircraft, circling its goal, has neither: no ground leg runs to
+ *  its first queued point. */
 function queuedLegs(
   paint: MeshBuilder,
   pen: Pen,
@@ -520,7 +526,8 @@ function queuedLegs(
   dest: UnitCircle | null,
   color: Rgba,
 ) {
-  let prev = dest;
+  const blocked = u.state === "route_blocked" && !u.fixedWing;
+  let prev = dest ?? (blocked && u.goal ? warningRing(u.goal) : null);
   for (const [k, q] of u.queue.entries()) {
     const next: UnitCircle = { c: q, r: QUEUED_R, facing: null };
     routeBetween(paint, pen, prev, [q], next, color, { dashed: true });
@@ -662,7 +669,7 @@ export function buildOrderOverlay(
       blocked || u.fixedWing ? null : destinationCircle(u, u.goal, style);
     routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
-      const warning: UnitCircle = { c: u.goal, r: BLOCKED_R, facing: null };
+      const warning = warningRing(u.goal);
       routeBetween(paint, pen, circle, [u.goal], warning, blockedColor, { dashed: true });
       crossMark(paint, pen, u.goal, 6, blockedColor);
       ring(paint, pen, u.goal, BLOCKED_R, blockedColor, { width: pen.line });

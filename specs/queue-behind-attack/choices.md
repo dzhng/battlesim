@@ -21,3 +21,14 @@ rewritten from scratch at closeout.
   from the attack's own data (does it fly passes?), not the unit type.
 - **A garrisoned attack ends when its target's track is lost.** *Agent*: a garrison can't
   chase to the last known spot, which is what "lost" means for a unit that can move.
+
+## Presentation lane
+
+- **FX3's picture injects the blocked state.** *Agent*: no lab map reproduces a
+  route-blocked unit (it takes a jammed lane), so the shot is the movement lab's real
+  battle with a real move and queued move, the tank's published state switched to
+  `route_blocked` in the paused page before the overlay rebuilt. The before/after diff
+  is that one leg and nothing else
+  ([assets/fx3-blocked-first-leg-before-after.png](assets/fx3-blocked-first-leg-before-after.png)).
+- **The unprimed critique ran as the skill's no-sub-agent fallback** (the lane's brief
+  allowed no sub-agents): the strongest case against each shot written before deciding.

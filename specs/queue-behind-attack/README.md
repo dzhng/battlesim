@@ -27,7 +27,7 @@ and tick the list.
 - [x] Split `apply_units` / `update_pursuit` out of `battle.rs` (`00e9efe87`)
 - [ ] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death
 - [ ] [FX2](slices/fx2-queued-command-keeps-current.md) a queued command breaks nothing off
-- [ ] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
+- [x] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
 - [ ] [S1](slices/s1-cycle-end-and-ordered-fire.md) one owner for a cycle's end; per-mount ordered-fire report
 - [ ] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn
 - [ ] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass)
