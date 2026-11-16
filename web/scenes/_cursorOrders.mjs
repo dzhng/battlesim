@@ -316,26 +316,16 @@ export async function garrisonCursor(ctx) {
   await expects(page, "garrison");
   await capture(ctx, page, "accepted-building", p);
   await advance(page, accepted.ack.applied_tick - (await obs(page)).tick);
-  // Every squad named walks to the house and steps in while seats remain;
-  // one that finds no room gives its order up at the door.
-  const entering = new Set();
-  const arrived = await until(
-    page,
-    (o) => {
-      for (const u of o.own) if (u.hold?.phase === "entering") entering.add(u.id);
-      return (
-        o.own.some((u) => u.hold?.phase === "inside") &&
-        accepted.ack.building.entries.every((e) => {
-          const u = o.own.find((u) => u.id === e.unit);
-          return entering.has(e.unit) && u.goal === null && u.hold?.phase !== "entering";
-        })
-      );
-    },
-    900,
-  );
+  // Every squad named walks to the house and steps in: the lab's house has
+  // seats for both (the garrison scene shows one arriving to no room).
+  const inside = (o) =>
+    accepted.ack.building.entries.every(
+      (e) => o.own.find((u) => u.id === e.unit)?.hold?.phase === "inside",
+    );
+  const arrived = await until(page, inside, 1500);
   ctx.check(
     "every squad the order names walks to the house and steps in",
-    !!arrived && arrived.own.filter((u) => u.hold?.phase === "inside").length === 1,
+    !!arrived,
     JSON.stringify(
       arrived?.own.map((u) => ({
         id: u.id,

@@ -1,13 +1,14 @@
 {
   "units": [
+    {"side":"blue","kind":"test_rifle","position":[325,250],"engagement":"return_fire_only"},
     {"side":"blue","kind":"test_rifle","position":[290,250],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"test_rifle","position":[268,250],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"test_recon","position":[325,250],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_recon","position":[268,250],"engagement":"return_fire_only"},
     {"side":"red","kind":"test_rifle","position":[515,250],"engagement":"return_fire_only"},
     {"side":"red","kind":"test_tank","position":[620,200],"yaw":2.9,"engagement":"return_fire_only"}
   ],
   "scripts": [
     {"tick":400,"side":"red","order":{"kind":"move","units":[3],"gesture":1102,"goal":[475,250],"route":"shortest"}},
-    {"tick":1500,"side":"red","order":{"kind":"set_engagement","units":[4],"policy":"fire_at_will"}}
-  ]
+    {"tick":1500,"side":"red","order":{"kind":"attack","units":[4],"target":{"kind":"ground","point":[360,250,4]}}}
+  ],
+  "overrides": {"buildings": {"capacity_soldiers": 16}}
 }
