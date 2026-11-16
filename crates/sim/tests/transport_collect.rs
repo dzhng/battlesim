@@ -67,6 +67,55 @@ fn a_collected_squad_out_of_reach_walks_over_before_it_boards() {
     }
 }
 
+/// A squad standing round a parked APC, its middle under the hull (as one
+/// just let out of it stands). A scout car sent to collect it closes in as
+/// far as the APC lets it and calls the squad over; it never sits beside
+/// the soldiers for good trying to reach a middle the APC stands on.
+#[test]
+fn a_carrier_collects_a_squad_standing_round_another_vehicle() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[250,200]},
+            {"side":"blue","kind":"test_at","position":[250,200]},
+            {"side":"blue","kind":"test_scout_car","position":[210,240]}
+        ])),
+        11,
+    );
+    let tick_hz = battle.rules().tick_hz as usize;
+    for _ in 0..tick_hz * 10 {
+        battle.step();
+    }
+    let ack = battle.accept(command(
+        1,
+        Order::Collect {
+            units: vec![UnitId(2)],
+            squads: vec![UnitId(1)],
+            gesture: 1,
+        },
+    ));
+    assert!(ack.error.is_none() && ack.refused.is_empty(), "{ack:?}");
+    let aboard = |battle: &Battle| {
+        let hold = battle.unit(UnitId(1)).unwrap().hold.as_ref();
+        hold.is_some_and(|h| {
+            h.host.carrier() == Some(UnitId(2)) && h.phase == sim::hold::Phase::Inside
+        })
+    };
+    // Well inside the give-up spell a stuck vehicle waits out.
+    assert!(
+        (0..tick_hz * 20).any(|_| {
+            battle.step();
+            aboard(&battle)
+        }),
+        "the scout car takes the squad aboard: car {:?}, squad {:?}",
+        battle
+            .unit(UnitId(2))
+            .map(|u| (u.position, u.orders.front().cloned())),
+        battle
+            .unit(UnitId(1))
+            .map(|u| (u.position, u.orders.front().cloned())),
+    );
+}
+
 /// Carrier 0 sent from 200 m to collect `squads`; squad 1 climbs into carrier
 /// 2 beside it first. Returns the battle 5 s later and every refusal blue
 /// heard about squad 1.

@@ -557,13 +557,27 @@ async function controls(ctx) {
   await page.mouse.click(...at, { button: "right" });
   const collect = await ackAfter(page, seq);
   const collected = await until(page, (o) => host(o, fits) === small, 1200, 30);
+  const after = await obs(page);
+  const pose = (id) => {
+    const u = after.own.find((u) => u.id === id);
+    return (
+      u && { position: u.position, goal: u.goal, state: u.state, hold: u.hold, queue: u.queue }
+    );
+  };
   ctx.check(
     "right-clicking an own squad with a carrier selected collects it, under the board cursor",
     collectCursor &&
       collect.order.kind === "collect" &&
       JSON.stringify(collect.order.squads) === JSON.stringify([fits]) &&
       !!collected,
-    JSON.stringify({ order: collect.order, ack: collect.ack }),
+    JSON.stringify({
+      order: collect.order,
+      ack: collect.ack,
+      tick: after.tick,
+      carrier: pose(small),
+      squad: pose(fits),
+      refusals: after.refusals,
+    }),
   );
 
   // U twice: the small carrier stops and unloads where it stands. U reaches
