@@ -417,8 +417,13 @@ impl Unit {
         self.state == MoveState::Moving
     }
 
-    /// Admit an order with the same replacement and deployment semantics everywhere.
+    /// Admit an order with the same replacement and deployment semantics
+    /// everywhere. Nothing follows a unit that is going home: an order queued
+    /// behind its drive out is dropped.
     pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
+        if queued && self.withdrawing {
+            return;
+        }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }

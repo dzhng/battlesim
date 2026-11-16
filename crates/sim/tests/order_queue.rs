@@ -85,3 +85,53 @@ fn a_garrisoned_attack_ends_when_its_target_dies() {
         !b.unit(UnitId(0)).unwrap().garrisoned()
     });
 }
+
+/// A unit driving home keeps going home when an order is queued behind
+/// it: a queued order waits its turn and never cancels what the unit is
+/// doing now, and nothing follows a unit that leaves.
+#[test]
+fn a_queued_order_does_not_cancel_a_drive_home() {
+    use crate::transport::{side_command, transport_skirmish_setup};
+    use contract::command::CommandEnvelope;
+    let mut b = Battle::new(&transport_skirmish_setup(), 41);
+    let buy = side_command(Side::Blue, 1, Order::purchase("test_apc", [300.0, 100.0]));
+    assert_eq!(b.accept(buy).error, None);
+    b.accept(side_command(Side::Blue, 2, Order::Ready));
+    b.accept(side_command(Side::Red, 1, Order::Ready));
+    until(&mut b, ticks(30.0), "the carrier arrived", |b| {
+        b.unit(UnitId(0)).is_some()
+    });
+    let out = [300.0, 300.0];
+    assert_eq!(
+        b.accept(side_command(Side::Blue, 3, drive(out))).error,
+        None
+    );
+    until(&mut b, ticks(60.0), "the carrier out on the field", |b| {
+        let at = b.unit(UnitId(0)).unwrap().position.xy();
+        (at - sim::math::v2(out[0], out[1])).length() < 10.0
+    });
+    let home = Order::Refund {
+        units: vec![UnitId(0)],
+    };
+    assert_eq!(b.accept(side_command(Side::Blue, 4, home)).error, None);
+    b.step();
+    let onward = CommandEnvelope {
+        queued: true,
+        ..side_command(Side::Blue, 5, drive(out))
+    };
+    assert_eq!(b.accept(onward).error, None);
+    until(&mut b, ticks(120.0), "the carrier gone home", |b| {
+        b.unit(UnitId(0)).unwrap().retired
+    });
+}
+
+fn drive(goal: [f64; 2]) -> Order {
+    Order::Move {
+        units: vec![UnitId(0)],
+        gesture: 1,
+        goal,
+        route: contract::command::RoutePolicy::Shortest,
+        direction: contract::command::MoveDirection::Forward,
+        facing: None,
+    }
+}

@@ -23,18 +23,22 @@ impl Battle {
         let side = command.side;
         let queued = command.queued;
         let push = |unit: &mut Unit, order: UnitOrder| unit.enqueue(order, queued);
+        // A queued order waits its turn: it breaks nothing off.
         let replacing = match &command.order {
-            Order::Move { units, .. }
-            | Order::AttackMove { units, .. }
-            | Order::Stop { units }
-            | Order::Attack { units, .. }
+            Order::Stop { units }
             | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
+            | Order::Unload {
+                units, goal: None, ..
+            } => Some(units),
+            Order::Move { units, .. }
+            | Order::AttackMove { units, .. }
+            | Order::Attack { units, .. }
             | Order::OccupyBuilding { units, .. }
             | Order::ExitBuilding { units }
             | Order::Unload { units, .. }
-            | Order::Refund { units } => Some(units),
+            | Order::Refund { units } => (!queued).then_some(units),
             _ => None,
         };
         if let Some(units) = replacing {
@@ -82,7 +86,6 @@ impl Battle {
             } => {
                 for slot in prepared.placement.unwrap().destinations {
                     let unit = &mut movers[slot.unit.0 as usize];
-                    crate::air::dogfight::clear(unit);
                     if !slot.placed {
                         if !queued {
                             Self::hold_position(unit);
@@ -319,9 +322,10 @@ impl Battle {
     }
 }
 
-/// What every order a unit is given does to it first: it is no longer
-/// withdrawing, and a jet's run, release cue and dogfight end, so no order
-/// (repeated or not) can leave one stuck in a run.
+/// What an order that replaces a unit's queue does to it first: it is no
+/// longer withdrawing, and a jet's run, release cue and dogfight end, so no
+/// order (repeated or not) can leave one stuck in a run. An order queued
+/// behind the current one does none of this.
 fn take_order(unit: &mut Unit) {
     unit.withdrawing = false;
     crate::air::break_off(unit);
