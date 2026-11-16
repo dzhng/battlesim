@@ -79,7 +79,7 @@ def rifle_equipment(mats, model):
         for j in range(len(profile)):
             k=(j+1)%len(profile);bm.faces.new((rings[0][j],rings[0][k],rings[1][k],rings[1][j]))
         bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-        magazine=obj_from_bm('svd_curved_magazine',bm,[black],root)
+        obj_from_bm('svd_curved_magazine',bm,[black],root)
         for side in (-1,1):
             for j in range(4):b('handguard_vent_%s_%s'%(side,j),(.002,.035,.015),(side*.024,-.22-j*.074,.034))
         barrel_start = -.515

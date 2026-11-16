@@ -1,5 +1,6 @@
-"""The infantry rig: the Quaternius UBC body and 65-joint rig, the UAL library
-clips, and the weapon-hold machinery every infantry clip and kit is built on.
+"""The infantry rig: the Quaternius UBC body and its 65-joint rig plus one bone of
+ours (`sling`, what a slung launcher rides), the UAL library clips, and the
+weapon-hold machinery every infantry clip and kit is built on.
 
 Ported from spike 03's `soldier.py` (the frozen winner, specs/done/battle-look/
 assets/spikes/03/scripts): same imports, same hand orientation, same IK hold
@@ -30,12 +31,12 @@ TORSO = ["root", "pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head"
          "thigh_l", "thigh_r", "foot_l", "foot_r", "ball_l", "ball_r"]
 
 
-# A slung launcher's middle, metres above the ground, and the frame it rides: on
-# the upper back at the sling's 30° lean, muzzle up (armature space, Z up, facing
-# -Y). The `sling` bone rests on this frame, so a tube slung by `Kit.sling` rides
+# A slung launcher's middle above the ground, and the frame it rides: on the upper
+# back at the sling's 30° lean, muzzle up. Both in the rig's build space (Z up,
+# facing -Y, unscaled; the export scales it by `SCALE` into metres). The `sling` bone rests on this frame, so a tube slung by `Kit.sling` rides
 # the back while he lives and falls with the bone when he dies.
-SLUNG_MIDDLE_M = 1.12
-SLING_FRAME = (Matrix.Translation((0, 0.15, SLUNG_MIDDLE_M)) @ Matrix.Rotation(math.radians(30), 4, "Y")
+SLUNG_MIDDLE = 1.12
+SLING_FRAME = (Matrix.Translation((0, 0.15, SLUNG_MIDDLE)) @ Matrix.Rotation(math.radians(30), 4, "Y")
                @ Matrix.Rotation(-math.pi / 2, 4, "X"))
 
 
@@ -348,8 +349,8 @@ class Rig:
         return self.arm.pose.bones["Head"].matrix @ EYE_IN_HEAD
 
 
-# The eye socket's offset in the Head bone's frame: at the right pupil of the generated
-# heads, 1.5 cm below spike 03's `eye_point` (which sat on the brow).
+# The eye socket's offset in the Head bone's frame: at the right pupil of the
+# generated heads.
 EYE_IN_HEAD = Vector((-0.033, 0.075, 0.09))
 # How much of the arm's length the support hand reaches out to: the arm stays a little bent.
 SUPPORT_REACH = 0.95
@@ -429,9 +430,8 @@ def bone_of(o):
 def back_y(parts):
     """The rearmost point (largest Y: the rest pose faces -Y) of what rides the
     upper back, where kit carried on the back (a slung launcher, a packed
-    tripod) stands off: rigid parts on `spine_03` by their bounds, skinned parts
-    (cloth, a generated body) by the vertices whose strongest weight is
-    `spine_03`."""
+    tripod) stands off: rigid parts on `spine_03` by their bounds, a skinned part
+    (the generated body) by its vertices whose strongest weight is `spine_03`."""
     bpy.context.view_layer.update()
     ys = []
     for o in parts:

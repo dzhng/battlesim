@@ -24,7 +24,11 @@ const GLB = Buffer.from("glTF body");
 
 // A Bento CLI that answers from a script: `statuses` in turn for each poll,
 // `fail` the number of transient failures before the generator submit lands.
-function fakeBento({ statuses = ["IN_PROGRESS", "COMPLETED"], fail = 0 } = {}) {
+function fakeBento({
+  statuses = ["IN_PROGRESS", "COMPLETED"],
+  fail = 0,
+  error = "HTTP 503 Service Unavailable",
+} = {}) {
   const calls = [];
   const bodies = [];
   let polls = 0;
@@ -42,7 +46,7 @@ function fakeBento({ statuses = ["IN_PROGRESS", "COMPLETED"], fail = 0 } = {}) {
       reply = { upload_url: "https://upload.test/put", file_url: "https://cdn.test/front.png" };
     } else if (args[2] === "post") {
       bodies.push(await readFile(flag("--body-file"), "utf8"));
-      if (fail-- > 0) return { code: 1, stdout: "", stderr: "HTTP 504 Gateway Timeout" };
+      if (fail-- > 0) return { code: 1, stdout: "", stderr: error };
       reply = { request_id: REQUEST, status: "IN_QUEUE" };
     } else if (path.endsWith("/status")) {
       reply = { status: statuses[Math.min(polls++, statuses.length - 1)] };
@@ -85,7 +89,7 @@ async function sandbox(bento) {
   return { repo, ctx, done: () => rm(repo, { recursive: true, force: true }) };
 }
 
-test("a 504 on submit is retried, and the request is paid and logged once", async () => {
+test("a submit the service refused (503) is retried, and the request is paid and logged once", async () => {
   const bento = fakeBento({ fail: 1 });
   const { repo, ctx, done } = await sandbox(bento);
   await image(ctx, "infantry", [KEY]);
@@ -99,7 +103,7 @@ test("a 504 on submit is retried, and the request is paid and logged once", asyn
       ["generate", "completed"],
     ],
   );
-  assert.equal(bento.submits().length, 2, "one failed attempt, one that landed");
+  assert.equal(bento.submits().length, 2, "one refused attempt, one that landed");
   const done_ = lines.at(-1);
   assert.equal(done_.request_id, REQUEST);
   assert.equal(done_.price_source, "listed");
@@ -118,6 +122,16 @@ test("a FAILED generation is logged as failed, costs nothing and pins nothing", 
   assert.equal(last.status, "failed");
   assert.equal(last.price_usd, 0);
   assert.equal(last.output, null);
+  assert.deepEqual(readPins(repo, "infantry"), []);
+  await done();
+});
+
+test("a submit that timed out (504) is not repeated: it may have landed and been charged", async () => {
+  const bento = fakeBento({ fail: 1, error: "HTTP 504 Gateway Timeout" });
+  const { repo, ctx, done } = await sandbox(bento);
+  await image(ctx, "infantry", [KEY]);
+  await assert.rejects(generate(ctx, "infantry", [KEY]), /504/);
+  assert.equal(bento.submits().length, 1, "no second paid submit");
   assert.deepEqual(readPins(repo, "infantry"), []);
   await done();
 });
@@ -213,16 +227,7 @@ test("compose() is deterministic and orders studio, army, look, kind", () => {
   assert.notEqual(text, compose("eastern_emr", "a", "rifle", data));
 });
 
-// Captured from the old skin-generate.mjs (8c9eac093) with fetch stubbed, for
-// views whose bytes are "<view> guide view".
-const OLD_AIRFRAME_BODY =
-  '{"generate_type":"Geometry","face_count":300000,' +
-  '"input_image_url":"data:image/png;base64,cmlnaHQgZ3VpZGUgdmlldw==",' +
-  '"back_image_url":"data:image/png;base64,bGVmdCBndWlkZSB2aWV3",' +
-  '"top_image_url":"data:image/png;base64,dG9wIGd1aWRlIHZpZXc=",' +
-  '"bottom_image_url":"data:image/png;base64,Ym90dG9tIGd1aWRlIHZpZXc="}';
-
-test("the airframe request body matches the old tool's byte for byte", async () => {
+test("an airframe sends each guide view in its own field and pins the result", async () => {
   const bento = fakeBento();
   const { repo, ctx, done } = await sandbox(bento);
   const views = join(repo, "views");
@@ -230,18 +235,14 @@ test("the airframe request body matches the old tool's byte for byte", async () 
   for (const view of ["right", "left", "top", "bottom"])
     await writeFile(join(views, `${view}.png`), `${view} guide view`);
   await airframe(ctx, "probe_family", "probe_app", views, "a note");
-  assert.equal(bento.bodies.at(-1), OLD_AIRFRAME_BODY);
+  const body = JSON.parse(bento.bodies.at(-1));
+  const decoded = (field) => Buffer.from(body[field].split(",")[1], "base64").toString();
+  assert.equal(decoded("input_image_url"), "right guide view");
+  assert.equal(decoded("back_image_url"), "left guide view");
+  assert.equal(decoded("top_image_url"), "top guide view");
+  assert.equal(decoded("bottom_image_url"), "bottom guide view");
   const [p] = readPins(repo, "probe_family");
-  assert.deepEqual(Object.keys(p), [
-    "glb",
-    "sha256",
-    "generator",
-    "request_id",
-    "generated",
-    "terms",
-    "inputs",
-    "note",
-  ]);
+  assert.equal(p.note, "a note");
   assert.equal(p.glb, "assets/source/skins/probe_family/probe_app.glb");
   await done();
 });

@@ -204,7 +204,6 @@ def ak12(mats, name="ak12"):
     ])
 
 
-# A squad rifle per army (`roster/armies.json` rifle).
 def hk416f(mats, name="hk416f"):
     """France's HK416 F-S (the M27's receiver and piston upper, references in
     rifle_squad): a shorter free-float rail with the barrel and its birdcage
@@ -273,6 +272,7 @@ def qbz191(mats, name="qbz191"):
     ])
 
 
+# A squad rifle per army (`roster/armies.json` rifle).
 RIFLES = {"m4a1": m4a1, "m27": m27, "g36": g36, "ak12": ak12, "hk416f": hk416f, "qbz191": qbz191}
 
 
@@ -357,7 +357,6 @@ RIFLE_HOLD = {
     "low": weapon_matrix((-0.12, -0.22, 1.16), yaw_deg=25, pitch_deg=-38),
     "low_poles": ((-0.45, 0.25, 0.95), (0.35, -0.10, 0.85)),
     "sight": (0, -0.04, 0.149),
-    "cheek_blend": 0.5,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.06, 7.0), (8, 0.03, 3.5), (14, 0, 0), (36, 0, 0)),
     "butt": (0, 0.39, 0.03),
 }
@@ -373,7 +372,6 @@ LAUNCHER_HOLD = {
     "low": weapon_matrix((-0.16, -0.15, 1.42), yaw_deg=4, pitch_deg=-18),
     "low_poles": ((-0.6, 0.1, 0.95), (0.4, -0.2, 1.0)),
     "sight": (0.14, 0.21, 0.13),
-    "cheek_blend": 0.0,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.03, 2.0), (9, 0.01, 0.8), (16, 0, 0), (36, 0, 0)),
     "butt": None,
 }

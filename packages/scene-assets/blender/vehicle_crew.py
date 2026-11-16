@@ -15,7 +15,6 @@ driver follows the body; a gunner follows the mount's yaw, not barrel pitch.
   vehicle material is never overwritten.
 """
 import math
-import os
 import copy
 import json
 import struct

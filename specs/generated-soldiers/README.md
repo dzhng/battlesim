@@ -8,20 +8,11 @@ squads that wore the wrong army today move to them.
 
 ## Next Agent Prompt
 
-*Status (2026-11-16):* slices 00–05 and 03b are committed on branch
-`t3/soldier-3d-model-comparison`. **Next: slice 06.** The three probe bodies
-are pinned. The aim hold puts the eye at the top of the sight, with the butt in
-the shoulder; `fit.facing` and `fit.cheek` check it on every soldier.
-
-**The bake is red until slice 09, deliberately.** `fit.lies` (slice 03) flags
-the procedural carried launchers and the test `at_carried` soldiers: their
-slung tube pokes up or sinks into the ground. That defect predates this work,
-and those files are replaced in slices 08 and 09 (see the decisions ledger).
-Until then, judge with per-file `node web/asset.mjs validate <glb> --clips …`
-and loose-GLB sheets (`asset sheet <glb> --clips … --yaw 90`), which don't
-need the bake. A loose sheet of a launcher kit reports a `fit.muzzle` error
-because it lacks its catalog unit; the validator, which knows the entry, is
-the authority.
+*Status (2026-11-16):* every slice (00–09, and 03b) is committed on branch
+`t3/soldier-3d-model-comparison`. All 132 roster soldiers, the 12 test
+soldiers and the six crewed vehicle families wear generated bodies; the bake,
+the icons and `asset check` agree, and the whole-spec review's fixes are in.
+**Next: merge to `staging` once, then close the spec** (`close-spec`).
 
 You are implementing this spec.
 1. Pick up at the first unchecked slice below.
@@ -58,8 +49,8 @@ afterwards.
 - [x] 05 Probe bodies: a second army, a scout, the kind cue ([slice](slices/05-probes.md))
 - [x] 06 The PLA and French armies, and the teams that move to them ([slice](slices/06-new-armies.md))
 - [x] 07 Every body generated and pinned ([slice](slices/07-batch.md))
-- [ ] 08 The procedural path deleted; test soldiers on pins ([slice](slices/08-delete-procedural.md))
-- [ ] 09 Ship: every export, crews, budget, closeout, one merge ([slice](slices/09-ship.md))
+- [x] 08 The procedural path deleted; test soldiers on pins ([slice](slices/08-delete-procedural.md))
+- [x] 09 Ship: every export, crews, budget, closeout, one merge ([slice](slices/09-ship.md))
 
 ## Decisions
 
@@ -157,7 +148,8 @@ match what HEAD's scripts export. Slice 09 re-exports it with everything else.
 ## Contract
 
 The exported soldier GLB keeps today's contract:
-- the 65-joint `soldier_rig`;
+- the `soldier_rig`: the Quaternius rig's 65 joints, plus the `sling` bone
+  slice 09 adds (a slung launcher falls beside a dead man);
 - `soldier_LOD0..3` within the tier budgets;
 - the `eye` and `muzzle` sockets;
 - at most 4 influences per vertex;

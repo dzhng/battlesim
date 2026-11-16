@@ -139,10 +139,11 @@ Art pipeline and rules:
 - Exporters: `packages/scene-assets/blender/vehicle_export.py` (`run`,
   `run_disabled`, `FRAME_TOLERANCE`), `catalog_frames.py` (frames from the
   resolved catalog), `vehicle_parts.py`, `aircraft_parts.py`,
-  `vehicle_crew.py` (`CREW_SOLDIER`), `wreckage.py` (`burn`, `heat`,
+  `vehicle_crew.py` (crews in their family's army), `wreckage.py` (`burn`, `heat`,
   `export_wreck`), `mesh_lods.py`, and the family scripts in `blender/roster/`.
-  Infantry: `roster/infantry_equipment.py` (`ARMIES`, `KITS`, `LENGTHS`),
-  `infantry_kit.py`, `weapons.py`, `textures.py` (`SCHEMES`, uniform prints).
+  Infantry: `infantry_roster.py` (`KITS`), `roster/armies.json`,
+  `roster/infantry_equipment.py`, `generated_body.py`, `infantry_kit.py`,
+  `weapons.py` (specs/done/generated-soldiers).
 - Validator: `packages/scene-assets/src/validate.ts` (`articulatedFindings`,
   `typeFindings`, `footprintFindings`), `unitArt.ts` (`UNIT_ART` budgets,
   `tierFindings`, dressing allowances), `material.ts` (rubber and glass),

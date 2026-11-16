@@ -63,6 +63,11 @@ LEG_BLEND = 0.12
 LEG_REACH = 0.2
 # How far off the body a pack stands before it rides the upper back alone (body units).
 PACK_STANDOFF = 0.09
+# Back kit's heights, body units: none starts below `KIT_FLOOR` (about mid-thigh),
+# and kit joined to kit above `KIT_HUNG` (about the hips) hangs from the shoulders.
+KIT_FLOOR, KIT_HUNG = 0.6, 0.9
+# How rough the generated cloth and bare skin are (their atlases' ORM roughness).
+CLOTH_ROUGH, SKIN_ROUGH = 0.9, 0.6
 # How much of the kit's bone each ring of body vertices round welded-on kit takes.
 KIT_SEAM = (0.5, 0.25)
 # Half a helmeted head's width (body units): past it, kit rising above the shoulders
@@ -199,7 +204,7 @@ def _align_arms(gen, arm):
     for side in ("l", "r"):
         joints = [bones[n + side].head_local for n in ("upperarm_", "lowerarm_", "hand_")]
         sign = 1.0 if joints[0].x > 0 else -1.0
-        start, end = abs(joints[0].x), abs(joints[2].x) + 0.25
+        start = abs(joints[0].x)
         floor = joints[1].z - 0.2
         verts = [v for v in me.vertices if v.co.x * sign > start and v.co.z > floor]
         slices = {}
@@ -355,12 +360,12 @@ def _weights(gen, body, arm, scn):
 
 def _strap_packs(gen, body, arm):
     """Kit on the back rides one bone whole, not whatever body surface happens to
-    be nearest. Kit is a vertex above the crotch behind the back plane (a pack or
+    be nearest. Kit is a vertex above `KIT_FLOOR` behind the back plane (a pack or
     ruck, its sides too, however near an arm), or one standing more than
     `PACK_STANDOFF` off the body, either behind the back or above the shoulders
-    beside the head (a radio's whip). Kit joined to what hangs from the shoulders
-    rides the upper back (`spine_03`), down to a ruck's bottom; separate kit lower
-    down (an armour flap, a dump pouch) rides the pelvis. Otherwise a ruck's top
+    beside the head (a radio's whip). Kit joined to kit above `KIT_HUNG` hangs from
+    the shoulders and rides the upper back (`spine_03`), down to a ruck's bottom;
+    separate kit lower down (an armour flap, a dump pouch) rides the pelvis. Otherwise a ruck's top
     nods with the head, its sides swing with the arms, its bottom tears off with a
     thigh, a whip stays upright when he lies down, and a flap swings out with a
     thigh. The helmet stays on the head: it sits close over the skull. The soldier
@@ -371,10 +376,13 @@ def _strap_packs(gen, body, arm):
     shoulder = arm.data.bones["upperarm_l"].head_local.z
 
     def is_kit(co):
-        if co.z < 0.6 or co.y > back + 0.03:
-            return co.z >= 0.6
-        far = tree.find_nearest(co)[3] > PACK_STANDOFF
-        return far and (co.y > back - 0.02 or (co.z > shoulder and abs(co.x) > HEAD_HALF_WIDTH))
+        if co.z < KIT_FLOOR:
+            return False
+        if co.y > back + 0.03:  # behind the back plane
+            return True
+        if tree.find_nearest(co)[3] <= PACK_STANDOFF:
+            return False
+        return co.y > back - 0.02 or (co.z > shoulder and abs(co.x) > HEAD_HALF_WIDTH)
 
     kit = {v.index for v in gen.data.vertices if is_kit(v.co)}
     links = {i: [] for i in kit}
@@ -383,7 +391,7 @@ def _strap_packs(gen, body, arm):
         if a in kit and b in kit:
             links[a].append(b)
             links[b].append(a)
-    upper = [i for i in kit if gen.data.vertices[i].co.z >= 0.9]
+    upper = [i for i in kit if gen.data.vertices[i].co.z >= KIT_HUNG]
     hung = set(upper)
     while upper:  # flood from the shoulders' kit through kit only
         for j in links[upper.pop()]:
@@ -431,8 +439,8 @@ def _surface(gen, atlas, cloth_mean):
     uv = me.uv_layers[0]
     uv.name = "UVMap"
     names = {g.index: g.name for g in gen.vertex_groups}
-    cloth = mat("generated", (1, 1, 1), rough=0.9, tint=1.0, role="fabric")
-    skin = mat("generated_skin", (1, 1, 1), rough=0.6, role="skin")
+    cloth = mat("generated", (1, 1, 1), tint=1.0, role="fabric")
+    skin = mat("generated_skin", (1, 1, 1), role="skin")
     me.materials.clear()
     me.materials.append(cloth)
     me.materials.append(skin)
@@ -459,12 +467,15 @@ def _surface(gen, atlas, cloth_mean):
     rows = np.clip(graded, 0, 1)[::-1]  # PNG rows run top first
     s = (ATLAS_PX, ATLAS_PX)
     albedo = np.concatenate([textures._u8(textures._srgb(rows)), np.full((*s, 1), 255, np.uint8)], -1)
-    orm = np.stack([np.full(s, 255, np.uint8), np.full(s, 230, np.uint8),
-                    np.zeros(s, np.uint8), np.full(s, 255, np.uint8)], -1)
-    normal = np.zeros((4, 4, 4), np.uint8) + np.array([128, 128, 255, 255], np.uint8)
-    images = {"albedo": textures.png(albedo), "orm": textures.png(orm), "normal": textures.png(normal)}
-    textures.ATLASES[cloth.name] = images
-    textures.ATLASES[skin.name] = images
+    normal = textures.png(np.zeros((4, 4, 4), np.uint8) + np.array([128, 128, 255, 255], np.uint8))
+
+    def orm(rough):  # occlusion 1, roughness `rough` (the factor stays 1), not metal
+        return textures.png(np.stack([np.full(s, 255, np.uint8), np.full(s, round(rough * 255), np.uint8),
+                                      np.zeros(s, np.uint8), np.full(s, 255, np.uint8)], -1))
+
+    albedo = textures.png(albedo)
+    for material, rough in ((cloth, CLOTH_ROUGH), (skin, SKIN_ROUGH)):
+        textures.ATLASES[material.name] = {"albedo": albedo, "orm": orm(rough), "normal": normal}
 
 
 def _mask(me, uv, material_index):

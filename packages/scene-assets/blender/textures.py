@@ -571,7 +571,7 @@ def gunmetal():
 
 @recipe("leather", tile=0.25, wear=(0.13, 0.1, 0.07, 1.0))
 def leather():
-    """Boot leather and suede: a neutral light grain the vertex colour tints, creased."""
+    """Leather (the gloves): a neutral light grain the vertex colour tints, creased."""
     f1, f2, _ = worley(48, 901)
     grain = smoothstep(0.0, 0.25, f2 - f1)
     crease = folds(903, 3)
@@ -593,7 +593,7 @@ def polymer():
 
 @recipe("hard_plastic", tile=0.25, wear=(0.2, 0.18, 0.14, 1.0))
 def hard_plastic():
-    """Knee pads and helmet fittings: moulded plastic, a light texture, scuffed."""
+    """Moulded plastic: a light texture, scuffed."""
     n = fbm(40, 1101, 3)
     col = np.broadcast_to(np.array((0.8, 0.8, 0.8)), (SIZE, SIZE, 3)) * (0.72 + 0.12 * n)[..., None]
     scuff = smoothstep(0.7, 0.9, fbm(20, 1103, 4))

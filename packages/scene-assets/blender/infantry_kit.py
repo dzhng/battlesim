@@ -32,7 +32,7 @@ import infantry_roster as roster  # noqa: E402
 import skin_pins  # noqa: E402
 import weapons  # noqa: E402
 from common import REPO, box, empty, export_glb, fbm, mat, paint, script_args, texture_uvs  # noqa: E402
-from infantry_rig import EYE_IN_HEAD, SCALE, SLUNG_MIDDLE_M, Rig, back_y, bone_of  # noqa: E402
+from infantry_rig import EYE_IN_HEAD, SCALE, SLUNG_MIDDLE, Rig, back_y, bone_of  # noqa: E402
 from mesh_lods import canonical, make_tiers  # noqa: E402
 
 # Each test soldier kind and the pinned body it wears, as (army, body kind);
@@ -43,6 +43,11 @@ TEST_BODIES = {
     "at_carried": ("us_army_ocp", "rifle"),
     "recon": ("us_army_ocp", "recon"),
 }
+
+
+# How much hand weight a body vertex needs to be glove: any at all, so the glove reaches
+# back past the wrist, under the generated sleeve's cut end, so no wrist shows between.
+GLOVE_CUFF = 0.0
 
 
 def scale3(a, k):
@@ -129,7 +134,7 @@ class Kit:
         dl = bm.verts.layers.deform.active
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
         bm.normal_update()
-        bmesh.ops.delete(bm, geom=[v for v in bm.verts if self.w(v, dl, self.g_hand) <= 0.3], context="VERTS")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if self.w(v, dl, self.g_hand) <= GLOVE_CUFF], context="VERTS")
         bmesh.ops.smooth_vert(bm, verts=list(bm.verts), factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
         bm.normal_update()
         for v, d in [(v, v.normal * 0.004) for v in bm.verts]:
@@ -155,20 +160,21 @@ class Kit:
             self.painters[o.name] = painter
         return o
 
-    def sling(self, root, lift, standoff, name, muzzle_up=True, tip_deg=0.0):
-        """Sling a carried launcher (`root`, its muzzle along its -Y) across the
-        back at a 30° lean, muzzle up or down, tipped in by `tip_deg`: its origin
-        `lift` high and `standoff` behind the back, on two retention straps
-        (`<name>_retention_<j>`). The tube and its straps ride the `sling` bone:
-        the back while he lives, the ground beside him when he dies."""
+    def sling(self, root, lift, standoff, name, muzzle_up=True, tip_deg=0.0, lean_deg=30.0, straps=(-.20, .30)):
+        """Sling carried kit (`root`, a launcher's muzzle along its -Y) across the
+        back at a `lean_deg` lean, muzzle up or down, tipped in by `tip_deg`: its
+        origin `lift` high and `standoff` behind the back, on a retention strap at
+        each of `straps` along it (`<name>_retention_<j>`). The kit and its straps
+        ride the `sling` bone: the back while he lives, the ground beside him when
+        he dies."""
         back = back_y(self.parts)
-        rotation = Matrix.Rotation(math.radians(30), 4, "Y") @ Matrix.Rotation((-1 if muzzle_up else 1) * math.pi / 2, 4, "X")
+        rotation = Matrix.Rotation(math.radians(lean_deg), 4, "Y") @ Matrix.Rotation((-1 if muzzle_up else 1) * math.pi / 2, 4, "X")
         if tip_deg:
             rotation = Matrix.Rotation(math.radians(tip_deg), 4, "X") @ rotation
         root.matrix_world = Matrix.Translation((0, back + standoff, lift)) @ rotation
         self.rig.bone_parent(root, "sling")
         self.parts.extend(c for c in root.children_recursive if c.type == "MESH")
-        for j, along in enumerate((-.20, .30)):
+        for j, along in enumerate(straps):
             lug = root.matrix_world @ Vector((-.045, along, .10))
             anchor = Vector((-.09 if j == 0 else .09, back, 1.1 - along * .85))
             reach = lug - anchor
@@ -327,13 +333,13 @@ def export_soldier(kit, path):
 
 def carried_launcher(kit):
     """Sling the test launcher as a roster missile tube is slung: muzzle up, its
-    CLU to the side, its middle at `SLUNG_MIDDLE_M`, its CLU filling the gap to
+    CLU to the side, its middle at `SLUNG_MIDDLE`, its CLU filling the gap to
     the back."""
     root = weapons.launcher(kit.m, "carried_launcher")
     for c in list(root.children_recursive):
         if c.type == "EMPTY":
             bpy.data.objects.remove(c, do_unlink=True)
-    kit.sling(root, SLUNG_MIDDLE_M + bpy.data.objects["carried_launcher_tube"].location.y, -.02, "carried_launcher")
+    kit.sling(root, SLUNG_MIDDLE + bpy.data.objects["carried_launcher_tube"].location.y, -.02, "carried_launcher")
 
 
 def main():

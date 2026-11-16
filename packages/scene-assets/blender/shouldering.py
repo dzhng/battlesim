@@ -41,17 +41,13 @@ def shouldered(rig, hold, pocket=None):
     """Where a weapon sits shouldered. One with a butt rests it in the right shoulder
     pocket (`pocket` off the shoulder joint: `POCKET` up, `PRONE_POCKET` lying), level and
     pointing forward, and the head comes down onto it (`weld_cheek`). A launcher (no butt)
-    rides the shoulder with its eyepiece `EYE_RELIEF` ahead of the eye, pulled `cheek_blend` of the
-    way across toward the pocket."""
+    rides the shoulder with its eyepiece `EYE_RELIEF` ahead of the eye."""
     sh = rig.arm.pose.bones["upperarm_r"].head.copy()
     if hold["butt"] is not None:
         return Matrix.Translation(sh + (pocket if pocket is not None else POCKET) - Vector(hold["butt"]) * hold["scale"])
     eye = rig.eye_point()
     sight = Vector(hold["sight"]) * hold["scale"]
-    pocket = sh + POCKET
-    k = hold["cheek_blend"]
-    grip = Vector((eye.x + (pocket.x - eye.x) * k, eye.y - EYE_RELIEF, eye.z)) - sight
-    return Matrix.Translation(grip)
+    return Matrix.Translation(Vector((eye.x, eye.y - EYE_RELIEF, eye.z)) - sight)
 
 
 def _turn(pb, q):

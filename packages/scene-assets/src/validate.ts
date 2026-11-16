@@ -1,6 +1,6 @@
 // The appearance validator. Isomorphic: it takes bytes and data, never paths
 // to read, so the CLI, the bake and tests share it. `validateAppearance` (and
-// `validateSkeleton`, in skeletonFit.ts) import, build and check one catalog entry;
+// `validateSkeleton`, in skeleton.ts) import, build and check one catalog entry;
 // they return the findings, stats and — when nothing is an error — the bundle.
 
 import {
@@ -73,7 +73,7 @@ import {
   type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
-import type { SkeletonRef } from "./skeletonFit.ts";
+import type { SkeletonRef } from "./skeleton.ts";
 import { finding, fmt } from "./finding.ts";
 
 export interface ValidationContext {

@@ -195,7 +195,7 @@ async function finish(ctx, transport, line, output, charge = null) {
 }
 
 /** An airframe skin from four guide views (`blender/skin_views.py`), pinned
- * as `<appearance>.glb`: today's flow, on the shared transport. */
+ * as `<appearance>.glb`, on the shared transport. */
 export async function airframe(ctx, family, appearance, views, note) {
   const dir = skins(family);
   const glb = `${dir}/${appearance}.glb`;

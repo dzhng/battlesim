@@ -352,7 +352,7 @@ def stepping(rig, hold, name, g, d):
     placed = weld_cheek(rig, hold, placed, list(range(n + 1)))
     anchor, tr, tl = rig.make_hold(name, placed, hold["grip"], hold["support"], spine_follow=True)
     cons = rig.arm_constraints(tr, tl, rig.pole(f"pole_{name}_r", (-0.45, 0.10, 0.95 - g["drop"])),
-                               rig.pole(f"pole_{name}_l", (0.20, -0.30, 0.90 - g["drop"])))
+                               rig.pole(f"pole_{name}_l", (0.15, -0.30, 0.55 - g["drop"])))
     # Animated targets stay unparented: parented to the rig whose IK reads them, they
     # would form a dependency cycle and the legs would solve to a stale frame. The rig
     # stands unturned at the origin while building, so rest space is world space.

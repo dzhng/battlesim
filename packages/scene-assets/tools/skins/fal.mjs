@@ -4,7 +4,9 @@
 // - fal through Bento's service proxy: upload an input (`/storage/upload/
 //   initiate`, then a PUT to the signed URL), submit, poll, fetch the result
 //   and download its files. Every call is retried on a transient failure (a
-//   502/503/504, a reset connection, a timeout), up to `retries` times.
+//   502/503/504, a reset connection, a timeout), up to `retries` times, except
+//   the paid submit, which is retried only when it surely never landed (a
+//   502/503, a refused connection): a request is never paid twice.
 // - Input images through Bento's model gateway (`bento local model chat`),
 //   one attempt: a failed drawing is logged and redrawn by hand.
 //
@@ -16,6 +18,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const TRANSIENT = /\b50[234]\b|ECONNRESET|ETIMEDOUT|EAI_AGAIN|EPIPE|socket hang up|timed? ?out/i;
+// A paid submit is repeated only when it surely never reached the service: a
+// 504, a reset or a timeout may come after it was accepted (and charged).
+const REFUSED = /\b50[23]\b|ECONNREFUSED|EAI_AGAIN/i;
 const TERMINAL = new Set(["COMPLETED", "FAILED", "ERROR", "CANCELLED"]);
 
 export const runBento = (args, { timeout = 120_000 } = {}) =>
@@ -29,6 +34,7 @@ export const runBento = (args, { timeout = 120_000 } = {}) =>
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const transient = ({ code, stdout, stderr }) =>
   code === 6 || code === null || TRANSIENT.test(`${stderr}\n${stdout}`);
+const refused = ({ stdout, stderr }) => REFUSED.test(`${stderr}\n${stdout}`);
 
 /** fal's queue paths are built from an endpoint's first two segments:
  * `tripo3d/h3.1/image-to-3d` polls `tripo3d/h3.1/requests/<id>`. */
@@ -49,7 +55,7 @@ export function fal({ exec = runBento, fetch = globalThis.fetch, wait = sleep, r
   // One `bento service proxy` call: the body in a file, the reply read back
   // from `--out`, and the response headers (printed on stdout) kept for the
   // charge Bento reports.
-  const proxy = (method, path, { body, query } = {}) =>
+  const proxy = (method, path, { body, query, paid = false } = {}) =>
     retry(async () => {
       const dir = await mkdtemp(join(tmpdir(), "skin-generate-"));
       try {
@@ -67,7 +73,7 @@ export function fal({ exec = runBento, fetch = globalThis.fetch, wait = sleep, r
           const error = new Error(
             `bento ${method} ${path}: ${run.stderr.trim() || `exit ${run.code}`}${reason ? ` ${reason.trim().slice(0, 500)}` : ""}`,
           );
-          error.transient = transient(run);
+          error.transient = paid ? refused(run) : transient(run);
           throw error;
         }
         const charge = /x-duet-charge-usd"?\s*[:=]\s*"?([\d.]+)/i.exec(run.stdout);
@@ -110,7 +116,7 @@ export function fal({ exec = runBento, fetch = globalThis.fetch, wait = sleep, r
     },
     /** Queue `body` on `endpoint`: {request_id, charge} (charge as Bento reports it). */
     async submit(endpoint, body) {
-      const { reply, charge } = await proxy("post", `/${endpoint}`, { body });
+      const { reply, charge } = await proxy("post", `/${endpoint}`, { body, paid: true });
       if (!reply.request_id)
         throw new Error(`${endpoint} returned no request id: ${JSON.stringify(reply)}`);
       return { request_id: reply.request_id, charge };

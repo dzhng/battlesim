@@ -10,7 +10,6 @@
   },
   "armies": {
     "us_army_ocp": {
-      "faction": "us",
       "rifle": "m4a1",
       "lmg": "m249",
       "gloves": [0.06, 0.05, 0.036],
@@ -25,7 +24,6 @@
       "crew_kit": "rifle_squad"
     },
     "usmc_marpat": {
-      "faction": "us",
       "rifle": "m27",
       "lmg": "m249",
       "gloves": [0.06, 0.05, 0.036],
@@ -40,7 +38,6 @@
       "crew_kit": "us_marine_squad_close_quarters_infantry"
     },
     "german_flecktarn": {
-      "faction": "europe",
       "rifle": "g36",
       "lmg": "mg4",
       "gloves": [0.025, 0.025, 0.021],
@@ -55,7 +52,6 @@
       "crew_kit": "rifle_squad"
     },
     "eastern_emr": {
-      "faction": "eastern",
       "rifle": "ak12",
       "lmg": "pkp",
       "gloves": [0.02, 0.02, 0.018],
@@ -70,7 +66,6 @@
       "crew_kit": "rifle_squad"
     },
     "pla_type21": {
-      "faction": "eastern",
       "rifle": "qbz191",
       "gloves": [0.03, 0.03, 0.025],
       "webbing": [0.07, 0.078, 0.048],
@@ -84,7 +79,6 @@
       "crew_kit": "rifle_squad"
     },
     "french_cce": {
-      "faction": "europe",
       "rifle": "hk416f",
       "gloves": [0.025, 0.025, 0.021],
       "webbing": [0.055, 0.062, 0.038],

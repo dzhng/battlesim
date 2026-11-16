@@ -26,7 +26,7 @@ sockets on that rig and exports the soldier, for the roster and for the test
 soldiers alike. Each roster kit ([the infantry roster](infantry_roster.py) `KITS`) names its
 weapon and the armies it is built in. An army is data
 ([`roster/armies.json`](roster/armies.json)), named as its reference variant:
-its faction, rifle, light machine gun, gloves, webbing, cloth colour and the
+its rifle, light machine gun, gloves, webbing, cloth colour and the
 prompts its generated bodies are made from. A kit's first army is its default
 look and writes `<mode>_<look>.glb`; every other army writes
 `<army>_<mode>_<look>.glb`.
@@ -52,7 +52,9 @@ export. A test soldier wears a roster army's body (`TEST_BODIES`) with its test
 weapon and hold.
 
 Clips and meshes must retain the shared skeleton contract: regenerating one does
-not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
+not regenerate the other. The skeleton is the Quaternius rig's 65 joints plus
+`sling`, a child of `spine_03`: a slung launcher rides it on the back, and the
+death clips lay it on the ground beside the body. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
 
 Visible vehicle crew ([crew module](vehicle_crew.py)) reuse the exported

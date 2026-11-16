@@ -1,4 +1,4 @@
-"""Named roster equipment on the unchanged Quaternius infantry rig.
+"""Named roster equipment on the shared infantry rig (`infantry_rig.Rig`).
 
 Usage: infantry_equipment.py <kit> [a|b|c] [active|carried] [--army=<army>] [--preview=<dir>]
        infantry_equipment.py <kit> --receipt
@@ -20,10 +20,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Vector
 from common import REPO, box, cyl, empty, fbm, script_args
 from infantry_kit import dressed, export_soldier, scale3
-from infantry_rig import SCALE, SLUNG_MIDDLE_M, back_y
+from infantry_rig import SCALE, SLUNG_MIDDLE
 from mesh_lods import triangle_count
 import weapons
 import skin_pins
@@ -213,18 +213,10 @@ def tripod_equipment(kit, model, carried=False):
         for side in (-1,1):c('packed_tube_cap_'+str(side),.093 if model=='tow' else .086,.045,(0,side*length/2,.10),mat=dark)
         for j in range(3):c('folded_tripod_leg_'+str(j),.024,.79,(.12+j*.05,.06,.08),mat=dark)
         b('packed_optical_unit',(.23,.25,.24),(.22,.20,.19))
-        back=back_y(kit.parts)
-        rotation=Matrix.Rotation(math.radians(24),4,'Y')@Matrix.Rotation(math.pi/2,4,'X')
         # its middle at 1.10 m, lowered for a canister longer than the TOW's (the
         # Kornet's), so its upper cap stays under the soldier's height at the 24° lean
         overlong=max(0,length-LENGTHS['tow']['tube_length_m'])*math.cos(math.radians(24))/2
-        root.matrix_world=Matrix.Translation((0,back+.17,1.10-overlong/SCALE))@rotation
-        kit.rig.bone_parent(root,'sling')  # it falls beside him when he dies, as a slung tube does
-        kit.parts.extend(o for o in root.children_recursive if o.type=='MESH')
-        for j,along in enumerate((-.32,.32)):
-            lug=root.matrix_world@Vector((-.045/SCALE,along/SCALE,.10/SCALE));anchor=Vector((j*.14-.07,back,1.10-along*.9));reach=lug-anchor
-            strap=box(model+'_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
-            kit.rigid(strap,'sling')
+        kit.sling(root,1.10-overlong/SCALE,.17,model,muzzle_up=False,lean_deg=24,straps=(-.32/SCALE,.32/SCALE))
         return
     # Full canister, not an enlarged missile or a generic shoulder CLU.
     c('launch_canister',.085 if model=='tow' else .078,length,(-.20,-.85,bore))
@@ -290,11 +282,11 @@ def build(unit, variant, mode, army=None):
         # A rifle in the hands and the actual launcher slung behind the pack:
         # an RPG muzzle down; a missile tube muzzle up, with its sight (the
         # Javelin's CLU) facing out rather than into the pack.
-        # A tube's middle at SLUNG_MIDDLE_M, whatever length rides behind its
+        # A tube's middle at SLUNG_MIDDLE, whatever length rides behind its
         # grip, lowered for a tube longer than the Stinger's (the Igla): its
         # upper cap stays under the soldier's height at the sling's 30° lean.
         overlong=max(0,LENGTHS[model].get('length_m',0)-LENGTHS['stinger']['length_m'])
-        lift=1.1 if rpg else SLUNG_MIDDLE_M+bpy.data.objects[model+'_tube'].location.y-overlong*math.cos(math.radians(30))/2
+        lift=1.1 if rpg else SLUNG_MIDDLE+bpy.data.objects[model+'_tube'].location.y-overlong/SCALE*math.cos(math.radians(30))/2
         # A slim MANPADS tube lies on the pack by its own radius, its foot
         # tipped in to follow the soldier's forward lean; the Javelin's and
         # Akeron's sight blocks fill that gap themselves.

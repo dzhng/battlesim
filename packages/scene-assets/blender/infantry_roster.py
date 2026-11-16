@@ -10,24 +10,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "../../.."))
 
 # Each roster kit (a directory of assets/source/roster/infantry/): its
-# weapon (the army's squad rifle, or a `LENGTHS` model of the exporter), whether
-# its men are scouts (the recon kind), and the armies it is built in, its
-# default first: the faction its roster card names first, and a look for every
-# other army that fields it.
+# weapon (the army's squad rifle or light machine gun, a team rifle, or a
+# launcher), the body kind its men wear (`recon` for scouts; `rifle` when
+# unnamed), and the armies it is built in, its default first: the faction its
+# roster card names first, and a look for every other army that fields it.
 KITS = {
     "rifle_squad": dict(weapon="rifle",
                         armies=("us_army_ocp", "eastern_emr", "german_flecktarn", "pla_type21", "french_cce")),
     "assault_squad": dict(weapon="rifle", armies=("german_flecktarn", "eastern_emr")),
     "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", armies=("usmc_marpat",)),
-    "us_army_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("us_army_ocp",)),
-    "us_force_recon_recon_patrol": dict(weapon="rifle", scout=True, armies=("usmc_marpat",)),
-    "eastern_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("eastern_emr",)),
-    "europe_recon_patrol_light_patrol": dict(weapon="rifle", scout=True, armies=("german_flecktarn",)),
+    "us_army_scouts_light_patrol": dict(weapon="rifle", kind="recon", armies=("us_army_ocp",)),
+    "us_force_recon_recon_patrol": dict(weapon="rifle", kind="recon", armies=("usmc_marpat",)),
+    "eastern_scouts_light_patrol": dict(weapon="rifle", kind="recon", armies=("eastern_emr",)),
+    "europe_recon_patrol_light_patrol": dict(weapon="rifle", kind="recon", armies=("german_flecktarn",)),
     "us_marksman_squad_m110_equipped_longer_range_infantry": dict(weapon="m110", armies=("us_army_ocp",)),
     "eastern_marksman_squad_svd_equipped_longer_range_infantry": dict(weapon="svd", armies=("eastern_emr",)),
     "europe_marksman_squad_longer_range_infantry": dict(weapon="g28", armies=("german_flecktarn",)),
-    "us_scout_snipers_m107_heavy_sniper_team": dict(weapon="m107", scout=True, armies=("usmc_marpat",)),
-    "eastern_sniper_team_asvk_heavy_sniper_team": dict(weapon="asvk", scout=True, armies=("eastern_emr",)),
+    "us_scout_snipers_m107_heavy_sniper_team": dict(weapon="m107", kind="recon", armies=("usmc_marpat",)),
+    "eastern_sniper_team_asvk_heavy_sniper_team": dict(weapon="asvk", kind="recon", armies=("eastern_emr",)),
     "us_atgm_team_bgm_71_tow_2a": dict(weapon="tow", armies=("us_army_ocp",)),
     "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
@@ -58,8 +58,8 @@ def armies():
 
 
 def kind_of(kit):
-    """The body kind a kit's men wear: `recon` for scouts, else `rifle`."""
-    return "recon" if KITS[kit].get("scout") else "rifle"
+    """The body kind a kit's men wear: its `kind`, else `rifle`."""
+    return KITS[kit].get("kind", "rifle")
 
 
 def source_path(kit, look, mode, army=None):
