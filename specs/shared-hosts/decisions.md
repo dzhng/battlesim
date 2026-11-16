@@ -381,3 +381,39 @@ things the plan left open.
   window requests now take the hold and plan from `Windows::held`. The
   `window_swap_s` doc said "squadmate"; it is whichever soldier he trades
   with.
+## Slice 06
+
+- **The ring's key is the hold's host id, which is already the structure
+  owner.** `garrison::occupy` sends `remembered_structure_owner` of the clicked
+  part, and the hold keeps it, so `orderLayer` groups by `hold.host.id` with no
+  building index. The outline resolves through the map's building index
+  (`partBuilding`, then a remains prop's `authoredProp`), because an identified
+  enemy's `building` may name any part or its ruin.
+- **The brightest occupant paints the ring** (`ringRank`: selected, hovered,
+  the player's own over an ally's, moving, then reveal opacity). The others are
+  marked `ringShared`: their circle is unchanged, so routes still leave it and
+  picking (`unitCircle`) never sees the grouping; only the paint is skipped.
+  *Alternative:* draw the first occupant's ring. Lost because a selected squad
+  beside a revealed housemate would then read in the reveal's colour.
+- **The outline takes the first holder's colour, own before enemy.** One side
+  holds a building at a time; only a stale identification could disagree.
+- **Seen in the shots** (`throwaway/shared-hosts/shots-06/`, garrison lab, both
+  rifle squads sent in at tick 40; the enemy house by intercepting the
+  encounter fetch so two red squads occupy it, tree untouched): the leaving
+  shot's ring was the selection colour mixed with the leaver's gold and is now
+  the selection colour alone; two selected now matches one selected; the Space
+  ring was two stacked current-alpha rings and is now one, so it reads fainter.
+  Outlines, own and enemy, were coincident duplicates and are now drawn once.
+- **A squad stepping out publishes no goal**, its move waiting behind the exit,
+  so it draws no route until it is out; it then has its own moving ring and
+  route beside the house's ring. Not changed here (simulation, out of scope).
+- **Critique.** The unprimed critique saw one ring and one outline per house in
+  every state, never doubled, drawn under the model. Its other findings are
+  outside the slice variable or predate it: the Space ring's weak contrast
+  (ring colour and width are out of scope), the lab legend not matching the
+  marks (ring and route colours, the red outline, hollow occupant markers;
+  slice 07's labs), info panels over the ring, occupants drawn on the roof,
+  a sliver of fog hatching along the enemy house's wall, and a label leader
+  under the lab panel.
+- **Human review** was shown non-blocking and got no reply; closed and
+  continued on the evidence.

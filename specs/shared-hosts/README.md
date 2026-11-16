@@ -52,7 +52,7 @@ Checklist (each item is its slice's whole contract):
 - [x] 03 · Admission on arrival for both hosts; the relief test goes green ([slice](slices/03-admission-on-arrival.md))
 - [x] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))
 - [ ] 05 · Seat total published; the IN BUILDING row reads used/total ([slice](slices/05-seats-on-the-panel.md))
-- [ ] 06 · One ring and one outline per house ([slice](slices/06-one-mark-per-house.md))
+- [x] 06 · One ring and one outline per house ([slice](slices/06-one-mark-per-house.md))
 - [ ] 07 · Labs, recordings, player text, docs and closeout ([slice](slices/07-labs-docs-closeout.md))
 
 Warnings:
