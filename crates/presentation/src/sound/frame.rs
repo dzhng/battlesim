@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 use sim::publication::reader::{Shout as PublishedShout, SoundCue};
 
 pub use super::scripted::Scripted;
-pub use super::spatial::{distance_gain, sector_pan};
-use super::tables::{pick, Bus, SoundTables, VehicleSound};
+pub use super::spatial::sector_pan;
+use super::tables::{pick, profile, Bus, Distance, SoundTables, VehicleSound};
 use super::voices::{Request, Speakers};
 use crate::effects::cook_off::CookOffFeel;
 use crate::effects::launches::Launch;
@@ -25,6 +25,9 @@ use crate::effects::publication::EffectPublication;
 use crate::records::{Emitter, NONE};
 use crate::seed::Key;
 use crate::world::Vec3;
+
+mod loops;
+mod transients;
 
 /// Pending transients held at most; past it the oldest go.
 const PENDING_CAP: usize = 1024;
@@ -281,6 +284,7 @@ struct Pending {
     lowpass: f64,
     wet: f64,
     far_share: f64,
+    distance: Distance,
 }
 
 #[derive(Clone, Copy)]
@@ -310,6 +314,7 @@ struct LoopWant {
     rate: f64,
     position: Option<Vec3>,
     priority: f64,
+    distance: Distance,
 }
 
 struct Mover {
@@ -457,6 +462,7 @@ fn lerp(a: f64, b: f64, t: f64) -> f64 {
 #[derive(Serialize)]
 pub struct VehicleLoop<'a> {
     pub slot: &'static str,
+    pub distance: &'a str,
     pub sound: &'a str,
     pub gain: f64,
     pub rate: f64,
@@ -475,6 +481,7 @@ pub fn vehicle_loops(
 ) -> Vec<VehicleLoop<'_>> {
     let mut loops = vec![VehicleLoop {
         slot: "engine",
+        distance: &row.engine_distance,
         sound: &row.engine,
         gain: lerp(row.idle_gain, row.load_gain, load),
         rate: lerp(row.idle_rate, row.load_rate, load),
@@ -482,6 +489,7 @@ pub fn vehicle_loops(
     if let Some(running) = row.running.as_deref().filter(|_| load > 0.02) {
         loops.push(VehicleLoop {
             slot: "running",
+            distance: profile::SMALL_DETAILS,
             sound: running,
             gain: row.running_gain * load.sqrt(),
             rate: 0.5 + load,
@@ -490,6 +498,7 @@ pub fn vehicle_loops(
     if let Some(turret) = row.turret.as_deref().filter(|_| traverse > 0.05) {
         loops.push(VehicleLoop {
             slot: "turret",
+            distance: profile::SMALL_DETAILS,
             sound: turret,
             gain: row.turret_gain * traverse,
             rate: 0.9 + 0.2 * traverse,
@@ -498,6 +507,7 @@ pub fn vehicle_loops(
     if let Some(reverse) = row.reverse.as_deref().filter(|_| reversing && load > 0.02) {
         loops.push(VehicleLoop {
             slot: "reverse",
+            distance: profile::SMALL_DETAILS,
             sound: reverse,
             gain: row.reverse_gain,
             rate: 1.0,
@@ -585,7 +595,11 @@ impl Sound {
     pub fn place(&self, voice: &mut Voice, position: Vec3) {
         let air = self.tables.audio.air;
         let u = self.far_share(&position);
-        voice.gain = self.level(voice.gain, Some(&position));
+        voice.gain = self.level(
+            voice.gain,
+            Some(&position),
+            self.tables.audio.distance[profile::WORLD_VOICES],
+        );
         voice.lowpass = self.air_lowpass(u);
         voice.wet = air.wet * u;
         voice.attack = air.attack_s * u;
@@ -719,6 +733,7 @@ impl Sound {
                 Some(s.far),
                 s.far_m,
                 Bus::Effects,
+                p.distance[profile::WEAPONS],
                 s.gain,
                 l.at,
                 variety,
@@ -730,7 +745,18 @@ impl Sound {
             .heard(&fx.smoke_clouds, fx.tick, self.dt, &tables);
         for (sound, at, key) in pops {
             let gain = p.smoke_pop.gain;
-            self.queue(t0, sound, None, 0.0, Bus::Effects, gain, at, key, key);
+            self.queue(
+                t0,
+                sound,
+                None,
+                0.0,
+                Bus::Effects,
+                p.distance[profile::WEAPONS],
+                gain,
+                at,
+                key,
+                key,
+            );
         }
         for (i, point) in fx.flare_deploys.iter().enumerate() {
             let flare = &p.flare_deploy;
@@ -741,6 +767,7 @@ impl Sound {
                 None,
                 0.0,
                 Bus::Effects,
+                p.distance[profile::WEAPONS],
                 flare.gain,
                 *point,
                 key,
@@ -773,7 +800,18 @@ impl Sound {
                             .impact_scale
                             .expect("fielded impact");
                     let key = Key::new().nums(&pt);
-                    self.queue(at, sound, None, 0.0, Bus::Effects, gain, pt, key, key);
+                    self.queue(
+                        at,
+                        sound,
+                        None,
+                        0.0,
+                        Bus::Effects,
+                        p.distance[profile::WEAPONS],
+                        gain,
+                        pt,
+                        key,
+                        key,
+                    );
                 }
             }
             let end = *s.path.last().expect("two points");
@@ -793,6 +831,7 @@ impl Sound {
                     None,
                     0.0,
                     Bus::Effects,
+                    p.distance[profile::WEAPONS],
                     hit.gain * scale,
                     end,
                     key,
@@ -831,6 +870,7 @@ impl Sound {
                 Some(tables.effect(&s.far).to_owned()),
                 s.far_m,
                 Bus::Effects,
+                p.distance[profile::WEAPONS],
                 s.gain,
                 b.point,
                 key,
@@ -861,6 +901,7 @@ impl Sound {
                     Some(tables.effect(&blast.far).to_owned()),
                     blast.far_m,
                     Bus::Effects,
+                    p.distance[profile::WEAPONS],
                     blast.gain * share,
                     ring,
                     key,
@@ -876,6 +917,7 @@ impl Sound {
                     None,
                     0.0,
                     Bus::Effects,
+                    p.distance[profile::WEAPONS],
                     landing.gain,
                     at,
                     key,
@@ -947,6 +989,7 @@ impl Sound {
                     },
                     wet: if near { 0.0 } else { p.air.wet },
                     far_share: if near { 0.0 } else { 1.0 },
+                    distance: p.distance[profile::WEAPONS],
                 },
                 None => {
                     // Which take: seeded by the cue and its time, so the
@@ -972,6 +1015,7 @@ impl Sound {
                         lowpass: cues.shout.lowpass_hz,
                         wet: cues.shout.wet,
                         far_share: 1.0,
+                        distance: p.distance[profile::WORLD_VOICES],
                     }
                 }
             };
@@ -992,6 +1036,7 @@ impl Sound {
                     None,
                     0.0,
                     Bus::Effects,
+                    p.distance[profile::WEAPONS],
                     warning.gain,
                     s.position,
                     key,
@@ -1001,7 +1046,12 @@ impl Sound {
             let Some(bark) = self.speakers.bark(s, at) else {
                 continue;
             };
-            if self.level(p.voices.gain, Some(&s.position)) >= p.distance.cull {
+            if self.level(
+                p.voices.gain,
+                Some(&s.position),
+                p.distance[profile::WORLD_VOICES],
+            ) >= p.distance[profile::WORLD_VOICES].cull
+            {
                 self.barks.push(bark);
             }
         }
@@ -1011,46 +1061,13 @@ impl Sound {
         &self.out
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn queue(
-        &mut self,
-        t: f64,
-        sound: String,
-        far: Option<String>,
-        far_m: f64,
-        bus: Bus,
-        gain: f64,
-        position: Vec3,
-        variety: Key,
-        variant: Key,
-    ) {
-        let variant = variant.num(t).nums(&position).seed();
-        self.pending.push(Pending {
-            t,
-            sound,
-            variant,
-            far,
-            far_m,
-            bus,
-            gain,
-            rate: 0.94 + 0.12 * variety.unit(),
-            position: Some(position),
-            sector: -1.0,
-            lowpass: 0.0,
-            wet: 0.0,
-            far_share: 0.0,
-        });
-    }
-
     fn distance(&self, position: &Vec3) -> f64 {
         super::spatial::heard_distance(&self.tables, &self.listener, position)
     }
 
     /// Level at the listener for a sound of `gain` at `position`.
-    fn level(&self, gain: f64, position: Option<&Vec3>) -> f64 {
-        position.map_or(gain, |p| {
-            gain * distance_gain(&self.tables, self.distance(p))
-        })
+    fn level(&self, gain: f64, position: Option<&Vec3>, distance: Distance) -> f64 {
+        position.map_or(gain, |p| gain * distance.gain(self.distance(p)))
     }
 
     /// How far `position` sounds: 0 at the listener, 1 at `air.far_m` and beyond.
@@ -1145,350 +1162,5 @@ impl Sound {
             depth: 0.0,
             glide: self.tables.audio.ambience.duck.release_s,
         });
-    }
-
-    /// A footstep each `stride_m` a soldier walks; a jump past `max_step_m`
-    /// (seen again elsewhere) starts his count afresh.
-    fn footsteps(&mut self, motion: &Motion, clock: f64, step: f64) {
-        let tables = self.tables.clone();
-        let f = &tables.audio.footsteps;
-        let mut seen = Vec::with_capacity(motion.soldiers.len());
-        for s in &motion.soldiers {
-            let id = s.id.to_bits();
-            seen.push(id);
-            let [x, y, _] = s.position;
-            let Some(st) = self.strides.get_mut(&id) else {
-                let carry = Key::new().text("step").num(s.id).unit() * f.stride_m;
-                self.strides.insert(id, Stride { x, y, carry });
-                continue;
-            };
-            let d = libm::hypot(x - st.x, y - st.y);
-            st.x = x;
-            st.y = y;
-            if step <= 0.0 || d > f.max_step_m {
-                continue;
-            }
-            st.carry += d;
-            if st.carry < f.stride_m {
-                continue;
-            }
-            st.carry %= f.stride_m;
-            if self.level(f.gain, Some(&s.position)) < tables.audio.distance.cull {
-                continue;
-            }
-            let variety = Key::new().num(s.id).num(clock);
-            self.queue(
-                clock,
-                tables.effect(&f.sound).to_owned(),
-                None,
-                0.0,
-                Bus::Units,
-                f.gain,
-                s.position,
-                variety,
-                variety,
-            );
-        }
-        seen.sort_unstable();
-        self.strides.retain(|id, _| seen.binary_search(id).is_ok());
-    }
-
-    /// Starts every pending transient due by `clock`, loudest first, within the budget.
-    fn flush(&mut self, clock: f64, now: f64) {
-        let late_s = self.tables.audio.late_s;
-        let (later, due): (Vec<_>, Vec<_>) = std::mem::take(&mut self.pending)
-            .into_iter()
-            .filter(|e| e.t > clock + LOOKAHEAD_S || e.t >= clock - late_s)
-            .partition(|e| e.t > clock + LOOKAHEAD_S);
-        self.pending = later;
-        if due.is_empty() {
-            return;
-        }
-        let budget = self.tables.audio.budget;
-        let cap = budget.voices - budget.loops;
-        let cull = self.tables.audio.distance.cull;
-        let mut ranked: Vec<(Pending, f64)> = due
-            .into_iter()
-            .map(|e| {
-                let priority = self.level(e.gain, e.position.as_ref());
-                (e, priority)
-            })
-            .filter(|(_, priority)| *priority >= cull)
-            .collect();
-        ranked.sort_by(|a, b| b.1.total_cmp(&a.1));
-        for (e, priority) in ranked {
-            if self.transients.len() >= cap {
-                let mut low = 0;
-                for i in 1..self.transients.len() {
-                    if self.transients[i].priority < self.transients[low].priority {
-                        low = i;
-                    }
-                }
-                if self.transients[low].priority >= priority {
-                    self.stats.dropped += 1;
-                    continue;
-                }
-                let stolen = self.transients.remove(low);
-                self.out.push(Command::Stop {
-                    id: stolen.id,
-                    at: now,
-                    fade: FADE_STEAL_S,
-                });
-                self.stats.stolen += 1;
-            }
-            let far =
-                matches!((&e.far, &e.position), (Some(_), Some(p)) if self.distance(p) > e.far_m);
-            let sound = if far { e.far.expect("far") } else { e.sound };
-            let at = now + (e.t - clock).max(0.0);
-            let id = self.next_id;
-            self.next_id += 1;
-            let u = e
-                .position
-                .as_ref()
-                .map_or(e.far_share, |p| self.far_share(p));
-            let air = self.tables.audio.air;
-            let end = at + self.duration(&sound, e.variant) / e.rate;
-            self.duck_ambience(at, priority, e.bus);
-            self.out.push(Command::Start {
-                id,
-                voice: Voice {
-                    sound,
-                    variant: e.variant,
-                    bus: e.bus,
-                    at,
-                    gain: if e.position.is_some() {
-                        priority
-                    } else {
-                        e.gain
-                    },
-                    rate: e.rate,
-                    lowpass: if e.position.is_some() {
-                        self.air_lowpass(u)
-                    } else {
-                        e.lowpass
-                    },
-                    wet: if e.position.is_some() {
-                        air.wet * u
-                    } else {
-                        e.wet
-                    },
-                    attack: air.attack_s * u,
-                    position: e.position,
-                    pan: e
-                        .position
-                        .is_none()
-                        .then(|| sector_pan(e.sector, self.listener.forward)),
-                    looping: false,
-                },
-            });
-            self.transients.push(Sounding { id, priority, end });
-            self.stats.started += 1;
-            if e.position.is_some() {
-                self.stats.positional += 1;
-            } else {
-                self.stats.cues += 1;
-            }
-        }
-    }
-
-    /// Every loop wanted now: the bed, engines and running gear, turrets,
-    /// reverse, fires and motors; the loudest within the loop budget sound.
-    fn update_loops(&mut self, clock: f64, now: f64, motion: &Motion, step: f64) {
-        let tables = self.tables.clone();
-        let p = &tables.audio;
-        let mut wants: Vec<LoopWant> = Vec::new();
-        // The catalog derives a vehicle class from the type's altitude layer,
-        // so `high_air_` names the layer (`contract::catalog::UnitType::vehicle_class`).
-        let current_high_air: BTreeSet<u64> = motion
-            .vehicles
-            .iter()
-            .filter(|v| v.vehicle_class.starts_with("high_air_"))
-            .map(|v| v.key.to_bits())
-            .collect();
-        if self.high_air.is_empty() && !current_high_air.is_empty() {
-            let alarm = &p.air_alarm;
-            self.pending.push(Pending {
-                t: clock,
-                sound: tables.effect(&alarm.sound).to_owned(),
-                variant: 0,
-                far: None,
-                far_m: 0.0,
-                bus: Bus::Ambience,
-                gain: alarm.gain,
-                rate: 1.0,
-                position: None,
-                sector: -1.0,
-                lowpass: p.air.near_hz,
-                wet: 0.0,
-                far_share: 0.0,
-            });
-        }
-        self.high_air = current_high_air;
-        let mut seen = Vec::with_capacity(motion.vehicles.len());
-        for v in &motion.vehicles {
-            let key = v.key.to_bits();
-            seen.push(key);
-            let row = pick(&p.vehicles, &v.vehicle_class);
-            let travel = (v.travel_l.abs() + v.travel_r.abs()) / 2.0;
-            let m = self.movers.entry(key).or_insert(Mover {
-                travel,
-                turret: v.turret,
-                speed: 0.0,
-                traverse: 0.0,
-            });
-            if step > 0.0 {
-                // Rolled distance and traverse over the frame, eased (about 0.25 s).
-                let speed = (travel - m.travel).abs() / step;
-                let turn = (v.turret - m.turret).abs() / step;
-                let k = (step / 0.25).min(1.0);
-                m.speed += (speed.min(60.0) - m.speed) * k;
-                m.traverse += (turn.min(10.0) - m.traverse) * k;
-            }
-            m.travel = travel;
-            m.turret = v.turret;
-            let load = clamp01(m.speed / row.full_speed_mps);
-            let traverse = clamp01(m.traverse / row.full_traverse_rps);
-            for layer in vehicle_loops(row, load, traverse, v.reverse) {
-                wants.push(LoopWant {
-                    key: LoopKey::Vehicle(key, layer.slot),
-                    sound: layer.sound.to_owned(),
-                    bus: Bus::Units,
-                    gain: layer.gain,
-                    rate: layer.rate,
-                    position: Some(v.position),
-                    priority: 0.0,
-                });
-            }
-        }
-        seen.sort_unstable();
-        self.movers.retain(|key, _| seen.binary_search(key).is_ok());
-        for (key, f) in &self.fires.0 {
-            let Some(times) = self
-                .timing
-                .smoke
-                .get(&f.kind)
-                .or_else(|| self.timing.smoke.get("default"))
-            else {
-                continue;
-            };
-            let row = pick(&p.fires, &f.kind);
-            let age = clock - f.start;
-            if age > times.burn_s + times.smoulder_s {
-                continue;
-            }
-            // Full while it burns, easing to the smoulder over its last tenth.
-            let burn = clamp01((times.burn_s - age) / (times.burn_s * 0.1));
-            wants.push(LoopWant {
-                key: LoopKey::Fire(key.clone()),
-                sound: row.sound.clone(),
-                bus: Bus::Ambience,
-                gain: lerp(row.smoulder_gain, row.gain, burn),
-                rate: 1.0,
-                position: Some(f.at),
-                priority: 0.0,
-            });
-        }
-        for (key, m) in &self.motors.0 {
-            let u = clamp01((clock - m.t0) / self.dt);
-            let at = [0, 1, 2].map(|i| m.from[i] + u * (m.to[i] - m.from[i]));
-            let row = tables
-                .looks
-                .get(&m.kind)
-                .sound
-                .motor
-                .as_ref()
-                .expect("motor was admitted");
-            wants.push(LoopWant {
-                key: LoopKey::Motor(*key),
-                sound: row.sound.clone(),
-                bus: Bus::Effects,
-                gain: row.gain,
-                rate: 1.0,
-                position: Some(at),
-                priority: 0.0,
-            });
-        }
-        for w in &mut wants {
-            w.priority = self.level(w.gain, w.position.as_ref());
-        }
-        let mut kept: Vec<LoopWant> = wants
-            .into_iter()
-            .filter(|w| w.priority >= p.distance.cull)
-            .collect();
-        kept.sort_by(|a, b| b.priority.total_cmp(&a.priority));
-        kept.truncate(p.budget.loops);
-        // The bed is always on and outside the budget.
-        kept.push(LoopWant {
-            key: LoopKey::Ambience,
-            sound: p.ambience.sound.clone(),
-            bus: Bus::Ambience,
-            gain: p.ambience.gain,
-            rate: 1.0,
-            position: None,
-            priority: f64::INFINITY,
-        });
-        let loops = std::mem::take(&mut self.loops.0);
-        for (key, v) in loops {
-            if kept.iter().any(|w| w.key == key) {
-                self.loops.0.push((key, v));
-            } else {
-                self.out.push(Command::Stop {
-                    id: v.id,
-                    at: now,
-                    fade: FADE_LOOP_S,
-                });
-            }
-        }
-        for w in kept {
-            let u = w.position.as_ref().map_or(0.0, |p| self.far_share(p));
-            let params = Params {
-                gain: if w.position.is_some() {
-                    w.priority
-                } else {
-                    w.gain
-                },
-                rate: w.rate,
-                lowpass: self.air_lowpass(u),
-                wet: p.air.wet * u,
-                position: w.position,
-            };
-            if let Some(v) = self.loops.get_mut(&w.key) {
-                v.priority = w.priority;
-                let id = v.id;
-                self.out.push(Command::Set {
-                    id,
-                    at: now,
-                    params,
-                });
-                continue;
-            }
-            let id = self.next_id;
-            self.next_id += 1;
-            self.out.push(Command::Start {
-                id,
-                voice: Voice {
-                    sound: tables.effect(&w.sound).to_owned(),
-                    variant: 0,
-                    bus: w.bus,
-                    at: now,
-                    gain: params.gain,
-                    rate: params.rate,
-                    lowpass: params.lowpass,
-                    wet: params.wet,
-                    attack: 0.0,
-                    position: params.position,
-                    pan: None,
-                    looping: true,
-                },
-            });
-            self.loops.0.push((
-                w.key,
-                Sounding {
-                    id,
-                    priority: w.priority,
-                    end: f64::INFINITY,
-                },
-            ));
-        }
     }
 }
