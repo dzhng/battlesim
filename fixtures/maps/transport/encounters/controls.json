@@ -20,6 +20,12 @@
     },
     { "side": "blue", "kind": "test_at", "position": [200, 270], "engagement": "return_fire_only" },
     {
+      "side": "blue",
+      "kind": "test_recon",
+      "position": [185, 255],
+      "engagement": "return_fire_only"
+    },
+    {
       "side": "red",
       "kind": "test_rifle",
       "position": [500, 250],

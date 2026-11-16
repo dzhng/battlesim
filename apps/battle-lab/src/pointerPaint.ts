@@ -36,6 +36,7 @@ import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type {
   MovePreviewRequest,
   MoveDestination,
+  BuildingPlacement,
   BuildingPreviewRequest,
   Order,
   CommandAck,
@@ -94,7 +95,8 @@ export type PointerPreview =
   | { kind: "move"; request: MovePreviewRequest }
   | { kind: "building"; request: BuildingPreviewRequest };
 
-/** Publications refresh a certificate; changed knowledge or eligibility revokes it. */
+/** A preview answer stands until the side's knowledge, its units, or its
+ *  accepted orders not yet applied change. */
 export function previewContextIdentity(
   side: SideName,
   knownKey: string,
@@ -186,6 +188,20 @@ export function rulerLine(ruler: RangeRuler, circle: UnitCircle | null): RulerLi
   };
 }
 
+/** Where each squad a building order sends stands to step in, as a move's
+ *  destinations: one ring per entry, pointing the way its squad walks there. */
+function entryDestinations(
+  building: BuildingPlacement | null | undefined,
+  own: readonly OwnUnitView[],
+): MoveDestination[] {
+  return (building?.entries ?? []).flatMap(({ unit, approach }) => {
+    const u = own.find((o) => o.id === unit);
+    if (!u) return [];
+    const facing = Math.atan2(approach[1] - u.position[1], approach[0] - u.position[0]);
+    return [{ unit, goal: approach, facing, placed: true, spots: [] }];
+  });
+}
+
 /** Pointer paint is independent of the observation overlay: moving the
  *  cursor must redraw even while the simulation is paused. */
 export class PointerPaint {
@@ -202,11 +218,13 @@ export class PointerPaint {
     this.units = units;
   }
 
+  /** One mark per move destination and per building entry. */
   markers(
-    destinations: readonly MoveDestination[],
+    order: { destinations: readonly MoveDestination[]; building?: BuildingPlacement | null },
     own: readonly OwnUnitView[],
     opacity: ReadonlyMap<number, number> | null = null,
   ) {
+    const destinations = [...order.destinations, ...entryDestinations(order.building, own)];
     if (destinations.length === 0) return [];
     const byId = new Map(own.map((u) => [u.id, u]));
     return destinations.flatMap((mark) => {
@@ -355,7 +373,6 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
         request: {
           units: intent.units,
           building: intent.building,
-          facing: intent.facing,
           queued: intent.queued,
         },
       };
@@ -366,12 +383,10 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
 }
 
 /** A move still being placed stays plain; an attack may validly pursue its
- *  target. `entrants`: someone selected can enter a building, so its badge
- *  shows before the simulation answers. */
+ *  target. */
 export function cursorForIntent(
   intent: PointerIntent,
   paint: Pick<OrderPreviewSnapshot, "state" | "building" | "carried">,
-  entrants = false,
 ): CursorAction {
   if (intent.kind === "none" || intent.kind === "cancel") return "default";
   // A query in flight shows what the last one settled on.
@@ -381,11 +396,11 @@ export function cursorForIntent(
   // Boarding is the simulation's to admit; its refusal names the squads left out.
   if (intent.kind === "board" || intent.kind === "collect") return "board";
   if (state === "blocked") return "blocked";
-  // Entering a building shows at once, as boarding does: proving every
-  // entrant's route can outlast the query's work, and only an answer that
-  // admits no entrant takes the badge away.
+  // Entering a building shows at once, as boarding does (the intent names
+  // only squads); only an answer that gives no squad an entry takes the
+  // badge away.
   if (intent.kind === "occupy_building")
-    return paint.building?.entrant || (state !== "ready" && entrants) ? "garrison" : "default";
+    return paint.building?.entries.length || state !== "ready" ? "garrison" : "default";
   if (state !== "ready") return "default";
   if (intent.kind === "attack_move") return "attack_move";
   if (intent.kind === "unload") return "unload";
@@ -427,12 +442,12 @@ export function samePointerIntent(a: PointerIntent, b: PointerIntent): boolean {
 /** Admission owns release feedback until its publication arrives. */
 export function cursorForAcknowledgement(intent: PointerIntent, ack: CommandAck): CursorAction {
   const building = ack.building ?? null;
-  if (ack.error) return building?.unproven ? "default" : "blocked";
-  const destinations = ack.placement?.destinations ?? building?.destinations ?? [];
+  if (ack.error) return "blocked";
+  const destinations = ack.placement?.destinations ?? [];
   const state =
-    building?.entrant || destinations.some((d) => d.placed)
+    building?.entries.length || destinations.some((d) => d.placed)
       ? "ready"
-      : building && !building.unproven
+      : building
         ? "blocked"
         : "pending";
   return cursorForIntent(intent, { state, building });
@@ -445,9 +460,7 @@ export function cursorForRelease(
   ack: CommandAck,
 ): CursorAction | null {
   const target =
-    (hover.kind === "move" || hover.kind === "occupy_building") &&
-    hover.kind === released.kind &&
-    hover.facing === undefined
+    hover.kind === "move" && released.kind === "move" && hover.facing === undefined
       ? { ...released, facing: undefined }
       : released;
   return samePointerIntent(hover, target) ? cursorForAcknowledgement(hover, ack) : null;

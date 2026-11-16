@@ -193,6 +193,49 @@ test("jets whose cards would sit on one spot both show, apart", () => {
   expect(overlaps(a!, b!), JSON.stringify({ a, b })).toBe(false);
 });
 
+test("squads on one spot all show, apart, their leaders meeting only where they start", () => {
+  // Three squads sharing a house, seen from far off: their anchors fall on
+  // one point, or a pixel or two apart inside each other's anchor box.
+  const viewport = { width: 1280, height: 800 };
+  const squad = (id: string, x: number, y: number, w: number): LayoutCard => ({
+    id,
+    x,
+    y,
+    w,
+    h: 17,
+    highAir: false,
+  });
+  const arrangements: [string, LayoutCard[]][] = [
+    [
+      "on one point",
+      [squad("a", 640, 420, 171), squad("b", 640, 420, 190), squad("c", 640, 420, 130)],
+    ],
+    [
+      "a pixel or two apart",
+      [squad("a", 640, 420, 171), squad("b", 642, 418, 190), squad("c", 639, 421, 130)],
+    ],
+  ];
+  for (const [name, cards] of arrangements) {
+    const shown = plane(cards, layoutReadouts(cards, [], viewport, SPACING, false), false);
+    expect(shown.map((s) => s.c.id).sort(), `${name}: every card shows`).toEqual(["a", "b", "c"]);
+    const wrong: string[] = [];
+    for (const [i, a] of shown.entries())
+      for (const b of shown.slice(i + 1)) {
+        if (overlaps(a.box, b.box)) wrong.push(`${a.c.id}×${b.c.id} overlap`);
+        // Each leader: its rise from the spot, then its foot along its card.
+        const [ar, af] = [a.leader.slice(0, 2), a.leader.slice(1)];
+        const [br, bf] = [b.leader.slice(0, 2), b.leader.slice(1)];
+        for (const [p, q, r, s] of [
+          [...af, ...br],
+          [...af, ...bf],
+          [...ar, ...bf],
+        ])
+          if (segment2.intersects(p, q, r, s)) wrong.push(`${a.c.id}×${b.c.id} leaders cross`);
+      }
+    expect(wrong, name).toEqual([]);
+  }
+});
+
 test("every ground or low-air card whose unit stands in the open view is shown", () => {
   // A unit hidden under a HUD panel may lose its card; one in the open view
   // of these crowds always has room within reach.

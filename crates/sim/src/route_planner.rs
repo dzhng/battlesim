@@ -76,14 +76,6 @@ impl Job {
     }
 }
 
-/// One request's planning work in a tick; this accounting has no effect
-/// on live planning or future state.
-#[derive(Clone, Copy)]
-pub(crate) struct Charge {
-    pub unit: UnitId,
-    pub work: u64,
-}
-
 /// Every unit's route request in progress.
 #[derive(Default)]
 pub struct RoutePlanner {
@@ -98,8 +90,6 @@ pub struct RoutePlanner {
     spare: Vec<Scratch>,
     /// Work spent in the latest tick.
     spent: u64,
-    /// Latest tick's charges.
-    charges: Vec<Charge>,
 }
 
 impl RoutePlanner {
@@ -147,12 +137,6 @@ impl RoutePlanner {
         self.spent
     }
 
-    /// Work attributed to each request in the latest tick. Admission uses
-    /// this to bound repeated searches without charging another member.
-    pub(crate) fn charges(&self) -> &[Charge] {
-        &self.charges
-    }
-
     /// Spend one tick's allowance (`rules.work_per_tick`) across the waiting
     /// units, in equal shares, round and round in unit order from where the
     /// last tick stopped. `grids` holds each side's grid and knowledge
@@ -169,7 +153,6 @@ impl RoutePlanner {
         let mut left = allowance.saturating_sub(self.overdraft);
         self.overdraft = self.overdraft.saturating_sub(allowance);
         self.spent = 0;
-        self.charges.clear();
         let mut waiting: Vec<UnitId> = match self.cursor {
             Some(cursor) => self
                 .jobs
@@ -193,10 +176,6 @@ impl RoutePlanner {
                 let (spent, plan) =
                     job.advance((rules, roads), grid, &mut self.spare, share.min(left));
                 self.spent += spent;
-                self.charges.push(Charge {
-                    unit: id,
-                    work: spent,
-                });
                 self.overdraft += spent.saturating_sub(left);
                 left = left.saturating_sub(spent);
                 self.cursor = Some(id);

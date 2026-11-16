@@ -1,4 +1,5 @@
 // Slice 11: buildings as abstract fighting positions, through real orders.
+// Squads share the house while its seats remain.
 // The building is prop 0: the generator's three-storey corner shop, centre
 // (360, 250), 12 × 12 m, 12.65 m tall; its seats stand on all three floors.
 import {
@@ -10,7 +11,7 @@ import {
 } from "./_cursorOrders.mjs";
 import { buildingCursor } from "./_movingCursor.mjs";
 import { writeFile } from "node:fs/promises";
-import { decode, writeCrop, mostChanged } from "./_png.mjs";
+import { decode, writeCrop, around, pixel } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
 import { rules, visuals } from "./_units.mjs";
 
@@ -18,6 +19,9 @@ const CENTRE = [360, 250];
 const HALF = 6;
 const TOP = 12.65;
 const STANDOFF = rules.garrison.slot_standoff_m;
+// Blue's squads: two rifle squads share the house, and the scouts after them
+// find no room.
+const [FIRST, SECOND, SCOUTS] = [0, 1, 2];
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 const squad = (o, id) => o.own.find((u) => u.id === id);
@@ -205,7 +209,7 @@ export async function run(ctx) {
   await frame(ctx, page, "outside");
   await look(page, 95);
 
-  // The scouts garrison: one squad takes the building.
+  // The first rifle squad garrisons the house alone.
   const TANK_OPENS_FIRE = await lab(page, () => window.__lab.route.tankOpensFire);
   const SPOTTER_WALKS_UP = await lab(page, () => window.__lab.route.spotterWalksUp);
   // The tick the house was first seen fallen during the entry steps, if it was.
@@ -213,20 +217,18 @@ export async function run(ctx) {
   const watchHouse = (f) => {
     if (fellAt === null && f.knownProps.some((p) => p.kind === "ruin")) fellAt = f.tick;
   };
-  await demo(page, "Scouts garrison");
+  await demo(page, "Rifle squad #0 garrisons");
   let entering = null;
-  let firstInside = null;
   o = await until(
     page,
-    (f) => squad(f, 2)?.hold?.phase === "inside" || fellAt !== null,
+    (f) => squad(f, FIRST)?.hold?.phase === "inside" || fellAt !== null,
     1500,
     5,
     (f) => {
       watchHouse(f);
-      const g = squad(f, 2)?.hold;
+      const g = squad(f, FIRST)?.hold;
       if (g?.phase === "entering" && g.progress > 0.2 && g.progress < 0.8 && !entering)
         entering = { ...g, tick: f.tick };
-      if (g?.phase === "inside" && !firstInside) firstInside = f;
     },
   );
 
@@ -240,27 +242,30 @@ export async function run(ctx) {
     return page.close();
   }
   // The staging's guard: red's squad stands out of reach of the occupants
-  // until SPOTTER_WALKS_UP, so the scouts are inside with no enemy seeing
-  // them. If a rule change slows the entry past that tick, fix the lab's
-  // staging (the encounter's scripted move), not the check below.
+  // until SPOTTER_WALKS_UP, so the first squad is inside with no enemy seeing
+  // it. If a rule change slows the entry past that tick, fix the lab's
+  // staging (the encounter's cast or scripted move), not the check below.
   ctx.check(
-    "staging: the scouts are inside before red's squad walks up to spot them",
+    "staging: the first rifle squad is inside before red's squad walks up to spot it",
     !!o && o.tick < SPOTTER_WALKS_UP,
     JSON.stringify({ insideAt: o?.tick ?? null, spotterWalksUp: SPOTTER_WALKS_UP }),
   );
 
-  const card = page.locator('.ro-unit[data-unit="2"]');
+  const card = page.locator(`.ro-unit[data-unit="${FIRST}"]`);
   await card.hover();
   await page.waitForTimeout(200);
   ctx.check(
     "a garrison concealment bonus appears as HIDDEN beside IN BUILDING",
-    squad(o, 2).concealed &&
+    squad(o, FIRST).concealed &&
       (await card.locator('[data-state="hidden"]').isVisible()) &&
       (await card.locator('[data-state="in_building"]').isVisible()),
   );
   await frame(ctx, page, "hidden-status");
   // A model behind an occupied wall stays depth-occluded; the squad's
   // panel identifies it without painting soldiers across walls and roofs.
+  // On black only paint shows, so a body painting through adds light; a
+  // ground-floor body still hides its own occupant pad there, which takes
+  // light away and is no paint.
   await page.locator(".ro-layer").evaluate((node) => (node.style.visibility = "hidden"));
   await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
   const withBodies = decode(await page.screenshot());
@@ -269,11 +274,21 @@ export async function run(ctx) {
   const heads = await lab(
     page,
     (members) => members.map((p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1.6)),
-    squad(o, 2).members,
+    squad(o, FIRST).members,
   );
+  const brightened = (head) => {
+    let most = 0;
+    for (const [x, y] of around(withBodies, head, 4)) {
+      const sum = (png) => pixel(png, x, y).reduce((s, v) => s + v, 0);
+      most = Math.max(most, sum(withBodies) - sum(withoutBodies));
+    }
+    return most;
+  };
+  const painted = heads.map((head) => head && brightened(head));
   ctx.check(
     "garrisoned bodies never paint through walls or roofs",
-    heads.every((head) => head && mostChanged(withBodies, withoutBodies, head, 4) === 0),
+    painted.every((n) => n === 0),
+    JSON.stringify({ heads, painted }),
   );
   await lab(page, () => window.__lab.suppressModels(false));
   await lab(page, () => window.__lab.setFrameView("final"));
@@ -303,10 +318,13 @@ export async function run(ctx) {
   await lab(page, (camera) => window.__lab.setCamera(camera), originalCamera);
   await settle(page);
 
+  const compressed = () =>
+    page.waitForFunction(
+      (id) => document.querySelector(`.ro-unit[data-unit="${id}"]`)?.dataset.zoom === "compressed",
+      FIRST,
+    );
   await page.mouse.move(1100, 60);
-  await page.waitForFunction(
-    () => document.querySelector('.ro-unit[data-unit="2"]')?.dataset.zoom === "compressed",
-  );
+  await compressed();
   const compact = await card.boundingBox();
   const backingEdge = { x: compact.x + compact.width / 2, y: compact.y - 6 };
   await page.mouse.move(backingEdge.x, backingEdge.y);
@@ -333,9 +351,7 @@ export async function run(ctx) {
   for (const [fx, fy, edge] of panelEdges) {
     await page.mouse.move(1100, 60);
     await lab(page, () => window.__lab.route.select([]));
-    await page.waitForFunction(
-      () => document.querySelector('.ro-unit[data-unit="2"]')?.dataset.zoom === "compressed",
-    );
+    await compressed();
     const box = await card.boundingBox();
     const x = box.x + 0.75 + fx * (box.width - 1.5);
     const y = box.y + 0.75 + fy * (box.height - 1.5);
@@ -348,60 +364,104 @@ export async function run(ctx) {
     await page.mouse.click(x, y);
     ctx.check(
       `the ${edge} edge selects the panel's unit`,
-      (await lab(page, () => window.__lab.route.selected())).join() === "2",
+      (await lab(page, () => window.__lab.route.selected())).join() === String(FIRST),
     );
     if (edge === "top") await frame(ctx, page, "panel-top-edge-hover");
   }
 
-  const occupants = squad(o, 2).members;
+  // The second rifle squad joins the first, and the scouts, further back,
+  // set out after it.
+  await demo(page, "Rifle squad #1 garrisons");
+  await demo(page, "Scouts garrison");
+  o = await until(
+    page,
+    (f) => squad(f, SECOND)?.hold?.phase === "inside" || fellAt !== null,
+    1500,
+    5,
+    watchHouse,
+  );
+  const rifles = [FIRST, SECOND].map((id) => squad(o, id));
+  const occupants = rifles.flatMap((u) => u?.members ?? []);
   const distinct = new Set(occupants.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`));
   ctx.check(
-    "every occupant body stands inside its own window",
-    occupants.length > 0 &&
+    "two squads share the house, every soldier at a window of his own",
+    rifles.every((u) => u?.hold?.phase === "inside") &&
       distinct.size === occupants.length &&
       occupants.every((p) => Math.abs(ring(p) - HALF + STANDOFF) < 0.01),
     `${occupants.length} occupants, ${distinct.size} places`,
   );
-  await demo(page, "Rifle squad #0 garrisons");
-  await advance(page, 5);
-  o = await obs(page);
+  await frame(ctx, page, "shared");
 
-  // The scouts leave; the rifle squad then takes the building.
-  await demo(page, "Scouts leave");
-  let exiting = false;
+  // The scouts arrive to a full house: refused at the door, they give their
+  // order up and stay outside. Tick by tick, for the refusal is published
+  // on the tick it happens.
+  let scoutsHeld = false;
+  let noRoom = null;
   o = await until(
     page,
-    (f) => squad(f, 2) && squad(f, 2).hold === null,
-    300,
-    5,
+    () => noRoom !== null || fellAt !== null,
+    1500,
+    1,
     (f) => {
       watchHouse(f);
-      exiting ||= squad(f, 2)?.hold?.phase === "exiting";
+      scoutsHeld ||= !!squad(f, SCOUTS)?.hold;
+      noRoom ??= f.refusals.find((r) => r.unit === SCOUTS) ?? null;
     },
   );
-
-  // The scouts fall back out of red's sight (the lab's staging: the tank
-  // opens fire on the occupants, not on them).
-  await demo(page, "Scouts fall back west");
-  await demo(page, "Rifle squad #0 garrisons");
-  o = await until(
-    page,
-    (f) => squad(f, 0)?.hold?.phase === "inside" || fellAt !== null,
-    1500,
-    15,
-    watchHouse,
+  const callout = page.locator(`[data-testid=rejected-order][data-unit="${SCOUTS}"]`);
+  const said = await callout
+    .waitFor({ timeout: 5000 })
+    .then(() =>
+      page.evaluate((id) => {
+        const a = document
+          .querySelector(`[data-testid=rejected-order][data-unit="${id}"]`)
+          .getBoundingClientRect();
+        const b = document.querySelector(`.ro-unit[data-unit="${id}"]`)?.getBoundingClientRect();
+        return !!b && Math.abs(a.top - b.top) < 2 && (a.left >= b.right || a.right <= b.left);
+      }, SCOUTS),
+    )
+    .catch(() => false);
+  await frame(ctx, page, "no-room");
+  const scouts = o && squad(o, SCOUTS);
+  const house = o && squad(o, FIRST)?.hold?.host;
+  const seated = o
+    ? o.own
+        .filter((u) => u.hold?.host?.kind === "building" && u.hold.host.id === house?.id)
+        .reduce((n, u) => n + u.members.length, 0)
+    : 0;
+  // The staging's guard: the encounter's own rules leave the house seats for
+  // the two rifle squads and too few for the scouts beside them.
+  ctx.check(
+    "staging: the rifle squads leave too few seats for the scouts",
+    !!house && seated + (scouts?.members.length ?? 0) > house.seats,
+    JSON.stringify({ seats: house?.seats, seated, scouts: scouts?.members.length }),
   );
+  ctx.check(
+    "the scouts arrive to no room: refused for want of seats beside their card, they never step in and stay outside",
+    noRoom?.reason === "capacity_full" &&
+      !scoutsHeld &&
+      scouts?.hold === null &&
+      scouts.goal === null &&
+      scouts.members.every((p) => ring(p) > HALF) &&
+      [FIRST, SECOND].every((id) => squad(o, id)?.hold?.phase === "inside") &&
+      said,
+    JSON.stringify({ tick: o?.tick, noRoom, scoutsHeld, said, scouts: scouts && scouts.position }),
+  );
+
+  // The scouts wait at the door, where the house hides them from red's
+  // squad and tank (the lab's staging: the tank opens fire on the occupants,
+  // not on them).
 
   // Red's squad has walked up by now: blue sees it, and it sees the occupants.
   const spotted = await until(
     page,
-    (f) => squad(f, 0)?.hold?.phase === "inside" && !squad(f, 0).concealed,
+    (f) => squad(f, FIRST)?.hold?.phase === "inside" && !squad(f, FIRST).concealed,
     300,
     5,
     watchHouse,
   );
   o = spotted ?? o;
-  const spottedCard = page.locator('.ro-unit[data-unit="0"]');
+  const spottedCard = page.locator(`.ro-unit[data-unit="${FIRST}"]`);
   await spottedCard.hover();
   await page.waitForTimeout(200);
   ctx.check(
@@ -415,7 +475,7 @@ export async function run(ctx) {
   await frame(ctx, page, "spotted-status");
   // The selected garrison's marker: its circle round the building, at the
   // battle's default camera distance and far out.
-  await lab(page, () => window.__lab.route.select([0]));
+  await lab(page, (id) => window.__lab.route.select([id]), FIRST);
   for (const [name, distance] of [
     ["default", visuals.camera.default.distance],
     ["far", 600],
@@ -433,9 +493,9 @@ export async function run(ctx) {
   // The staging's guard: the lab holds red's tank until TANK_OPENS_FIRE so
   // the entry steps above measure the timer, not a collapse. If a rule
   // change brings the house down, or slows the entries past that tick, fix
-  // the lab's staging (routes/garrison.tsx), not this check.
+  // the lab's staging (the encounter), not this check.
   ctx.check(
-    "staging: every entry finished, the house standing, before red's tank opens fire",
+    "staging: every entry and the scouts' refusal finished, the house standing, before red's tank opens fire",
     !!o && o.tick < TANK_OPENS_FIRE && fellAt === null,
     JSON.stringify({ entriesDoneAt: o?.tick ?? null, tankOpensFire: TANK_OPENS_FIRE, fellAt }),
   );
@@ -445,10 +505,10 @@ export async function run(ctx) {
     ownOnWall = 0,
     enemyOnWall = 0,
     shot = null;
-  const initial = squad(o, 0);
+  const initial = squad(o, FIRST);
   const initialHp = new Map(initial.memberIds.map((id, k) => [id, initial.memberHp[k]]));
   const hurt = () => {
-    const u = squad(o, 0);
+    const u = squad(o, FIRST);
     return (
       !u ||
       u.members.length < initial.members.length ||
@@ -459,9 +519,8 @@ export async function run(ctx) {
   for (let t = 0; t < 900 && !(enemyOnWall > 2 && hurt()) && !fallen(o); t += 3) {
     await advance(page, 3);
     o = await obs(page);
-    // Rounds from the occupants: the scouts that left fire from outside
-    // past the house's corner, and their rounds grazing that corner are no
-    // occupant's.
+    // Rounds from the occupants: the scouts outside fire past the house's
+    // corner, and their rounds grazing that corner are no occupant's.
     const occupants = new Set(
       o.own.filter((u) => u.hold?.phase === "inside").flatMap((u) => u.memberIds),
     );
@@ -534,8 +593,8 @@ export async function run(ctx) {
   );
   await cropBuilding(ctx, page, collapsed, "crop-ruin-2x.png");
 
-  // The ruin blocks ground movement: squad #1's route goes round it.
-  await demo(page, "Squad #1 crosses the ruin");
+  // The ruin blocks ground movement: the scouts' route goes round it.
+  await demo(page, "Scouts cross the ruin");
   await advance(page, 4);
   o = await obs(page);
   await advance(page, 240);

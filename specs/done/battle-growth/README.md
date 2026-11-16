@@ -193,6 +193,15 @@ The two cohorts cannot be chained.
   and back into the same module, and assembled all of it again first.
   Keeping it in Rust and assembling only the new kinds took that step from
   37–68 ms to under 1 ms.
+- **Animation tables were copied for every soldier at every arrival.** The
+  closing review found it: staging a battle's catalog gave each skinned
+  appearance its own copy of its skeleton's clip table, 92–115 MB copied and
+  held per staged catalog where two tables of 1.5 MB serve the roster. It
+  predated this work and was the same catalog-shaped cost. A table is now
+  stored once per content and shared
+  ([`catalog/facts.rs`](../../../crates/presentation/src/presentation/catalog/facts.rs)),
+  which took that step from 9.5–15.6 ms to about 0.2 ms. The frames a player
+  notices did not move.
 - **The stand-in's colour.** The agent first settled on the side's colour on
   the player's behalf. The player chose neutral grey instead; it was built as
   the HUD's dim blue-grey; the player, seeing it, asked for a real grey. It is
@@ -207,13 +216,6 @@ The two cohorts cannot be chained.
   late frame near commit of 71, 97 and 118 ms. None is attributed. The final
   admission, the bake and the commit run outside the per-frame budget
   (invariant 7), which is where to look first.
-- **Clip tables are copied for every skinned appearance at every arrival.**
-  Staging a battle's catalog clones each appearance that has art and gives it
-  its own copy of its skeleton's clip table (about 1.4 MB each, by one
-  estimate; two skeletons serve the whole roster). It predates this work and
-  is the catalog-shaped cost this work was meant to remove; it was found by
-  the closing review and is neither measured nor fixed. It sits in the
-  staging and commit frames that are still long.
 - A staging that is superseded while it spans frames drops what it supplied
   and warmed, and the next one packs it again. No test or scene covers two
   types sighted in quick succession.

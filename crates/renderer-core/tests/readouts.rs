@@ -4,8 +4,7 @@
 //! display and over the HDR look's HLG target through the overlay's
 //! composite. White lands at the display's white and at HLG reference
 //! white (signal 0.75); partial coverage keeps its share, premultiplied;
-//! a frame without cards leaves the picture untouched. Run under the
-//! repository GPU lock.
+//! a frame without cards leaves the picture untouched.
 mod support;
 
 use renderer_core::pipelines;

@@ -1,6 +1,9 @@
 # Block merge: verdict
 
-**No-go.** Recorded 2026-11-16 for [slice 05](../slices/05-spike-block-merge.md). The numbers are
+> Recorded while the work was under way. Slice numbers name its build order,
+> and forecasts here were settled later: see [what shipped](../README.md).
+
+**No-go.** Recorded 2026-11-16 for [far detail](../README.md). The numbers are
 in the [receipt](block-merge-receipt.json).
 
 Merging a block's far-drawn props into one simplified mesh can't keep the game's look. Even if it

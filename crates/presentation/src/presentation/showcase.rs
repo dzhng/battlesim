@@ -37,7 +37,7 @@ pub struct ShowcaseSoldier {
 pub(super) struct Showcase {
     units: Arc<UnitsSection>,
     tables: Arc<ClipTables>,
-    inverse_binds: HashMap<String, Vec<Mat4>>,
+    inverse_binds: HashMap<String, Arc<Vec<Mat4>>>,
     driver: PoseDriver,
     unit: FeedUnit,
     /// No one has fallen: one list, so the driver never reconciles it.

@@ -19,7 +19,7 @@ impl Battle {
         }
         d.u64(self.units.len() as u64);
         for u in &self.units {
-            u.digest(&mut d, owner_index(&self.player_ids, u));
+            u.digest(&mut d, owner_index(&self.player_ids, u), &self.windows);
         }
         d.u64(self.last_soldier as u64);
         for knowledge in &self.knowledge {

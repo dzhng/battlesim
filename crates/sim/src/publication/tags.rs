@@ -80,7 +80,7 @@ pub(super) const HOLD_PHASES: [HoldPhase; 3] =
 pub(super) const HOST_KINDS: [&str; 2] = ["building", "carrier"];
 /// Every refusal the contract names, in its order; a new reason appends here
 /// and to the codec vectors.
-pub(super) const ORDER_ERROR_NAMES: [&str; 29] = [
+pub(super) const ORDER_ERROR_NAMES: [&str; 27] = [
     "passive_side",
     "not_skirmish",
     "match_finished",
@@ -104,8 +104,6 @@ pub(super) const ORDER_ERROR_NAMES: [&str; 29] = [
     "not_infantry",
     "not_a_building",
     "capacity_full",
-    "one_squad_per_building",
-    "building_occupied",
     "not_a_carrier",
     "no_room_to_unload",
     "aboard",

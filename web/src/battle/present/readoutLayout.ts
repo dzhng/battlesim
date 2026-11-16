@@ -57,6 +57,11 @@ export const READOUT_ANCHOR_PX = 6;
 /** A leader passes no closer than this to another card, so it never reads
  *  as that card's. */
 const LEADER_CLEAR_PX = 6;
+/** Whether two units stand on one spot: each one's anchor lies in the other's
+ *  anchor square (squads sharing a house, seen from far off). Their leaders
+ *  start together, so neither can keep clear of the other's anchor. */
+const oneSpot = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.abs(a.x - b.x) < READOUT_ANCHOR_PX && Math.abs(a.y - b.y) < READOUT_ANCHOR_PX;
 
 /** One spot a card may take: its near corner's offset from the anchor,
  *  `dx` away from the unit on its hanging side, `dy` down the screen. */
@@ -131,11 +136,13 @@ export interface ReadoutSpacing {
  *  to), each at the cheapest spot within reach whose box keeps off the edge
  *  margin and clears the HUD panels, its plane's other units and the cards
  *  placed before it, and whose leader crosses no placed leader or card of
- *  its plane; with none, it hides. A spot whose box lies nearer another of
- *  the plane's units than its own reads as that unit's card, so it is taken
- *  only when no other spot is within reach. The high-air plane draws above,
- *  so a ground or low-air card takes a spot over a high-air card or its
- *  unit's ring only when no clear one is within reach. `overlap` (a far
+ *  its plane; with none, it hides. Units on one spot (`oneSpot`) are spared
+ *  the two rules their shared start breaks: a leader keeping off the other's
+ *  anchor, and the two rises meeting. A spot whose box lies nearer another
+ *  of the plane's units than its own reads as that unit's card, so it is
+ *  taken only when no other spot is within reach. The high-air plane draws
+ *  above, so a ground or low-air card takes a spot over a high-air card or
+ *  its unit's ring only when no clear one is within reach. `overlap` (a far
  *  view) puts every card at its natural spot, clear of the panels, and lets
  *  them overprint. */
 export function layoutReadouts(
@@ -183,19 +190,25 @@ export function layoutReadouts(
       },
     }));
     const boxes: ReadoutRect[] = [];
-    const leaders: Segment[] = [];
+    /** The placed cards' leaders, each with its unit. */
+    const leaders: { unit: LayoutCard; rise: Segment; foot: Segment }[] = [];
     const free = (b: LayoutCard, box: ReadoutRect, rise: Segment, foot: Segment) =>
       inside(box) &&
       !taken.some((o) => overlapsBy(box, o, gap)) &&
       !anchorBoxes.some(
-        (a) => a.id !== b.id && (overlaps(a.r, box) || crossesBox(rise[0], rise[1], a.r, 0)),
+        (a, j) =>
+          a.id !== b.id &&
+          (overlaps(a.r, box) || (!oneSpot(plane[j], b) && crossesBox(rise[0], rise[1], a.r, 0))),
       ) &&
       !boxes.some((o) => crossesBox(rise[0], rise[1], o, LEADER_CLEAR_PX)) &&
       !leaders.some(
-        ([p, q]) =>
-          crossesBox(p, q, box, LEADER_CLEAR_PX) ||
-          segment2.intersects(p, q, rise[0], rise[1]) ||
-          segment2.intersects(p, q, foot[0], foot[1]),
+        (l) =>
+          crossesBox(l.rise[0], l.rise[1], box, LEADER_CLEAR_PX) ||
+          crossesBox(l.foot[0], l.foot[1], box, LEADER_CLEAR_PX) ||
+          segment2.intersects(l.rise[0], l.rise[1], foot[0], foot[1]) ||
+          segment2.intersects(l.foot[0], l.foot[1], foot[0], foot[1]) ||
+          segment2.intersects(l.foot[0], l.foot[1], rise[0], rise[1]) ||
+          (!oneSpot(l.unit, b) && segment2.intersects(l.rise[0], l.rise[1], rise[0], rise[1])),
       );
     for (const i of plane.map((_, i) => i).sort((m, n) => plane[n].x - plane[m].x)) {
       const b = plane[i];
@@ -222,7 +235,7 @@ export function layoutReadouts(
       if (!found) continue;
       taken.push(found.box);
       boxes.push(found.box);
-      leaders.push(found.rise, found.foot);
+      leaders.push({ unit: b, rise: found.rise, foot: found.foot });
       out.set(b.id, { natural, box: found.box });
     }
   };

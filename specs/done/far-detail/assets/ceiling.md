@@ -1,8 +1,11 @@
 # Ceiling probe
 
+> Recorded while the work was under way. Slice numbers name its build order,
+> and forecasts here were settled later: see [what shipped](../README.md).
+
 Does drawing the top kinds from a far-class mesh save GPU time at the wide
 hold, now that tiny visible props may skip their shadow? Measured 2026-11-15
-for [slice 00](../slices/00-census-and-ceiling.md) on base commit 811bb8c27.
+for [far detail](../README.md) on base commit 811bb8c27.
 
 ## Verdict: go
 
@@ -20,7 +23,7 @@ first kind.
 What the probe overstates: its tier 3 is the far mesh everywhere, so it also
 coarsens the casts of cars and walls outside the view, and the tactical view.
 The finished design keeps tier 3 for casters outside the view
-([decision 9](../decisions.md)). Those casters are 8.1 million of the 50.6
+([decision 3](../decisions.md)). Those casters are 8.1 million of the 50.6
 million triangles removed (5.05 million from cars, 3.01 million from walls), so
 the finished feature will save less at the wide hold. If time followed
 triangles linearly, the saving would be about 9.7 ms, but that is an

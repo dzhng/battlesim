@@ -1,5 +1,5 @@
 //! Every built-in pipeline builds on this machine's device and retains the
-//! size facts the shared catalog owns. Needs a GPU: run under the GPU lock.
+//! size facts the shared catalog owns. Needs a GPU.
 mod support;
 
 use renderer_core::pipelines;
