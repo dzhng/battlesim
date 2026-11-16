@@ -1054,8 +1054,8 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     // centroid into another point inside the blocked footprint.
     let radius = num("physics", "soldier_radius_m");
     let goal = v2(from.x, centre.y - FELLED_HALF[1] - radius - 1.0);
-    // Open ground 10 m past the far wall gets its marker too: admission
-    // rehearses the walk to its end. (Live, the fire from the north cuts
+    // Open ground 10 m past the far wall gets its marker too: its side's
+    // grid reaches it. (Live, the fire from the north cuts
     // this squad down on the longer way round, so only the nearer order is
     // walked below.)
     let beyond = goal - v2(0.0, 10.0);

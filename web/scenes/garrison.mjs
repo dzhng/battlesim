@@ -1,5 +1,5 @@
-// Slice 11: buildings as abstract fighting positions, through real orders;
-// shared hosts: squads share the house while seats remain.
+// Slice 11: buildings as abstract fighting positions, through real orders.
+// Squads share the house while its seats remain.
 // The building is prop 0: the generator's three-storey corner shop, centre
 // (360, 250), 12 × 12 m, 12.65 m tall; its seats stand on all three floors.
 import {

@@ -2,14 +2,6 @@
 //! squad walks to its approach and steps in.
 use super::*;
 
-fn occupy(units: &[u32], gesture: u64) -> Order {
-    Order::OccupyBuilding {
-        units: units.iter().copied().map(UnitId).collect(),
-        building: BUILDING,
-        gesture,
-    }
-}
-
 #[test]
 fn replacing_a_hold_cancels_departure_behind_an_expiring_contact_attack() {
     let mut setup = common::scenario_with(
@@ -27,7 +19,7 @@ fn replacing_a_hold_cancels_departure_behind_an_expiring_contact_attack() {
     let mut b = Battle::new(&setup, 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
-    until(&mut b, 900, "selected holder inside", |b| inside(b, 0));
+    until(&mut b, 900, "the squad inside", |b| inside(b, 0));
     until(&mut b, 1000, "hidden shooter reported", |b| {
         !b.observe(Side::Blue).contacts.is_empty()
     });
@@ -47,7 +39,7 @@ fn replacing_a_hold_cancels_departure_behind_an_expiring_contact_attack() {
         b.unit(UnitId(0)).unwrap().orders.back(),
         Some(sim::units::UnitOrder::Exit)
     ));
-    c.ok(&mut b, Side::Blue, occupy(&[0], 1));
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
     b.step();
     until(&mut b, 100, "contact expires", |b| {
         b.observe(Side::Blue).contacts.is_empty()
@@ -83,7 +75,7 @@ fn a_queued_reentry_starts_from_where_the_queue_ends() {
         side: Side::Blue,
         player: None,
         seq: 4,
-        order: occupy(&[0], 2),
+        order: garrison(&[0]),
         queued: true,
     });
     assert_eq!(ack.error, None, "{ack:?}");
@@ -130,7 +122,7 @@ fn building_previews_are_pure_and_queued_building_orders_replay_every_tick() {
         contract::scenario::ScriptedOrder {
             tick: 601,
             side: Side::Blue,
-            order: occupy(&[0, 1, 2], 1),
+            order: garrison(&[0, 1, 2]),
             queued: true,
         },
     ];
@@ -169,7 +161,7 @@ fn building_previews_are_pure_and_queued_building_orders_replay_every_tick() {
         }
         let orders = match t {
             0 => vec![(garrison(&[0]), false)],
-            600 => vec![(exit(&[0]), false), (occupy(&[0, 1, 2], 1), true)],
+            600 => vec![(exit(&[0]), false), (garrison(&[0, 1, 2]), true)],
             _ => Vec::new(),
         };
         for (order, queued) in orders {
@@ -270,7 +262,7 @@ fn an_unseen_enemy_occupant_cannot_change_a_building_plan() {
         side: Side::Blue,
         player: None,
         seq: 1,
-        order: occupy(&[0, 1], 1),
+        order: garrison(&[0, 1]),
         queued: false,
     });
     assert_eq!(ack.building, Some(plan));
@@ -308,7 +300,7 @@ fn a_squad_routes_round_a_row_of_buildings_to_garrison_the_one_behind_it() {
         side: Side::Blue,
         player: None,
         seq: 1,
-        order: occupy(&[0], 1),
+        order: garrison(&[0]),
         queued: false,
     });
     assert_eq!(ack.error, None, "{ack:?}");

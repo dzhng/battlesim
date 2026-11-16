@@ -70,7 +70,7 @@ pub(crate) fn occupy(
         } else {
             u.position.xy()
         };
-        let living = u.members.iter().filter(|s| s.alive()).count();
+        let living = crate::hold::living(u);
         let ground = arrangement::spread(&rules.infantry_movement, living) / 2.0;
         let near = super::within_entry_reach(world, known, authored, owner, from, rules);
         let reaches = |p: V2| near || grid.reaches(from, p, u.ground(), &pockets);
