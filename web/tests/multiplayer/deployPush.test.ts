@@ -42,3 +42,21 @@ test("deployment registers with service access, a second deploy updates files an
     await rm(folder, { recursive: true, force: true });
   }
 });
+
+test("an app the host cannot start at first is asked again until it is up, and a deploy that never starts fails", async () => {
+  const folder = await mkdtemp(join(tmpdir(), "battle-push-"));
+  try {
+    await writeFile(join(folder, "lobby.mjs"), "entry");
+    const slow = pushStandIn();
+    slow.refuseStarts(2);
+    await push(folder, "test-battles", "local-workspace", slow.runner, async () => {});
+    expect(slow.restarts()).toBeGreaterThan(0);
+    const dead = pushStandIn();
+    dead.refuseStarts(Number.POSITIVE_INFINITY);
+    await expect(
+      push(folder, "test-battles", "local-workspace", dead.runner, async () => {}),
+    ).rejects.toThrow();
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});

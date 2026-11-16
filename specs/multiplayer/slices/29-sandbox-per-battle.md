@@ -178,3 +178,54 @@ directory both use the same folder, so the fixed start command finds the
 archive; the battle server's error output can be read until the stop and
 not after, so reading it first is required, not a nicety.
 
+## Deployed and measured (2026-11-16)
+
+The lobby runs on the temporary host as the app `battle-lobby` in the
+`armata` workspace, public, built from commit `2ad479413`. Its address is
+not in the site: a development page reaches it with `?server=`. Each
+battle below ran on a sandbox the lobby rented and gave back.
+
+| Measured from California | Result |
+|---|---|
+| A room: Start to a ticket (a one-against-one on the small map) | 10 s, twice |
+| The same in two real browser pages: Start to both playing | 24 s, with each page building the map and loading |
+| Frontline: Play on an empty server to a briefing (a five-a-side on the largest map) | 57 s |
+| Publications a second, room and Frontline | 30.1 |
+| Gap between publications, 95th percentile | 35 to 39 ms; one over 100 ms in three runs |
+| An order's round trip to the battle's sandbox | 179 to 187 ms at the median, 197 at the 95th |
+| A lobby request (create, ready, start) | about 330 ms on the public route, about 100 on the private |
+| The sandbox after its room emptied | gone when the empty room's minute ran out |
+
+**O6 is answered for the route:** an order takes about 180 ms from
+California, against 300 on the host's own public route, and the battle
+keeps its tick rate. How it feels with someone far away is still slice
+19's to judge.
+
+**What the deploy showed:**
+
+- **The host starts an app before its files have all arrived,** and says
+  it did not come up. The push now asks again until it is up.
+- **The app's own credential can rent sandboxes.** Nothing but the
+  `services` capability was needed.
+- **Play on an empty server is slow: 57 seconds.** A new Frontline game may
+  draw several maps before one is admitted, and each refused draw now
+  costs a whole machine: rent, upload, start, refuse, give back. Letting
+  one machine try the next draw would take most of that away. Not done.
+- **The battle server's archive is 10 MB,** nearly all the simulation, and
+  is uploaded uncompressed for every battle.
+
+**Still open here:**
+
+- **The machine's size.** A one-hour soak on the smallest sandbox was
+  started to read its memory; its result goes here.
+- **The plan's limits** on sandboxes at once and starts a minute: not
+  probed. `capacity` is still the first guess of eight.
+- **What a battle costs:** not read from the service. By its price list
+  the smallest machine is about two cents an hour.
+- **Whose address a wrong room code is counted against.** The public
+  route's header for a client's address is still unread, so every player
+  shares one count.
+- **A room battle and a Frontline game each played to their end** through
+  the deployment. Both were started and watched running; neither was
+  played out.
+

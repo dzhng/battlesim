@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building. Rooms and Frontline work end to end on a local server. The local lobby/battle-process split is built (slice 28); remote allocation, the milestone and closeout remain. **Updated:** 2026-11-15.
+**Status:** building. Rooms and Frontline run on the temporary host, each battle on its own sandbox (slices 28 and 29). The site does not point at it yet; the milestone and the closeout remain. **Updated:** 2026-11-15.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -38,14 +38,17 @@ contract and the ignored implementation report holds verification evidence.
 
 **Pick up here, in this order:**
 
-1. **Slice 29,** a sandbox for each battle, and the lobby deployed on the
-   temporary host. The user has said to deploy there. **Its code half is
-   in** (the sandbox provider, the lobby's entry point for the host, the
-   lease rule, the deploy step), corrected against the real service.
-   **What is left is the real deploy and the measurements,** which need
-   the host login: see the slice's "To measure and decide here". A
-   one-hour memory soak on the smallest sandbox was started on 2026-11-16
-   to choose the machine's size.
+1. **Slice 29 is deployed and measured** (2026-11-16): the lobby is the
+   public app `battle-lobby` in the `armata` workspace, and a room battle
+   and a Frontline game both ran on sandboxes it rented, from a script and
+   from two real browser pages. What it still owes is listed at the end of
+   [the slice](slices/29-sandbox-per-battle.md): the machine's size (a
+   memory soak is running), the plan's limits, the cost, the client
+   address header, and a game played to its end. **Redeploy after every
+   commit that players should reach:** the lobby admits only pages of its
+   own commit. Build the site, serve `web/dist`, and run
+   `bun run deploy:server --site <that address> --push --app battle-lobby
+   --workspace armata`.
 2. **Slice 19,** the milestone: two people on two networks finish a room
    battle. **Ask the user before** putting the lobby's address in the site
    and before promoting a site build.
@@ -176,7 +179,7 @@ Frontline
 Hosting
 
 - [x] [28 A battle in its own process](slices/28-battle-process.md)
-- [ ] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md)
+- [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
 ## Contracts this changes

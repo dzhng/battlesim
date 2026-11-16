@@ -7,6 +7,8 @@ export function pushStandIn() {
   const files = new Map<string, string>();
   const apps = new Map<string, Record<string, unknown>>();
   let restarts = 0;
+  /** Starts the host will refuse, as it does while an app's files are still arriving. */
+  let notReady = 0;
   const runner = async (binary: string, args: string[]) => {
     if (binary !== "bento") throw new Error("Unexpected executable");
     const flag = (name: string) => args[args.indexOf(name) + 1];
@@ -47,6 +49,7 @@ export function pushStandIn() {
         )
           throw new Error("Invalid registration");
         apps.set(made, { ...body, slug: made, visibility: "private" });
+        if (notReady-- > 0) throw new Error("did not become ready");
       } else if (action === "update") {
         if (
           !apps.has(slug) ||
@@ -59,10 +62,20 @@ export function pushStandIn() {
         Object.assign(apps.get(slug)!, body);
       } else if (action === "restart") {
         if (!apps.has(slug)) throw new Error("Missing app");
+        if (notReady-- > 0) throw new Error("did not become ready");
         restarts++;
       } else throw new Error("Unknown app command");
     } else throw new Error("Unknown command");
     return "{}";
   };
-  return { runner, files, apps, commands, restarts: () => restarts };
+  return {
+    runner,
+    files,
+    apps,
+    commands,
+    restarts: () => restarts,
+    refuseStarts: (count: number) => {
+      notReady = count;
+    },
+  };
 }

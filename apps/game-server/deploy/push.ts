@@ -23,6 +23,7 @@ export async function push(
   app: string | undefined,
   workspace = process.env.BENTO_WORKSPACE,
   runner: CommandRunner = run,
+  pause: () => Promise<unknown> = () => new Promise((resolve) => setTimeout(resolve, 10_000)),
 ) {
   if (!app || !/^[a-z0-9][a-z0-9-]*$/.test(app))
     throw new Error("--push requires --app <app-slug>");
@@ -61,12 +62,26 @@ export async function push(
       file,
     );
   const runtime = { command: "node lobby.mjs", apiScopes: ["services"] };
+  /** The host starts an app before the files just written have all reached
+   *  its machine, and says the app did not come up. It comes up once they
+   *  have: ask again a few times before calling the deploy failed. */
+  const started = async (start: () => unknown) => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await (attempt === 1 ? start() : command("app", "restart", "--app-slug", app));
+        return;
+      } catch (cause) {
+        if (attempt === 6) throw cause;
+        await pause();
+      }
+    }
+  };
   if (!exists) {
     await writeFile(body, JSON.stringify({ path: `apps/${app}`, ...runtime }));
-    await command("app", "create", "--slug", app, "--body-file", body);
+    await started(() => command("app", "create", "--slug", app, "--body-file", body));
     return;
   }
   await writeFile(body, JSON.stringify(runtime));
   await command("app", "update", "--app-slug", app, "--body-file", body);
-  await command("app", "restart", "--app-slug", app);
+  await started(() => command("app", "restart", "--app-slug", app));
 }
