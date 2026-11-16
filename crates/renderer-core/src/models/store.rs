@@ -44,6 +44,11 @@ impl MaterialSlots {
     }
 }
 
+/// The art work one frame may spend at an arrival before staging yields to
+/// the next frame. It fits three ordinary content jobs of 6–8 ms. Half as
+/// much kept the stand-in on screen longer for no smoother a frame.
+pub const ART_WORK_BUDGET_MS: f64 = 24.;
+
 /// Scene art tripwires and the platform sink that reports when they fire.
 #[derive(Clone, Copy)]
 pub struct ArtStorePolicy {
@@ -205,6 +210,27 @@ impl ArtStore {
             .retain(|_, geometry| geometry.strong_count() > 0);
         drop(held);
         Ok((store, None))
+    }
+
+    pub(super) fn has_rest(
+        store: &SharedArtStore,
+        key: &GeometryKey,
+        palette: &[presentation::records::Joint],
+    ) -> bool {
+        store
+            .lock()
+            .expect("art store lock")
+            .geometry
+            .get(key)
+            .and_then(Weak::upgrade)
+            .is_some_and(|geometry| {
+                geometry
+                    .rests
+                    .lock()
+                    .expect("geometry rest poses")
+                    .get(bytemuck::cast_slice(palette))
+                    .is_some_and(|rest| rest.strong_count() > 0)
+            })
     }
 
     pub(super) fn geometry(

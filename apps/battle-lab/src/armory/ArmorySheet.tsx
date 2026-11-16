@@ -1,5 +1,5 @@
-// The Armory's sheet of the open card (`unitSheet`): its name and price, its
-// variants, then its body, movement, senses and what else it does, and last
+// The Armory's sheet of the open card (`unitSheet`): its name and price,
+// then its body, movement, senses and what else it does, and last
 // its weapons by mount with each ammunition kind beneath. Strictly what a
 // player reads (U3): no class lists, no internal fields.
 import type { ReactNode } from "react";
@@ -7,6 +7,7 @@ import type { Reach, UnitCard } from "@packages/scene-assets/src/units";
 import { glyphIcon, hudIcon, weaponIcon } from "@packages/scene-assets/src/icons";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Icon } from "@web/battle/present/icons";
+import { Price } from "@web/battle/present/purchaseCard";
 import {
   SHEET_STATS,
   unitSheet,
@@ -164,21 +165,16 @@ interface ArmorySheetProps {
   card: UnitCard;
   /** The open group's label, over the name. */
   group: string;
-  /** The family's cards under the open faction: a chip each, when several. */
-  variants: readonly UnitCard[];
-  onVariant: (card: string) => void;
 }
 
-export function ArmorySheet({ card, group, variants, onVariant }: ArmorySheetProps) {
+export function ArmorySheet({ card, group }: ArmorySheetProps) {
   const sheet = unitSheet(useSessionCatalog(), card);
   return (
     <aside className="hud-panel armory-sheet" aria-label={`${card.name} sheet`}>
       <header className="armory-sheet-head">
         <span className="armory-kicker">{group}</span>
         <h3>{card.roster.family_name}</h3>
-        <span className={`hud-purchase-price${sheet.planned ? " unsold" : ""}`}>
-          {card.cost} CR
-        </span>
+        <Price cost={card.cost} payable unsold={sheet.planned} />
         <span className="armory-variant">{card.roster.variant}</span>
         {sheet.planned ? (
           <span className="armory-tag">Planned</span>
@@ -186,22 +182,6 @@ export function ArmorySheet({ card, group, variants, onVariant }: ArmorySheetPro
           card.disabled_reason !== null && <span className="armory-tag">Not yet on sale</span>
         )}
       </header>
-      {variants.length > 1 && (
-        <div className="armory-variants" role="radiogroup" aria-label="Variants">
-          {variants.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="radio"
-              className="hud-menu-choice"
-              aria-checked={v.id === card.id}
-              onClick={() => onVariant(v.id)}
-            >
-              {v.roster.variant}
-            </button>
-          ))}
-        </div>
-      )}
       {/* Most cards' description is their variant's name: shown once, above. */}
       {![card.roster.variant, card.roster.family_name, ""].includes(card.description) && (
         <p className="armory-description">{card.description}</p>

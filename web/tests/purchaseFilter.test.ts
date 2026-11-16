@@ -1,13 +1,11 @@
 // The picker's filter core: which group a card browses under, which cards a
-// query matches, whether a card can be bought now, and which card Enter
-// chooses. Pure, so it is tested without a page. Fakes, or every game card
+// query matches and whether a card can be bought now. Pure, so it is tested without a page. Fakes, or every game card
 // read through the group table, never one roster entry.
 import { expect, test } from "vitest";
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { catalogSet } from "@web/battle/catalog/sets";
 import {
   cardPurchasable,
-  enterChoice,
   filterCards,
   UNIT_GROUPS,
   unitGroup,
@@ -81,24 +79,6 @@ test("a card is purchasable only when nothing blocks it", () => {
   expect(cardPurchasable(TANK_BASE, facts({ unitCount: 29 }))).toBe(true);
   expect(cardPurchasable(TANK_BASE, facts({ finished: true }))).toBe(false);
   expect(cardPurchasable(TANK_TROPHY, facts())).toBe(false);
-});
-
-test("Enter buys the sole family's first purchasable variant", () => {
-  const dearer = [
-    card("base", "abrams", "M1 Abrams", "SEP v2", 600),
-    card("trophy", "abrams", "M1 Abrams", "SEP v2 Trophy", 520),
-  ];
-  // The first variant is beyond the credits; the second is the first available.
-  expect(enterChoice(filterCards(dearer, "abrams"), facts({ credits: 550 }))).toBe(dearer[1]);
-  // With both affordable, the first in catalog order wins.
-  expect(enterChoice(filterCards([TANK_BASE, TANK_TROPHY], "abrams"), facts())).toBe(TANK_BASE);
-});
-
-test("Enter does nothing with more than one family, no purchasable card, or no match", () => {
-  expect(enterChoice([TANK_BASE, JEEP], facts())).toBeNull();
-  expect(enterChoice(filterCards(CARDS, "trophy"), facts())).toBeNull();
-  expect(enterChoice(filterCards(CARDS, "zzz"), facts())).toBeNull();
-  expect(enterChoice([], facts())).toBeNull();
 });
 
 /** Every game card with its group, as the picker browses them. */

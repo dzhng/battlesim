@@ -128,8 +128,7 @@ export class ShowcaseStage {
       runtime: art.runtime,
     });
     if (asked !== this.asked || this.disposed) return [];
-    const types = (fielded.units as { types: Record<string, { hull: boolean }> }).types;
-    const squad: Pick<ShowcaseInput, "soldiers" | "operators"> = types[unit.kind].hull
+    const squad: Pick<ShowcaseInput, "soldiers" | "operators"> = fielded.hull(unit.kind)
       ? { soldiers: [], operators: [] }
       : JSON.parse(this.o.showground.squad(unit.kind, seed));
     const [x, y, z] = unit.at;

@@ -275,11 +275,15 @@ pub struct Unit {
     pub planned_revision: u64,
     /// Failure-to-advance watch: best distance to the next waypoint and when.
     pub progress: (f64, u64),
-    /// Give-up watch: the shortest way left seen at a stall, and the tick it
-    /// was seen; a way no shorter for long enough gives the move up
-    /// ([`MoveState::RouteBlocked`]). Blocked, the tick it last tried, which
+    /// The stuck clock: where it stood when the clock last started, and
+    /// when. Still within reach of that spot a give-up spell later, it stops
+    /// near enough to its goal or finds no way
+    /// ([`MoveState::RouteBlocked`]); blocked, the tick it last tried, which
     /// times its next try.
-    pub stalls: (f64, u64),
+    pub stalls: (V2, u64),
+    /// Times it has found no way to its current goal: the third time, it
+    /// gives the order up.
+    pub tries: u8,
     pub engagement: Engagement,
     /// While a passive AI holds the unit at return fire, the engagement it
     /// goes back to when that controller leaves: its authored or ordered one.
@@ -411,7 +415,7 @@ impl Unit {
         }
         if !queued {
             self.orders.clear();
-            self.route = None;
+            // Movement decides whether the way it has still serves.
             self.planned_goal = None;
             self.state = MoveState::Idle;
             self.turn_to = None;

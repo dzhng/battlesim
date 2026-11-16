@@ -12,8 +12,8 @@ Measured so far:
 | Generator | What we saw |
 |---|---|
 | Hunyuan3D 3.1 Pro (fal, geometry only) | Smoothest hard surfaces for airframes. Takes four views (front, back, top, bottom). Refuses a subject filling less than half the image. |
-| Meshy | Wrinkles at the scale of a panel, even before decimation. Added a second nozzle to a single-engine jet. Wins small props with printed labels. |
-| Tripo | Wins big hard-surface props where real geometry (knobs, bezels, dents) matters. Raw output is about 2M triangles. |
+| Meshy | Wrinkles at the scale of a panel, even before decimation. Added a second nozzle to a single-engine jet. Wins small props with printed labels. A close second on soldiers (`pose_mode: t-pose`), but it invents a weak back. |
+| Tripo | Wins big hard-surface props where real geometry (knobs, bezels, dents) matters. Raw output is about 2M triangles. Wins soldiers from one front T-pose image: crisp kit, correct backs. Its multiview mode made both soldiers tried two-faced. |
 | Rodin | Softer than Hunyuan on the same airframe. |
 
 The Meshy and Tripo verdicts come from about 150 props built with

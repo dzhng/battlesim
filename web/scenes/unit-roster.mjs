@@ -1,6 +1,6 @@
 // The player's production faction skirmish, through its ordinary picker and cursor.
 import { modelGhostAgreement } from "./_modelGhost.mjs";
-import { advance, obs, own, presented, snapshot, until } from "./_lab.mjs";
+import { advance, aim, obs, own, pointerOffCanvas, presented, snapshot, until } from "./_lab.mjs";
 const check = (ctx, ok, name, detail) => ctx.check(name, ok, detail);
 export async function run(ctx) {
   await modelGhostAgreement(ctx);
@@ -54,15 +54,16 @@ export async function run(ctx) {
   const cameraBeforePurchase = await page.evaluate(() => window.__lab.camera());
   await snapshot(ctx, page, "journey-zoom.png");
   await ctx.matchBaseline(page, "journey-zoom");
-  // Typing a family name and pressing Enter buys that family's first available
-  // variant and arms the ghost, the picker's own keyboard path.
+  // A search naming one variant, then Enter, buys it and arms the ghost: the
+  // picker's own keyboard path.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   const search = page.getByRole("textbox", { name: "Search units" });
-  await search.fill("abrams");
+  await search.fill("abrams sep v2 trophy");
   check(
     ctx,
-    (await page.locator(".hud-purchase-family").count()) === 1,
-    "a family-name filter narrows the picker to the one family",
+    (await page.getByRole("tabpanel", { name: "Search results" }).getByRole("button").count()) ===
+      1,
+    "a search naming one variant narrows the picker to its one card",
   );
   await search.press("Enter");
   await page.mouse.move(640, 340);
@@ -79,14 +80,13 @@ export async function run(ctx) {
   check(ctx, own(await obs(page)).credits === 1000, "Escape cancels the searched purchase free");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "MBT", exact: true }).click();
-  await snapshot(ctx, page, "mbt-families.png");
-  // Hovering a family opens its variants' info cards over the picker;
-  // clicking the card would buy at once.
-  const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
+  await snapshot(ctx, page, "mbt-cards.png");
+  // Hovering a card opens its variant's info card over the picker; clicking
+  // it places exactly that variant.
+  const abrams = page.getByRole("button", { name: "M1A2 SEP v2", exact: true });
   await abrams.hover();
-  await snapshot(ctx, page, "abrams-variants.png");
-  const variant = page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ });
-  await variant.click();
+  await snapshot(ctx, page, "abrams-info.png");
+  await abrams.click();
   await page.mouse.move(640, 340);
   await page.waitForFunction(
     () => {
@@ -116,8 +116,7 @@ export async function run(ctx) {
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   // The picker reopens on its first tab; pointing at a tab switches to it.
   await page.getByRole("tab", { name: "MBT", exact: true }).hover();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
-  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+  await page.getByRole("button", { name: "M1A2 SEP v2", exact: true }).click();
   await page.mouse.move(640, 340);
   await page.waitForTimeout(100);
   const cameraAtPlacement = await page.evaluate(() => window.__lab.camera());
@@ -150,8 +149,7 @@ export async function run(ctx) {
   // release. This is the second gesture the player uses in the same journey.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "MBT", exact: true }).hover();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
-  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+  await page.getByRole("button", { name: "M1A2 SEP v2", exact: true }).click();
   const dragFrom = [560, 360];
   const dragTo = [700, 360];
   await page.mouse.move(...dragFrom);
@@ -236,6 +234,92 @@ export async function run(ctx) {
   await snapshot(ctx, page, "journey-space-orders.png");
   await ctx.matchBaseline(page, "journey-space-orders");
   await page.keyboard.up("Space");
+  await transportJourney(ctx, page, entry);
   await ctx.writeEvidence("match.json", { initial: initial.skirmish, active: active.skirmish });
   await page.close();
+}
+
+/** A squad bought with its ride mid-battle: hovering the squad's card opens
+ *  its transport menu, and clicking a carrier there places the pair. The
+ *  carrier drives to the placed spot with the squad aboard, and the squad
+ *  stays aboard once it has arrived. */
+async function transportJourney(ctx, page, entry) {
+  await page.evaluate(
+    (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: [...at, 0], distance: 120 }),
+    entry,
+  );
+  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  await page.getByRole("tab", { name: "INF", exact: true }).hover();
+  await page.getByRole("button", { name: "Rifle Squad", exact: true }).hover();
+  const ride = page
+    .getByRole("region", { name: "Transport", exact: true })
+    .getByRole("button", { name: "Stryker ICV", exact: true });
+  await ride.hover();
+  check(
+    ctx,
+    (await page.getByRole("tooltip", { name: "Stryker ICV", exact: true }).isVisible()) &&
+      (await page.getByRole("tooltip", { name: "Rifle Squad", exact: true }).isVisible()),
+    "pointing at a ride shows both units it buys",
+  );
+  await snapshot(ctx, page, "transport-menu.png");
+  await ride.click();
+  // Up the road from the entry, so the carrier drives in to get there.
+  const placeAt = [640, 190];
+  await page.mouse.move(...placeAt);
+  await page.waitForFunction(() => {
+    const ghost = window.__lab.route.purchaseGhost?.();
+    return ghost?.carrier && ghost.valid === true;
+  });
+  const ghost = await page.evaluate(() => window.__lab.route.purchaseGhost());
+  await page.mouse.click(...placeAt);
+  await advance(page, 1);
+  await page.waitForFunction(() =>
+    window.__lab.route
+      .acks()
+      .some(({ order, ack }) => order.kind === "confirm_purchase" && order.carrier && !ack.error),
+  );
+  // The carrier the player placed, and the squad it holds.
+  const pair = (o) => {
+    const carrier = o.own.find((u) => u.kind === ghost.carrier);
+    const squad = carrier && o.own.find((u) => u.hold?.host.id === carrier.id);
+    return { carrier, squad };
+  };
+  const there = (u) =>
+    Math.hypot(u.position[0] - ghost.destination[0], u.position[1] - ghost.destination[1]) < 6;
+  const arrived = await until(
+    page,
+    (o) => {
+      const { carrier, squad } = pair(o);
+      return squad?.kind === ghost.variant && carrier.goal === null && there(carrier);
+    },
+    60 * 60,
+    30,
+  );
+  check(
+    ctx,
+    arrived && Math.hypot(ghost.destination[0] - entry[0], ghost.destination[1] - entry[1]) > 20,
+    "a squad bought with its ride arrives aboard it at the placed spot, in from the entry",
+    JSON.stringify({ entry, destination: ghost.destination }),
+  );
+  // Arriving is not unloading: a while later the squad is still aboard.
+  await advance(page, 120);
+  const { carrier, squad } = pair(await obs(page));
+  check(
+    ctx,
+    carrier && squad && there(carrier) && squad.hold.host.kind === "carrier",
+    "the squad stays aboard its carrier once it has arrived",
+  );
+  check(
+    ctx,
+    squad && (await page.locator(`[data-unit="${squad.id}"][data-aboard]`).count()) === 1,
+    "the squad's army card carries the aboard mark",
+  );
+  // The carrier where it was sent, and the deck: its card, the squad's
+  // marked aboard beside it.
+  await aim(page, carrier.position, { distance: 70 });
+  await page.evaluate((id) => window.__lab.route.select([id]), carrier.id);
+  await pointerOffCanvas(page);
+  await presented(page);
+  await snapshot(ctx, page, "journey-transport-arrived.png");
+  await ctx.matchBaseline(page, "journey-transport-arrived");
 }

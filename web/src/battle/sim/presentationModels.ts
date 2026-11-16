@@ -4,6 +4,7 @@ import { type Presentation, type Renderer, type PreparedAppearances } from "@was
 import { contentIdKey } from "../render/contentIdentity";
 import type { ContentId } from "@packages/scene-assets/src/loader";
 import type { ModelAsset } from "../render/modelAssets";
+import { artWork } from "../artWork";
 import { releaseTransport } from "../transport";
 import {
   APPEARANCE_WORDS,
@@ -91,12 +92,16 @@ export function readAppearanceRows(
 }
 
 /** Declare the complete wanted catalog and transport only Rust's missing content. */
-export function prepareAppearances(
-  renderer: Pick<Renderer, "missing_content_ids" | "appearance_draft" | "prepare_appearances">,
+export async function prepareAppearances(
+  renderer: Pick<
+    Renderer,
+    "missing_content_ids" | "appearance_draft" | "begin_appearances" | "prepare_appearances"
+  >,
   presentation: Presentation,
   assets: readonly ModelAsset[],
   detail: ModelDetail,
-): Promise<PreparedAppearances> {
+  nextStep: (yieldFrame: boolean) => Promise<boolean>,
+): Promise<PreparedAppearances | null> {
   const missing = new Set(
     (
       JSON.parse(
@@ -107,35 +112,56 @@ export function prepareAppearances(
       ) as ContentId[]
     ).map(contentIdKey),
   );
-  const draft = renderer.appearance_draft(presentation, JSON.stringify(detail));
+  let draft: ReturnType<Renderer["appearance_draft"]> | null = renderer.appearance_draft(
+    presentation,
+    JSON.stringify(detail),
+  );
+  let warming: ReturnType<Renderer["begin_appearances"]> | null = null;
   const work = { bundlesEncoded: 0, bundleBytesSent: 0 };
   try {
     for (const asset of assets) {
       draft.declare(asset.name, JSON.stringify(asset.contentId));
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));
-      if (!missing.delete(contentIdKey(asset.contentId))) continue;
-      const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
-      try {
-        work.bundlesEncoded++;
-        work.bundleBytesSent += bundle.byteLength;
-        draft.add_bundle(
-          JSON.stringify(asset.contentId),
-          bundle,
-          textureIds,
-          textureBytes,
-          skeleton,
-        );
-      } finally {
-        releaseTransport(bundle);
-      }
     }
-  } catch (error) {
-    draft.free();
-    throw error;
-  }
-  // Ownership moves into Rust even when synchronous GPU admission throws.
-  return renderer.prepare_appearances(presentation, draft).then((prepared) => {
+    for (const asset of assets) {
+      if (!missing.delete(contentIdKey(asset.contentId))) continue;
+      if (!(await nextStep(artWork.exhausted()))) return null;
+      const supplying = draft;
+      artWork.run(() => {
+        const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
+        try {
+          work.bundlesEncoded++;
+          work.bundleBytesSent += bundle.byteLength;
+          supplying.add_bundle(
+            JSON.stringify(asset.contentId),
+            bundle,
+            textureIds,
+            textureBytes,
+            skeleton,
+          );
+        } finally {
+          releaseTransport(bundle);
+        }
+      });
+    }
+    if (!(await nextStep(artWork.exhausted()))) return null;
+    // Ownership moves into Rust even when synchronous catalog admission throws.
+    const supplied = draft;
+    draft = null;
+    warming = artWork.run(() => renderer.begin_appearances(presentation, supplied));
+    do {
+      if (!(await nextStep(artWork.exhausted()))) return null;
+    } while (artWork.run(() => warming!.step()));
+    if (!(await nextStep(artWork.exhausted()))) return null;
+    const complete = warming;
+    warming = null;
+    // The admission and its card bake run inside this promise, outside the
+    // frame's art-work budget.
+    const prepared = await renderer.prepare_appearances(complete);
     preparedTransportWork.set(prepared, work);
     return prepared;
-  });
+  } finally {
+    draft?.free();
+    warming?.free();
+  }
 }

@@ -46,7 +46,8 @@ that skin, and sockets locate observed effects on the drawn weapon. A shot's
 kick turns the upper body about one named joint (`spine_01`, the presentation
 crate's), so a rig without it is never kicked rather than kicked about the wrong
 bone. The fallen body uses a fixed corpse pose instead of retaining a live
-animation workload. [Pose construction](src/pose.ts) owns the install-time
+animation workload, and each one lies low: under the catalog's lying height,
+and barely into the ground (`fit.lies`, [soldier fit](src/soldierFit.ts)). [Pose construction](src/pose.ts) owns the install-time
 transformations.
 
 Articulated vehicles preserve moving-node frames and mount ownership. A mount's
@@ -159,7 +160,7 @@ The validator's `texture.*` findings (`validate.ts`) hold every texture square, 
 
 A textured material's vertex colour means something different. It is relative to the albedo texture's mean and scaled by the [material contract](src/material.ts), so dust, ash and rust can lighten or tint a surface as well as darken it. Its alpha says how worn the surface is. Where that rises past the albedo's wear threshold, the material's `wear` colour shows, as crisp chips on edges and spatter low down.
 
-The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB, at the recipe's size or, for a piece under a byte cap (the garden and court pieces), box-filtered down to a smaller power of two that keeps its tile. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
+The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB, at the recipe's size or, for a piece under a byte cap (the garden and court pieces), box-filtered down to a smaller power of two that keeps its tile. A generated skin (a soldier's body, an airframe) is the exception: it keeps its own UVs and its atlas (`textures.ATLASES`), which `attach` embeds as it is. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
 
 ## Coverage, rooms and roles
 

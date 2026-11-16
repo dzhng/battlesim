@@ -110,7 +110,11 @@ pub(super) fn force(measure: &Measure, frame: &ObservationFrame, player: PlayerI
         .skirmish
         .as_ref()
         .and_then(|view| view.players.iter().find(|p| p.index == player))
-        .map_or(0.0, |p| p.pending.iter().map(|p| measure.own(p.kind)).sum());
+        .map_or(0.0, |p| {
+            (p.pending.iter().flat_map(|p| p.kinds()))
+                .map(|kind| measure.own(kind))
+                .sum()
+        });
     fielded + arriving
 }
 

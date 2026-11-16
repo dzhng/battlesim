@@ -46,7 +46,6 @@ fn fired_look(added: bool, require_kick: bool, second: bool) {
         effects::{
             frame::{EffectBatch, EffectFrame},
             publication::EffectFeed,
-            tables::EffectPresentation,
         },
         fielded::Fielding,
     };
@@ -108,10 +107,8 @@ fn fired_look(added: bool, require_kick: bool, second: bool) {
     .resolve(&mut Facts::default(), &|hash| {
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
-    .unwrap()
-    .typed()
     .unwrap();
-    let p = EffectPresentation::from_value(&fielded.effects.presentation).unwrap();
+    let p = fielded.effects.presentation.as_ref().clone();
     let expected = if added { "tank_ap" } else { id };
     assert_eq!(
         p.looks.name(id),
@@ -266,16 +263,14 @@ fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
             presentation: &settings,
             rules: &rules,
             catalog: &catalog,
-            runtime: &json!({}),
+            runtime: &json!({"sides":{"blue":[0,0,0],"red":[0,0,0]}}),
             kinds: &[],
             factions: None,
         }
         .resolve(&mut Facts::default(), &|_| {
             panic!("bad fielding must not read assets")
         });
-        let error = result
-            .err()
-            .expect("missing physics-required look part was accepted");
+        let error = result.expect_err("missing physics-required look part was accepted");
         assert!(
             error.contains(weapon) && error.contains(part),
             "{weapon}/{part}: {error}"
@@ -300,7 +295,7 @@ fn an_unmounted_weapon_may_have_only_blast_parts_whatever_its_name() {
         presentation: &settings,
         rules: &serde_json::to_value(rules).unwrap(),
         catalog: &catalog,
-        runtime: &json!({}),
+        runtime: &json!({"sides":{"blue":[0,0,0],"red":[0,0,0]}}),
         kinds: &[],
         factions: None,
     }
@@ -323,7 +318,7 @@ fn a_crash_look_needs_no_firing_parts() {
         presentation: &settings,
         rules: &rules,
         catalog: &catalog,
-        runtime: &json!({}),
+        runtime: &json!({"sides":{"blue":[0,0,0],"red":[0,0,0]}}),
         kinds: &[],
         factions: None,
     }
@@ -358,16 +353,14 @@ fn a_crash_mounted_as_a_gun_must_supply_firing_parts() {
             presentation: &settings,
             rules: &rules,
             catalog: &catalog,
-            runtime: &json!({}),
+            runtime: &json!({"sides":{"blue":[0,0,0],"red":[0,0,0]}}),
             kinds: &["test_tank".into()],
             factions: None,
         }
         .resolve(&mut Facts::default(), &|_| {
             panic!("invalid firing look must be refused before reading art")
         });
-        let error = result
-            .err()
-            .expect("every ammunition kind needs firing parts");
+        let error = result.expect_err("every ammunition kind needs firing parts");
         assert!(error.contains("helicopter_crash"), "{error}");
     }
 }

@@ -282,3 +282,37 @@ test("a placement confirmed to place another keeps the choice for the next one",
   ]);
   expect(control.variant).toBeNull();
 });
+
+test("a squad chosen with a carrier is previewed, ghosted and bought as the pair", async () => {
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 0, carrier: 1, destination: at, spots: [], area_radius_m: null },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_squad", "test_apc");
+  control.at([10, 20], client, "1");
+  await settle();
+  expect(client.previewPurchase).toHaveBeenCalledWith("test_squad", [10, 20], "test_apc");
+  // The ghost is what arrives: the carrier, its squad aboard.
+  const ghost = control.at([10, 20], client, "1");
+  expect(ghost).toMatchObject({ variant: "test_squad", carrier: "test_apc", valid: true });
+  expect(control.arriving).toBe("test_apc");
+  // The same squad on foot is another choice; its preview is asked afresh.
+  control.choose("test_squad");
+  control.at([10, 20], client, "1");
+  expect(client.previewPurchase).toHaveBeenLastCalledWith("test_squad", [10, 20], undefined);
+  control.choose("test_squad", "test_apc");
+  control.at([10, 20], client, "1");
+  await settle();
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  expect(await control.confirm(send, true)).toMatchObject({ carrier: "test_apc" });
+  expect(send).toHaveBeenCalledExactlyOnceWith({
+    kind: "confirm_purchase",
+    variant: "test_squad",
+    carrier: "test_apc",
+    destination: [10, 20],
+  });
+  // Shift keeps the whole pair in hand for the next placement.
+  expect([control.variant, control.carrier]).toEqual(["test_squad", "test_apc"]);
+});

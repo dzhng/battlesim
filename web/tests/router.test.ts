@@ -20,10 +20,8 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   const menu = await visitApp("/");
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
   const pages = MENU_PAGES.map((row) => row.title);
-  // Every entry opens in the plate; the one link leaves the game, in a new
-  // tab, for its source.
-  expect(links()).toEqual([SOURCE_REPO]);
-  expect(menu.getByRole("link").getAttribute("target")).toBe("_blank");
+  // Every entry opens in the plate: home has no links.
+  expect(links()).toEqual([]);
   for (const page of pages) expect(menu.getByRole("button", { name: page })).toBeTruthy();
   expect(menu.queryByRole("button", { name: "Watch replay" })).toBeNull();
   expect(menu.queryByRole("button", { name: "Back" })).toBeNull();
@@ -49,6 +47,8 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
       "Sound workbench": "/labs/sound-workbench",
       Benchmark: "/labs/benchmark",
       Labs: "/labs",
+      // The one link that leaves the game, in a new tab, for its source.
+      [SOURCE_REPO.replace(/^https:\/\//, "")]: SOURCE_REPO,
     },
   };
   for (const [page, expected] of Object.entries(entries)) {
@@ -61,6 +61,9 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     expect(links()).toEqual(Object.values(expected));
     for (const [name, href] of Object.entries(expected)) {
       expect(menu.getByRole("link", { name }).getAttribute("href")).toBe(href);
+    }
+    if (page === menuPage("developer").title) {
+      expect(menu.getByRole("link", { name: /github/ }).getAttribute("target")).toBe("_blank");
     }
     fireEvent.click(menu.getByRole("button", { name: "Back" }));
     await listed(page);

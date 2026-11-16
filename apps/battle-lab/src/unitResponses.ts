@@ -149,6 +149,6 @@ export class UnitResponses {
     if (unit.suppression !== "none") return true;
     const hull = this.units.hull(unit.kind);
     if (hull) return unit.hp * 2 <= hull.hp;
-    return unit.memberIds.length * 2 <= this.units.slots(unit.kind).length;
+    return unit.memberIds.length * 2 <= this.units.squadSize(unit.kind);
   }
 }

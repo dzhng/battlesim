@@ -53,6 +53,13 @@ pub(crate) fn seats(rules: &Rules, kind: TypeIndex) -> usize {
         .map_or(0, |c| c.seats as usize)
 }
 
+/// Whether `carrier` seats every soldier of a squad of `size`; never a hull
+/// (size 0). The one rule for who can ride in what: purchase admission and
+/// the AI's pairing both ask it.
+pub(crate) fn seats_squad(rules: &Rules, carrier: TypeIndex, size: usize) -> bool {
+    size > 0 && seats(rules, carrier) >= size
+}
+
 /// The seats a squad takes: one per living soldier.
 pub(crate) fn living(unit: &Unit) -> usize {
     unit.members.iter().filter(|s| s.alive()).count()

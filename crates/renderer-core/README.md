@@ -79,7 +79,11 @@ Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
 
 [Appearance replacement](src/runtime/assets.rs) stages a complete asset generation
-against the presentation's prospective catalog. Asynchronous card baking owns
+against the presentation's prospective catalog. A pending generation can warm
+one missing geometry key and its rest facts per step, retaining those rows
+until the existing admission finds every packed key. Dropping partial work
+releases its holders without changing live art; stepping changes neither the
+complete admission report nor committed pixels. Asynchronous card baking owns
 its resources and holds no live renderer or presentation borrow. Commit moves
 matching canonical facts and GPU owners together, checks the actual device and
 runtime/catalog identity, transfers current placement knowledge, reapplies

@@ -300,7 +300,7 @@ impl Loaded {
             if tier == CULLED {
                 continue;
             }
-            let (palette, scroll) = match units.appearances.get(name) {
+            let (palette, scroll) = match units.appearances.get(name).map(AsRef::as_ref) {
                 Some(Appearance::Skinned { far_pose, .. }) => (
                     pose_body(
                         units,

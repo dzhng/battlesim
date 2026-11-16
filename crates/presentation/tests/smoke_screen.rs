@@ -219,8 +219,7 @@ fn a_smoke_capability_naming_a_look_the_presentation_lacks_is_refused_when_field
     .resolve(&mut Facts::default(), &|_| {
         Err("unexpected bundle read".into())
     })
-    .err()
-    .expect("the unknown look is refused");
+    .expect_err("the unknown look is refused");
     assert!(
         error.contains("test_smoke_tank") && error.contains("no_such_look"),
         "{error}"

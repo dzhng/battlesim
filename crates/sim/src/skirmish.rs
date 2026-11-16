@@ -89,8 +89,37 @@ pub fn synthetic_sites(
 #[derive(Clone, Debug)]
 pub struct Reservation {
     pub data: PendingPurchase,
+    /// What `data.kind` cost; its unit keeps this price once it enters.
     pub price: u32,
+    /// What `data.carrier` cost, when the purchase has one.
+    pub carrier_price: Option<u32>,
     pub player: usize,
+}
+
+impl Reservation {
+    /// Everything the purchase cost, which cancelling it pays back.
+    pub fn total(&self) -> u32 {
+        self.price + self.carrier_price.unwrap_or(0)
+    }
+}
+
+/// A purchase being confirmed: the unit bought, and the carrier it arrives
+/// aboard, each with its price.
+pub struct Purchase {
+    pub kind: TypeIndex,
+    pub price: u32,
+    pub carrier: Option<(TypeIndex, u32)>,
+}
+
+impl Purchase {
+    /// How many units it fields: the unit, and its carrier when it has one.
+    pub fn units(&self) -> u32 {
+        1 + u32::from(self.carrier.is_some())
+    }
+    /// Everything it costs.
+    pub fn total(&self) -> u32 {
+        self.price + self.carrier.map_or(0, |(_, price)| price)
+    }
 }
 pub const CREDIT_SCALE: u64 = 1_000_000;
 pub struct EnteredUnit {
@@ -140,6 +169,12 @@ impl PlayerState {
             next_purchase: 0,
             totals: MatchTotals::default(),
         }
+    }
+
+    /// The places pending purchases hold under the unit cap: a squad bought
+    /// in a carrier holds two.
+    pub fn reserved_units(&self) -> u32 {
+        self.reservations.iter().map(|r| r.data.units()).sum()
     }
 }
 
@@ -236,7 +271,7 @@ impl Skirmish {
                 controller: p.controller.clone(),
                 ready: p.ready,
                 credits: p.wallet as f64 / CREDIT_SCALE as f64,
-                unit_count: living.get(index).copied().unwrap_or(0) + p.reservations.len() as u32,
+                unit_count: living.get(index).copied().unwrap_or(0) + p.reserved_units(),
                 cap: self.setup.rules.max_units,
                 pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
             })
@@ -260,9 +295,8 @@ impl Skirmish {
     pub fn reserve_at(
         &mut self,
         player: usize,
-        kind: TypeIndex,
+        purchase: Purchase,
         destination: [f64; 2],
-        price: u32,
         entry_tick: (crate::entries::EntryIndex, Tick),
         living: u32,
     ) -> Result<PurchaseId, OrderError> {
@@ -271,9 +305,10 @@ impl Skirmish {
             .players
             .get_mut(player)
             .ok_or(OrderError::MissingPlayer)?;
-        if living + p.reservations.len() as u32 >= self.setup.rules.max_units {
+        if living + p.reserved_units() + purchase.units() > self.setup.rules.max_units {
             return Err(OrderError::UnitLimitReached);
         }
+        let price = purchase.total();
         let micros = u64::from(price) * CREDIT_SCALE;
         if p.wallet < micros {
             return Err(OrderError::InsufficientCredits);
@@ -284,11 +319,13 @@ impl Skirmish {
         let id = PurchaseId(p.next_purchase);
         p.next_purchase += 1;
         p.reservations.push_back(Reservation {
-            price,
+            price: purchase.price,
+            carrier_price: purchase.carrier.map(|(_, price)| price),
             player,
             data: PendingPurchase {
                 id,
-                kind,
+                kind: purchase.kind,
+                carrier: purchase.carrier.map(|(kind, _)| kind),
                 entry: entry.0,
                 destination,
                 confirmed_tick: tick,
@@ -395,6 +432,11 @@ impl Skirmish {
                     .u64(r.price as u64)
                     .u64(r.data.arrival_tick.unwrap_or(u64::MAX))
                     .u64(r.data.entry as u64);
+                // Only a purchase with a carrier hashes it, so battles that
+                // buy none keep their digests.
+                if let (Some(kind), Some(price)) = (r.data.carrier, r.carrier_price) {
+                    d.u64(kind.0 as u64).u64(price as u64);
+                }
             }
         }
         for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
@@ -422,7 +464,7 @@ impl Skirmish {
             .ok_or(OrderError::MissingPlayer)?;
         if let Some(i) = p.reservations.iter().position(|r| r.data.id == purchase) {
             let r = p.reservations.remove(i).expect("reservation index");
-            p.wallet += u64::from(r.price) * CREDIT_SCALE;
+            p.wallet += u64::from(r.total()) * CREDIT_SCALE;
         }
         Ok(())
     }

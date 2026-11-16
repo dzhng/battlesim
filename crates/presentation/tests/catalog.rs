@@ -347,8 +347,8 @@ fn battle_art_replacement_changes_live_joint_facts_without_restarting_the_observ
         .units
         .appearances
         .iter()
-        .find(|(_, a)| matches!(a, Appearance::Articulated { .. }))
-        .map(|(n, a)| (n.clone(), a.clone()))
+        .find(|(_, a)| matches!(a.as_ref(), Appearance::Articulated { .. }))
+        .map(|(n, a)| (n.clone(), a.as_ref().clone()))
         .unwrap();
     if let Appearance::Articulated { nodes, .. } = &mut replacement {
         nodes[0].bind.t[0] += 4.0;
@@ -450,7 +450,7 @@ fn battle_compatibility_requires_only_retained_clips_and_blends() {
     let remove = |clip: &str| {
         let mut candidate = units.clone();
         for a in candidate.appearances.values_mut() {
-            if let Appearance::Skinned { clips, .. } = a {
+            if let Appearance::Skinned { clips, .. } = std::sync::Arc::make_mut(a) {
                 clips.remove(clip);
             }
         }
@@ -469,7 +469,7 @@ fn battle_compatibility_requires_only_retained_clips_and_blends() {
     let unused = units
         .appearances
         .values()
-        .find_map(|a| match a {
+        .find_map(|a| match a.as_ref() {
             Appearance::Skinned { clips, .. } => clips
                 .keys()
                 .find(|c| **c != current && **c != previous)

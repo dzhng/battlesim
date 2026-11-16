@@ -1,13 +1,14 @@
 //! What a battle's units and effects draw from (`presentation::fielded`),
-//! resolved for the page. The page reads the files and Rust decides: it
-//! names the runtime contents it reads (`contents`), the page fetches and
-//! inflates them as it does any bundle, and `resolve` builds `load_world`'s
-//! `units` and `effects` sections and clip tables from their bytes.
+//! resolved for the page. `pending_contents` names missing content and its
+//! sources. The page fetches and inflates those files, then `absorb` borrows
+//! one content's packed bytes to derive its facts. Argument-free `resolve`
+//! builds an immutable result from those facts; presentation loads its units,
+//! effects and clip tables without sending the descriptions through the page.
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use presentation::fielded::{self, Facts, Sections};
-use serde_json::{json, Value};
+use presentation::fielded::{self, Facts};
+use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
 use crate::error;
@@ -20,7 +21,6 @@ pub struct Fielding {
     runtime: Value,
     kinds: Vec<String>,
     factions: Option<[String; 2]>,
-    tables: Vec<Vec<f32>>,
     facts: Facts,
 }
 
@@ -70,7 +70,6 @@ impl Fielding {
                 .map(|f| serde_json::from_str(&f))
                 .transpose()
                 .map_err(|e| error(format!("factions: {e}")))?,
-            tables: Vec::new(),
             facts: Facts::default(),
         })
     }
@@ -80,41 +79,54 @@ impl Fielding {
         Ok(())
     }
 
-    /// The runtime contents `resolve` reads, by hash.
-    pub fn contents(&self) -> Result<Vec<String>, JsError> {
-        self.fielding().contents(&self.facts).map_err(error)
+    /// Content-sized facts missing from this fielding, including their source hashes.
+    pub fn pending_contents(&self) -> Result<String, JsError> {
+        serde_json::to_string(&self.fielding().pending(&self.facts).map_err(error)?).map_err(error)
     }
 
-    /// Resolves the battle from each content `contents` named, inflated, in
-    /// its order: `bytes` holds them end to end, `lengths` their lengths.
-    /// Returns `{units, effects, tables}` JSON, `tables` naming each clip
-    /// table `table` hands over by index.
-    pub fn resolve(&mut self, bytes: &[u8], lengths: &[u32]) -> Result<String, JsError> {
-        let hashes = self.contents()?;
+    /// Absorb one pending content; resolve afterwards reads no supplied bytes.
+    pub fn absorb(&mut self, content: &str, bytes: &[u8], lengths: &[u32]) -> Result<(), JsError> {
+        let content: fielded::Content = serde_json::from_str(content).map_err(error)?;
+        let hashes = content.hashes();
         if hashes.len() != lengths.len() {
-            return Err(error(format!(
-                "{} contents read, {} named",
-                lengths.len(),
-                hashes.len()
-            )));
+            return Err(error("content lengths differ from its sources"));
         }
-        let mut read = HashMap::new();
         let mut at = 0;
+        let mut source = HashMap::new();
         for (hash, &len) in hashes.iter().zip(lengths) {
             let end = at + len as usize;
-            read.insert(
+            source.insert(
                 hash.as_str(),
                 bytes
                     .get(at..end)
-                    .ok_or_else(|| error("contents run past their bytes"))?,
+                    .ok_or_else(|| error("content runs past its bytes"))?,
             );
             at = end;
         }
-        let Sections {
-            units,
-            effects,
-            tables,
-        } = fielded::Fielding {
+        fielded::Fielding {
+            presentation: &self.presentation,
+            rules: &self.rules,
+            catalog: &self.catalog,
+            runtime: &self.runtime,
+            kinds: &self.kinds,
+            factions: self
+                .factions
+                .as_ref()
+                .map(|f| [f[0].as_str(), f[1].as_str()]),
+        }
+        .absorb(&mut self.facts, &content, &|hash| {
+            source
+                .get(hash)
+                .map(|bytes| Cow::Borrowed(*bytes))
+                .ok_or_else(|| format!("content {hash} was not supplied"))
+        })
+        .map_err(error)
+    }
+
+    /// Resolve into an immutable Rust result. Its descriptions and clip tables
+    /// stay in this module; freeing the source owner does not invalidate it.
+    pub fn resolve(&mut self) -> Result<Fielded, JsError> {
+        let fielded = fielded::Fielding {
             presentation: &self.presentation,
             rules: &self.rules,
             catalog: &self.catalog,
@@ -125,22 +137,44 @@ impl Fielding {
                 .as_ref()
                 .map(|[blue, red]| [blue.as_str(), red.as_str()]),
         }
-        // The boundary already owns these bytes. Copying the complete source
-        // set again raises the non-shrinking WASM heap for the rest of the visit.
         .resolve(&mut self.facts, &|hash| {
-            read.get(hash)
-                .map(|b| Cow::Borrowed(*b))
-                .ok_or(format!("content {hash} was not read"))
+            Err(format!("content {hash} was not absorbed"))
         })
         .map_err(error)?;
-        let names: Vec<&String> = tables.keys().collect();
-        let out = json!({ "units": units, "effects": effects, "tables": names }).to_string();
-        self.tables = tables.into_values().collect();
-        Ok(out)
+        Ok(Fielded {
+            inner: std::sync::Arc::new(fielded),
+        })
+    }
+}
+
+/// A fielding snapshot: metadata queries cross the boundary, descriptions do not.
+#[wasm_bindgen]
+pub struct Fielded {
+    pub(crate) inner: std::sync::Arc<fielded::Fielded>,
+}
+
+#[wasm_bindgen]
+impl Fielded {
+    /// Another handle to this snapshot, consumed when loading a world. Descriptions
+    /// remain shared; a world reload never consumes its caller's retained result.
+    pub fn share(&self) -> Fielded {
+        Fielded {
+            inner: self.inner.clone(),
+        }
     }
 
-    /// Clip table `index` of the last `resolve`'s `tables`.
-    pub fn table(&self, index: usize) -> Vec<f32> {
-        self.tables[index].clone()
+    /// Whether this kind places a hull rather than squad members in a showcase.
+    pub fn hull(&self, kind: &str) -> Result<bool, JsError> {
+        self.inner
+            .units
+            .types
+            .get(kind)
+            .map(|t| t.hull)
+            .ok_or_else(|| error(format!("no unit type {kind}")))
+    }
+
+    /// The description work this resolve did, for the admission diagnostics.
+    pub fn work(&self) -> String {
+        serde_json::to_string(&self.inner.work).expect("fielding work serializes")
     }
 }
