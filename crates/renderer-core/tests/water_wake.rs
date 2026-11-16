@@ -1,5 +1,5 @@
 //! Observe one production wave step on calm water, before propagation can
-//! disguise the impulse's direction. Run under the shared GPU lock.
+//! disguise the impulse's direction.
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
