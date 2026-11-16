@@ -38,3 +38,10 @@ and are not repeated here.
 - **Shift-click repeats the pair without a client-side re-check;** the authority refuses a pair the credits or cap can't take, as it does a single unit. *Sound: one authority.*
 - **The ghost of the purchase in hand moved beside the pending ghosts (`heldGhost`)** to keep `useBattleSession.ts` within its size ratchet; one owner for purchase ghosts. *Sound.*
 - **A pending pair is two deck cards keyed `<id>-carrier` and `<id>`.** *Sound.*
+
+## Slice 5: end-to-end pair, tutorial, roster baselines
+
+- **The pair journey extends `unit-roster`** (the journey that already buys through the real picker), after its last existing picture so those stay independent. Rifle Squad in a Stryker ICV, placed 33 m up the road so the carrier really drives; 120 ticks after it stops the squad is still aboard (`data-aboard`). *Sound.*
+- **The tutorial's "buy" picture shows the transport menu,** not the MBT tab: it is the new thing to learn, and still shows flat cards and the tabs. *Sound.*
+- **The pair total reads carrier + squad,** top to bottom like the cards above it. *Sound.*
+- **Four `unit-roster` world pictures re-approved:** they fail on the unchanged scene too; staging's map commits (`e9a3e5a82` homesteads, `7f0586bd9` road corners, `b4c1a620f` straight entry road) moved the seed's map after their last approval. Not this spec's regression. *Sound.*

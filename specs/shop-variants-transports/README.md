@@ -1,6 +1,6 @@
 # Shop variants and transports: one card per variant, squads bought in a ride
 
-**Status:** slices 1, 2 and 4 merged (4's end-to-end scene pending); slice 3 (AI) and slice 5 (pair scene, tutorial shot, roster baselines) in flight; then closeout on this branch.
+**Status:** slices 1, 2, 4 and 5's scenes merged; slice 3 (AI) in flight; then whole-spec review, final ledger, close.
 **Updated:** 2026-11-16.
 
 The reinforcements shop stops grouping catalog variants into family tiles: every
@@ -130,5 +130,5 @@ once; whole-spec review; consolidate the ledger; close the spec.
 - [x] 1 The combined purchase
 - [x] 2 Flat shop and Armory (`unit-roster` has four world-render baseline diffs unrelated to the HUD: owned by closeout)
 - [ ] 3 AI buys a squad with its ride
-- [x] 4 Transport menu (end-to-end pair scene rides with slice 5)
+- [x] 4 Transport menu
 - [ ] 5 Tutorial, scenes, closeout
