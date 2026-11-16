@@ -7,6 +7,7 @@ import type { Reach, UnitCard } from "@packages/scene-assets/src/units";
 import { glyphIcon, hudIcon, weaponIcon } from "@packages/scene-assets/src/icons";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Icon } from "@web/battle/present/icons";
+import { Price } from "@web/battle/present/purchaseCard";
 import {
   SHEET_STATS,
   unitSheet,
@@ -173,9 +174,7 @@ export function ArmorySheet({ card, group }: ArmorySheetProps) {
       <header className="armory-sheet-head">
         <span className="armory-kicker">{group}</span>
         <h3>{card.roster.family_name}</h3>
-        <span className={`hud-purchase-price${sheet.planned ? " unsold" : ""}`}>
-          {card.cost} CR
-        </span>
+        <Price cost={card.cost} payable unsold={sheet.planned} />
         <span className="armory-variant">{card.roster.variant}</span>
         {sheet.planned ? (
           <span className="armory-tag">Planned</span>

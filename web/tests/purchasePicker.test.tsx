@@ -1,7 +1,7 @@
 import { shippedRules } from "@web/shippedRules";
 import { UNIT_GROUPS } from "@web/battle/present/purchaseFilter";
-import { cleanup, fireEvent, render as renderView, within } from "@testing-library/react";
-import { WithTestCatalog } from "./catalog";
+import { act, cleanup, fireEvent, render as renderView, within } from "@testing-library/react";
+import { UNITS, WithTestCatalog } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
@@ -16,7 +16,10 @@ const RULES = shippedRules as unknown as PanelRules;
 /** Views render under the test set, as a lab page provides it. */
 const render = (ui: Parameters<typeof renderView>[0]) =>
   renderView(ui, { wrapper: WithTestCatalog });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 /** A variant of an invented family, named `<family> <variant>`. None is a
  *  catalog type, so each browses under its category's first group. */
 const card = (
@@ -375,4 +378,222 @@ test("the shop's keys do nothing while the battle is covered", () => {
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
   expect(tabAt(document.body)).toBe(true);
   expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+});
+
+// A squad's ride. Squads and carriers are test catalog types: a card is a
+// squad by its soldier slots and a carrier by its seats. Prices are the
+// cards' own; the APC is cheaper than the scout car though listed after it,
+// and the helicopter is listed before both though its tab comes after.
+const squad = (id: string, family_name: string, cost: number) =>
+  card(id, "Base", { family: id, family_name, category: "inf", cost });
+const ride = (id: string, family_name: string, cost: number, category: UnitCategory = "veh") =>
+  card(id, "Base", { family: id, family_name, category, cost });
+const RIFLES = squad("test_rifle", "Rifles", 100);
+const TEAM = squad("test_at", "AT Team", 150);
+const HELI = ride("test_transport_heli", "Lift Heli", 300, "hel");
+const SCOUT = ride("test_scout_car", "Scout Car", 90);
+const APC = ride("test_apc", "APC", 60);
+const TANK = ride("test_tank", "Tank", 200);
+/** Never a carrier: a planned card has no type, so no seats. */
+const PLANNED = ride("test_planned_ride", "Planned Ride", 40);
+const RIDES = [RIFLES, TEAM, HELI, SCOUT, APC, TANK, PLANNED];
+
+test("the test carriers seat the squads these tests say they do", () => {
+  // The physical facts the menu's tests rest on, so a change to the test
+  // units says which test it moved.
+  const seats = (c: UnitCard) => UNITS.seats(c.id);
+  const size = (c: UnitCard) => UNITS.squadSize(c.id);
+  expect(seats(SCOUT)).toBeLessThan(size(RIFLES));
+  expect(seats(SCOUT)).toBeGreaterThanOrEqual(size(TEAM));
+  expect(Math.min(seats(APC), seats(HELI))).toBeGreaterThanOrEqual(size(RIFLES));
+  expect(seats(TANK)).toBe(0);
+  expect(UNITS.has(PLANNED.id)).toBe(false);
+});
+
+/** The shop opened on `group`'s tab over the transport cards. */
+function openOn(group: string, player: Partial<SkirmishView["players"][0]> = {}) {
+  const shop = openShop(RIDES, player);
+  fireEvent.click(shop.view.getByRole("tab", { name: tab(group) }));
+  return shop;
+}
+
+/** The open transport menu's sections, each its label and its cards'
+ *  names in order; null with no menu open. */
+const transportMenu = (view: ReturnType<typeof render>) => {
+  const menu = view.queryByRole("region", { name: "Transport" });
+  return (
+    menu &&
+    within(menu)
+      .getAllByRole("group")
+      .map((g) => [
+        g.getAttribute("aria-label"),
+        within(g)
+          .getAllByRole("button")
+          .map((b) => b.getAttribute("aria-label")),
+      ])
+  );
+};
+
+/** The info cards on show, top to bottom. */
+const infoCards = (view: ReturnType<typeof render>) =>
+  view.queryAllByRole("tooltip").map((t) => t.getAttribute("aria-label"));
+
+/** The menu's highlighted options. */
+const highlighted = (view: ReturnType<typeof render>) =>
+  within(view.getByRole("region", { name: "Transport" }))
+    .queryAllByRole("button", { pressed: true })
+    .map((b) => b.getAttribute("aria-label"));
+
+test("hovering a squad opens its transport menu: on foot, then each tab's carriers that seat it, cheapest first", () => {
+  vi.useFakeTimers();
+  const { view } = openOn("inf");
+  expect(transportMenu(view)).toBeNull();
+  fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  expect(transportMenu(view)).toEqual([
+    ["On foot", ["On foot"]],
+    [tab("ifv_apc"), [APC.name, SCOUT.name]],
+    [tab("hel"), [HELI.name]],
+  ]);
+  // Nothing is highlighted and no info card shows until the player points.
+  expect(highlighted(view)).toEqual([]);
+  expect(infoCards(view)).toEqual([]);
+  // A bigger squad, once the pointer rests on it: the scout car can't seat it.
+  fireEvent.mouseEnter(view.getByRole("button", { name: RIFLES.name }));
+  act(() => vi.advanceTimersByTime(1000));
+  expect(transportMenu(view)).toEqual([
+    ["On foot", ["On foot"]],
+    [tab("ifv_apc"), [APC.name]],
+    [tab("hel"), [HELI.name]],
+  ]);
+  // A ride's price reads as what it adds.
+  expect(view.getByRole("button", { name: APC.name }).textContent).toContain(`+${APC.cost} CR`);
+});
+
+test("a vehicle's card opens no transport menu, and a squad's info waits for its menu", () => {
+  const { view } = openOn("ifv_apc");
+  fireEvent.mouseEnter(view.getByRole("button", { name: APC.name }));
+  expect(transportMenu(view)).toBeNull();
+  expect(infoCards(view)).toEqual([APC.name]);
+});
+
+test("pointing at an option shows what it buys: on foot the squad, a ride its card with the squad aboard and the total", () => {
+  const { view } = openOn("inf");
+  fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "On foot" }));
+  expect(infoCards(view)).toEqual([TEAM.name]);
+  expect(highlighted(view)).toEqual(["On foot"]);
+  fireEvent.mouseEnter(view.getByRole("button", { name: SCOUT.name }));
+  expect(infoCards(view)).toEqual([SCOUT.name, TEAM.name]);
+  expect(highlighted(view)).toEqual([SCOUT.name]);
+  // The squad rides in the carrier: its seats count the squad's soldiers.
+  const [carrier, aboard] = view.getAllByRole("tooltip");
+  const seated = `${UNITS.squadSize(TEAM.id)}/${UNITS.seats(SCOUT.id)}`;
+  expect(carrier.textContent).toContain(seated);
+  expect(view.getByLabelText("Total").textContent).toContain(`${TEAM.cost + SCOUT.cost} CR`);
+  // The hovered ride is described by everything it buys.
+  const described = view.getByRole("button", { name: SCOUT.name }).getAttribute("aria-describedby");
+  expect(described?.split(" ")).toContain(aboard.id);
+});
+
+test("clicking a ride buys the squad in it; on foot or the squad's own card buys it alone", () => {
+  for (const [target, expected] of [
+    [SCOUT.name, ["test_at", "test_scout_car"]],
+    ["On foot", ["test_at"]],
+    [TEAM.name, ["test_at"]],
+  ] as const) {
+    const { view, choose } = openOn("inf");
+    fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+    fireEvent.click(view.getByRole("button", { name: target }));
+    expect(choose, target).toHaveBeenCalledExactlyOnceWith(...expected);
+    cleanup();
+  }
+});
+
+test("a ride is refused when the credits or the unit cap can't take the pair, while on foot still buys", () => {
+  const pair = TEAM.cost + SCOUT.cost;
+  for (const player of [
+    { credits: pair - 1 },
+    { unitCount: 29 },
+    { credits: pair, unitCount: 28 },
+  ]) {
+    const { view, choose } = openOn("inf", player);
+    fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+    const scout = view.getByRole("button", { name: SCOUT.name });
+    const refused = player.unitCount !== 28;
+    expect(scout.getAttribute("aria-disabled"), JSON.stringify(player)).toBe(String(refused));
+    fireEvent.click(scout);
+    if (refused) {
+      expect(choose).not.toHaveBeenCalled();
+      // The player can still read what it would have bought.
+      expect(infoCards(view)).toEqual([SCOUT.name, TEAM.name]);
+      fireEvent.click(view.getByRole("button", { name: "On foot" }));
+      expect(choose).toHaveBeenCalledExactlyOnceWith("test_at");
+    } else expect(choose).toHaveBeenCalledExactlyOnceWith("test_at", "test_scout_car");
+    cleanup();
+  }
+});
+
+test("crossing other cards on the way into an open menu keeps it; resting on one switches", () => {
+  vi.useFakeTimers();
+  const { view } = openOn("inf");
+  const scoutListed = () => JSON.stringify(transportMenu(view)).includes(SCOUT.name);
+  fireEvent.mouseEnter(view.getByRole("button", { name: RIFLES.name }));
+  expect(scoutListed()).toBe(false);
+  // Across the team's card and into the rifles' menu.
+  fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  expect(scoutListed()).toBe(false);
+  fireEvent.mouseEnter(view.getByRole("button", { name: APC.name }));
+  act(() => vi.advanceTimersByTime(1000));
+  expect(scoutListed()).toBe(false);
+  expect(highlighted(view)).toEqual([APC.name]);
+  // Resting on the team's card opens its menu, nothing highlighted.
+  fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  act(() => vi.advanceTimersByTime(1000));
+  expect(scoutListed()).toBe(true);
+  expect(highlighted(view)).toEqual([]);
+});
+
+test("a search down to one squad opens its menu; Up and Down step through it, Enter buys", () => {
+  const camera = vi.fn();
+  window.addEventListener("keydown", camera);
+  try {
+    const search = (query: string) => {
+      const shop = openShop(RIDES);
+      const field = shop.view.getByRole("textbox", { name: "Search units" });
+      fireEvent.change(field, { target: { value: query } });
+      const key = (key: string) => fireEvent.keyDown(field, { key, cancelable: true });
+      return { ...shop, key };
+    };
+    // Enter with nothing highlighted buys on foot.
+    let shop = search("at team");
+    expect(transportMenu(shop.view)?.[0]).toEqual(["On foot", ["On foot"]]);
+    expect(highlighted(shop.view)).toEqual([]);
+    shop.key("Enter");
+    expect(shop.choose).toHaveBeenCalledExactlyOnceWith("test_at");
+    cleanup();
+    // Down steps on foot, then each section cheapest first; Up steps back.
+    shop = search("at team");
+    camera.mockClear();
+    const steps = ["ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp"].map((k) => {
+      // The arrows are the menu's: the camera never sees them.
+      expect(shop.key(k)).toBe(false);
+      return [highlighted(shop.view), infoCards(shop.view)];
+    });
+    expect(steps).toEqual([
+      [["On foot"], [TEAM.name]],
+      [[APC.name], [APC.name, TEAM.name]],
+      [[SCOUT.name], [SCOUT.name, TEAM.name]],
+      [[APC.name], [APC.name, TEAM.name]],
+    ]);
+    expect(camera).not.toHaveBeenCalled();
+    shop.key("Enter");
+    expect(shop.choose).toHaveBeenCalledExactlyOnceWith("test_at", "test_apc");
+    cleanup();
+    // With no menu open, the arrows stay the camera's.
+    shop = search("tank");
+    expect(shop.key("ArrowUp")).toBe(true);
+    expect(camera).toHaveBeenCalled();
+  } finally {
+    window.removeEventListener("keydown", camera);
+  }
 });

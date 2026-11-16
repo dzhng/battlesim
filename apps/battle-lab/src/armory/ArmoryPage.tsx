@@ -14,6 +14,7 @@ import {
   unitGroup,
   type UnitGroup,
 } from "@web/battle/present/purchaseFilter";
+import { Price } from "@web/battle/present/purchaseCard";
 import { UnitFace } from "@web/battle/present/unitFace";
 import { spoken } from "../battleLinks";
 import { ArmorySheet } from "./ArmorySheet";
@@ -167,9 +168,7 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
                   {!typed && <span className="armory-tile-tag">PLANNED</span>}
                   <UnitFace kind={tile.id}>
                     <span className="armory-tile-name">{tile.name}</span>
-                    <span className={`hud-purchase-price${typed ? "" : " unsold"}`}>
-                      {tile.cost} CR
-                    </span>
+                    <Price cost={tile.cost} payable unsold={!typed} />
                   </UnitFace>
                 </button>
               );

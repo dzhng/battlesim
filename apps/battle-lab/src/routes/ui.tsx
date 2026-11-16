@@ -98,6 +98,15 @@ const purchaseCards = (planned: string): UnitCard[] => [
   card("test_supply", "sup", "Supply Truck", "Base", 90),
 ];
 
+/** The picker's content beside two more carriers, so a squad's transport
+ *  menu has rides under two tabs: the scout car seats only the small team,
+ *  the helicopter is beyond the short wallet with any squad aboard. */
+const transportCards = (planned: string): UnitCard[] => [
+  ...purchaseCards(planned),
+  card("test_scout_car", "veh", "Scout Car", "Base", 110),
+  card("test_transport_heli", "hel", "Lift Heli", "Base", 300),
+];
+
 /** The Armory's fixed content: test units in every group but two, two
  *  sibling variants (Jeep), a card Europe fields too (Scout Car), and a
  *  planned card. The planned card borrows the first planned card's id for
@@ -235,7 +244,13 @@ function Status({ match }: { match: SkirmishView }) {
 }
 
 /** The deck with its reinforcements, as a battle in preparation shows it. */
-function Purchase({ match }: { match: SkirmishView }) {
+function Purchase({
+  match,
+  content = purchaseCards,
+}: {
+  match: SkirmishView;
+  content?: (planned: string) => UnitCard[];
+}) {
   const catalog = useSessionCatalog();
   const rules = catalog.rules as unknown as PanelRules;
   const own = ["test_tank", "test_rifle", "test_at"].map((kind, i) =>
@@ -243,7 +258,7 @@ function Purchase({ match }: { match: SkirmishView }) {
   );
   const armyState = useFeed({ own });
   const [cards] = useState(() =>
-    purchaseCards(catalog.units.cards.find((c) => !catalog.units.has(c.id))!.id),
+    content(catalog.units.cards.find((c) => !catalog.units.has(c.id))!.id),
   );
   return (
     <div className="hud">
@@ -404,6 +419,19 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
           ...MATCH,
           phase: "preparation",
           players: [{ ...MATCH.players[0], ready: false, credits: 110 }],
+        }}
+      />
+    ),
+  },
+  {
+    id: "transport-menu",
+    draw: () => (
+      <Purchase
+        content={transportCards}
+        match={{
+          ...MATCH,
+          phase: "preparation",
+          players: [{ ...MATCH.players[0], ready: false, credits: 350 }],
         }}
       />
     ),

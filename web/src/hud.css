@@ -1670,6 +1670,68 @@ html {
   font-size: 10px;
   color: rgb(var(--hud-text) / 0.7);
 }
+/* A squad's transport menu, standing on the squad's card (its left edge at
+   the card's) on the shop's own glass. The wrapper's foot is a clear bridge
+   down to the card, so the pointer never leaves the menu on its way up. */
+.hud-transport {
+  position: absolute;
+  z-index: 2;
+  padding-bottom: 3px;
+}
+.hud-panel.hud-transport-menu {
+  display: flex;
+  gap: 14px;
+  padding: 8px 10px 10px;
+  background: rgb(var(--hud-glass) / 0.98);
+}
+.hud-transport-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* A section's tab label, small and dim over its cards. */
+.hud-transport-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgb(var(--hud-text) / 0.55);
+}
+.hud-transport-cards {
+  display: flex;
+  gap: 4px;
+}
+/* The pointed option's info: the carrier's card over the squad's, then what
+   the two cost together, standing on the whole menu at the option's left
+   edge, as wide as its widest card. It only shows, as the info card does. */
+.hud-transport-stack {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 3px;
+  pointer-events: none;
+}
+.hud-transport-stack > .hud-purchase-info {
+  width: auto;
+}
+.hud-purchase-total {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(var(--hud-glass) / 0.98);
+}
+.hud-purchase-sum {
+  margin-left: auto;
+  color: rgb(var(--hud-text) / 0.7);
+  font-variant-numeric: tabular-nums;
+}
 .hud-score {
   color: rgb(var(--hud-accent));
   font-variant-numeric: tabular-nums;

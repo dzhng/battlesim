@@ -71,6 +71,47 @@ export function cardPurchasable(card: UnitCard, facts: BuyFacts): boolean {
   );
 }
 
+/** On sale both, both prices within the credits, room under the cap for two
+ *  units, battle running: whether a squad can be bought with its carrier. */
+export function pairPurchasable(squad: UnitCard, carrier: UnitCard, facts: BuyFacts): boolean {
+  return (
+    !facts.finished &&
+    squad.disabled_reason === null &&
+    carrier.disabled_reason === null &&
+    squad.cost + carrier.cost <= facts.credits &&
+    facts.unitCount + 2 <= facts.maxUnits
+  );
+}
+
+/** A section of a squad's transport menu: the carriers under one shop tab. */
+export interface CarrierSection {
+  group: UnitGroup;
+  label: string;
+  carriers: UnitCard[];
+}
+
+/** The carriers that can take a squad of `squadSize` soldiers: every card on
+ *  sale that seats them all, sectioned by its shop tab in tab order, cheapest
+ *  first within a section (catalog order breaks ties). `seats` is a card's
+ *  seat count, 0 for one that carries no one. */
+export function carrierSections(
+  squadSize: number,
+  cards: readonly UnitCard[],
+  seats: (card: UnitCard) => number,
+  groupOf: (card: UnitCard) => UnitGroup,
+): CarrierSection[] {
+  const fit = cards
+    .map((card, at) => ({ card, at }))
+    .filter(({ card }) => card.disabled_reason === null && seats(card) >= squadSize)
+    .sort((a, b) => a.card.cost - b.card.cost || a.at - b.at)
+    .map(({ card }) => card);
+  return UNIT_GROUPS.map(({ id, label }) => ({
+    group: id,
+    label,
+    carriers: fit.filter((card) => groupOf(card) === id),
+  })).filter((section) => section.carriers.length > 0);
+}
+
 /** The cards a query matches, in catalog order: every whitespace token must
  *  appear in the family's name or the variant's. A blank query matches all. */
 export function filterCards(cards: readonly UnitCard[], query: string): UnitCard[] {
