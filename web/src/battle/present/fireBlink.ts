@@ -26,8 +26,9 @@ export type BlinkTiming = Pick<HudTheme["fire_blink"], "on_s" | "off_s" | "wait_
 /** Plays a blink on its element as it mounts (a ref callback, so a stable
  *  function: it runs once per blink, never per render). Two pulses, each
  *  lit for `on_s` and dark for `off_s`: it rises as fast as it fades (half of
- *  `off_s`), so an alert lands at once, holds while easing off a little, and
- *  is dark for the rest. */
+ *  `off_s`, kept within `on_s` so the keyframes stay in time order), so an
+ *  alert lands at once, holds while easing off a little, and is dark for the
+ *  rest. */
 export function playBlink(el: HTMLElement | null, timing: BlinkTiming = gameHud.fire_blink) {
   if (!el?.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const { on_s: on, off_s: off } = timing;
@@ -89,10 +90,10 @@ export class FireBlinks {
       next ??= new Map(this.feed.current);
       next.set(id, { colour: "red", serial: ++this.serial, lost: true });
     }
-    const measured = new Map<number, { health: number; withdrawing: boolean }>();
+    const seen = new Map<number, { health: number; withdrawing: boolean }>();
     for (const unit of o.own) {
       const now = health(unit);
-      measured.set(unit.id, { health: now, withdrawing: unit.withdrawing });
+      seen.set(unit.id, { health: now, withdrawing: unit.withdrawing });
       const before = this.last.get(unit.id)?.health;
       const hurt = before !== undefined && now < before;
       // Red first; a hit inside red's wait still lets a pass show yellow.
@@ -104,7 +105,7 @@ export class FireBlinks {
         next.set(unit.id, { colour, serial: ++this.serial, lost: false });
       }
     }
-    this.last = measured;
+    this.last = seen;
     if (next) this.feed.set(next);
   }
 
