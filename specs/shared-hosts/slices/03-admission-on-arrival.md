@@ -43,7 +43,7 @@
 
 ## Tests (`crates/sim/tests/shared_hosts.rs`)
 
-- The relief test, now green.
+- The relief test, now green: remove its `#[ignore]`.
 - `squads_share_a_host_while_seats_remain_and_a_latecomer_finds_no_room`, one
   test covering both hosts: two squads share; a third arrives, gets
   `CapacityFull`, ends with no hold and an empty queue, and stays outside when

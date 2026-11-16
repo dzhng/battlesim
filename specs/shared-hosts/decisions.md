@@ -88,3 +88,37 @@ things the plan left open.
 - **`OccupyBuilding` goes only to infantry**, through the existing
   `commandReach` predicate, so a mixed selection doesn't refuse the whole
   order.
+
+## Slice 00
+
+- **The relief test sends `OccupyBuilding` in its wire form** (JSON, no
+  `facing`), so it compiles unchanged through slice 01's contract cut. Today
+  that order is accepted and B is parked as a companion; the slice's "refused
+  with `BuildingOccupied`" holds only inside `garrison::occupy`'s entrant
+  search, not as a published refusal (slice 00, Done).
+- **The test sets its own bound**: `buildings.capacity_soldiers` is set to
+  two squads less one soldier, read from the squad's size, and the seat total
+  comes from `seats_for_state`. It asserts the scene seats either squad but
+  not both before anything else.
+- **"Seats taken never exceed the total" is asserted two ways each tick**:
+  soldiers of squads stepping in or inside (the start check's count), and
+  soldiers inside or stepping out (those at windows).
+- **The probe plays every shipped encounter**, not only the defender ones the
+  slice lists, because `UNCHANGED_OTHER_SCENES` means every encounter but the
+  contested two. Rules follow the map's category (test maps: the game's set
+  plus the test units, as labs run; capture maps: the capture set), seed 1,
+  a fixed tick count. The menu scenes therefore run seed 1, not the reel's
+  seeds; the reel's own event-log tests cover those.
+- **Single-host building cases mirror existing tests** (entry and exit with
+  re-entry, `an_atgm_gunner_trades_windows…`, the garrisoned reinforcement in
+  `supply.rs`, the `shelled` collapse); `transport/board` (`Board`, `Collect`)
+  and `transport/heli` are the single-host carrier cases.
+- **A single-squad entry is sent as `garrison` while that order exists, else
+  as `occupy_building`.** Slice 01's claim is that the second lowers exactly as
+  the first, and `UNCHANGED_SINGLE_HOSTS` checks it. Each run's `INDEX` says
+  which form ran.
+- **Contested demos**: garrison lab, rifle squads ordered in at ticks 30 and
+  330, scouts at 900; transport controls, both squads `Board` the APC at
+  tick 1. Both scenes need reshaping in slice 07 (slice 00, Confirm first).
+- **The commit key ignores changes under `crates/*/tests/`**: tests never move
+  an outcome, so a run with only test edits keys as the clean commit.

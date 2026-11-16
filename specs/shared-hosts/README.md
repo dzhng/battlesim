@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** planned, not started. **Updated:** 2026-11-16.
+**Status:** in progress; slice 00 done. **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -10,7 +10,7 @@ decision (`specs/done/battle-look/decisions.md`).
 
 ## Next Agent Prompt
 
-You are implementing this plan from slice 00. Read, in order: this file, the
+You are implementing this plan from slice 01. Read, in order: this file, the
 [decisions ledger](decisions.md), the slice you are about to build, and, for
 the history of how each decision was reached, the
 [unknowns map](unknowns-map.html) (its plan and prompt sections are
@@ -18,11 +18,33 @@ superseded by this file). Before slices 05–06 read
 [`game-ui`](../../.agents/skills/game-ui/SKILL.md). Before slice 03 read
 [`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md).
 
-Next pickup: **[slice 00, proof and probes](slices/00-proof-and-probes.md).**
+Next pickup: **[slice 01, one building order](slices/01-one-building-order.md).**
+
+The digest gates run with one command from the repository root:
+
+```sh
+throwaway/shared-hosts/probe.sh
+```
+
+It records every case's per-tick digest for HEAD (key: short SHA, plus
+`-dirty` when `crates/` or `fixtures/` differ, tests excepted) and compares it
+with `BASELINE` (e2c946e0a9), grouped by gate: `UNCHANGED_SINGLE_HOSTS`
+(scripted building entry and exit, window swap, reinforcement inside,
+collapse; `transport/board` for `Board` and `Collect`; `transport/heli`),
+`UNCHANGED_OTHER_SCENES` (every other shipped encounter, the defender ones
+included) and `CONTESTED` (the garrison lab and transport controls demos).
+It prints each case's first differing tick and exits 1 if anything outside
+`CONTESTED` moved; each case's `.facts` log shows what it reached.
+`probe.sh record <name>` and `probe.sh compare <a> <b>` run either half.
+`throwaway/` is ignored, so the probe exists only in this checkout; another
+checkout copies `throwaway/shared-hosts/` across.
+
+The relief test (`crates/sim/tests/shared_hosts.rs`) is committed red and
+`#[ignore]`d; slice 03 removes the ignore.
 
 Checklist (each item is its slice's whole contract):
 
-- [ ] 00 · The relief test, red, and the digest probe baseline ([slice](slices/00-proof-and-probes.md))
+- [x] 00 · The relief test, red, and the digest probe baseline ([slice](slices/00-proof-and-probes.md))
 - [ ] 01 · One building order: contract cutover and every squad routed in ([slice](slices/01-one-building-order.md))
 - [ ] 02 · One window plan per building, outcomes unchanged ([slice](slices/02-one-window-plan.md))
 - [ ] 03 · Admission on arrival for both hosts; the relief test goes green ([slice](slices/03-admission-on-arrival.md))
