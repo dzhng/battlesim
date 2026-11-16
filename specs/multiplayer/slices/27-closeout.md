@@ -25,8 +25,8 @@ lives, and archived.
    Frontline live, and the two seat events if they are deliberate rules. The
    root README says how to run the server beside the site. Each new folder
    has a README written for the next agent.
-6. Delete the probe apps `mp-probe` and `mp-soak` (the host soak of
-   2026-11-15) from the `armata` workspace, with the user's word, and the
+6. Delete the probe apps `mp-probe`, `mp-soak` (the host soak of
+   2026-11-15) and `addr-probe` (the address header check of 2026-11-16) from the `armata` workspace, with the user's word, and the
    scratch under `throwaway/mp-probe/` and `throwaway/multiplayer/`.
 7. **Ask the user** before promoting and deploying Frontline, as in slice 19.
 8. Archive the plan with
