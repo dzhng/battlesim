@@ -49,13 +49,28 @@ use vehicle::step_vehicle;
 const GOAL_REPLAN_M: f64 = 5.0;
 /// Seconds without closing on the next waypoint before a route is replanned.
 const STALL_REPLAN_S: f64 = 2.0;
-/// How long a stalled unit's way may stay no shorter before it gives the
-/// move up and holds until its side learns something new of the ground, or
-/// this long again has passed: longer than a truck's three-point turn
-/// takes. Waiting for a vehicle in the way is traffic, not a stall.
+/// How long a unit may get nowhere before it stops near enough to its goal
+/// or finds no way, and how long it holds blocked before it tries again
+/// (unless its side learns something new of the ground first): longer than
+/// a truck's three-point turn takes. Waiting behind a rolling vehicle is
+/// traffic, not a stall.
 const GIVE_UP_S: f64 = 30.0;
-/// How much shorter its way must have become to count as progress.
-const STALL_GAIN_M: f64 = 2.0;
+/// A unit that has got no farther than this from where its stuck clock
+/// started is not getting anywhere, however its routes change; a reversing
+/// leg can take a vehicle most of this way and back.
+const STUCK_REACH_M: f64 = 15.0;
+/// A vehicle slower than this is standing, not rolling: waiting behind it
+/// is not traffic (two vehicles waiting for each other would never move).
+const ROLLING_MPS: f64 = 0.1;
+/// A unit that has found no way to its goal this many times gives the
+/// order up and stands, ready for another.
+const MAX_TRIES: u8 = 3;
+/// A vehicle sent on to a goal this near the one it is driving to keeps
+/// its way while the new one is worked out.
+const KEEP_ROUTE_M: f64 = 25.0;
+/// A unit stuck this near its goal, past its own hull, is as near as the
+/// ground lets it: it stops there and the move is done.
+const NEAR_GOAL_M: f64 = 12.0;
 /// Progress shorter than this does not reset the stall watch.
 const PROGRESS_EPSILON_M: f64 = 0.5;
 /// A vehicle planning its way out of a traffic knot plans round every
@@ -98,6 +113,11 @@ pub(crate) fn advance(
         .collect();
     let field = take_cover::Field::gather(ctx, units);
     completed(crate::battle::TickPhase::Movement);
+    // Who is rolling: waiting behind one of them is traffic.
+    let rolling: Vec<bool> = units
+        .iter()
+        .map(|u| u.on_field() && u.drive_speed_mps.abs() > ROLLING_MPS)
+        .collect();
     for unit in units.iter_mut() {
         // The destroyed stay put; a wreck is an obstacle prop, not traffic.
         if !unit.on_field() {
@@ -109,7 +129,7 @@ pub(crate) fn advance(
             continue;
         }
         let s = unit.side.index();
-        request_route(ctx, unit, &mut sides[s], &footprints, planner);
+        request_route(ctx, unit, &mut sides[s], &footprints, &rolling, planner);
     }
     plan_routes(ctx, units, sides, &field, planner);
     completed(crate::battle::TickPhase::Navigation);
@@ -159,13 +179,18 @@ pub(crate) fn advance(
 }
 
 /// Ask the planner for a route when the unit needs one: a new goal, a route
-/// its side now knows is blocked, or a stall. It holds until the route comes
-/// ([`plan_routes`]); a goal that moves on meanwhile asks again.
+/// its side now knows is blocked, or a stall. A vehicle with a way to the
+/// same place drives on along it meanwhile; otherwise the unit holds until
+/// the route comes ([`plan_routes`]). A goal that moves on meanwhile asks
+/// again. A unit that gets nowhere for a give-up spell stops if it is near
+/// enough to its goal, and otherwise finds no way, tries again, and the
+/// third time gives the order up: no unit is stuck for good.
 fn request_route(
     ctx: &MovementContext,
     unit: &mut Unit,
     side: &mut SideGeometry,
     footprints: &[Option<Obb2>],
+    rolling: &[bool],
     planner: &mut RoutePlanner,
 ) {
     prefer_roads(ctx, unit);
@@ -188,27 +213,56 @@ fn request_route(
     let goal_moved = unit
         .planned_goal
         .is_none_or(|g| (g - goal).outside_radius(GOAL_REPLAN_M));
-    if planner.pending(unit.id).is_some() && !goal_moved {
+    // A route on its way to (near) the same place is worth waiting for: an
+    // order again does not throw the search away.
+    let pending = planner
+        .pending(unit.id)
+        .is_some_and(|r| !goal_moved || (r.goal - goal).within_radius(KEEP_ROUTE_M));
+    if pending {
+        // Holding for its route is planning, not being stuck.
+        if unit.route.is_none() {
+            unit.stalls = (unit.position.xy(), ctx.tick);
+        }
         return;
     }
     let changed = unit.planned_revision != side.revision;
     let stall_ticks = (STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
-    if goal_moved {
-        unit.stalls = (f64::INFINITY, ctx.tick);
-    } else if stalled && unit.blocker.is_none() {
-        let route = unit.route.as_deref().unwrap_or(&[]);
-        let left = way_left(unit.position.xy(), route);
-        if left < unit.stalls.0 - STALL_GAIN_M {
-            unit.stalls = (left, ctx.tick);
+    // The stuck clock: where it stood when the clock started, and when. A
+    // new route does not wind it back, nor an order again to the same
+    // place; getting well away from that spot does, a goal somewhere new
+    // does, and waiting behind a vehicle that is rolling holds it (traffic).
+    let same_place = unit
+        .route
+        .as_ref()
+        .and_then(|r| r.last())
+        .is_some_and(|&end| (end - goal).within_radius(KEEP_ROUTE_M));
+    let traffic = unit.blocker.is_some_and(|b| rolling[b.0 as usize]);
+    let here = unit.position.xy();
+    if goal_moved && !same_place {
+        unit.stalls = (here, ctx.tick);
+        unit.tries = 0;
+    } else if traffic {
+        unit.stalls = (here, ctx.tick);
+    } else if unit.route.is_some() {
+        // A squad gets on a man at a time: any soldier nearer his spot (its
+        // own stall watch) is progress, however little its middle moves.
+        let squad_gained = !unit.is_vehicle() && unit.progress.1 > unit.stalls.1;
+        if squad_gained || (here - unit.stalls.0).outside_radius(STUCK_REACH_M) {
+            unit.stalls = (here, ctx.tick);
         } else if ctx.tick.saturating_sub(unit.stalls.1)
             > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
         {
             planner.cancel(unit.id);
-            unit.route = None;
-            unit.state = MoveState::RouteBlocked;
-            unit.stalls = (f64::INFINITY, ctx.tick);
-            unit.planned_revision = side.revision;
+            let reach = unit.hull.map_or(0.0, |h| h.x) + NEAR_GOAL_M;
+            if (goal - here).within_radius(reach) {
+                // As near as the ground (or what stands on the marker) lets it.
+                arrive(unit);
+            } else {
+                unit.route = None;
+                blocked(unit, ctx.tick);
+                unit.planned_revision = side.revision;
+            }
             return;
         }
     }
@@ -284,9 +338,16 @@ fn request_route(
     }
     side.searches += 1;
     unit.planned_goal = Some(goal);
-    // It holds without a route while it waits; a detour keeps the one it has.
-    let kept = unit.route.take().filter(|_| !detour.is_empty());
-    unit.state = MoveState::Planning;
+    // A vehicle drives on along the way it has while it works out a new one
+    // to the same place (a driver does not stop to rethink); sent somewhere
+    // new, or on foot, it holds until the route comes.
+    if !(unit.is_vehicle() && same_place) {
+        unit.route = None;
+    }
+    let kept = unit.route.clone().filter(|_| !detour.is_empty());
+    if unit.route.is_none() {
+        unit.state = MoveState::Planning;
+    }
     let from = {
         let grid = side.grid(ctx.world, ctx.authored);
         route_start(unit, |p| grid.placement_fits(p, unit.ground()))
@@ -304,6 +365,23 @@ fn request_route(
             new_goal: goal_moved,
         },
     );
+}
+
+/// Drop the waypoints of `route` (planned from `from`) that a vehicle now
+/// at `here` has passed: it picks the route up at its stretch nearest it.
+fn rejoin(here: V2, from: V2, route: &mut Vec<V2>) {
+    let mut a = from;
+    let mut nearest = (f64::INFINITY, 0);
+    for (k, &b) in route.iter().enumerate() {
+        let ab = b - a;
+        let t = ((here - a).dot(ab) / ab.dot(ab).max(1e-12)).clamp(0.0, 1.0);
+        let d = (a + ab * t - here).length();
+        if d < nearest.0 {
+            nearest = (d, k);
+        }
+        a = b;
+    }
+    route.drain(..nearest.1);
 }
 
 /// Metres from `here` along `route` to its end.
@@ -358,9 +436,17 @@ fn plan_routes(
             waiting[2].then(|| known(ctx, neutral)),
         ],
     );
-    for (id, request, plan) in ready {
+    for (id, request, plan, revision) in ready {
         let unit = &mut units[id.0 as usize];
-        take_route(ctx, unit, &sides[unit.side.index()], field, request, plan);
+        take_route(
+            ctx,
+            unit,
+            &sides[unit.side.index()],
+            field,
+            request,
+            plan,
+            revision,
+        );
         line_up(unit, sides[unit.side.index()].grid(ctx.world, ctx.authored));
     }
 }
@@ -411,11 +497,18 @@ fn take_route(
     side: &SideGeometry,
     field: &take_cover::Field,
     request: Request,
-    plan: Plan,
+    mut plan: Plan,
+    revision: u64,
 ) {
     let from = request.from;
-    unit.planned_revision = side.revision;
+    // What its side learned while the route was worked out is checked
+    // along it on the next tick, as every later change is.
+    unit.planned_revision = revision;
     unit.progress = (f64::INFINITY, ctx.tick);
+    // A vehicle that drove on meanwhile joins the new route where it is.
+    if let (true, Plan::Route(route)) = (unit.is_vehicle(), &mut plan) {
+        rejoin(unit.position.xy(), from, route);
+    }
     if matches!(plan, Plan::Route(_)) {
         unit.manoeuvre = None;
     }
@@ -458,8 +551,7 @@ fn take_route(
         }
         Plan::Blocked(_) => {
             unit.route = None;
-            unit.state = MoveState::RouteBlocked;
-            unit.stalls = (f64::INFINITY, ctx.tick);
+            blocked(unit, ctx.tick);
         }
     }
 }
@@ -545,6 +637,24 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
     unit.progress.1 = ctx.tick;
     unit.state = held;
     false
+}
+
+/// No way to its goal: it says so and tries again later, but the third time
+/// it gives the order up and stands, so no unit is blocked for good.
+fn blocked(unit: &mut Unit, tick: u64) {
+    unit.tries += 1;
+    if unit.tries >= MAX_TRIES {
+        unit.orders.pop_front();
+        unit.planned_goal = None;
+        unit.state = if unit.orders.is_empty() {
+            MoveState::Idle
+        } else {
+            MoveState::Moving
+        };
+        return;
+    }
+    unit.state = MoveState::RouteBlocked;
+    unit.stalls = (unit.position.xy(), tick);
 }
 
 /// A route's end reached: a destination completes its move; a pursuit point
