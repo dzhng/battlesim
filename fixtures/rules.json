@@ -932,7 +932,7 @@
     "vehicle_moved_m": 2,
     "lean_burst_s": 3,
     "lean_tuck_s": 2,
-    "lean_hold_s": 1.5,
+    "lean_hold_s": 0.5,
     "lean_max_m": 1.5,
     "lean_clear_m": 0.1,
     "lean_apart_m": 0.8,
