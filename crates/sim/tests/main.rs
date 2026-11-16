@@ -89,6 +89,7 @@ mod skirmish_ownership;
 mod skirmish_team;
 mod smoke;
 mod soldier_bodies;
+mod squad_aim;
 mod straight_ways;
 mod strike;
 mod supply;

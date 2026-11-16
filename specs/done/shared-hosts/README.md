@@ -16,10 +16,10 @@ had deleted the waiting phase and slot sharing with it.
 
 [decisions.md](decisions.md) is the final ledger: every decision the code
 carries that the ask did not spell out, who made it, and how confident the
-audit is that the user would agree. Two items there are still the user's:
-the Paris-corner menu reel now plays with no casualties (N1), and whether
-guns should aim at seen soldiers for any squad whose middle is blocked, not
-only garrisons (N2). [unknowns-map.html](unknowns-map.html) is the
+audit is that the user would agree. The two items that were left for the
+user are settled: guns aim at seen soldiers for any squad whose middle is
+blocked, not only garrisons (N2, the user's call), and with it the
+Paris-corner menu reel has deaths on screen again (N1). [unknowns-map.html](unknowns-map.html) is the
 2026-11-16 walk that reached the user's decisions, kept as history. The
 ledger's "slice" numbers name the build passes; the branch's commit
 subjects carry them.
@@ -65,8 +65,8 @@ subjects carry them.
   Sharing made it routine (two squads cover every facade), but a lone
   garrison could be just as unshootable. A gun tries each soldier its side
   saw at the windows instead, for every garrison, lone ones included. The
-  rule is scoped to garrisons; widening it to any squad whose middle is
-  blocked is open (ledger N2).
+  rule is not about garrisons: any squad whose middle is blocked is shot at
+  the soldiers its enemy sees (ledger N2).
 - **One mark per house.** A shared house draws one ring and one outline: the
   ring means "in this building", not a squad count. The IN BUILDING row
   shows the house's seats used of total, the carrier's SEATS word, so a
@@ -174,8 +174,6 @@ subjects carry them.
 - **A scripted ground attack for the garrison lab's tank.** A workaround for
   garrisons nobody could engage; the engagement fix replaced it and the tank
   is back on fire at will.
-- **Aiming at seen soldiers for any blocked squad.** Tried, and it moved
-  squads in the open and several recordings; left for the user (ledger N2).
 
 ## Visual provenance
 
