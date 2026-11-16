@@ -78,10 +78,8 @@ import { useAppAudio } from "./AppAudio";
 import { useFeed } from "@web/feed";
 import type { Vec3 } from "math";
 import {
-  GHOST_BLOCKED,
   GHOST_OWN,
   GHOST_SELECTED,
-  fieldedSoldiers,
   ghostBodies,
   ghostAloft,
   aircraftOrderReadouts,
@@ -90,7 +88,7 @@ import {
   placementUnder,
   type UnitGhost,
 } from "./unitGhosts";
-import { byReference, pendingGhosts } from "./pendingGhosts";
+import { byReference, heldGhost, pendingGhosts } from "./pendingGhosts";
 import { modelProbes } from "./modelProbes";
 
 export function useBattleSession({
@@ -243,10 +241,10 @@ export function useBattleSession({
   /** The side's units an ally owns, with their panels' owner lines. */
   const allies = useMemo(() => allyOwners(observation, commanding), [observation, commanding]);
   const choosePurchase = useCallback(
-    (variant: string) => {
+    (variant: string, carrier?: string) => {
       control.setSelected([]);
       control.setMode("move");
-      chooseVariant(variant);
+      chooseVariant(variant, carrier);
     },
     [control, chooseVariant],
   );
@@ -427,14 +425,7 @@ export function useBattleSession({
           const ghost = orderedGhost(unit, GHOST_OWN);
           if (ghost) ghosts.push(ghost);
         }
-      if (placement && inputEnabled)
-        ghosts.push({
-          kind: placement.variant,
-          at: placement.destination,
-          soldiers: fieldedSoldiers(placement.spots),
-          yaw: placement.facing,
-          look: placement.valid === false ? GHOST_BLOCKED : GHOST_SELECTED,
-        });
+      if (placement && inputEnabled) ghosts.push(heldGhost(placement));
       const presented = presentation.frame(
         time,
         presentedCamera(viewport),
@@ -577,12 +568,12 @@ export function useBattleSession({
       (!pointer.rightPress || releasedAction.capturedFor(sim.client) !== null) &&
       sim.client &&
       world;
-    if (purchasePlacement.variant) {
+    if (purchasePlacement.arriving) {
       const pose =
         active && inputEnabled
           ? placementPose(
               pointer,
-              placementUnder(units, purchasePlacement.variant, aloft, surfaceZ, world.view),
+              placementUnder(units, purchasePlacement.arriving, aloft, surfaceZ, world.view),
             )
           : null;
       purchaseGhost.current = purchasePlacement.at(
