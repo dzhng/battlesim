@@ -249,8 +249,17 @@ of the ground) keys on the layer (`Unit::layer`), never on a kind of aircraft.
 How an airframe flies is its row's flight model (`Unit::fixed_wing`), never
 read off the layer: rotors hover (`movement::air`); wings never stop, attack
 in passes, dogfight only another winged aircraft in their own layer, and arrive and leave by the
-back edge, since they can't land at the base (`air`). Loading refuses a pair
-no flight law flies yet.
+back edge, since they can't land at the base (`air`). A dogfight is a run of
+head-on passes ([`air::dogfight::intent`](src/air/dogfight.rs)): each jet
+flies at the other nose-on, so guns and missiles bear on the way in, slips
+past beside it, extends until they are as far apart as its weapons reach
+(less where it would lose sight of the other coming round), and comes round
+for the next pass, both swinging out to the same side so they meet head-on
+again; the fight keeps to the middle of the field. It ends past the break
+distance once the pair stop closing, except while a jet comes round for an
+opponent that fights it back ([`air::dogfight::broken`](src/air/dogfight.rs)). A jet with an enemy
+on its tail comes round at once. Loading refuses a pair no flight law flies
+yet.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is a catalog admission constant: `contract::HullLimits::SHIPPED` bounds every hull a battle may field; admission

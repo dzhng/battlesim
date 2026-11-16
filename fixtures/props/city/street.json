@@ -41,7 +41,7 @@
       "appearance": {"stand_in_tint": [0.52, 0.5, 0.44], "drawn_by": "planter", "map_only": true}
     },
     "parked_car": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 120, "cover_tier": "medium", "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 80, "cover_tier": "medium", "metal": true},
       "destroyed": {"into": {"prop": "car_wreck", "height_m": 0.7}},
       "appearance": {"stand_in_tint": [0.3, 0.37, 0.5], "drawn_by": "parked_car", "map_only": true}
     },

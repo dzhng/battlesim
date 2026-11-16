@@ -678,3 +678,49 @@ fn a_guided_missile_is_flown_home_before_the_attack_hands_off() {
         !attacking(b, 0)
     });
 }
+
+/// A launcher that must stand still to fire, sent to a firing spot with an
+/// attack on the ground and a move queued behind, stops there and fires its
+/// salvo before it moves on: setting up after the drive doesn't count as
+/// being unable to fire.
+#[test]
+fn a_launcher_queued_through_an_attack_on_the_ground_fires_on_the_way() {
+    let mut rules = sim::fixtures::test_rules();
+    rules["weapons"]["tank_he"]["magazine"] = json!({ "rounds": 4, "shot_interval_s": 0.3 });
+    rules["weapons"]["tank_he"]["reload_s"] = json!(60.0);
+    rules["weapons"]["tank_he"]["ammo"] = json!(100);
+    rules["weapons"]["tank_he"]["stationary"] = json!(true);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({ "mounts": [{ "id": "cannon", "name": "Launcher", "weapons": ["tank_he"],
+            "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [{ "side": "blue", "kind": "test_tank", "position": [150.0, 300.0], "yaw": 0.0 }],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, drive([250.0, 300.0]));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, ground_at(0, [450.0, 300.0]), true),
+        None
+    );
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([250.0, 450.0]), true),
+        None
+    );
+    b.step();
+    until(&mut b, ticks(60.0), "the attack's turn", |b| {
+        attacking(b, 0)
+    });
+    until(&mut b, ticks(60.0), "the attack handed off", |b| {
+        !attacking(b, 0)
+    });
+    assert!(salvo(&b) > 0, "it moved on without firing");
+}

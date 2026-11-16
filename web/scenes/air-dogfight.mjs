@@ -1,8 +1,8 @@
-// A 2v2 turning fight on air-jet, then a third jet joins.
+// A 2v2 dogfight of head-on passes on air-jet, then a third jet joins.
 // The simulation's tests behind it, in crates/sim/tests/dogfight.rs:
 // firing_makes_it_your_target_and_it_adopts_you_only_if_free,
-// a_third_jet_joins_by_targeting_an_engaged_one, the_link_breaks_past_the_rule_distance_in_3d,
-// pursuit_aims_where_the_target_was, and dogfight_height_stays_in_its_band.
+// a_third_jet_joins_by_targeting_an_engaged_one, a_pair_is_past_the_break_only_beyond_its_range,
+// head_on_jets_pass_beside_each_other_and_come_round_again, and dogfight_height_stays_in_its_band.
 // The battle is directed: two blue jets start inside break range of two
 // J-10s and are each sent at one; the third, held back close enough to reach
 // the fight before either pair is settled, is flown at it and sent at the
@@ -11,7 +11,7 @@
 // Browser-only evidence: on the real field the fight forms and grows to three
 // blue aircraft, the selected one carries the DOGFIGHT card, and an explicit
 // move takes it out of the fight while its wingman is still in it; the
-// turning trace and shot are for review.
+// flight trace and shot are for review.
 import { gpuWarnings, lab, obs } from "./_lab.mjs";
 import { encounter, openAir, play, own, command, cardText, shoot, trace } from "./_air.mjs";
 const JET = "f_16c_block_50";
