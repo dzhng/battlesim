@@ -174,16 +174,14 @@ test("a building shows the garrison badge at once; only the simulation's answer 
   };
   const occupy: PointerIntent = { kind: "occupy_building", units: [1], building: 4, queued: false };
 
-  // Asked, not yet answered: entering shows at once, as boarding does, for
-  // a selection with someone who can enter; one with no one waits.
+  // Asked, not yet answered: entering shows at once, as boarding does.
   const asked = preview.update(intent, sim, 1, "building");
-  expect(cursorForIntent(occupy, asked, true)).toBe("garrison");
-  expect(cursorForIntent(occupy, asked, false)).toBe("default");
+  expect(cursorForIntent(occupy, asked)).toBe("garrison");
   // No squad can get there: the answer takes the badge away.
   blocked.resolve({ building: 4, entries: [] });
   await blocked.promise;
   await settled();
-  expect(cursorForIntent(occupy, preview.update(intent, sim, 1, "building"), true)).toBe("blocked");
+  expect(cursorForIntent(occupy, preview.update(intent, sim, 1, "building"))).toBe("blocked");
 
   const queued = { ...intent, request: { ...intent.request, queued: true } };
   preview.update(queued, sim, 1, "building");

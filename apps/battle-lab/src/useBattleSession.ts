@@ -742,7 +742,6 @@ export function useBattleSession({
       samePointerIntent(intent, queryIntent)
         ? previewSnapshot
         : { state: "pending", building: null },
-      control.entersBuildings,
     );
   };
   /** Drag-select own units whose drawn position falls in the rectangle. */
