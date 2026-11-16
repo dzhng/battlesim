@@ -8,7 +8,7 @@ import { Icon } from "./icons";
  *  says of it (an owned unit's strength, a purchase's name and price). `kind`
  *  is a unit type, or a purchase card that is not one yet (a planned unit:
  *  its silhouette, no role). */
-export function UnitFace({ kind, children }: { kind: string; children: ReactNode }) {
+export function UnitFace({ kind, children }: { kind: string; children?: ReactNode }) {
   const { units } = useSessionCatalog();
   const role = units.has(kind) ? unitIcons(units.type(kind)).role : null;
   return (

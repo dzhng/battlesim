@@ -31,8 +31,10 @@ nobody boarded) is skipped for every new squad.
   the card's info panel shows its weapons and price.
 - **A squad's transport menu:** hovering the card of any squad on sale opens a
   menu of "On foot" and every carrier on sale that seats the whole squad, sectioned by shop
-  tab, cheapest first. Nothing is highlighted until the player points. Pointing
-  at a carrier stacks its info card above the squad's and adds the total.
+  tab, cheapest first. Hovering the base card highlights On foot and shows the
+  squad's info card. On foot uses a boot icon without a price, leaving the squad's
+  cost in its info card. Pointing at a carrier stacks its info card above the
+  squad's and adds the total; returning to the base card previews On foot again.
   Clicking the squad's card, or On foot, buys it alone.
 - **The keyboard path:** a search narrowed to one squad opens its menu; Up and
   Down step through it; Enter buys the highlighted option, or on foot.
