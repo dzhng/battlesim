@@ -217,6 +217,11 @@ export async function garrisonCursor(ctx) {
       resolution: window.__lab.route.pointerResolution(),
     })),
   );
+  ctx.check(
+    "the building the garrison badge offers is outlined",
+    (await lab(page, () => window.__lab.route.garrisonTarget())) ===
+      (await lab(page, () => window.__lab.route.pointerIntent().building)),
+  );
   await capture(ctx, page, "garrison-hover", p);
   await infoCardCursor(ctx, page);
   await onBuilding(page, [360, 250], 8);
@@ -224,6 +229,10 @@ export async function garrisonCursor(ctx) {
   // Recompute without a pointer event, while paused.
   await select(page, []);
   await expects(page, "default");
+  ctx.check(
+    "with nothing to garrison it, the building is not outlined",
+    (await lab(page, () => window.__lab.route.garrisonTarget())) === null,
+  );
   await select(page, [0, 2]);
   await expects(page, "garrison");
   await page.keyboard.down("Control");

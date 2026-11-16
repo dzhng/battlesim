@@ -112,11 +112,11 @@ pub(super) fn assess(
             _ => {}
         }
     }
-    // A squad is aimed at the middle of what its side sees. A garrison is
-    // seen at windows round its building, so that middle may lie behind its
-    // own walls where no round or sight line reaches: a gun then aims at the
-    // soldiers its side sees at the windows, the first it can hit in the
-    // order its rounds walk them.
+    // A squad is aimed at the middle of what its side sees. That middle may
+    // lie where no round or sight line reaches though its soldiers stand in
+    // view (behind the car they crouch round, inside the walls of the
+    // building they fight from): a gun then aims at the soldiers its side
+    // sees, the first it can hit in the order its rounds walk them.
     let at = |point| {
         aim(
             ctx,
@@ -130,9 +130,7 @@ pub(super) fn assess(
         )
     };
     let (soldier, s) = match at(r.point) {
-        Err(why @ (ActionReason::BlockedTrajectory | ActionReason::NoOwnSight))
-            if garrisoned(units, target) =>
-        {
+        Err(why @ (ActionReason::BlockedTrajectory | ActionReason::NoOwnSight)) => {
             let seen = seen_soldiers(ctx, unit.side, units, target);
             (seen.iter().enumerate())
                 .find_map(|(j, &p)| at(p).ok().map(|s| (j, s)))
@@ -146,11 +144,6 @@ pub(super) fn assess(
         intercept: s.intercept,
         soldier,
     })
-}
-
-/// Whether `target` is a squad fighting from a building.
-fn garrisoned(units: &[Unit], target: Target) -> bool {
-    matches!(target, Target::Unit(u) if units[u.0 as usize].garrisoned())
 }
 
 /// Where to aim at the soldiers `side` saw of a squad at its last sighting:
