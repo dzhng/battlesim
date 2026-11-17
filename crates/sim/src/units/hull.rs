@@ -69,6 +69,20 @@ impl HullFrame {
         };
         (a + ab * t - c).length() <= margin + self.half.length() + 1e-3
     }
+
+    /// Whether some point of the axis-aligned box `lo`..`hi` might lie
+    /// within `margin` of the hull: `false` only when no segment inside the
+    /// box could pass [`Self::may_come_within`] (the same sphere, a
+    /// millimetre wider still for the rounding of points inside the box).
+    pub fn box_may_come_within(&self, lo: V3, hi: V3, margin: f64) -> bool {
+        let gap = |c: f64, lo: f64, hi: f64| (lo - c).max(c - hi).max(0.0);
+        let d = V3 {
+            x: gap(self.center.x, lo.x, hi.x),
+            y: gap(self.center.y, lo.y, hi.y),
+            z: gap(self.mid_z, lo.z, hi.z),
+        };
+        d.length() <= margin + self.half.length() + 2e-3
+    }
 }
 
 /// The face of a hull with half extents `half`, standing on `base` and

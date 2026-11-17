@@ -42,6 +42,17 @@ fn friendly_in_line(
         s.velocity + carrier,
         s.time_of_flight_s,
     );
+    // Every chord lies inside the path's box. In a hull's moving frame the
+    // box is swept back by the hull's drift over the flight, and a hull far
+    // from that swept box is answered without walking the chords.
+    let corner = |pick: fn(f64, f64) -> f64| {
+        path.iter().fold(origin, |c, &(p, _)| V3 {
+            x: pick(c.x, p.x),
+            y: pick(c.y, p.y),
+            z: pick(c.z, p.z),
+        })
+    };
+    let (lo, hi) = (corner(f64::min), corner(f64::max));
     units
         .iter()
         .filter(|u| {
@@ -54,7 +65,14 @@ fn friendly_in_line(
             let hull = u.hull_frame();
             let drift = u.flight_velocity();
             let relative = |(p, t): (V3, f64)| p - drift * t;
-            path.windows(2).any(|w| {
+            let back = drift * -s.time_of_flight_s;
+            let swept = |pick: fn(f64, f64) -> f64, c: V3| V3 {
+                x: c.x + pick(back.x, 0.0),
+                y: c.y + pick(back.y, 0.0),
+                z: c.z + pick(back.z, 0.0),
+            };
+            let near = hull.box_may_come_within(swept(f64::min, lo), swept(f64::max, hi), margin);
+            near && path.windows(2).any(|w| {
                 let (a, b) = (relative(w[0]), relative(w[1]));
                 // A chord that never comes near the hull has no sample near it.
                 if !hull.may_come_within(a, b, margin) {

@@ -29,7 +29,10 @@ since removed), per tick on average:
 | 4b | A vehicle whose detour comes back the same keeps its failed shunt | One stuck vehicle repeats an identical failing search every 61 ticks | The remaining 20–30 ms movement ticks go; a rule change | queued |
 | 5 | Fog sweep | 44% of the trial-2 mean tick; whole-side re-sweeps on any body edit | Fog phase falls by a third; the 500 M fog ticks go | **kept** (trial 3) |
 | 5b | Sweep fog from the eye's fog cell, not the eye | 86% of re-swept eyes stay in their fog cell | Fog falls by more than half; fog and spotting stop agreeing cell for cell: a rule change | not taken |
-| 6 | Larger kept-answer store for the solver | Half the requests miss | Moot if 1 removes 98% of requests | parked |
+| 6 | Larger kept-answer store for the solver | Half the requests miss | Moot if 1 removes 98% of requests | dropped: moot |
+| 7 | A purchase routes only the entries that could win | Each purchase ran a full route search from every entry of its side | The 35–42 ms purchase ticks go | **kept** (trial 4) |
+| 8 | A round's path is boxed before its chords meet each friendly hull | A quarter of the weapons phase after trial 1 | Weapons phase falls by a fifth | **kept** (trial 4) |
+| 9 | Reach before a guided weapon's own sight line | 395k of 436k guided sight tests were for targets past reach | Weapons 11.0 → 9.3 M a tick; out of range replaces no own sight, and a soldier inside reach of a far squad is no longer tried | not taken: the exact form is not small |
 
 ## Trials
 
@@ -119,3 +122,23 @@ a felled tree anywhere on the map re-swept every observer of both sides
 What is left in fog is four fifths single-eye units that moved: each move
 re-sweeps the whole circle. Sweeping from the eye's fog cell would halve it
 again but breaks the cell-for-cell agreement of fog and spotting; not taken.
+
+### 4. Purchases and friendly lines: kept
+
+Outcome-preserving: the replay ends on trial 1's digest.
+
+- Every 150 ticks both sides' AIs buy a unit for each lane, and each purchase
+  chose its entry by a full route search from every entry of its side.
+  `entries::select` now asks the entries in order of a time no route from them
+  can beat (`Mobility::least_route_time`: the straight way at the mover's best
+  speed) and never routes one that cannot win. A checking build ran the old
+  exhaustive choice beside it over the whole replay.
+- `friendly_in_line` boxes the round's path once and skips the chord walk for
+  a hull that stays clear of the box over the flight.
+
+| | trial 3 | trial 4 |
+|---|---:|---:|
+| whole battle, all phases M instructions a tick | 57.9 | 54.4 |
+| whole battle, weapons | 13.8 | 11.0 |
+| worst orders tick, M instructions | 710 | 262 |
+| whole replay, ticks over budget | 10 | 1 |
