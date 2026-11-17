@@ -68,3 +68,12 @@ against the shipped code at closeout (slice 11).
 | Blur hands over to the authored blades at speed 0.2 (`BLUR_CROSSOVER`, shared by Rust and TS), chosen from a probe strip. The disc's opacity and minimum chord fall with speed. | Reversible; tune by eye in motion. |
 | `airborne` is recomputed every frame from the published `grounded`; the flight attitude state resets on take-off; helicopter gear never stows. `FeedUnit::grounded` now carries the published landing latch, and the showcase's parked aircraft is its zero-speed case. | Sound. The first-sight freeze is deleted, not wrapped. |
 | Critique triage. A paused still draws the blur as sharp blades: an existing property of stills. The blades' shadow appears only once the geometry draws, and at zoom it breaks into soft blobs (shadow sampling of thin blades, as the showcase's parked aircraft already shows). Accepted at normal size. | Known; low priority. |
+
+## Slice 07
+
+| Choice | Verdict |
+|---|---|
+| One lab/client predicate, `inTheAir(units, u)` in `battleOverlay.ts` (a flying type not published as grounded), drives own views, always-shown aircraft marks, enemy aircraft marks and enemy click rings. Codex first repeated the expression at each site; folded. | Sound; one owner. |
+| The production game and the lab share these overlay builders (`BattleView → useBattleOverlay → battleOverlayParts`), so both follow. | Sound. |
+| The presentation pick flag `aloft` reads the published `grounded`. Type-level "is an aircraft" sites stay type-keyed: the catalog, purchase ghosts, drivetrain and idle-loop selection. | Sound; classified by Codex, spot-checked. |
+| The scene helper `overlaysOnly` moved from air-hover to `_lab.mjs` so supply can count drop lines; supply measures one before touchdown and none after. | Sound. |

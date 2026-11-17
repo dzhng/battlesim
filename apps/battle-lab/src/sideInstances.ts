@@ -7,14 +7,14 @@ import {
   unitCircle,
   type UnitCircle,
 } from "@packages/battle-renderer/src/unitCircle";
-import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/pointerIntent";
 import type { PresentedFrame } from "@web/battle/sim/presentation";
 import { contactUnder } from "@web/battle/input/contactPick";
 import type { ContactView, ObservationView } from "@web/battle/sim/observationView";
 import type { LabPick } from "./LabViewport";
 import { buildingUnderRay, groundUnderRay, type StaticWorld } from "./useStaticWorld";
-import { aircraftView, orderView } from "./battleOverlay";
+import { aircraftView, inTheAir, orderView } from "./battleOverlay";
 import { gameOrderStyle } from "./gameOverlay";
 
 export interface DrawnInstances {
@@ -121,7 +121,7 @@ export function sideInstances(
   }
   for (const e of observation.identified) {
     const pose = drawnEnemies.get(e.id);
-    if (!pose || !airborne(units.type(e.kind))) continue;
+    if (!pose || !inTheAir(units, e)) continue;
     const circle = aircraftCircle(aircraftView(units, { ...e, ...pose }), gameOrderStyle);
     drawn.rings.push({ circle, unit: null, enemy: e.id });
   }

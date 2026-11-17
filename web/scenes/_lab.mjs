@@ -1,7 +1,23 @@
 // Helpers every scene shares: the lab's route probes, stepping the paused
 // authority until an observation holds, and saving a drawn frame.
 import { writeFile } from "node:fs/promises";
-import { capture } from "./_png.mjs";
+import { capture, decode } from "./_png.mjs";
+
+/** The overlays alone over black, the DOM hidden: what the overlay pass
+ *  lays down (the drop lines; the ground markers are paint in the world). */
+export async function overlaysOnly(page) {
+  const hide = await page.addStyleTag({
+    content: "* { visibility: hidden !important } canvas { visibility: visible !important }",
+  });
+  try {
+    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+    await lab(page, () => window.__lab.frame());
+    return decode(await page.screenshot());
+  } finally {
+    await lab(page, () => window.__lab.setFrameView("final"));
+    await hide.evaluate((el) => el.remove());
+  }
+}
 
 /** Run `fn(arg)` after any reset or side switch installs the lab again. */
 export async function lab(page, fn, arg) {

@@ -88,6 +88,17 @@ test("an enemy helicopter's ring picks it for either button", () => {
     });
 });
 
+test("touchdown removes the enemy's air ring while its own selected ground ring still picks", () => {
+  const mine = own({ grounded: true, position: [100, 50, 0] });
+  const enemy = seen({ grounded: true, position: [300, 50, 0] });
+  const drawn = drawnFor([mine], [enemy]);
+  expect(ringUnder(drawn.rings, [100 + ringOf(mine.kind) * 0.9, 50], true)).toEqual({
+    unit: mine.id,
+    enemy: null,
+  });
+  for (const left of [true, false]) expect(ringUnder(drawn.rings, [300, 50], left)).toBeNull();
+});
+
 test("where rings overlap, the nearest centre wins", () => {
   const drawn = drawnFor([own({ id: 1 }), own({ id: 2, position: [104, 50, 20] })]);
   expect(ringUnder(drawn.rings, [101, 50], true)?.unit).toBe(1);

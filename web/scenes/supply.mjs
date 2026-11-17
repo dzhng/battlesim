@@ -1,6 +1,6 @@
 // Slice 13: service eligibility, finite stock and replacements in the browser.
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
-import { lab, obs, advance, snapshot, openBattle, presented } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, openBattle, presented, overlaysOnly } from "./_lab.mjs";
 
 import { unitType } from "./_units.mjs";
 
@@ -134,6 +134,15 @@ export async function run(ctx) {
   await frame(ctx, page, "serving-unselected", [205, 210]);
   await select(page, [0]);
   await frame(ctx, page, "serving", [205, 210]);
+  const truckCamera = await lab(page, () => window.__lab.camera());
+  await lab(page, (camera) => window.__lab.setCamera(camera), {
+    ...truckCamera,
+    target: [190, 210, 0],
+    distance: 150,
+    pitch: 0.85,
+  });
+  await frame(ctx, page, "marks-truck", [205, 210]);
+  await lab(page, (camera) => window.__lab.setCamera(camera), truckCamera);
 
   // A unit that moves off waits; the stock never regrows.
   await lab(page, () => window.__lab.route.demo("Tank: move off"));
@@ -231,6 +240,16 @@ async function runHeli(ctx) {
     unit(o, 0)?.kind === "test_supply_heli",
     JSON.stringify(unit(o, 0)),
   );
+  // This isolated encounter has one aircraft and no combat: the only
+  // geometry standing in the overlay pass is its dotted drop line.
+  const dropLines = async () => {
+    const png = await overlaysOnly(page);
+    let lit = 0;
+    for (let i = 0; i < png.data.length; i += 4)
+      if (png.data[i] + png.data[i + 1] + png.data[i + 2] > 120) lit++;
+    return { lines: lit > 0 ? 1 : 0, lit };
+  };
+  let airMarks = null;
   // It flies in, brakes, then drops; sample until it is set up.
   let sawDrop = false;
   let sawTouchdown = false;
@@ -245,6 +264,13 @@ async function runHeli(ctx) {
     if (!sawDrop && heli.deployment.progress > 0 && heli.deployment.progress < touchdownProgress) {
       sawDrop = true;
       await frame(ctx, page, "heli-drop", heli.position);
+      airMarks = await dropLines();
+      await frame(ctx, page, "marks-air", heli.position);
+      ctx.check(
+        "before touchdown the heli has a drop line",
+        airMarks.lines === 1,
+        JSON.stringify(airMarks),
+      );
       const first = decode(await page.screenshot());
       const mast = await lab(page, (p) => window.__lab.projectToCss(...p), [
         heli.position[0],
@@ -263,6 +289,15 @@ async function runHeli(ctx) {
     if (!sawTouchdown && heli.grounded) {
       sawTouchdown = true;
       await frame(ctx, page, "heli-touchdown", heli.position);
+      const landedMarks = await dropLines();
+      ctx.check(
+        "at touchdown the drop-line count falls from one to zero",
+        airMarks?.lines === 1 && landedMarks.lines === 0,
+        JSON.stringify({ before: airMarks, after: landedMarks }),
+      );
+      await select(page, [heli.id]);
+      await frame(ctx, page, "marks-landed", heli.position);
+      await select(page, []);
     }
     if (
       !sawHalf &&
@@ -403,6 +438,6 @@ async function runHeliGround(ctx) {
     !!crashed && crashed.crashes.some((c) => c.id === 2),
     JSON.stringify({ crashes: crashed?.crashes ?? [] }),
   );
-  await frame(ctx, page, "heli-ground-wrecks", [300, 200]);
+  await frame(ctx, page, "heli-ground-wrecks", [180, 200]);
   await page.close();
 }
