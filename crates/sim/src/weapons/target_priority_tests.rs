@@ -240,7 +240,7 @@ fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_cha
 
 #[test]
 fn reach_is_judged_where_the_round_meets_its_target_before_the_line_of_fire() {
-    // A tank behind nothing, a tall wall 100 m east of it, and a cannon whose
+    // A tank in the open, a tall wall 100 m east of it, and a cannon whose
     // reach the test sets.
     let reach = 300.0;
     let mut game = crate::fixtures::test_rules();

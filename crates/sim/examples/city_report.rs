@@ -197,10 +197,10 @@ fn main() {
     });
     let mut battle = stage("battle build", || (Battle::new(&setup, 1), String::new()));
 
-    profile::subscriptions(&battle);
+    delivery::subscriptions(&battle);
     let mut publisher = sim::publication::Publisher::new();
     publisher.publish(&battle, Side::Blue).unwrap();
-    let mut delivery = profile::Delivery::new(&battle);
+    let mut delivery = delivery::Delivery::new(&battle);
     let mut ticks = Vec::with_capacity((seconds * hz) as usize);
     let mut arrived: Vec<Option<f64>> = vec![None; rows.len()];
     // Ticks each unit spent holding for a route, and when it first set off.
@@ -345,7 +345,7 @@ fn main() {
         );
     }
     delivery.print("Crossing delivery");
-    profile::subscriptions(&battle);
+    delivery::subscriptions(&battle);
     early.print("Opening (first 30 s)");
     late.print("After opening");
     println!("digest {:016x}", battle.digest());
@@ -380,5 +380,7 @@ fn rss_mib() -> u64 {
 mod instructions;
 use instructions::{instructions, resources};
 
+#[path = "common/delivery.rs"]
+mod delivery;
 #[path = "common/profile.rs"]
 mod profile;

@@ -20,21 +20,8 @@ use std::time::Instant;
 
 use contract::ids::Side;
 use contract::scenario::ScenarioDefinition;
-use sim::battle::{Battle, Replay, TickPhase, ENGINE_BUILD_ID};
+use sim::battle::{Battle, Replay, ENGINE_BUILD_ID};
 use sim::publication::Publisher;
-
-const PHASES: [TickPhase; 10] = [
-    TickPhase::Orders,
-    TickPhase::Navigation,
-    TickPhase::Movement,
-    TickPhase::Flight,
-    TickPhase::Sight,
-    TickPhase::Fog,
-    TickPhase::Learning,
-    TickPhase::Weapons,
-    TickPhase::Observation,
-    TickPhase::Other,
-];
 
 fn main() {
     let path = std::env::args().nth(1).expect("a saved battle file");
@@ -73,23 +60,14 @@ fn main() {
     println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     let (mut blue, mut red) = (Publisher::new(), Publisher::new());
     let mut window = Window::default();
-    let mut whole = [0u64; PHASES.len()];
+    let mut whole = Profile::default();
     let minute = 60 * hz;
     for t in 1..=ticks {
         let before = resources();
         let start = Instant::now();
-        let mut previous = before.map(|r| r.0);
-        let mut tick = [0u64; PHASES.len()];
-        battle.step_profiled(|phase| {
-            let now = instructions();
-            let cost = now.zip(previous).map_or(0, |(a, b)| a.saturating_sub(b));
-            tick[PHASES.iter().position(|p| *p == phase).unwrap()] += cost;
-            previous = now;
-        });
-        for (i, cost) in tick.into_iter().enumerate() {
-            window.phases[i] += cost;
-            whole[i] += cost;
-        }
+        let tick = whole.step(&mut battle);
+        window.phases.record(tick);
+        window.instructions += tick.iter().sum::<u64>();
         blue.publish(&battle, Side::Blue).unwrap();
         red.publish(&battle, Side::Red).unwrap();
         let wall_ms = start.elapsed().as_secs_f64() * 1000.0;
@@ -115,19 +93,17 @@ fn main() {
                 window.over_cpu, 100.0 * window.over_cpu as f64 / n as f64,
                 load.living_units, load.living_soldiers, load.corpses, load.wrecks,
                 load.active_projectiles, load.path_searches,
-                billions(window.phases.iter().sum()),
+                billions(window.instructions),
             );
             if t % minute == 0 && t + minute > ticks {
-                phases(
-                    &format!("minute to {:.1}", t as f64 / minute as f64),
-                    &window.phases,
-                    n as u64,
-                );
+                window
+                    .phases
+                    .print(&format!("Minute to {:.1}", t as f64 / minute as f64));
             }
             window = Window::default();
         }
     }
-    phases("whole battle", &whole, ticks);
+    whole.print("Whole battle");
     println!("\ndigest {:016x}", battle.digest());
 }
 
@@ -137,26 +113,8 @@ struct Window {
     wall: Vec<f64>,
     over: usize,
     over_cpu: usize,
-    phases: [u64; PHASES.len()],
-}
-
-fn phases(label: &str, totals: &[u64; PHASES.len()], ticks: u64) {
-    if instructions().is_none() {
-        return;
-    }
-    println!("\n{label}: mean M instructions a tick by phase");
-    let all: u64 = totals.iter().sum();
-    for (phase, total) in PHASES.iter().zip(totals) {
-        println!(
-            "| {phase:?} | {:.1} | {:.0}% |",
-            *total as f64 / ticks.max(1) as f64 / 1e6,
-            100.0 * *total as f64 / all.max(1) as f64
-        );
-    }
-    println!(
-        "| all | {:.1} | |\n",
-        all as f64 / ticks.max(1) as f64 / 1e6
-    );
+    instructions: u64,
+    phases: Profile,
 }
 
 fn quantiles(v: &mut [f64]) -> [f64; 3] {
@@ -176,3 +134,7 @@ fn billions(n: u64) -> String {
 #[path = "common/instructions.rs"]
 mod instructions;
 use instructions::{instructions, resources};
+
+#[path = "common/profile.rs"]
+mod profile;
+use profile::{Profile, PHASES};

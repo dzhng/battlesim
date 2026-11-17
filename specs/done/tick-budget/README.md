@@ -80,9 +80,10 @@ code that holds each one to that:
   page whenever the shortcut is taken.
 - **Entries.** `Mobility::least_route_time` must be a time no planned route
   can beat: no speed factor exceeds the mover's best speed, and a route ends
-  within `GOAL_REACH_M` and half a navigation cell's diagonal of its goal. `Battle::entry_route_time` asserts it in
-  debug builds; `select_skips_entries_that_cannot_beat_the_best_route` pins
-  the skip and the tie going to the entry listed first.
+  within `GOAL_REACH_M` and half a navigation cell's diagonal of its goal.
+  `Battle::entry_route_time` asserts it in debug builds;
+  `select_skips_entries_that_cannot_beat_the_best_route` pins the skip and
+  the tie going to the entry listed first.
 - **Friendly lines.** `HullFrame::box_may_come_within` uses the sphere
   `may_come_within` uses per chord, so it skips only hulls every chord would
   have skipped.

@@ -65,8 +65,8 @@ fn main() {
     );
     println!("| minutes | tick p50 ms | p95 | p99 | max | ticks > 33 ms | living units | soldiers | corpses | wrecks | projectiles in flight (peak) | projectiles launched per sim-second (peak) | path searches | ground KiB | learned ground KiB (both sides) | blue publication B/tick p50 / p95 / max | ground patch B/tick p50 / p95 / max | step instructions G | RSS MiB |");
     println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
-    profile::subscriptions(&battle);
-    let mut delivery = profile::Delivery::new(&battle);
+    delivery::subscriptions(&battle);
+    let mut delivery = delivery::Delivery::new(&battle);
     let mut all = Vec::new();
     let mut window = Vec::new();
     let mut publisher = Publisher::new();
@@ -134,7 +134,7 @@ fn main() {
         "Early battle"
     });
     delivery.print("Steady delivery");
-    profile::subscriptions(&battle);
+    delivery::subscriptions(&battle);
     let q = quantiles(&mut all);
     println!(
         "\nWhole run: p50 {:.1} ms, p95 {:.1}, p99 {:.1}, max {:.0}; {} rounds launched; {} G step instructions; digest {:016x}.",
@@ -177,5 +177,7 @@ fn billions(n: u64) -> String {
     }
 }
 
+#[path = "common/delivery.rs"]
+mod delivery;
 #[path = "common/profile.rs"]
 mod profile;

@@ -43,9 +43,10 @@ movement and played-battle checks answer that separate question.
 
 [Endurance](endurance_report.rs) and [city-scale reporting](city_report.rs) measure
 long-battle and full-extent simulation workloads. [Replay reporting](replay_report.rs)
-measures a battle a player exported, tick by tick against the real-time budget. Their accelerated native time
-is not rendered FPS. Shared instruction counters separate load-independent work
-from wall-time contention; [the browser benchmark](../../../web/src/battle/benchmark/README.md)
+measures a battle a player exported, tick by tick against the real-time budget.
+Their accelerated native time is not rendered FPS. Shared instruction counters
+separate load-independent work from wall-time contention;
+[the browser benchmark](../../../web/src/battle/benchmark/README.md)
 owns real frame cost. Keep scratch output under `throwaway/` and preserve the
 printed workload identity alongside a comparison.
 
