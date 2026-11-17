@@ -435,8 +435,8 @@ impl SoundFrame {
 
     /// Hears scripted motion at presentation time `clock` from `listener`
     /// (its position, forward, then view, all zero for none): `soldiers` four numbers each (id, x, y,
-    /// z), `vehicles` eight each (key, x, y, z, left and right travel,
-    /// turret, 1 reversing), and `classes` the vehicles' sound classes,
+    /// z), `vehicles` nine each (key, x, y, z, left and right travel,
+    /// turret, 1 reversing, rotor speed or -1 for none), and `classes` the vehicles' sound classes,
     /// space-separated, in their order.
     #[allow(clippy::too_many_arguments)]
     pub fn update_scripted(
@@ -459,19 +459,22 @@ impl SoundFrame {
             })
             .collect();
         let vehicles = vehicles
-            .as_chunks::<8>()
+            .as_chunks::<9>()
             .0
             .iter()
             .zip(classes.split(' '))
             .map(
-                |(&[key, x, y, z, travel_l, travel_r, turret, reverse], class)| SoundVehicle {
-                    key,
-                    vehicle_class: class.to_owned(),
-                    position: [x, y, z],
-                    travel_l,
-                    travel_r,
-                    turret,
-                    reverse: reverse != 0.0,
+                |(&[key, x, y, z, travel_l, travel_r, turret, reverse, rotor_speed], class)| {
+                    SoundVehicle {
+                        key,
+                        vehicle_class: class.to_owned(),
+                        position: [x, y, z],
+                        travel_l,
+                        travel_r,
+                        turret,
+                        reverse: reverse != 0.0,
+                        rotor_speed: (rotor_speed >= 0.0).then_some(rotor_speed),
+                    }
                 },
             )
             .collect();

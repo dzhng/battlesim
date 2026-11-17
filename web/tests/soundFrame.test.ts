@@ -734,3 +734,40 @@ test("a hovering helicopter keeps sounding its rotor, never a ground vehicle's e
     }
   }
 });
+
+test("rotor gain and pitch fall monotonically to silence and rise back to flight level", () => {
+  const { sink, frame } = setup();
+  const heli = {
+    key: 1,
+    vehicleClass: "air_light",
+    position: [20, 20, 30],
+    travelL: 0,
+    travelR: 0,
+    turret: 0,
+    rotorSpeed: 1,
+  };
+  const levels: { gain: number; rate: number }[] = [];
+  for (const [i, speed] of [1, 0.75, 0.5, 0.25, 0, 0.25, 0.5, 0.75, 1].entries()) {
+    sink.time = (i + 1) * DT;
+    frame.update(
+      sink.time,
+      sink.time,
+      {
+        vehicles: [{ ...heli, rotorSpeed: speed }],
+        soldiers: [],
+      },
+      LISTENER,
+    );
+    const rotor = sink.live(true).filter((v) => near(v.spec, heli.position, 1));
+    levels.push({ gain: rotor[0]?.spec.gain ?? 0, rate: rotor[0]?.spec.rate ?? 0 });
+  }
+  expect(levels[0].gain).toBeGreaterThan(0);
+  expect(levels[4].gain).toBe(0);
+  for (let i = 1; i <= 4; i++) {
+    expect(levels[i].gain).toBeLessThan(levels[i - 1].gain);
+    expect(levels[i].rate).toBeLessThan(levels[i - 1].rate);
+    expect(levels[8 - i]).toEqual(levels[i]);
+  }
+  expect(levels[8]).toEqual(levels[0]);
+  frame.reset();
+});

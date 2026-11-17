@@ -77,3 +77,12 @@ against the shipped code at closeout (slice 11).
 | The production game and the lab share these overlay builders (`BattleView → useBattleOverlay → battleOverlayParts`), so both follow. | Sound. |
 | The presentation pick flag `aloft` reads the published `grounded`. Type-level "is an aircraft" sites stay type-keyed: the catalog, purchase ghosts, drivetrain and idle-loop selection. | Sound; classified by Codex, spot-checked. |
 | The scene helper `overlaysOnly` moved from air-hover to `_lab.mjs` so supply can count drop lines; supply measures one before touchdown and none after. | Sound. |
+
+## Slice 08
+
+| Choice | Verdict |
+|---|---|
+| The emitter's spare `motion[3]` carries the pose's `Articulation::rotor_speed`, or -1 for an engine that isn't a rotor. It passes through the native and scripted (wasm/TS) sound paths; there is no second calculator. | Sound; one owner. |
+| The engine loop's gain and playback rate scale by rotor speed: silent when stopped, unchanged at full speed. Jets and ground vehicles are untouched. | Sound. |
+| `air_light_logistics` copies `air_light`. The vehicle-class test now requires a row for every class any catalog derives, and drops the old list pinning rows by weight. That was configuration, and the generated guard covers what is fielded. | Sound; tests mechanics, not data. |
+| Motion records and emitter decoding moved together into `sound/frame/motion.rs` for the ratchet. | Sound; a concept move. |

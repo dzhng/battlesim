@@ -9,6 +9,7 @@
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { fileURLToPath } from "node:url";
+import { unitType } from "./_units.mjs";
 
 const db = (v) => 20 * Math.log10(Math.max(v, 1e-9));
 
@@ -165,6 +166,7 @@ export async function run(ctx) {
   const page = await ctx.newPage();
   await page.goto(ctx.url);
   await page.waitForFunction(() => window.__sound?.ready, undefined, { timeout: 30000 });
+  await rotorTour(ctx, page);
 
   const render = async (solo) => {
     const r = await page.evaluate((s) => window.__sound.render(s), solo);
@@ -277,6 +279,70 @@ export async function run(ctx) {
   await barksHeard(ctx, page);
   await readyWithPacks(ctx, page);
   await auditionTour(ctx, page);
+}
+
+/** Hear the supply and transport through the same calibrated offline graph. */
+async function rotorTour(ctx, page) {
+  const report = await page.evaluate(
+    async ({ url, supplyClass, transportClass }) => {
+      const { offlineSound, LISTENER } = await import(/* @vite-ignore */ url);
+      const render = async (vehicleClass, rotorSpeed) => {
+        const { ctx, sink, frame } = await offlineSound(1, "units");
+        frame.update(
+          0,
+          0,
+          {
+            vehicles: [
+              {
+                key: 1,
+                vehicleClass,
+                rotorSpeed,
+                position: LISTENER.position,
+                travelL: 0,
+                travelR: 0,
+                turret: 0,
+              },
+            ],
+            soldiers: [],
+          },
+          LISTENER,
+        );
+        try {
+          const buffer = await ctx.startRendering();
+          let energy = 0;
+          for (let c = 0; c < buffer.numberOfChannels; c++)
+            for (const sample of buffer.getChannelData(c)) energy += sample * sample;
+          return Math.sqrt(energy / (buffer.length * buffer.numberOfChannels));
+        } finally {
+          frame.reset();
+          sink.dispose();
+        }
+      };
+      return {
+        stopped: await render(supplyClass, 0),
+        half: await render(supplyClass, 0.5),
+        flying: await render(supplyClass, 1),
+        transport: await render(transportClass, 1),
+      };
+    },
+    {
+      url: `/@fs${fileURLToPath(new URL("../../apps/battle-lab/src/soundFirefight.ts", import.meta.url))}`,
+      supplyClass: unitType("test_supply_heli").vehicle_class,
+      transportClass: unitType("test_transport_heli").vehicle_class,
+    },
+  );
+  await ctx.writeEvidence("rotor-levels.json", report);
+  ctx.check("a set-up supply helicopter is silent", report.stopped === 0, JSON.stringify(report));
+  ctx.check(
+    "rotor loudness rises with its speed",
+    report.half > report.stopped && report.flying > report.half,
+    JSON.stringify(report),
+  );
+  ctx.check(
+    "a flying supply helicopter sounds at transport level",
+    report.flying > 0 && Math.abs(report.flying - report.transport) < 1e-9,
+    JSON.stringify(report),
+  );
 }
 
 /** Barks in the open: a seen enemy off to the right, then an own tank off to

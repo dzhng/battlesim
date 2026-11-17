@@ -266,7 +266,9 @@ angle it turned while the shutter was open, so a fast rotor blurs at any frame
 rate and a paused one shows its blades. The published landing latch and
 deployment pose drive [one rotor speed](src/units/rotor.rs); grounded rotors
 wind down while setting up and up while packing, and hand over to authored
-blades before they stop. A parked showcase takes that same stopped pose.
+blades before they stop. The sound emitter carries that pose's rotor speed,
+so the rotor loop's level and pitch follow the blades down to silence.
+A parked showcase takes that same stopped pose.
 
 A running jet glows in every nozzle and leaves its engines' and wingtips'
 trails, as a war film shows a jet: visual only, so it never touches the

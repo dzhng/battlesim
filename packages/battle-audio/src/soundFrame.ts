@@ -97,6 +97,8 @@ export interface SoundVehicle {
   travelR: number;
   /** Turret heading relative to the hull, radians. */
   turret: number;
+  /** Normalized rotor speed (0..1); absent for engines without a rotor input. */
+  rotorSpeed?: number;
   /** Backing up: a reverse move, or a turn's reversing leg. */
   reverse?: boolean;
 }
@@ -365,13 +367,22 @@ export class SoundFrame {
       soldiers[i * 4 + 2] = s.position[1];
       soldiers[i * 4 + 3] = s.position[2];
     });
-    const vehicles = new Float64Array(motion.vehicles.length * 8);
+    const vehicles = new Float64Array(motion.vehicles.length * 9);
     motion.vehicles.forEach((v, i) => {
       vehicles.set(
-        [v.key, v.position[0], v.position[1], v.position[2], v.travelL, v.travelR, v.turret],
-        i * 8,
+        [
+          v.key,
+          v.position[0],
+          v.position[1],
+          v.position[2],
+          v.travelL,
+          v.travelR,
+          v.turret,
+          v.reverse ? 1 : 0,
+          v.rotorSpeed ?? -1,
+        ],
+        i * 9,
       );
-      vehicles[i * 8 + 7] = v.reverse ? 1 : 0;
     });
     this.run(
       this.rust.update_scripted(

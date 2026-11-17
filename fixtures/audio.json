@@ -241,6 +241,22 @@
       "reverse": null,
       "reverse_gain": 0
     },
+    "air_light_logistics": {
+      "engine_distance": "aircraft_engines",
+      "engine": "rotor",
+      "idle_rate": 1.1,
+      "load_rate": 1.1,
+      "idle_gain": 0.25,
+      "load_gain": 0.25,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 60,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    },
     "air_medium": {
       "engine_distance": "aircraft_engines",
       "engine": "rotor",

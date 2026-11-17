@@ -6,6 +6,7 @@ use crate::records::{Emitter, NONE};
 use crate::sound::frame::{Cue, Heard, Motion, Shout};
 use crate::units::pose::PoseFrame;
 use crate::world::UnitsSection;
+use contract::catalog::FlightModel;
 use serde::Serialize;
 use sim::publication::reader::Observation;
 use std::sync::Arc;
@@ -89,7 +90,15 @@ pub(super) fn emitters(
                 a.travel_l as f32,
                 a.travel_r as f32,
                 a.turret_yaw as f32,
-                0.0,
+                if units
+                    .types
+                    .get(v.kind.as_ref())
+                    .is_some_and(|t| t.flight == Some(FlightModel::Rotor))
+                {
+                    a.rotor_speed as f32
+                } else {
+                    -1.0
+                },
             ],
         });
     }

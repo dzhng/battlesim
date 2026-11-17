@@ -3,8 +3,7 @@ import { audioMix } from "@web/audioMix";
 // A vehicle sounds and runs as its class, which the catalog derives from its
 // physics (`contract::catalog::UnitType::vehicle_class`, carried by the view
 // as `vehicle_class`; its derivation is tested there), never its unit id.
-// The classes' rows are here: each ground class any catalog fields has its
-// own engine sound, and each weight of airframe its rotor.
+// Every class any catalog fields must have an explicit audio row.
 import { expect, test } from "vitest";
 
 import { nodeCatalogSet } from "@web/battle/catalog/node";
@@ -16,21 +15,12 @@ test("the view carries each type's class: a vehicle's from its physics, none for
   expect(of("test_rifle")).toBeNull();
 });
 
-test("every ground vehicle class the game fields has its own engine sound", async () => {
+test("every derived vehicle class has an explicit audio row", async () => {
   const classes = new Set<string>();
   for (const set of ["game", "capture", "test"] as const)
     for (const unit of (await nodeCatalogSet(set)).units.view.units)
-      if (unit.vehicle_class && !unit.vehicle_class.includes("air"))
-        classes.add(unit.vehicle_class);
+      if (unit.vehicle_class) classes.add(unit.vehicle_class);
   expect(classes.size).toBeGreaterThan(0);
-  for (const cls of classes) {
-    expect(audioMix.vehicles[cls], cls).toBeDefined();
-  }
-});
-
-test("each weight of airframe has its own rotor sound row", () => {
-  for (const weight of ["light", "medium", "heavy"]) {
-    const cls = `air_${weight}`;
-    expect(audioMix.vehicles[cls], cls).toBeDefined();
-  }
+  const missing = [...classes].filter((cls) => !Object.hasOwn(audioMix.vehicles, cls)).sort();
+  expect(missing, "vehicle classes missing audio rows").toEqual([]);
 });

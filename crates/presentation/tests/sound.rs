@@ -74,6 +74,7 @@ fn first_high_air_entry_raises_one_alarm_until_the_episode_ends() {
             travel_r: 0.0,
             turret: 0.0,
             reverse: false,
+            rotor_speed: None,
         }],
         soldiers: Vec::new(),
     };
@@ -858,6 +859,7 @@ fn an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does() {
                 travel_r: 0.0,
                 turret: 0.0,
                 reverse: false,
+                rotor_speed: None,
             }],
             soldiers: Vec::new(),
         };
