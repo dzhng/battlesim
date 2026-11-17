@@ -4742,10 +4742,7 @@
       "notes": "03 selected 10.02\u201310.90 s; remove 80 ms of pre-attack bed to align the 10.104 s crack with the observed launch. No target impact.",
       "source": "howitzer-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        484800,
-        523200
-      ]
+      "source_frames": [484800, 523200]
     },
     "mortar-launch": {
       "label": "82 mm mortar launch",
@@ -4760,10 +4757,7 @@
       "notes": "03 launch crop, aligned to the 2.169 s onset; the impact at about 31 s is excluded. User confirmed the bass-heavy mortar differs audibly from the howitzer.",
       "source": "mortar-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        103968,
-        153600
-      ]
+      "source_frames": [103968, 153600]
     },
     "strike-missile-launch": {
       "label": "M270 strike missile launch",
@@ -4778,10 +4772,7 @@
       "notes": "03 selected 9.40\u201313.00 s, aligned just before the 9.472 s ignition. One launch, sustained exhaust; target impact excluded.",
       "source": "strike-missile-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        454416,
-        624000
-      ]
+      "source_frames": [454416, 624000]
     },
     "bomb-release": {
       "label": "Bomb \u00b7 mechanical release and falling air fallback",
@@ -4798,10 +4789,7 @@
         {
           "source": "qubodup-gunfire",
           "source_rate": 48000,
-          "source_frames": [
-            1326480,
-            1333680
-          ],
+          "source_frames": [1326480, 1333680],
           "at_s": 0,
           "gain": 0.5,
           "semitones": 0,
@@ -4810,10 +4798,7 @@
         {
           "source": "ricochet-design",
           "source_rate": 44100,
-          "source_frames": [
-            13000,
-            21609
-          ],
+          "source_frames": [13000, 21609],
           "at_s": 0.045,
           "gain": 0.12,
           "semitones": 0,
@@ -4836,10 +4821,7 @@
         {
           "source": "missile-live-fire",
           "source_rate": 48000,
-          "source_frames": [
-            352800,
-            367200
-          ],
+          "source_frames": [352800, 367200],
           "at_s": 0,
           "gain": 0.7,
           "semitones": 0,
@@ -4848,10 +4830,7 @@
         {
           "source": "missile-live-fire",
           "source_rate": 48000,
-          "source_frames": [
-            628800,
-            647040
-          ],
+          "source_frames": [628800, 647040],
           "at_s": 0.04,
           "gain": 0.25,
           "semitones": 0,
@@ -4872,10 +4851,7 @@
       "notes": "03 single crop aligned before the 3.682 s onset. No burst: magazine.burst is null.",
       "source": "marksman-live-fire",
       "source_rate": 44100,
-      "source_frames": [
-        162288,
-        202860
-      ]
+      "source_frames": [162288, 202860]
     },
     "heavy-sniper-launch": {
       "label": "Barrett \u00b7 single report",
@@ -4890,10 +4866,7 @@
       "notes": "03 last single report, aligned before the 9.202 s onset. No burst: magazine is null; reload_s is not a shot interval.",
       "source": "heavy-sniper-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        441504,
-        480000
-      ]
+      "source_frames": [441504, 480000]
     },
     "aa-burst": {
       "label": "Bofors \u00b7 three relayed reports at 300 ms",
@@ -4908,24 +4881,12 @@
       "notes": "03 relay fallback: three distinct Bofors reports cut before the next attack, faded, placed at 0, 0.300, 0.600 s. Original 201/219 ms cadence fails the gate; this is constructed timing.",
       "source": "bofors-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        943200,
-        976800
-      ],
+      "source_frames": [943200, 976800],
       "burst": {
         "shots": [
-          [
-            944880,
-            954000
-          ],
-          [
-            954576,
-            964320
-          ],
-          [
-            965040,
-            976800
-          ]
+          [944880, 954000],
+          [954576, 964320],
+          [965040, 976800]
         ],
         "interval_s": 0.3
       }
@@ -4936,10 +4897,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1138320
-      ],
+      "source_frames": [1110384, 1138320],
       "processing": "weighted-shot",
       "url": "/audio/clips/lmg-rifle-11-burst-a.wav",
       "sha256": "28202301cc69192bfe330d6692104caa67af43b0b36c3e0acbf51eb87b8456dc",
@@ -4949,18 +4907,9 @@
       "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
       "burst": {
         "shots": [
-          [
-            1110384,
-            1119600
-          ],
-          [
-            1119600,
-            1129200
-          ],
-          [
-            1129200,
-            1138320
-          ]
+          [1110384, 1119600],
+          [1119600, 1129200],
+          [1129200, 1138320]
         ],
         "interval_s": 0.08
       }
@@ -4971,10 +4920,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1119600,
-        1146768
-      ],
+      "source_frames": [1119600, 1146768],
       "processing": "weighted-shot",
       "url": "/audio/clips/lmg-rifle-11-burst-b.wav",
       "sha256": "5999285badd4f8cce20a065186be2c2e537fad0f47a46621cfe9dbf143addd20",
@@ -4984,18 +4930,9 @@
       "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
       "burst": {
         "shots": [
-          [
-            1119600,
-            1129200
-          ],
-          [
-            1129200,
-            1138320
-          ],
-          [
-            1138320,
-            1146768
-          ]
+          [1119600, 1129200],
+          [1129200, 1138320],
+          [1138320, 1146768]
         ],
         "interval_s": 0.08
       }
@@ -5006,10 +4943,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1146768
-      ],
+      "source_frames": [1110384, 1146768],
       "processing": "weighted-shot",
       "url": "/audio/clips/lmg-rifle-11-burst-c.wav",
       "sha256": "4d4cb6a0f70e6094df6962426b3783aca41ac27144fd55eff232fdf0bad2324c",
@@ -5019,18 +4953,9 @@
       "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
       "burst": {
         "shots": [
-          [
-            1129200,
-            1138320
-          ],
-          [
-            1138320,
-            1146768
-          ],
-          [
-            1110384,
-            1119600
-          ]
+          [1129200, 1138320],
+          [1138320, 1146768],
+          [1110384, 1119600]
         ],
         "interval_s": 0.08
       }
@@ -5041,10 +4966,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1146768
-      ],
+      "source_frames": [1110384, 1146768],
       "processing": "weighted-shot",
       "url": "/audio/clips/lmg-rifle-11-burst-d.wav",
       "sha256": "9f9a0abac3ecb195a5e9f924101234f138ddf3bbd7422084a79fd9e46686f7d4",
@@ -5054,18 +4976,9 @@
       "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
       "burst": {
         "shots": [
-          [
-            1138320,
-            1146768
-          ],
-          [
-            1110384,
-            1119600
-          ],
-          [
-            1119600,
-            1129200
-          ]
+          [1138320, 1146768],
+          [1110384, 1119600],
+          [1119600, 1129200]
         ],
         "interval_s": 0.08
       }
@@ -5083,10 +4996,7 @@
       "notes": "Designed fallback: short ignition/exhaust from the accepted 03 M270 strike-missile source, one report per observed rocket. Not a natural MLRS salvo recording.",
       "source": "strike-missile-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        454416,
-        484800
-      ]
+      "source_frames": [454416, 484800]
     },
     "smoke-discharger-1": {
       "label": "Smoke screen \u00b7 generated discharger 1",
@@ -6555,9 +6465,7 @@
     },
     "howitzer-combat": {
       "label": "Howitzer \u00b7 recorded muzzle report",
-      "clips": [
-        "howitzer-launch"
-      ],
+      "clips": ["howitzer-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -6565,9 +6473,7 @@
     },
     "mortar-combat": {
       "label": "Mortar \u00b7 recorded launch",
-      "clips": [
-        "mortar-launch"
-      ],
+      "clips": ["mortar-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -6575,9 +6481,7 @@
     },
     "strike-missile-combat": {
       "label": "Strike missile \u00b7 recorded M270 launch",
-      "clips": [
-        "strike-missile-launch"
-      ],
+      "clips": ["strike-missile-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -6585,9 +6489,7 @@
     },
     "bomb-release-combat": {
       "label": "Bomb \u00b7 restrained release fallback",
-      "clips": [
-        "bomb-release"
-      ],
+      "clips": ["bomb-release"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.25,
@@ -6595,9 +6497,7 @@
     },
     "rocket-pod-combat": {
       "label": "Rocket pod \u00b7 single launch fallback",
-      "clips": [
-        "rocket-pod-launch"
-      ],
+      "clips": ["rocket-pod-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.75,
@@ -6605,9 +6505,7 @@
     },
     "marksman-combat": {
       "label": "Marksman \u00b7 single recorded report",
-      "clips": [
-        "marksman-launch"
-      ],
+      "clips": ["marksman-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -6615,9 +6513,7 @@
     },
     "heavy-sniper-combat": {
       "label": "Heavy sniper \u00b7 single recorded report",
-      "clips": [
-        "heavy-sniper-launch"
-      ],
+      "clips": ["heavy-sniper-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -6625,9 +6521,7 @@
     },
     "aa-combat": {
       "label": "AA gun \u00b7 300 ms relay fallback",
-      "clips": [
-        "aa-burst"
-      ],
+      "clips": ["aa-burst"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -6661,9 +6555,7 @@
     },
     "rocket-artillery-combat": {
       "label": "Rocket artillery \u00b7 ignition fallback",
-      "clips": [
-        "rocket-artillery-launch"
-      ],
+      "clips": ["rocket-artillery-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -6742,10 +6634,7 @@
       "url": "https://www.youtube.com/watch?v=KX6OPMngT2g",
       "sha256": "a0b27c1361c8a461d1e1d8c3d0e8efee955795b76b0b27c1463d5aa55de73318",
       "path": "assets/third-party/audio/artillery-KX6OPMngT2g.webm",
-      "source_frames": [
-        484800,
-        523200
-      ],
+      "source_frames": [484800, 523200],
       "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
       "download": {
         "tool": "yt-dlp",
@@ -6761,10 +6650,7 @@
       "url": "https://www.youtube.com/watch?v=pujCGZMn_o4",
       "sha256": "63a4379ff1646f02d2649e8c41f9634e58a1a4b7a251aea9a3391392b9d04ce6",
       "path": "assets/third-party/audio/mortar-pujCGZMn_o4.webm",
-      "source_frames": [
-        103968,
-        153600
-      ],
+      "source_frames": [103968, 153600],
       "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
       "download": {
         "tool": "yt-dlp",
@@ -6780,10 +6666,7 @@
       "url": "https://www.youtube.com/watch?v=8y_1z35LQ40",
       "sha256": "785c9d6b712f0f9c99cfb3b439cfc447fdd760311b57de6821ceede634fe3d9b",
       "path": "assets/third-party/audio/strike-missile-8y_1z35LQ40.webm",
-      "source_frames": [
-        454416,
-        624000
-      ],
+      "source_frames": [454416, 624000],
       "processing": "launch; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
       "download": {
         "tool": "yt-dlp",
@@ -6799,10 +6682,7 @@
       "url": "https://www.youtube.com/watch?v=Jkt3S5WpJN8",
       "sha256": "634bffb3b5643783bf7f032f442dedf3ea418313c242918d28d5bff5fd76e73a",
       "path": "assets/third-party/audio/marksman-Jkt3S5WpJN8.m4a",
-      "source_frames": [
-        162288,
-        202860
-      ],
+      "source_frames": [162288, 202860],
       "processing": "weighted-shot; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
       "download": {
         "tool": "yt-dlp",
@@ -6818,10 +6698,7 @@
       "url": "https://www.youtube.com/watch?v=UFB7-bvVKs8",
       "sha256": "4b31b3ac770988995d918325cabe29037b2b1829f9b5a1ff4d728a67c60afedb",
       "path": "assets/third-party/audio/heavy-sniper-UFB7-bvVKs8.webm",
-      "source_frames": [
-        441504,
-        480000
-      ],
+      "source_frames": [441504, 480000],
       "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
       "download": {
         "tool": "yt-dlp",
@@ -6837,10 +6714,7 @@
       "url": "https://www.youtube.com/watch?v=Zj4xZlU-1wM",
       "sha256": "12c64328874fdef786f117a102753095d60035069a9499dec32efe2a1b45577a",
       "path": "assets/third-party/audio/aa-gun-Zj4xZlU-1wM.webm",
-      "source_frames": [
-        943200,
-        976800
-      ],
+      "source_frames": [943200, 976800],
       "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
       "download": {
         "tool": "yt-dlp",
