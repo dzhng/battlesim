@@ -305,7 +305,10 @@ fn each_sides_grid_stays_the_whole_build_of_what_it_believes() {
     // The battle did change what the sides know, in each of the ways.
     let world = &battle.world;
     assert!(world.cleared_cells() > 0, "a lane was cleared");
-    assert!(world.moved().next().is_some(), "a crate was shoved");
+    assert!(
+        (0..13).any(|id| world.prop(id).is_none()),
+        "a crate was toppled"
+    );
     assert!(world.prop(wall).is_none(), "the wall fell");
     assert!(world.prop(wreck).is_none(), "the wreck broke up");
     assert!(

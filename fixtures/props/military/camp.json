@@ -1,7 +1,7 @@
 {
   "props": {
     "tent": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "light", "topples": true, "hp": 30},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "trivial", "topples": true, "hp": 30},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.42, 0.45, 0.3], "drawn_by": "tent", "map_only": true}
     },

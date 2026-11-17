@@ -540,8 +540,18 @@ impl Presentation {
             }
             None => {
                 let group = self.latest.as_ref().map(|o| o.known_props.clone());
+                let fallen = self
+                    .latest
+                    .as_ref()
+                    .map(|o| o.fallen_bodies.as_ref().as_slice())
+                    .unwrap_or(&[]);
+                let fallen_changed = self
+                    .props
+                    .as_mut()
+                    .is_some_and(|props| props.set_fallen(fallen));
                 let ptr = |g: &Option<Shared<KnownProp>>| g.as_ref().map(Arc::as_ptr);
                 if matches!(&self.known_from, KnownFrom::Published(last) if ptr(last) == ptr(&group))
+                    && !fallen_changed
                 {
                     return Ok(());
                 }

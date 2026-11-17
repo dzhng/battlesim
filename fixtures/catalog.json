@@ -2733,8 +2733,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -2761,8 +2761,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -2817,8 +2817,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -2967,7 +2967,7 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
+            "topples": true,
             "weight_class": "light"
           },
           "destroyed": "removed"
@@ -3023,8 +3023,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3084,8 +3084,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3140,8 +3140,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3231,7 +3231,7 @@
             "occludes": true,
             "stops_rounds": false,
             "topples": true,
-            "weight_class": "light"
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3286,8 +3286,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3464,8 +3464,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3556,7 +3556,7 @@
             "occludes": false,
             "stops_rounds": false,
             "topples": true,
-            "weight_class": "light"
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3640,7 +3640,7 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
+            "topples": true,
             "weight_class": "light"
           },
           "destroyed": "removed"
@@ -3813,8 +3813,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4046,8 +4046,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4188,8 +4188,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4328,8 +4328,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4357,7 +4357,7 @@
             "occludes": true,
             "stops_rounds": false,
             "topples": true,
-            "weight_class": "light"
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -22467,8 +22467,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22495,8 +22495,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22551,8 +22551,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22701,7 +22701,7 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
+        "topples": true,
         "weight_class": "light"
       },
       "destroyed": "removed"
@@ -22757,8 +22757,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22818,8 +22818,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22874,8 +22874,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22965,7 +22965,7 @@
         "occludes": true,
         "stops_rounds": false,
         "topples": true,
-        "weight_class": "light"
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23020,8 +23020,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23198,8 +23198,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23290,7 +23290,7 @@
         "occludes": false,
         "stops_rounds": false,
         "topples": true,
-        "weight_class": "light"
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23374,7 +23374,7 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
+        "topples": true,
         "weight_class": "light"
       },
       "destroyed": "removed"
@@ -23547,8 +23547,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23780,8 +23780,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23922,8 +23922,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -24062,8 +24062,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -24091,7 +24091,7 @@
         "occludes": true,
         "stops_rounds": false,
         "topples": true,
-        "weight_class": "light"
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },

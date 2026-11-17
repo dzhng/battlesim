@@ -1,12 +1,12 @@
 {
   "props": {
     "crate": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "trivial", "topples": true, "cover_tier": "light", "hp": 20},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.62, 0.62, 0.62], "drawn_by": "crate"}
     },
     "fence": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "trivial", "topples": true, "cover_tier": "light", "hp": 20},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.62, 0.62, 0.62], "drawn_by": "fence", "modular": true}
     },

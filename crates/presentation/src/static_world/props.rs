@@ -41,6 +41,7 @@
 //! movers stand on it) and tier.
 mod admission;
 mod bodies;
+mod fallen;
 pub use bodies::{map_props, KnownBody, MapProp};
 
 use crate::records::{CAST_PASS, VIEW_PASS};
@@ -549,6 +550,7 @@ pub struct PropPopulation {
     hidden: Vec<bool>,
     /// What the side knows, as given, and the known wrecks drawn moving.
     known: Vec<KnownBody>,
+    fallen: Vec<KnownBody>,
     moving: Vec<f64>,
     /// Where the side watches its known bodies shoved, by id: drawn there
     /// ahead of its knowledge, which re-learns a shoved body only in steps.
@@ -642,7 +644,7 @@ impl PropPopulation {
         self.known_models.clear();
         self.known_bodies = 0;
         let mut looks = std::mem::take(&mut self.looks);
-        for k in &self.known {
+        for k in self.known.iter().chain(&self.fallen) {
             if k.id.is_some_and(|id| self.moving.contains(&id)) {
                 continue;
             }
