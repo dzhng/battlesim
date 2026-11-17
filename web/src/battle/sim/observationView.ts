@@ -95,6 +95,16 @@ export interface ObservationLayout {
 export type Point2 = [number, number];
 export type Point3 = [number, number, number];
 
+export type MoveState =
+  | "idle"
+  | "moving"
+  | "waiting"
+  | "route_blocked"
+  | "halted"
+  | "packing"
+  | "planning"
+  | "no_landing_spot";
+
 export interface OwnUnitView {
   withdrawing: boolean;
   fuelS: number | null;
@@ -115,7 +125,7 @@ export interface OwnUnitView {
   /** Driving backwards this tick: a reverse move or a shunt's reversing
    *  leg (the reverse beeper's cue). */
   reversing: boolean;
-  state: string;
+  state: MoveState;
   /** The friendly unit this one waits for. */
   blocker: number | null;
   route: Point2[];

@@ -169,6 +169,10 @@ impl Unit {
             d.u64(p.searching as u64);
         }
         d.opt_v2(self.planned_goal);
+        // Folded only while set, so units that never land keep their digests.
+        if let Some(goal) = self.landing_goal {
+            d.f64(goal.x).f64(goal.y);
+        }
         d.u64(self.route.is_some() as u64);
         for p in self.route.iter().flatten() {
             d.f64(p.x).f64(p.y);

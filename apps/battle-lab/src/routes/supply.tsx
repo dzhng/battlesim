@@ -21,7 +21,14 @@ import { TickStatus } from "../TickStatus";
 // team short of one soldier. (Service under incoming fire is pinned by the
 // Rust tests, where a squad is shelled from beyond its reach.)
 const SEED = 13;
-const VARIANTS = ["supply", "heli", "heli-fire", "heli-ground"] as const;
+const VARIANTS = [
+  "supply",
+  "heli",
+  "heli-fire",
+  "heli-ground",
+  "heli-shift",
+  "heli-crowded",
+] as const;
 type Variant = (typeof VARIANTS)[number];
 
 const SUPPLY_CAMERA: Camera3DParams = {

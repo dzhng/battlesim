@@ -75,6 +75,7 @@ pub(super) fn spawn_unit(
         tries: 0,
         pursuit: None,
         planned_goal: None,
+        landing_goal: None,
         engagement: controllers::own_engagement(u.side, u.engagement),
         held_engagement: None,
         air: airborne.then(|| {

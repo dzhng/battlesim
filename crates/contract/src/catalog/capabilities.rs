@@ -1,6 +1,6 @@
 //! A unit type's optional abilities (`Capabilities`), each present only on
 //! the types that have them, and the ability records they hold.
-use super::{ActiveProtection, FlareCapability, SmokeCapability};
+use super::{ActiveProtection, FlareCapability, Mobility, SmokeCapability};
 use serde::{Deserialize, Serialize};
 
 /// Optional abilities, present only on the types that have them.
@@ -38,20 +38,30 @@ pub struct Capabilities {
 }
 
 impl Capabilities {
-    /// What makes this set of abilities inadmissible for a type that does or
-    /// doesn't fly (`air`): supply serves only once set up, and an aircraft
-    /// sets up by landing, so it authors a drop shorter than its set-up and
-    /// nothing that drives authors one.
-    pub(super) fn problem(&self, air: bool) -> Option<&'static str> {
+    /// What makes this set of abilities inadmissible for a type that moves by
+    /// `mobility`: supply serves only once set up, and an aircraft sets up by
+    /// landing, so it authors a drop shorter than its set-up and the rotor
+    /// radius its landing spot must clear; nothing that drives authors a drop.
+    pub(super) fn problem(&self, mobility: &Mobility) -> Option<&'static str> {
         if self.supply.is_some() && self.deploy.is_none() {
             return Some("supply serves only when deployed: it needs deploy");
         }
         let deploy = self.deploy?;
-        match deploy.drop_seconds {
-            None if air => Some("an aircraft with deploy needs capabilities.deploy.drop_seconds"),
-            Some(_) if !air => Some("capabilities.deploy.drop_seconds requires air mobility"),
-            Some(drop) if !(drop.is_finite() && drop > 0.0 && drop < deploy.seconds) => {
+        let rotor = match mobility {
+            Mobility::Air { rotor_radius_m, .. } => Some(*rotor_radius_m),
+            _ => None,
+        };
+        match (deploy.drop_seconds, rotor) {
+            (None, Some(_)) => {
+                Some("an aircraft with deploy needs capabilities.deploy.drop_seconds")
+            }
+            (Some(_), None) => Some("capabilities.deploy.drop_seconds requires air mobility"),
+            (Some(drop), _) if !(drop.is_finite() && drop > 0.0 && drop < deploy.seconds) => {
                 Some("capabilities.deploy.drop_seconds must be positive and shorter than seconds")
+            }
+            (_, Some(None)) => Some("mobility: an aircraft with deploy needs rotor_radius_m"),
+            (_, Some(Some(r))) if !(r.is_finite() && r > 0.0) => {
+                Some("mobility: rotor_radius_m must be positive")
             }
             _ => None,
         }

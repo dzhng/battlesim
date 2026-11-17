@@ -14,7 +14,9 @@ use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
 use crate::deployment;
 use crate::math::{v2, V2};
 use crate::units::{Flight, Motion, Settle, Unit};
+use crate::world::WorldGeometry;
 use contract::catalog::AltitudeLayer;
+use contract::map::MoverClass;
 use contract::observation::{MoveState, ServiceStatus};
 use contract::scenario::Rules;
 
@@ -48,6 +50,16 @@ pub(super) fn step_aircraft(
         unreachable!("only aircraft fly");
     };
     let side = units[i].side.index();
+    if prepare_landing(ctx.world, ctx.rules, units, i) {
+        let unit = &mut units[i];
+        unit.state = MoveState::NoLandingSpot;
+        unit.air
+            .as_mut()
+            .expect("an aircraft's flight state")
+            .velocity = crate::math::v3(0.0, 0.0, 0.0);
+        unit.drive_speed_mps = 0.0;
+        return;
+    }
     plan(ctx, &mut units[i], &mut sides[side]);
     let exempt = deployment::separation_exempt(&units[i]);
     let drift = if exempt {
@@ -207,6 +219,92 @@ pub(super) fn step_aircraft(
             air.settle = None;
         }
     }
+}
+
+/// Pick or refresh the internal landing point for a deployable rotor aircraft.
+/// Returns true while no point is available, so the aircraft holds packed aloft.
+fn prepare_landing(world: &WorldGeometry, rules: &Rules, units: &mut [Unit], index: usize) -> bool {
+    let Some(d) = units[index].deployment.as_ref() else {
+        return false;
+    };
+    let drop_duration = d.drop_duration;
+    let landed = d.landed;
+    let stationary = d.stationary;
+    let current = d.current;
+    if drop_duration == 0
+        || landed
+        || !units[index].orders.is_empty()
+        || stationary != contract::observation::Posture::Deployed
+    {
+        return false;
+    }
+    if let Some(goal) = units[index].landing_goal {
+        if spot_blocked(world, rules, units, index, goal) {
+            units[index].landing_goal = None;
+        }
+    }
+    if units[index].landing_goal.is_none() && current <= 1 {
+        let radius = match units[index].unit_type(rules).mobility {
+            contract::catalog::Mobility::Air {
+                rotor_radius_m: Some(r),
+                ..
+            } => r,
+            _ => return false,
+        };
+        let at = units[index].position.xy();
+        let found = crate::crash::nearest_clear_spot(
+            world,
+            at,
+            rules.air.rotor.landing_reach_m,
+            radius,
+            |p| spot_blocked(world, rules, units, index, p),
+        );
+        units[index].landing_goal = found;
+        if found.is_some() && found != Some(units[index].position.xy()) {
+            units[index].state = MoveState::Moving;
+        }
+    }
+    units[index].landing_goal.is_none() && current == 0
+}
+
+fn spot_blocked(
+    world: &WorldGeometry,
+    rules: &Rules,
+    units: &[Unit],
+    index: usize,
+    at: V2,
+) -> bool {
+    let radius = match units[index].unit_type(rules).mobility {
+        contract::catalog::Mobility::Air {
+            rotor_radius_m: Some(r),
+            ..
+        } => r,
+        _ => return true,
+    };
+    let disc = |hull: &crate::math::Obb2| hull.distance(at) <= radius;
+    if world.forest_near(at, radius)
+        || world.surface_at(at.x, at.y).is_none_or(|s| !s.traversable)
+        || world.any_prop_near(at, radius + 8.0, |p| {
+            p.blocks(MoverClass::Vehicle) && disc(&p.footprint())
+        })
+    {
+        return true;
+    }
+    for (j, other) in units.iter().enumerate() {
+        if j == index || !other.on_field() {
+            continue;
+        }
+        if let Some(hull) = other.ground_footprint() {
+            if disc(&hull) {
+                return true;
+            }
+        } else if other.members.iter().any(|s| {
+            s.alive() && (s.position.xy() - at).length() <= radius + rules.physics.soldier_radius_m
+        }) {
+            return true;
+        }
+    }
+    false
 }
 
 /// The low hover (D10, transport D6) requires no orders or engagement when

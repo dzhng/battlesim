@@ -70,6 +70,7 @@ fn supply_flyer_deck() -> Value {
         json!({
             "roles": ["logistics"],
             "cost": truck["cost"],
+            "mobility": { "air": { "rotor_radius_m": 6.0 } },
             "capabilities": capabilities,
             "roster": { "factions": ["us"], "category": "sup",
                 "family_name": "Test", "variant": "Test" }

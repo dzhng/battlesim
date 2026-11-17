@@ -973,10 +973,7 @@ fn check(
             ));
         }
     }
-    if let Some(problem) = t
-        .capabilities
-        .problem(matches!(t.mobility, Mobility::Air { .. }))
-    {
+    if let Some(problem) = t.capabilities.problem(&t.mobility) {
         return rule(problem);
     }
     // A hull's mounts: each on the hull or an earlier turret, firing from

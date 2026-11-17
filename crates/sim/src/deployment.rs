@@ -100,6 +100,16 @@ pub fn target(unit: &Unit) -> Option<Posture> {
     let d = unit.deployment.as_ref()?;
     if d.lands()
         && matches!(unit.motion, crate::units::Motion::Air(_))
+        && unit.landing_goal.is_none()
+        && d.current > 0
+    {
+        return Some(Posture::Packed);
+    }
+    if unit.state == contract::observation::MoveState::NoLandingSpot && d.current == 0 {
+        return Some(Posture::Packed);
+    }
+    if d.lands()
+        && matches!(unit.motion, crate::units::Motion::Air(_))
         && unit.movement_goal().is_none()
         && unit
             .air
@@ -139,8 +149,11 @@ pub fn advance_all(units: &mut [Unit]) {
 /// The descent share consumed by the landing law, in `[0, 1]`.
 pub fn drop_progress(unit: &Unit) -> Option<f64> {
     let d = unit.deployment.as_ref()?;
-    (d.lands() && !d.landed && target(unit) == Some(Posture::Deployed))
-        .then(|| (d.current as f64 / d.drop_duration as f64).clamp(0.0, 1.0))
+    (d.lands()
+        && !d.landed
+        && unit.landing_goal.is_some()
+        && target(unit) == Some(Posture::Deployed))
+    .then(|| (d.current as f64 / d.drop_duration as f64).clamp(0.0, 1.0))
 }
 
 /// The latched landed state (P1).

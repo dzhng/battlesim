@@ -239,3 +239,17 @@ fn a_ground_deployer_cannot_author_a_drop() {
         .to_string();
     assert!(error.contains("requires air mobility"), "{error}");
 }
+
+#[test]
+fn a_deploying_aircraft_must_author_rotor_radius() {
+    let mut heli = base_tank();
+    heli["abstract"] = json!(false);
+    heli["mobility"] = rotor_mobility(220, 90, 6);
+    heli["capabilities"] = json!({ "deploy": {
+        "seconds": 3, "pack_seconds": 1, "drop_seconds": 2
+    } });
+    let error = resolve(&units(json!({ "heli": heli })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("rotor_radius_m"), "{error}");
+}

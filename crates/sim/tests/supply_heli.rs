@@ -6,6 +6,7 @@ use contract::ids::{Side, UnitId};
 use contract::observation::ServiceStatus;
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::math::v2;
 
 const HELI: UnitId = UnitId(0);
 const RECIPIENT: UnitId = UnitId(1);
@@ -59,9 +60,11 @@ fn ground(b: &Battle, id: UnitId) -> f64 {
 }
 
 fn set_up(b: &mut Battle) {
-    let (setup, _, _) = timing(b);
-    for _ in 0..setup {
+    for _ in 0..12 * b.rules().tick_hz as u64 {
         b.step();
+        if b.unit(HELI).unwrap().landed() {
+            break;
+        }
     }
     assert!(b.unit(HELI).unwrap().landed());
 }
@@ -196,7 +199,7 @@ fn landed_it_takes_forest_and_smoke_concealment() {
         json!([
             json!({"side":"blue","kind":"test_supply_heli","position":[200,200]}),
             json!({"side":"blue","kind":"test_smoke_squad","position":[200,200]}),
-            json!({"side":"red","kind":"test_rifle","position":[260,200],"engagement":"return_fire_only"})
+            json!({"side":"red","kind":"test_rifle","position":[500,200],"engagement":"return_fire_only"})
         ]),
     );
     set_up(&mut b);
@@ -352,7 +355,7 @@ fn it_brakes_to_a_hover_before_it_starts_to_land() {
 #[test]
 fn its_height_falls_with_setup_and_it_touches_down_before_it_serves() {
     let mut b = battle(json!([json!({
-        "side": "blue", "kind": "test_tank", "position": [205, 200],
+        "side": "blue", "kind": "test_tank", "position": [250, 200],
         "condition": {"hp": 1}, "engagement": "return_fire_only"
     })]));
     deploy(&mut b, true);
@@ -493,4 +496,79 @@ fn a_landing_replays_exactly() {
         replay.step();
     }
     assert_eq!(replay.digest(), b.digest());
+}
+
+fn prop_ring_map(b: &Battle, margin: f64) -> Value {
+    let reach = b.rules().air.rotor.landing_reach_m;
+    let props = vec![json!({
+        "kind": "crate", "center": [200.0, 200.0], "yaw": 0,
+        "half_extents": [reach + margin, reach + margin, 1.0]
+    })];
+    json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+}
+
+#[test]
+fn ordered_onto_an_obstacle_it_lands_on_the_nearest_clear_spot() {
+    let mut b = battle_with(
+        &fixture(),
+        json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "props": [{"kind":"crate","center":[200,200],"yaw":0,"half_extents":[8,8,1]}] }),
+        units(json!([])),
+    );
+    assert_eq!(b.accept(order(&[0], [200.0, 200.0])).error, None);
+    for _ in 0..20 * b.rules().tick_hz {
+        b.step();
+    }
+    let heli = b.unit(HELI).unwrap();
+    assert!(heli.landed());
+    let at = heli.position.xy();
+    let rotor = b.rules().catalog.by_id("test_supply_heli").mobility;
+    let radius = match rotor {
+        contract::catalog::Mobility::Air {
+            rotor_radius_m: Some(r),
+            ..
+        } => r,
+        _ => 0.0,
+    };
+    assert!((at - v2(200.0, 200.0)).length() <= b.rules().air.rotor.landing_reach_m + 1e-6);
+    assert!(
+        b.world()
+            .props_near(at, radius)
+            .iter()
+            .all(|p| !p.footprint().contains(at, 0.0)),
+        "heli={heli:?} at={at:?} props={:?}",
+        b.world()
+            .props_near(at, radius)
+            .iter()
+            .map(|p| p.center)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn with_no_clear_spot_in_reach_it_stays_packed_aloft_and_says_why() {
+    let probe = battle(json!([]));
+    let map = prop_ring_map(&probe, 0.5);
+    let mut b = battle_with(&fixture(), map, units(json!([])));
+    assert_eq!(b.accept(order(&[0], [200.0, 200.0])).error, None);
+    for _ in 0..5 * b.rules().tick_hz {
+        b.step();
+    }
+    let heli = b.unit(HELI).unwrap();
+    assert!(!heli.landed());
+    assert_eq!(heli.state, contract::observation::MoveState::NoLandingSpot);
+}
+
+#[test]
+fn the_search_is_deterministic() {
+    let map = open_map();
+    let mut a = battle_with(&fixture(), map.clone(), units(json!([])));
+    let mut b = battle_with(&fixture(), map, units(json!([])));
+    a.accept(order(&[0], [200.0, 200.0]));
+    b.accept(order(&[0], [200.0, 200.0]));
+    for _ in 0..10 * a.rules().tick_hz {
+        a.step();
+        b.step();
+    }
+    assert_eq!(a.digest(), b.digest());
 }

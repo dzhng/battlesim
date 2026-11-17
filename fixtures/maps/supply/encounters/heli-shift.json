@@ -1,0 +1,5 @@
+{
+  "units": [{"side":"blue","kind":"test_supply_heli","position":[100,100]}],
+  "events": [{"tick":0,"add_prop":{"kind":"crate","center":[200,200],"yaw":0,"half_extents":[8,8,1]} }],
+  "scripts": [{"tick":0,"side":"blue","order":{"kind":"move","units":[0],"gesture":9450,"goal":[200,200],"route":"shortest"}}]
+}

@@ -162,6 +162,58 @@ export async function run(ctx) {
   await runHeli(ctx);
   await runHeliFire(ctx);
   await runHeliGround(ctx);
+  await runHeliShift(ctx);
+  await runHeliCrowded(ctx);
+}
+
+async function runHeliShift(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "heli-shift");
+  const page = await openBattle(ctx, { url: url.href });
+  let o = await obs(page);
+  for (let waited = 0; waited < 1200; waited += 15) {
+    await advance(page, 15);
+    o = await obs(page);
+    if (unit(o, 0)?.deployment?.progress === 1) break;
+  }
+  const heli = unit(o, 0);
+  const prop = o.knownProps.find((p) => p.kind === "crate");
+  const d = Math.hypot(heli.position[0] - 200, heli.position[1] - 200);
+  ctx.check(
+    "heli-shift: the landed spot is clear and within rotor reach of the order",
+    heli?.deployment?.progress === 1 && d <= 40 && d > 8,
+    JSON.stringify({ heli, prop, distance: d }),
+  );
+  await frame(ctx, page, "heli-shift", [heli.position[0], heli.position[1]]);
+  await page.close();
+}
+
+async function runHeliCrowded(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "heli-crowded");
+  const page = await openBattle(ctx, { url: url.href });
+  await advance(page, 300);
+  let o = await obs(page);
+  ctx.check(
+    "heli-crowded: no landing zone is shown and the heli never lands",
+    unit(o, 0)?.state === "no_landing_spot" && unit(o, 0)?.deployment?.progress === 0,
+    JSON.stringify(unit(o, 0)),
+  );
+  await lab(page, () => window.__lab.route.select?.([0]));
+  await frame(ctx, page, "heli-crowded-hover", [200, 200]);
+  await lab(page, () => window.__lab.route.demo("Heli: fly on"));
+  for (let waited = 0; waited < 1500; waited += 15) {
+    await advance(page, 15);
+    o = await obs(page);
+    if (unit(o, 0)?.deployment?.progress === 1) break;
+  }
+  ctx.check(
+    "heli-crowded: an order out of the ring lets it land",
+    unit(o, 0)?.deployment?.progress === 1,
+    JSON.stringify(unit(o, 0)),
+  );
+  await frame(ctx, page, "heli-crowded", [unit(o, 0).position[0], unit(o, 0).position[1]]);
+  await page.close();
 }
 
 /** The `?variant=heli` supply route: the same recipients with a landed,
@@ -213,6 +265,7 @@ async function runHeli(ctx) {
     unit(o, 0)?.deployment?.progress === 0 && after[2] > before[2] && after[0] > before[0],
     JSON.stringify({ before, after, deployment: unit(o, 0)?.deployment }),
   );
+  await page.close();
 }
 
 /** The `?variant=heli-fire` route: the tank's ground gun opens only after
@@ -255,6 +308,7 @@ async function runHeliFire(ctx) {
     }),
   );
   await frame(ctx, page, "heli-fire-airborne", [180, 200]);
+  await page.close();
 }
 
 /** The `?variant=heli-ground` route: a jeep detours around the landed
@@ -300,4 +354,5 @@ async function runHeliGround(ctx) {
     JSON.stringify({ crashes: crashed?.crashes ?? [] }),
   );
   await frame(ctx, page, "heli-ground-wrecks", [300, 200]);
+  await page.close();
 }

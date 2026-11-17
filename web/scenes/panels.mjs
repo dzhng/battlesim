@@ -475,6 +475,14 @@ export async function run(ctx) {
     ),
     JSON.stringify(blocked),
   );
+  const noLanding = await page
+    .locator('[data-specimen="own states/no landing zone"] .ro-state[data-state="no_landing_spot"]')
+    .count();
+  ctx.check(
+    "NO LANDING ZONE is a warning row on the helicopter",
+    noLanding === 1,
+    String(noLanding),
+  );
   await checkCarriers(ctx, page);
   await sheet(ctx, page, "sheet.png");
   for (const [id, file] of [

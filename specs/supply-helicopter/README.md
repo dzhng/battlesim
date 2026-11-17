@@ -1,6 +1,6 @@
 # Supply helicopter
 
-**Status:** slices 01–03 done; slice 04 next. **Updated:** 2026-11-17.
+**Status:** slices 01–04 done; slice 05 next. **Updated:** 2026-11-17.
 
 One supply helicopter per faction. It lands to resupply the units around it and
 takes off again when it packs. It costs the same as the supply truck, carries
@@ -10,7 +10,7 @@ is running dry far from its truck.
 
 ## Next Agent Prompt
 
-Pick up at **slice 04** (05 may run beside it). Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
+Pick up at **slice 05**. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
 2026-11-17, so check `df` first. Read
 [`decisions.md`](decisions.md) before any slice; every row there is a given.
 Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
@@ -26,6 +26,9 @@ slices 01–04 and 06–09. Two traps from slices 01–03:
   all over budget.
 - **After any catalog rule change, run the sim lib tests** (`cargo test -p sim --lib`).
   Test decks patched in-test are validated too.
+- **Scenes:** close a page before opening the next; the browser stalls after
+  about six open WebGPU pages. Props added by encounter events don't render in
+  the lab.
 
 Before you end a pass, update this section: status, the next pickup point, and
 the TODO below.
@@ -35,7 +38,7 @@ the TODO below.
 - [x] [01](slices/01-ai-standing-supplier-drives.md) The AI's standing supplier drives (no outcome change)
 - [x] [02](slices/02-lands-and-serves.md) A supply heli lands and serves (first playable)
 - [x] [03](slices/03-landed-is-a-ground-vehicle.md) Landed, it is a ground vehicle
-- [ ] [04](slices/04-clear-landing-spot.md) Nearest clear spot, or NO LANDING ZONE
+- [x] [04](slices/04-clear-landing-spot.md) Nearest clear spot, or NO LANDING ZONE
 - [ ] [05](slices/05-enemies-see-it-land.md) Enemies see it land (knowledge and publication contract)
 - [ ] [06](slices/06-rotor-winds-down.md) The rotor winds down and up (visual: rotor)
 - [ ] [07](slices/07-ground-mark.md) Landed, it wears the ground mark (visual: marker)

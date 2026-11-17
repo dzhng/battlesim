@@ -399,6 +399,8 @@ pub enum MoveState {
     Packing,
     /// Has somewhere to go and holds where it is while its route is worked out.
     Planning,
+    /// A deploying aircraft has no clear landing spot within reach.
+    NoLandingSpot,
 }
 
 /// The end state a deploying unit's progress is heading to.

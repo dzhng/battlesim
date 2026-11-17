@@ -46,6 +46,8 @@ pub struct RotorFlight {
     /// length, at most `settle_max_m`, then eases back onto the point.
     pub settle_share: f64,
     pub settle_max_m: f64,
+    /// How far a deployable rotor aircraft searches for a clear landing spot.
+    pub landing_reach_m: f64,
 }
 
 /// A winged aircraft's flight, which never stops: its attack and dogfight
@@ -84,7 +86,8 @@ impl AirRules {
             && low.cruise_agl_m <= rotor.ceiling_agl_m
             && rotor.acceleration_s > 0.0
             && (0.0..1.0).contains(&rotor.settle_share)
-            && rotor.settle_max_m >= 0.0;
+            && rotor.settle_max_m >= 0.0
+            && rotor.landing_reach_m > 0.0;
         let wing_ok = high.floor_agl_m > 0.0
             && high.floor_agl_m <= wing.strafe_ceiling_m
             && high.floor_agl_m <= wing.bomb_ceiling_m

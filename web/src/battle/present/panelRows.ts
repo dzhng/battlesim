@@ -133,6 +133,13 @@ export const STATE_ROWS = {
     tone: "warn",
     byName: true,
   },
+  // The set-down it can't make: the deploy mark, in the warning tone.
+  no_landing_spot: {
+    icon: stateIcon("deploy"),
+    word: () => "NO LANDING ZONE",
+    tone: "warn",
+    byName: true,
+  },
   supplying: { icon: stateIcon("resupply"), word: () => "SUPPLYING" },
   resupplying: { icon: stateIcon("resupply"), word: () => "RESUPPLYING" },
   last_seen: { icon: stateIcon("last_seen"), word: (n: number | string) => `LAST SEEN ${n} s AGO` },
@@ -344,6 +351,7 @@ export function ownStateRows(
   // is kept and retried). Giving way to traffic (`waiting`) is the
   // pathfinder's detail, not the player's, and says nothing.
   if (u.state === "route_blocked") rows.push(row("route_blocked"));
+  if (u.state === "no_landing_spot") rows.push(row("no_landing_spot"));
   if (u.stock !== null) {
     const full = units.type(u.kind).capabilities?.supply?.stock;
     rows.push(

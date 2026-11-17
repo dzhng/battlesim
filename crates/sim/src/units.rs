@@ -278,6 +278,8 @@ pub struct Unit {
     pub pursuit: Option<Pursuit>,
     /// The goal the current route was planned to.
     pub planned_goal: Option<V2>,
+    /// Internal landing point chosen for a deployable aircraft; never a player order.
+    pub landing_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
     pub route: Option<Vec<V2>>,
     /// Where a squad's corridor or an aircraft's leg runs from to its first
@@ -439,6 +441,7 @@ impl Unit {
         }
         if !queued {
             self.orders.clear();
+            self.landing_goal = None;
             // Movement decides whether the way it has still serves.
             self.planned_goal = None;
             self.state = MoveState::Idle;
@@ -691,7 +694,12 @@ impl Unit {
         if self.hold.is_some() {
             return None;
         }
-        match self.orders.front()? {
+        let Some(order) = self.orders.front() else {
+            return (self.state == MoveState::Moving || self.route.is_some())
+                .then(|| self.landing_goal.map(|goal| (goal, RoutePolicy::Shortest)))
+                .flatten();
+        };
+        match order {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
             UnitOrder::Garrison {
@@ -702,6 +710,26 @@ impl Unit {
             | UnitOrder::Collect { .. }
             | UnitOrder::Unload { .. }
             | UnitOrder::Withdraw => None,
+        }
+    }
+
+    /// Whether movement is currently an internal landing transfer, invisible
+    /// as a player order and therefore without an order marker or queue entry.
+    pub fn internal_landing(&self) -> bool {
+        self.landing_goal.is_some() && self.orders.is_empty()
+    }
+
+    /// The goal of the order its owner gave, as the owner sees it: never an
+    /// internal landing shift.
+    pub fn ordered_goal(&self) -> Option<(V2, RoutePolicy)> {
+        self.movement_goal().filter(|_| !self.internal_landing())
+    }
+
+    /// The route of the order its owner gave, as the owner sees it.
+    pub fn ordered_route(&self) -> &[V2] {
+        match &self.route {
+            Some(route) if !self.internal_landing() => route,
+            _ => &[],
         }
     }
 
