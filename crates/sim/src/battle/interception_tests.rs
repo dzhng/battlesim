@@ -529,3 +529,86 @@ fn a_guided_missile_whose_round_ends_mid_flight_is_let_go() {
         );
     }
 }
+
+/// A ground gun engaging a helicopter sends an air-layer round all the
+/// way to impact; the muzzle starts on the ground, but the target is in air.
+#[test]
+fn a_ground_to_air_round_keeps_the_targets_layer_throughout_flight() {
+    let mut battle = interceptor_on_a_helicopter();
+    let id = (0..120)
+        .find_map(|_| {
+            battle.step();
+            interceptor_round(&battle)
+        })
+        .expect("the gun fired at the helicopter");
+    let mut flew = false;
+    while let Some(round) = battle.rounds.get(&id) {
+        assert_eq!(round.layer, AltitudeLayer::LowAir);
+        flew = true;
+        battle.step();
+    }
+    assert!(flew);
+}
+
+/// Deliberate lofting changes ground fire's engagement band. A direct
+/// grenade's gravity and visible arc alone do not make it an air round.
+#[test]
+fn only_authored_indirect_or_top_attack_ground_fire_uses_low_air() {
+    use serde_json::json;
+    for (weapon, patch, expected) in [
+        (
+            "grenade",
+            json!({"trajectory": "direct"}),
+            AltitudeLayer::Ground,
+        ),
+        (
+            "grenade",
+            json!({"trajectory": "indirect"}),
+            AltitudeLayer::LowAir,
+        ),
+        (
+            "atgm",
+            json!({"top_attack": {"loft_m":60,"dive_deg":40}}),
+            AltitudeLayer::LowAir,
+        ),
+    ] {
+        let mut rules = crate::fixtures::test_rules();
+        for (key, value) in patch.as_object().unwrap() {
+            rules["weapons"][weapon][key] = value.clone();
+        }
+        rules["weapons"][weapon]["damage"] = json!(0);
+        rules["weapons"][weapon]["aim_s"] = json!(0.1);
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            json!({
+                "sensors":{"ground_m":1000},
+                "mounts":[{"id":"test","name":"Test","weapons":[weapon],"turret":true,
+                    "pivot_m":[0,0,1],"muzzle_m":[1,0,0]}]
+            }),
+        );
+        let setup = serde_json::from_value(json!({
+            "map":{"size":[1200,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+            "rules":rules,
+            "units":[
+                {"side":"blue","kind":"test_jeep","position":[100,300]},
+                {"side":"red","kind":"test_tank","position":[180,300],"engagement":"return_fire_only"}
+            ],"events":[],"scripts":[]
+        })).unwrap();
+        let mut battle = Battle::new(&setup, 17);
+        let id = (0..300)
+            .find_map(|_| {
+                battle.step();
+                battle
+                    .rounds
+                    .iter()
+                    .find(|(_, r)| {
+                        r.unit == UnitId(0) && battle.arsenal.weapons[r.weapon].id == weapon
+                    })
+                    .map(|(&id, _)| id)
+            })
+            .unwrap_or_else(|| panic!("{weapon}: no launch"));
+        assert_eq!(battle.rounds[&id].layer, expected, "{weapon}");
+    }
+}

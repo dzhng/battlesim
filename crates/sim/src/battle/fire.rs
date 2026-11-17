@@ -14,8 +14,8 @@ pub struct Round {
     /// The unit it was fired at, until a flare spoofs it: what its
     /// proximity fuse bursts near, and whom its passing shoots at.
     pub aimed_at: Option<UnitId>,
-    /// The height band its shooter fired it from, for its whole flight:
-    /// what an interceptor reaches it by. Never read from its height.
+    /// The higher launch/target band, or LowAir for deliberately lofted
+    /// ground fire, fixed for its whole flight. Never read from its height.
     pub layer: AltitudeLayer,
 }
 
@@ -259,6 +259,27 @@ impl Battle {
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
+            let target_layer = match shot.target {
+                Target::Unit(id) => self.units[id.0 as usize].layer(),
+                Target::Contact(id) => {
+                    self.knowledge[side.index()]
+                        .contact(id)
+                        .expect("a shot has an acquired contact")
+                        .layer
+                }
+                Target::Round(round) => round.layer,
+                Target::Ground(_) => AltitudeLayer::Ground,
+            };
+            let layer = self.units[shot.unit.0 as usize].layer().max(target_layer);
+            let ballistics = &self.arsenal.weapons[shot.weapon].def.ballistics;
+            let layer = if layer == AltitudeLayer::Ground
+                && (ballistics.trajectory == contract::ballistics::Trajectory::Indirect
+                    || ballistics.top_attack.is_some())
+            {
+                AltitudeLayer::LowAir
+            } else {
+                layer
+            };
             for launch in shot.launches {
                 let seeker = self.arsenal.weapons[shot.weapon].def.seeker.is_some();
                 let guided = launch.guidance.is_some() && !seeker;
@@ -280,7 +301,7 @@ impl Battle {
                             Target::Unit(target) => Some(target),
                             _ => None,
                         },
-                        layer: self.units[shot.unit.0 as usize].layer(),
+                        layer,
                     },
                 );
                 // A guided round is supported by the mount that launched it.
