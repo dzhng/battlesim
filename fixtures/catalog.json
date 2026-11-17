@@ -44432,7 +44432,7 @@
       "appearance": "bomb",
       "armor_piercing": false,
       "blast_radius_m": 32.0,
-      "damage": 220.0,
+      "damage": 440.0,
       "decoyable": false,
       "default": false,
       "delivery": "unpowered",
@@ -44457,7 +44457,7 @@
       "name": "Iron bomb",
       "near_miss_suppression": 0.5,
       "partial_from": 0.08,
-      "penetration": 80.0,
+      "penetration": 44.0,
       "range_m": 0.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
@@ -44489,7 +44489,7 @@
       "appearance": "bomb",
       "armor_piercing": false,
       "blast_radius_m": 16.0,
-      "damage": 110.0,
+      "damage": 220.0,
       "decoyable": false,
       "default": false,
       "delivery": "unpowered",
@@ -44833,7 +44833,7 @@
       "appearance": "artillery",
       "armor_piercing": false,
       "blast_radius_m": 18.0,
-      "damage": 120.0,
+      "damage": 240.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -44874,7 +44874,7 @@
             "vehicle"
           ],
           "range_m": 2500.0,
-          "scatter_mrad": 18.0
+          "scatter_mrad": 9.0
         }
       },
       "top_speed_mps": null,
@@ -44889,7 +44889,7 @@
       "appearance": "mortar",
       "armor_piercing": false,
       "blast_radius_m": 15.0,
-      "damage": 90.0,
+      "damage": 180.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -44930,7 +44930,7 @@
             "vehicle"
           ],
           "range_m": 1800.0,
-          "scatter_mrad": 26.0
+          "scatter_mrad": 13.0
         }
       },
       "top_speed_mps": null,
@@ -44945,7 +44945,7 @@
       "appearance": "rocket_artillery",
       "armor_piercing": false,
       "blast_radius_m": 24.0,
-      "damage": 150.0,
+      "damage": 300.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -44990,7 +44990,7 @@
             "vehicle"
           ],
           "range_m": 2500.0,
-          "scatter_mrad": 22.0
+          "scatter_mrad": 11.0
         }
       },
       "top_speed_mps": null,
@@ -45005,7 +45005,7 @@
       "appearance": "rocket_artillery",
       "armor_piercing": false,
       "blast_radius_m": 20.0,
-      "damage": 100.0,
+      "damage": 200.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45050,7 +45050,7 @@
             "vehicle"
           ],
           "range_m": 2200.0,
-          "scatter_mrad": 24.0
+          "scatter_mrad": 12.0
         }
       },
       "top_speed_mps": null,
@@ -45065,7 +45065,7 @@
       "appearance": "strike_missile",
       "armor_piercing": false,
       "blast_radius_m": 28.0,
-      "damage": 220.0,
+      "damage": 440.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45106,7 +45106,7 @@
             "vehicle"
           ],
           "range_m": 2500.0,
-          "scatter_mrad": 14.0
+          "scatter_mrad": 7.0
         }
       },
       "top_speed_mps": null,
