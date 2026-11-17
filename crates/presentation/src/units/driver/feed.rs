@@ -42,6 +42,9 @@ pub struct FeedUnit {
     pub soldiers: Vec<FeedSoldier>,
     pub mounts: Vec<FeedMount>,
     pub deployment: Option<f64>,
+    /// The published landing latch, kept separate from the driver's showcase
+    /// `grounded` pose input until the rotor presentation consumes it.
+    pub published_grounded: bool,
     /// The squad is pinned, by the published tier (false where the side cannot know).
     pub pinned: bool,
     /// The squad is in a fight this moment: its own sensors see an enemy, or

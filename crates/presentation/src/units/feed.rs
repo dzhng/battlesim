@@ -181,6 +181,7 @@ impl ObservationFeed {
                 unit.mounts.extend_from_slice(m);
             }
             unit.deployment = None;
+            unit.published_grounded = false;
             unit.pinned = false;
             unit.engaged = false;
             unit.attitude = Some((c.pitch, c.roll));
@@ -210,6 +211,7 @@ impl ObservationFeed {
         out.position = pose.position;
         out.yaw = pose.yaw;
         out.deployment = pose.deployment;
+        out.published_grounded = pose.grounded;
         let known = own.unwrap_or_default();
         out.pinned = known.pinned;
         out.engaged = known.engaged;

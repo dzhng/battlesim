@@ -48,3 +48,13 @@ against the shipped code at closeout (slice 11).
 | The paired records that embed the rules gained `air.rotor.landing_reach_m`. Their digests are unchanged. | Sound; named. |
 | The battle lab doesn't draw props added by an encounter's events (props are built once, as static world, from the map). The `heli-shift` crate and the `heli-crowded` crate grid act in the simulation but can't be seen. This predates the feature. | Known lab limitation. The panel workbench judges the slice's visual variable, the row. |
 | The scene closes each heli section's page. Seven open WebGPU pages stalled the seventh's readiness. | Sound. |
+
+## Slice 05
+
+| Choice | Verdict |
+|---|---|
+| Tracks refresh layer and class at each continuing sighting; a last-seen contact takes the track's layer. Both are folded into the knowledge digest. Proof: with the fold removed, the whole sim crate passed unchanged. Four sim paired records were re-blessed for it in the commit. The capture recordings, checked outside the sim test binary, were re-recorded with the publication change; their digests first move at the first sighting. | Sound; named. Process note: after a digest change, also run the presentation and web capture tests. |
+| The wire columns: own rows add `grounded` after `deployTarget`; identified rows add `deployProgress`, `deployTarget` and `grounded` before the limbs. `IdentifiedUnit.deployment` uses the own unit's `DeploymentState` (P12). | Sound. Publication records changed only their layout hashes; battle digests are unchanged. |
+| `knowledge.rs` fills the identified unit's `deployment` and `grounded` where it builds the row, not a patch afterwards in `battle.rs`. Codex first patched them in battle.rs; moved. | Sound; one owner. |
+| Room for the ratchet: battle.rs `wear` moved to `battle/spawn.rs`; identified-row packing to `publication/identified_row.rs`; its decoding to `publication/reader/identified.rs`; the wire test to `tests/publication_wire.rs`; a shared AI test fixture to `skirmish_ai/tests/observed.rs`. | Sound; pure moves by concept. |
+| Cook-offs and shooter dust read the published `grounded`, not the type. | Sound. |

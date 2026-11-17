@@ -679,6 +679,7 @@ export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView
     engagement: "fire_at_will",
     concealed: false,
     deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
+    grounded: false,
     hold: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
     service: "out_of_range",

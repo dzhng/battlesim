@@ -66,3 +66,51 @@ fn passengers_riding_a_carrier_have_no_body_to_draw() {
         assert!(drawn.contains(&u.id), "unit {} on the field is drawn", u.id);
     }
 }
+
+#[test]
+fn identified_deployment_blends_between_publications() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
+    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let mut battle = Battle::new(&scenario, SEED);
+    for _ in 0..BOARDED_TICKS {
+        battle.step();
+    }
+    let layout = publication::layout_json(&battle);
+    let words: Vec<u32> = Publisher::new()
+        .publish(&battle, Side::Blue)
+        .unwrap()
+        .iter()
+        .map(|word| word.to_bits())
+        .collect();
+    let latest = Arc::new(
+        Reader::new(&layout)
+            .unwrap()
+            .decode(&words)
+            .unwrap()
+            .unwrap(),
+    );
+    assert!(
+        !latest.identified.is_empty(),
+        "the encounter exposes an enemy track"
+    );
+    let mut previous = (*latest).clone();
+    previous.tick -= 1.0;
+    previous.identified[0].deployment = Some(sim::publication::reader::Deployment {
+        progress: 0.0,
+        target: "deployed".into(),
+    });
+    let mut latest = (*latest).clone();
+    latest.identified[0].deployment = Some(sim::publication::reader::Deployment {
+        progress: 1.0,
+        target: "deployed".into(),
+    });
+    let latest_tick = latest.tick;
+    let mut interpolator = TickInterpolator::new(battle.rules().tick_hz as f64);
+    interpolator.push(Arc::new(previous), 0.0);
+    interpolator.push(Arc::new(latest), 1.0 / battle.rules().tick_hz as f64);
+    let sample = interpolator
+        .frame((latest_tick - 0.5) / battle.rules().tick_hz as f64)
+        .unwrap();
+    assert_eq!(sample.identified[0].deployment, Some(0.5));
+}

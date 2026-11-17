@@ -73,6 +73,7 @@ mod ordered_attacks;
 mod own_route;
 mod publication;
 mod publication_reader;
+mod publication_wire;
 mod purchase_preview;
 mod radar;
 mod ricochet;

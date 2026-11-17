@@ -196,14 +196,15 @@ impl EffectFeed {
                        yaw: f64,
                        members: &[Option<f64>],
                        poses: &[WeaponPose],
-                       smoking: bool| {
+                       smoking: bool,
+                       grounded: bool| {
             let unit = units.types.get(kind);
             let ty = effects.types.get(kind);
             Shooter {
                 key,
                 position,
                 half: units.body_half.get(kind).copied().flatten(),
-                airborne: unit.is_some_and(|u| u.airborne),
+                airborne: unit.is_some_and(|u| u.airborne) && !grounded,
                 smoking,
                 yaw,
                 members: members.to_vec(),
@@ -234,6 +235,7 @@ impl EffectFeed {
                 &u.member_ids,
                 &u.weapon_poses,
                 u.smoking,
+                u.grounded,
             );
             if !riding(u) {
                 s.wading = wading(water, &s, &u.members);
@@ -249,6 +251,7 @@ impl EffectFeed {
                 &e.member_ids,
                 &e.weapon_poses,
                 e.smoking,
+                e.grounded,
             );
             s.wading = wading(water, &s, &e.members);
             shooters.push(s);
@@ -263,6 +266,7 @@ impl EffectFeed {
                 &[],
                 &[],
                 true,
+                false,
             ));
         }
         let mut smokes = Vec::new();

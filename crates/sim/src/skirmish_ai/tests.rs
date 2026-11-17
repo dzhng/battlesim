@@ -2,6 +2,9 @@ use super::*;
 use crate::fixtures::{self, test_rules};
 use serde_json::{json, Value};
 
+mod observed;
+use observed::identified;
+
 /// Test units as a U.S. deck: a card for each, in its category.
 /// The frame's one player row, the deciding player's (`own_player`).
 fn me(frame: &mut ObservationFrame) -> &mut contract::skirmish::PlayerView {
@@ -1150,30 +1153,6 @@ fn firing_contact(
         heard: 0,
         bearing_deg: None,
         range_m: None,
-    }
-}
-
-fn identified(
-    id: u32,
-    kind: TypeIndex,
-    position: [f64; 3],
-) -> contract::observation::IdentifiedUnit {
-    contract::observation::IdentifiedUnit {
-        id: ObservedTargetId(id),
-        kind,
-        cost: 100,
-        position,
-        yaw: 0.0,
-        velocity: [0.0, 0.0],
-        members: vec![],
-        member_ids: vec![],
-        member_slots: vec![],
-        member_active_mounts: vec![],
-        weapon_poses: vec![],
-        reversing: false,
-        smoking: false,
-        member_leans: vec![],
-        building: None,
     }
 }
 

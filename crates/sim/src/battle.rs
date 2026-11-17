@@ -278,43 +278,6 @@ fn policy_for_player(seed: u64, index: usize) -> crate::skirmish_ai::BalancedDoc
     crate::skirmish_ai::BalancedDoctrine::new(stream)
 }
 
-/// Authored starting wear: vehicle health, fallen soldiers (their records lie
-/// where they stand in the squad's starting arrangement) and spent rounds.
-fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
-    if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
-        unit.hp = hp.clamp(1.0, unit.max_hp(rules));
-    }
-    if let Some(hp) = c.soldier_hp {
-        for soldier in &mut unit.members {
-            soldier.hp = hp.max(1.0);
-        }
-    }
-    let n = unit.members.len();
-    for k in n.saturating_sub(c.casualties as usize)..n {
-        let at = unit.members[k].position;
-        unit.members[k].fall(at, unit.yaw, None);
-    }
-    if !unit.members.is_empty() {
-        unit.suppression = c.suppression.clamp(0.0, 1.0);
-    }
-    let specs = arsenal.specs(unit.kind);
-    for mount in &mut unit.mounts {
-        for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
-            if let (Some(spent), Some(n)) = (
-                c.spent.get(&arsenal.weapons[row].id),
-                mount.ammo[k].as_mut(),
-            ) {
-                *n = n.saturating_sub(*spent);
-            }
-        }
-        for cycle in &mut mount.cycles {
-            if cycle.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
-                cycle.loaded = None;
-            }
-        }
-    }
-}
-
 impl Battle {
     fn player_faction(&self, side: Side) -> Option<contract::catalog::Faction> {
         self.player_ids.iter().find_map(|id| {
@@ -551,7 +514,7 @@ impl Battle {
             .collect::<Vec<Unit>>();
         for (unit, setup) in units.iter_mut().zip(&setup.units) {
             if let Some(c) = &setup.condition {
-                wear(unit, c, &arsenal, &rules);
+                spawn::wear(unit, c, &arsenal, &rules);
             }
             unit.settle();
         }
@@ -3042,6 +3005,7 @@ impl Battle {
                             .collect(),
                         weapon_poses: u.mounts.iter().map(weapons::pose).collect(),
                         deployment: deployment::state(u),
+                        grounded: u.landed(),
                         hp: u.hp,
                         smoking: u.smoking(&self.rules),
                         shot_at: near.shot_at.contains(&u.id),

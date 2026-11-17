@@ -30,6 +30,7 @@ use crate::ground::GroundRunPatch;
 
 mod cells;
 mod crash_row;
+mod identified_row;
 mod layout;
 mod mount_row;
 mod operations;
@@ -45,6 +46,7 @@ mod tags;
 
 use cells::{footprint_cells, host_cells};
 use crash_row::{crash_row, CRASH_FIELDS};
+use identified_row::{identified_row, IDENTIFIED_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
 use mount_row::{mount_row, MOUNT_FIELDS};
@@ -233,7 +235,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 58] = [
+const OWN_FIELDS: [&str; 59] = [
     "id",
     "owner",
     "kind",
@@ -259,6 +261,7 @@ const OWN_FIELDS: [&str; 58] = [
     "concealed",
     "deployProgress",
     "deployTarget",
+    "grounded",
     "hostKind",
     "hostLo",
     "hostHi",
@@ -292,23 +295,6 @@ const OWN_FIELDS: [&str; 58] = [
     "smokeCharges",
     "smoking",
     "shotAt",
-];
-const IDENTIFIED_FIELDS: [&str; 15] = [
-    "id",
-    "kind",
-    "cost",
-    "x",
-    "y",
-    "z",
-    "yaw",
-    "vx",
-    "vy",
-    "memberCount",
-    "poseCount",
-    "reversing",
-    "smoking",
-    "buildingLo",
-    "buildingHi",
 ];
 const XY_FIELDS: [&str; 2] = ["x", "y"];
 const XYZ_FIELDS: [&str; 3] = ["x", "y", "z"];
@@ -643,6 +629,7 @@ fn pack_record(
             u.concealed as u8 as f32,
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
+            u.grounded as u8 as f32,
             host_kind,
             host_lo,
             host_hi,
@@ -720,24 +707,7 @@ fn pack_record(
         ends.push(out.len());
     }
     for e in &frame.identified {
-        let [building_lo, building_hi] = limbs_or_absent(e.building);
-        out.extend([
-            e.id.0 as f32,
-            e.kind.0 as f32,
-            e.cost as f32,
-            e.position[0] as f32,
-            e.position[1] as f32,
-            e.position[2] as f32,
-            e.yaw as f32,
-            e.velocity[0] as f32,
-            e.velocity[1] as f32,
-            e.members.len() as f32,
-            e.weapon_poses.len() as f32,
-            e.reversing as u8 as f32,
-            e.smoking as u8 as f32,
-            building_lo,
-            building_hi,
-        ]);
+        out.extend(identified_row(e));
     }
     for e in &frame.identified {
         out.extend(

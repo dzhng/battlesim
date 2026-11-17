@@ -27,11 +27,13 @@ use serde_json::{json, Value};
 use super::{
     fixed_row_width, GroupLayout, AIR_TRANSIT_FIELDS, AUDIBLE_FIELDS, BLAST_FIELDS, CONTACT_FIELDS,
     COPY_FIELDS, CORPSE_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GRIND_FIELDS, GROUND_FIELDS,
-    GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
-    KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OWN_FIELDS, PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS,
-    SHOUT_FIELDS, STEP_FIELDS,
+    GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, KNOWN_PROP_FIELDS,
+    LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS, OWN_FIELDS,
+    PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, SHOUT_FIELDS,
+    STEP_FIELDS,
 };
+
+pub(super) use super::IDENTIFIED_FIELDS;
 
 pub use view::*;
 
@@ -116,6 +118,7 @@ macro_rules! v {
 mod cells;
 mod crash;
 mod hold;
+mod identified;
 mod mount;
 mod poses;
 mod report;
@@ -774,6 +777,7 @@ impl Reader {
                     progress: v!(f, "deployProgress"),
                     target,
                 }),
+            grounded: v!(f, "grounded") == 1.0,
             hold: self.hold(f)?,
             stock: present(v!(f, "stock")),
             service: self.name("serviceStatuses", v!(f, "service"))?,
@@ -795,31 +799,6 @@ impl Reader {
         Ok(Refusal {
             unit: limbs(v!(r.fields, "unitLo"), v!(r.fields, "unitHi")).unwrap_or(0.0),
             reason: self.name("orderErrors", v!(r.fields, "reason"))?,
-        })
-    }
-
-    fn identified(&self, r: &Row) -> Result<Identified> {
-        const FIELDS: &[&str] = &IDENTIFIED_FIELDS;
-        let f = r.fields;
-        let [members, member_ids, leans, poses] = r.sections[..] else {
-            unreachable!("identified rows carry four sections")
-        };
-        Ok(Identified {
-            id: v!(f, "id"),
-            kind: self.name("unitKinds", v!(f, "kind"))?,
-            cost: v!(f, "cost"),
-            position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
-            yaw: v!(f, "yaw"),
-            velocity: [v!(f, "vx"), v!(f, "vy")],
-            members: points(members),
-            member_ids: member_column(member_ids, |p| limbs(p[0] as f64, p[1] as f64)),
-            member_slots: member_column(member_ids, |p| p[2] as f64),
-            member_active_mounts: member_column(member_ids, |p| present(p[3] as f64)),
-            member_leans: self.leans(leans)?,
-            weapon_poses: weapon_poses(poses),
-            reversing: v!(f, "reversing") == 1.0,
-            smoking: v!(f, "smoking") == 1.0,
-            building: limbs(v!(f, "buildingLo"), v!(f, "buildingHi")),
         })
     }
 

@@ -173,6 +173,8 @@ export interface OwnUnitView {
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
+  /** An aircraft standing on the ground at this published tick. */
+  grounded: boolean;
   /** The squad's host (a building or a carrier) while entering, inside or
    *  leaving it; null otherwise. */
   hold: HoldView | null;
@@ -463,6 +465,10 @@ export interface IdentifiedView {
   /** It trails smoke: a coarse sign of damage (an aircraft below half its
    *  health), never its health. */
   smoking: boolean;
+  /** Setup progress for an identified unit that deploys in place. */
+  deployment: DeploymentView | null;
+  /** An aircraft standing on the ground at this published tick. */
+  grounded: boolean;
   /** The building it holds, inside or leaving (any of its parts' prop
    *  ids), or null: seen at its windows, a garrison gives its building away. */
   building: number | null;

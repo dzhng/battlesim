@@ -24,6 +24,8 @@ pub struct Pose {
     pub member_ids: Vec<Option<f64>>,
     /// Deployment progress in [0, 1], blended like the body; None if none.
     pub deployment: Option<f64>,
+    /// Whether the published aircraft is standing on the ground.
+    pub grounded: bool,
 }
 
 /// One drawn frame's view of the battle.
@@ -76,9 +78,10 @@ impl<'a> From<&'a Identified> for Body<'a> {
 
 impl Pose {
     /// `u` blended from `p` (the previous tick's same unit, if any) by `t`.
-    fn blend(&mut self, p: Option<Body>, u: Body, t: f64, deployment: Option<f64>) {
+    fn blend(&mut self, p: Option<Body>, u: Body, t: f64, deployment: Option<f64>, grounded: bool) {
         self.id = u.id;
         self.deployment = deployment;
+        self.grounded = grounded;
         self.member_ids.clear();
         self.member_ids.extend_from_slice(u.ids);
         self.members.clear();
@@ -172,13 +175,19 @@ impl TickInterpolator {
                         was.progress + (d.progress - was.progress) * t
                     })
             });
-            pose.blend(p.map(Body::from), u.into(), t, deployment);
+            pose.blend(p.map(Body::from), u.into(), t, deployment, u.grounded);
         }
         out.identified
             .resize_with(latest.identified.len(), Pose::default);
         for (pose, u) in out.identified.iter_mut().zip(&latest.identified) {
             let p = previous.and_then(|o| o.identified.iter().find(|p| p.id == u.id));
-            pose.blend(p.map(Body::from), u.into(), t, None);
+            let deployment = u.deployment.as_ref().map(|d| {
+                p.and_then(|p| p.deployment.as_ref())
+                    .map_or(d.progress, |was| {
+                        was.progress + (d.progress - was.progress) * t
+                    })
+            });
+            pose.blend(p.map(Body::from), u.into(), t, deployment, u.grounded);
         }
         out.crashes.clear();
         for c in &latest.crashes {
