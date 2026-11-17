@@ -9,7 +9,7 @@ Decisions taken where a faster rule changed what the battle does.
   weapon's reach is out of range, whatever stands between.
 - **What changed:** such a target used to report a blocked trajectory when a
   body also stood in the way; it now reports out of range. Two retries that
-  follow only a blocked line no longer run for it: aiming at each seen soldier
+  a blocked line triggers no longer run for it: aiming at each seen soldier
   of a squad whose middle is blocked, and firing from each soldier's own
   muzzle when the squad's is blocked. A squad whose middle is past reach while
   one of its soldiers stands inside it is therefore out of range, as it
