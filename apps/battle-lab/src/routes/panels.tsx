@@ -18,6 +18,7 @@ import type { ControlGroups } from "@web/battle/input/controlGroups";
 import type { CardBlink } from "@web/battle/present/fireBlink";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ContactLines } from "@web/battle/present/contactLines";
+import type { PendingPurchaseView } from "@web/battle/sim/observationView";
 
 /** The specimens shown again over grass: one of each kind of panel. */
 const OVER_GRASS = [
@@ -103,6 +104,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     replay?: boolean;
     selected?: number[];
     groups?: ControlGroups;
+    pending?: PendingPurchaseView[];
   }[] = [
     { name: "Rifle squad", units: [specimenUnit(catalog, "test_rifle")] },
     { name: "Tank ammunition", units: [specimenUnit(catalog, "test_tank")] },
@@ -206,6 +208,21 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         specimenUnit(catalog, "test_rifle", { id, suppression: "suppressed", service: "serving" }),
       ),
     },
+    {
+      name: "Queued force",
+      units: Array.from({ length: 18 }, (_, id) =>
+        specimenUnit(catalog, "test_tank", { id: id + 1 }),
+      ),
+      pending: Array.from({ length: 11 }, (_, id) => ({
+        id,
+        kind: id === 10 ? "test_rifle" : "test_supply",
+        ...(id === 10 ? { carrier: "test_apc" } : {}),
+        destination: [0, 0],
+        confirmedTick: 0,
+        blocked: true,
+        arrivalTick: 0,
+      })),
+    },
     // Group 1 holds a squad riding the APC; at two rows group 2's three
     // cards leave their column's foot to the next card, an L.
     {
@@ -292,9 +309,14 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         controller: "human" as const,
         ready: false,
         credits: 769,
-        unitCount: selection.units.length,
+        unitCount:
+          selection.units.length +
+          (selection.pending ?? []).reduce(
+            (total, purchase) => total + (purchase.carrier ? 2 : 1),
+            0,
+          ),
         cap: 30,
-        pending: [],
+        pending: selection.pending ?? [],
       },
     ],
     preparationRemainingS: 60,
@@ -341,6 +363,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           onSelect={setSelected}
           groups={selection.groups}
           blinks={blinks}
+          pending={selection.pending}
           onDeleteGroup={(key) => setAction(`Delete group ${key}`)}
           rules={rules}
           contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, last seen" }]} />}

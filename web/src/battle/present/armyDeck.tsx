@@ -147,6 +147,7 @@ export function ArmyDeck({
   useLayoutEffect(() => {
     drawn.current = cards.map((unit) => ({ unit, group: groupOf.get(unit.id) ?? null }));
   });
+  const unitCount = own.length + waiting.length;
   const count = cards.length + waiting.length;
   const capacity = Math.max(1, Math.floor((availableWidth - 10 + 4) / 68));
   const rows = Math.max(1, Math.ceil(count / capacity));
@@ -235,7 +236,12 @@ export function ArmyDeck({
           className="hud-panel hud-bar hud-bottom hud-army-deck"
           data-occludes-readouts
         >
-          {reinforcements}
+          <div className="hud-army-header">
+            {reinforcements}
+            <span className="hud-army-count" aria-label="Total units">
+              {unitCount} {unitCount === 1 ? "UNIT" : "UNITS"}
+            </span>
+          </div>
           <div
             className="hud-army"
             data-unit-count={count}
