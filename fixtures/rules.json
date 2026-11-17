@@ -107,6 +107,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
+      "resupply_rounds_per_s": 0.1,
       "appearance": "grenade",
       "round_cost": 2,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 150, "scatter_mrad": 30 } },
@@ -129,6 +130,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
+      "resupply_rounds_per_s": 0.1,
       "appearance": "tank_sabot",
       "round_cost": 5,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
@@ -151,6 +153,7 @@
       "armor_piercing": true
     },
     "tank_he": {
+      "resupply_rounds_per_s": 0.1,
       "appearance": "tank_he",
       "round_cost": 5,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
@@ -194,6 +197,7 @@
       "structural_damage": 4
     },
     "atgm": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "atgm",
       "round_cost": 20,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } },
@@ -228,6 +232,7 @@
       "targets": { "low_air": { "scatter_mrad": 50 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 240, "scatter_mrad": 10 } }
     },
     "lmg": {
+      "resupply_rounds_per_s": 1,
       "appearance": "light_machine_gun",
       "round_cost": 1,
       "extends": "rifle",
@@ -247,6 +252,7 @@
       "structural_damage": 1
     },
     "marksman_rifle": {
+      "resupply_rounds_per_s": 1,
       "appearance": "marksman_rifle",
       "round_cost": 1,
       "extends": "rifle",
@@ -263,6 +269,7 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 450, "scatter_mrad": 8 } }
     },
     "heavy_sniper": {
+      "resupply_rounds_per_s": 0.1,
       "appearance": "heavy_sniper",
       "round_cost": 2,
       "extends": "rifle",
@@ -279,6 +286,7 @@
       "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 700, "scatter_mrad": 8 } }
     },
     "autocannon": {
+      "resupply_rounds_per_s": 1,
       "appearance": "autocannon",
       "round_cost": 1,
       "extends": "hmg",
@@ -389,6 +397,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 800, "scatter_mrad": 0.5 } }
     },
     "stinger": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "manpads",
       "round_cost": 30,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 1500, "scatter_mrad": 0.5 } },
@@ -418,6 +427,7 @@
       "structural_damage": 20
     },
     "aa_ballistic": {
+      "resupply_rounds_per_s": 1,
       "appearance": "aa_gun",
       "round_cost": 1,
       "proximity_fuse_m": 5,
@@ -440,6 +450,7 @@
       "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } }
     },
     "aa_medium": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "sam",
       "round_cost": 30,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 } },
@@ -471,6 +482,7 @@
       "decoyable": true
     },
     "aa_long": {
+      "resupply_rounds_per_s": 0.03333333333333333,
       "appearance": "sam",
       "round_cost": 45,
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 5200, "scatter_mrad": 0.5 } },
@@ -540,6 +552,7 @@
       "default": true
     },
     "air_missile": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "sam",
       "round_cost": 25,
       "fires_on_its_own": true,
@@ -572,6 +585,7 @@
       "decoyable": true
     },
     "air_bomb": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "bomb",
       "round_cost": 25,
       "delivery": "unpowered",
@@ -593,6 +607,7 @@
       "structural_damage": 120
     },
     "air_bomb_cluster": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "bomb",
       "round_cost": 25,
       "delivery": "unpowered",
@@ -615,6 +630,7 @@
       "structural_damage": 50
     },
     "air_ground_missile": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "atgm",
       "extends": "heli_atgm",
       "name": "Air ground missile",
@@ -624,6 +640,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 2000, "scatter_mrad": 0.5 } }
     },
     "sead_missile": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "sam",
       "round_cost": 40,
       "fires_on_its_own": true,
@@ -693,6 +710,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 1200, "scatter_mrad": 0.5 } }
     },
     "rocket_pod": {
+      "resupply_rounds_per_s": 0.5,
       "appearance": "rocket_pod",
       "round_cost": 2,
       "extends": "tank_he",
@@ -733,6 +751,7 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 650, "scatter_mrad": 4 } }
     },
     "rpg_at_light": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "rpg",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 8 } },
@@ -750,6 +769,7 @@
       "gravity_scale": 1.7651
     },
     "rpg_at_heavy": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "rpg_heavy",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 400, "scatter_mrad": 8 } },
@@ -767,6 +787,7 @@
       "gravity_scale": 1.7651
     },
     "rpg_general": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "rpg",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 280, "scatter_mrad": 10 } },
@@ -784,6 +805,7 @@
       "gravity_scale": 1.7651
     },
     "artillery_howitzer": {
+      "resupply_rounds_per_s": 0.05,
       "appearance": "artillery",
       "round_cost": 12,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 18 } },
@@ -809,6 +831,7 @@
       "trajectory": "indirect"
     },
     "artillery_mortar": {
+      "resupply_rounds_per_s": 0.1,
       "appearance": "mortar",
       "round_cost": 8,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 1800, "scatter_mrad": 26 } },
@@ -834,6 +857,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_light": {
+      "resupply_rounds_per_s": 0.25,
       "appearance": "rocket_artillery",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2200, "scatter_mrad": 24 } },
@@ -860,6 +884,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_heavy": {
+      "resupply_rounds_per_s": 0.2,
       "appearance": "rocket_artillery",
       "round_cost": 16,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 22 } },
@@ -886,6 +911,7 @@
       "trajectory": "indirect"
     },
     "artillery_strike_missile": {
+      "resupply_rounds_per_s": 0.025,
       "appearance": "strike_missile",
       "round_cost": 24,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 14 } },
@@ -955,10 +981,9 @@
   },
   "service": {
     "radius_m": 80,
-    "ammo_rounds_per_s": 1,
-    "vehicle_hp_per_s": 2,
+    "vehicle_hp_per_s": 1,
     "stock_per_hp": 1,
-    "soldier_replacement_s": 5,
+    "soldier_replacement_s": 10,
     "stock_per_soldier": 15,
     "flare_service_s": 2,
     "stock_per_flare": 2

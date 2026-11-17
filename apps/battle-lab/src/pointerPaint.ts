@@ -436,12 +436,11 @@ export function cursorForIntent(
   // So is unloading into a host, which no hover preview places.
   if (intent.kind === "unload" && intent.into)
     return intent.into.kind === "building" ? "unload_garrison" : "unload_board";
-  if (state === "blocked") return "blocked";
   // Entering a building shows at once, as boarding does (the intent names
-  // only squads); only an answer that gives no squad an entry takes the
-  // badge away.
-  if (intent.kind === "occupy_building")
-    return paint.building?.entries.length || state !== "ready" ? "garrison" : "default";
+  // only squads); only its own answer giving no squad an entry takes the
+  // badge away, never what another building settled on.
+  if (intent.kind === "occupy_building") return paint.state === "blocked" ? "blocked" : "garrison";
+  if (state === "blocked") return "blocked";
   if (state !== "ready") return "default";
   if (intent.kind === "attack_move") return "attack_move";
   if (intent.kind === "unload") return "unload";

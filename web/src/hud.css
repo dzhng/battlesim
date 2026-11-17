@@ -1884,10 +1884,11 @@ html {
 /* The end-of-match report: a debrief over the stilled battle. The result,
  * each side's scoreboard (a row per player, the viewer's lit), then the
  * battle's story. Players read in the battle's colours: yours, an ally's,
- * an enemy's (`match-result-tone-*`). */
+ * an enemy's (`match-result-tone-*`). The pause menu (`hud-veil`) opens
+ * over it. */
 .match-result-scrim {
   position: fixed;
-  z-index: 30;
+  z-index: 15;
   inset: 0;
   display: grid;
   place-items: center;
@@ -1971,7 +1972,7 @@ html {
 }
 .match-result-verb .match-result-action {
   margin: 0;
-  font-size: 13px;
+  font-size: 18px;
 }
 .match-result-score > b {
   color: rgb(var(--tone));
@@ -2052,6 +2053,36 @@ html {
 /* Lines run on below the fold: the list fades out at its foot. */
 .match-result-timeline {
   mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+/* The report's one way out, under the story. */
+.match-result-footer {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 12px 24px 16px;
+  border-top: 1px solid rgb(255 255 255 / 0.09);
+}
+.match-result-leave {
+  min-width: 240px;
+  padding: 9px 28px;
+  border: 1px solid rgb(var(--hud-accent) / 0.85);
+  background: rgb(var(--hud-accent) / 0.2);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 80ms,
+    box-shadow 80ms,
+    background 80ms;
+}
+.match-result-leave:is(:hover, :focus-visible) {
+  outline: none;
+  border-color: rgb(var(--hud-accent));
+  background: rgb(var(--hud-accent) / 0.32);
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
 }
 /* The viewer's own lines, lit as their scoreboard row is. */
 .match-result-event[data-you] {

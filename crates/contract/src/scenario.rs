@@ -313,8 +313,6 @@ pub struct SightShape {
 pub struct ServiceRules {
     /// Service reach from a deployed truck.
     pub radius_m: f64,
-    /// Rounds per second for each ammunition kind on each mount, concurrently.
-    pub ammo_rounds_per_s: f64,
     pub vehicle_hp_per_s: f64,
     pub stock_per_hp: u32,
     pub soldier_replacement_s: f64,

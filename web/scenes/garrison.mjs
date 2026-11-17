@@ -9,7 +9,7 @@ import {
   narrowRefusal,
   readoutEdge,
 } from "./_cursorOrders.mjs";
-import { buildingCursor } from "./_movingCursor.mjs";
+import { buildingCursor, restingCursor } from "./_movingCursor.mjs";
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop, around, pixel } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
@@ -178,6 +178,7 @@ export async function run(ctx) {
   if (process.env.COVER_LIGHT === "1") return coverLight(ctx);
   await garrisonCursor(ctx);
   await buildingCursor(ctx);
+  await restingCursor(ctx);
   await queuedBuildingCursor(ctx);
   await partialBuildingCursor(ctx);
   await narrowRefusal(ctx);

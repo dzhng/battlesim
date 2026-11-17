@@ -209,7 +209,8 @@
       "blast_radius_m": 6,
       "structural_damage": 10,
       "round_cost": 2,
-      "appearance": "grenade"
+      "appearance": "grenade",
+      "resupply_rounds_per_s": 1.0
     },
     "tank_ap": {
       "targets": {
@@ -240,7 +241,8 @@
       "structural_damage": 10,
       "armor_piercing": true,
       "round_cost": 5,
-      "appearance": "tank_sabot"
+      "appearance": "tank_sabot",
+      "resupply_rounds_per_s": 1.0
     },
     "tank_he": {
       "targets": {
@@ -270,7 +272,8 @@
       "blast_radius_m": 12,
       "structural_damage": 100,
       "round_cost": 5,
-      "appearance": "tank_he"
+      "appearance": "tank_he",
+      "resupply_rounds_per_s": 1.0
     },
     "hmg": {
       "targets": {
@@ -351,7 +354,8 @@
       "blast_radius_m": 4,
       "structural_damage": 100,
       "round_cost": 20,
-      "appearance": "atgm"
+      "appearance": "atgm",
+      "resupply_rounds_per_s": 1.0
     }
   },
   "suppression": {
@@ -412,7 +416,6 @@
   },
   "service": {
     "radius_m": 80,
-    "ammo_rounds_per_s": 1,
     "vehicle_hp_per_s": 2,
     "stock_per_hp": 1,
     "soldier_replacement_s": 5,

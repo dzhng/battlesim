@@ -195,6 +195,31 @@ test("a building shows the garrison badge at once; only the simulation's answer 
   expect(cursorForIntent(occupy, preview.update(queued, sim, 1, "building"))).toBe("garrison");
 });
 
+test("the garrison badge holds from one enterable building to the next while it is asked", async () => {
+  const first = deferred<{
+    building: number;
+    entries: { unit: number; approach: [number, number] }[];
+  }>();
+  const sim = client();
+  sim.previewBuilding.mockReturnValueOnce(first.promise).mockReturnValueOnce(deferred().promise);
+  const preview = new OrderPreview();
+  const into = (building: number) => ({
+    intent: { kind: "building" as const, request: { units: [1], building } },
+    occupy: { kind: "occupy_building", units: [1], building, queued: false } as PointerIntent,
+  });
+  const a = into(4);
+  const b = into(5);
+
+  preview.update(a.intent, sim, 1, "building");
+  first.resolve({ building: 4, entries: [{ unit: 1, approach: [10, 10] }] });
+  await first.promise;
+  await settled();
+  expect(cursorForIntent(a.occupy, preview.update(a.intent, sim, 1, "building"))).toBe("garrison");
+
+  // The pointer crosses to the next house: asked, not yet answered.
+  expect(cursorForIntent(b.occupy, preview.update(b.intent, sim, 1, "building"))).toBe("garrison");
+});
+
 test("changing client revokes the old answer", async () => {
   const old = deferred<MoveDestination[]>();
   const fresh = deferred<MoveDestination[]>();

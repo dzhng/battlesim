@@ -143,9 +143,14 @@ Flight offers it only an imminent swept hull collision at the authored standoff;
 ordinary projectiles, passes and cover remain ordinary flight events.
 [Supply service](src/supply.rs) serves stationary units even during combat.
 Every mount's finite ammunition kinds replenish independently and concurrently,
-each paid from the truck's finite stock. Ammunition takes priority over the
+at each weapon row's authored rate, each paid from the truck's finite stock.
+Handling speed is independent of stock price, so a belt, a shell and a missile
+can take different times to deliver. Ammunition takes priority over the
 remaining recovery needs; the service owner defines their order. Partial
 progress belongs to the ammunition kind and pauses when service is unavailable.
+Each item uses one truck, so overlapping trucks add reserves rather than speed.
+The [game rules](../../development.md#game-rules) define how a truck spends its
+final remainder.
 A jet never stands still in reach, so it rearms flares only by withdrawing.
 Protection state is part of the battle digest and never becomes an offensive
 weapon row.

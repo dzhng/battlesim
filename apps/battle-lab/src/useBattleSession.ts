@@ -579,8 +579,8 @@ export function useBattleSession({
     const previewSnapshot = orderPreview.update(
       active ? previewForIntent(queryIntent) : null,
       active ? sim.client : null,
-      `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
-      `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
+      `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}:${semanticRevision.current.version}`,
+      `${held?.generation ?? (waiting ? pending.generation : 0)}`,
     );
     const marks = pointerPaint.markers(previewSnapshot, shown?.own ?? []);
     const showDestinations =

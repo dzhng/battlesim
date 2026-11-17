@@ -208,7 +208,7 @@
   {
     "id": "garrison",
     "route": "/labs/garrison",
-    "describe": "Buildings as fighting positions squads share: two blue rifle squads enter one house on a timer, each whole and every soldier at a window of his own, and the scouts who arrive after them find no room, are told so beside their card and stay outside; occupants fire outward from their windows while red's rounds hit them or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission (every squad an order names steps in), queued cursor, refusal callout and edge-readout cursor checks.",
+    "describe": "Buildings as fighting positions squads share: two blue rifle squads enter one house on a timer, each whole and every soldier at a window of his own, and the scouts who arrive after them find no room, are told so beside their card and stay outside; occupants fire outward from their windows while red's rounds hit them or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission (every squad an order names steps in), a resting cursor whose badge, outline and drag ghosts hold while other units take orders, queued cursor, refusal callout and edge-readout cursor checks.",
     "map": "garrison"
   },
   {

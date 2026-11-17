@@ -188,7 +188,7 @@ function LineRow({ line, names }: { line: Line; names: Names }) {
           </div>
         )}
         <span className="match-result-verb">
-          <Icon path={hudIcon("rejected")} className="match-result-action" />
+          <Icon path={hudIcon("kill")} className="match-result-action" />
           KILLED
         </span>
         <Actor
@@ -224,7 +224,7 @@ function LineRow({ line, names }: { line: Line; names: Names }) {
 const COLUMNS = [
   { icon: stateIcon("deploy"), label: "UNITS", title: "Units spawned" },
   { icon: stateIcon("stock"), label: "SPENT", title: "Credits spent" },
-  { icon: hudIcon("rejected"), label: "KILLS", title: "Units killed" },
+  { icon: hudIcon("kill"), label: "KILLS", title: "Units killed" },
   { icon: stateIcon("withdrawing"), label: "REFUNDED", title: "Credits refunded" },
 ];
 
@@ -277,16 +277,26 @@ function Scoreboard({ side, report, names }: { side: SideName; report: Report; n
   );
 }
 
+/** Where the report's one action leaves the finished battle for: the main
+ *  menu, or Multiplayer for an online battle. */
+export interface ReportLeave {
+  label: string;
+  onLeave: () => void;
+}
+
 /** The report over a finished battle. `seats` are the battle's players in
  *  scenario order (the report's totals are indexed by it); `viewer` is the
- *  human the client plays as, null when it watches AI play. */
+ *  human the client plays as, null when it watches AI play; `callsigns` are
+ *  an online battle's public names. */
 export function MatchResultOverlay({
   match,
   seats,
   viewer,
-  online,
+  callsigns,
+  leave,
 }: {
-  online?: { callsigns: Record<string, string>; onReturn: () => void };
+  callsigns?: Record<string, string>;
+  leave: ReportLeave;
   match: SkirmishView;
   seats: readonly Seat[];
   viewer: string | null;
@@ -295,7 +305,7 @@ export function MatchResultOverlay({
   const report = match.report;
   if (match.phase !== "finished" || !report) return null;
   const viewerSide = seats.find((seat) => seat.id === viewer)?.side ?? null;
-  const names = { seats, viewer, viewerSide, callsigns: online?.callsigns };
+  const names = { seats, viewer, viewerSide, callsigns };
   // The viewer's side first, as the battle's score strip has it; seat order
   // for a watcher.
   const sides = [...new Set(seats.map((seat) => seat.side))].sort(
@@ -331,11 +341,11 @@ export function MatchResultOverlay({
             <LineRow line={line} names={names} key={`${line.tick}-${index}`} />
           ))}
         </ol>
-        {online && (
-          <button className="match-result-return" type="button" onClick={online.onReturn}>
-            Return to Multiplayer
+        <footer className="match-result-footer">
+          <button className="match-result-leave" type="button" onClick={leave.onLeave}>
+            {leave.label}
           </button>
-        )}
+        </footer>
       </section>
     </div>
   );

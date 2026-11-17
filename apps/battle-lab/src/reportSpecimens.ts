@@ -6,6 +6,7 @@
 import { shippedRules } from "@web/shippedRules";
 import type { Seat } from "@web/battle/present/playerName";
 import type { MatchEventView, SkirmishView } from "@web/battle/sim/observationView";
+import type { ReportLeave } from "./MatchResultOverlay";
 
 const KINDS = [
   ["test_tank", 300],
@@ -21,6 +22,8 @@ export interface ReportSpecimen {
   seats: Seat[];
   /** The human the client plays as; null when it watches AI play. */
   viewer: string | null;
+  /** A specimen's way out goes nowhere: the gallery has no battle to leave. */
+  leave: ReportLeave;
 }
 
 /** A finished battle between `blue` and `red` (controller codes: `h` a
@@ -114,6 +117,7 @@ export function reportSpecimen(
   return {
     seats,
     viewer: human?.id ?? null,
+    leave: { label: "Main menu", onLeave: () => {} },
     match: {
       phase: "finished",
       players: [],
