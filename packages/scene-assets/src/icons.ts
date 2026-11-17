@@ -180,6 +180,10 @@ const HUD_ICONS = {
   // A bare chevron: back out of a menu page, unlike reverse's barred arrow.
   back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',
+  // A kill: a shot's arrow, from the killer on its left, striking a solid
+  // burst on its right. Rejected's cross beside a unit read as that unit
+  // dying, whichever side it stood on.
+  kill: '<path d="M1 12h7"/><path d="M5 9l3 3-3 3"/><path d="M24 12L20.1 13.1L22.1 16.6L18.6 14.6L17.5 18.5L16.4 14.6L12.9 16.6L14.9 13.1L11 12L14.9 10.9L12.9 7.4L16.4 9.4L17.5 5.5L18.6 9.4L22.1 7.4L20.1 10.9z" fill="currentColor"/>',
   // Dismiss what it sits on (a control group): a small cross, lighter than
   // rejected's, which is a refusal rather than a choice.
   close: '<path d="M8 8l8 8M16 8l-8 8"/>',

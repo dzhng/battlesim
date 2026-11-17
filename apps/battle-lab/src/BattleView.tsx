@@ -11,6 +11,7 @@ import {
 import type { BattleConnectionSession } from "@web/battle/prepare/client";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router";
 import { contactFocusTargets } from "@web/battle/input/contactFocus";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -117,6 +118,7 @@ export function BattleView({
   onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const [viewportReady, setViewportReady] = useState(false);
   const [purchaseLookup, setPurchaseLookup] = useState<PurchaseLookup | null>(null);
   const purchaseLookupSerial = useRef(0);
@@ -353,6 +355,7 @@ export function BattleView({
               match={observation.skirmish}
               seats={session.seats}
               viewer={session.viewer?.id ?? null}
+              exit={{ label: "Main menu", onExit: onLeave ?? (() => navigate("/")) }}
             />
           )}
     </SessionCatalogProvider>

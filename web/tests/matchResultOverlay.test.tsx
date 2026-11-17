@@ -2,7 +2,7 @@ import matchRules from "@fixtures/skirmish.json";
 import { SessionCatalogProvider } from "@web/battle/catalog/context";
 // The end-of-match report: every player's totals under their side, a
 // timeline naming each player, and a result judged from the viewer's side.
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { MatchResultOverlay } from "@apps/battle-lab/src/MatchResultOverlay";
 import { BattleClock, SkirmishStatus } from "@apps/battle-lab/src/battleStatus";
@@ -54,8 +54,10 @@ function finished(
   };
 }
 
+const stay = { label: "Main menu", onExit: () => {} };
+
 function report(players: Seat[], viewer: string | null, match = finished(players, "blue")) {
-  return render(<MatchResultOverlay match={match} seats={players} viewer={viewer} />, {
+  return render(<MatchResultOverlay match={match} seats={players} viewer={viewer} exit={stay} />, {
     wrapper: WithTestCatalog,
   });
 }
@@ -88,6 +90,29 @@ test.each([
   });
   // No row for anyone who isn't playing.
   expect(view.getAllByRole("row", { name: /\(YOU\)|· AI/ })).toHaveLength(players.length);
+});
+
+test("every finished report, won, lost or watched, offers its way out of the battle", () => {
+  const players = seats("ha", "aa");
+  for (const [viewer, result] of [
+    ["blue-1", "blue"],
+    ["blue-1", "red"],
+    [null, "draw"],
+  ] as const) {
+    let left = 0;
+    const view = render(
+      <MatchResultOverlay
+        match={finished(players, result)}
+        seats={players}
+        viewer={viewer}
+        exit={{ label: "Main menu", onExit: () => left++ }}
+      />,
+      { wrapper: WithTestCatalog },
+    );
+    fireEvent.click(view.getByRole("button", { name: "Main menu" }));
+    expect(left).toBe(1);
+    cleanup();
+  }
 });
 
 test("a watcher's report heads the sides by their names, a commander's by what they are to them", () => {
@@ -210,7 +235,7 @@ test("consecutive battle clocks and report minutes use their own tick rates", ()
       catalog={{ ...TEST_CATALOG, rules: { ...TEST_CATALOG.rules, tick_hz: tickHz } }}
     >
       <BattleClock tick={1200} />
-      <MatchResultOverlay match={match} seats={players} viewer="blue-1" />
+      <MatchResultOverlay match={match} seats={players} viewer="blue-1" exit={stay} />
     </SessionCatalogProvider>
   );
   const view = render(battle(30));

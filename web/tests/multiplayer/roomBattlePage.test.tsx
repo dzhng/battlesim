@@ -137,9 +137,10 @@ function FinishedPage() {
           { id: "red-1", side: "red", controller: "human" },
         ]}
         viewer="red-1"
-        online={{
-          callsigns: { "blue-1": "SCOUT", "red-1": "WING" },
-          onReturn: () => returnToMultiplayer(navigate, ""),
+        callsigns={{ "blue-1": "SCOUT", "red-1": "WING" }}
+        exit={{
+          label: "Return to Multiplayer",
+          onExit: () => returnToMultiplayer(navigate, ""),
         }}
       />
     </WithTestCatalog>

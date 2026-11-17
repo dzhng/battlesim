@@ -185,9 +185,10 @@ function PreparedOnlineBattle({
             match={session.sim.observation.skirmish}
             seats={session.seats}
             viewer={ticket.player}
-            online={{
-              callsigns: ticket.callsigns,
-              onReturn: () => {
+            callsigns={ticket.callsigns}
+            exit={{
+              label: "Return to Multiplayer",
+              onExit: () => {
                 leave();
                 back();
               },
