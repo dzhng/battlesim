@@ -213,6 +213,7 @@ function SupplyLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
                 {u.stock === 0
                   ? "empty: serves nothing"
                   : setup(u, capabilities(u).deploy?.seconds ?? 0)}
+                {u.deployment && " · "}
                 {u.deployment && (
                   <span data-testid="service-ready">
                     service:{" "}
