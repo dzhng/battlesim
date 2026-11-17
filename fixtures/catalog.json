@@ -649,7 +649,7 @@
       }
     },
     {
-      "cost": 250,
+      "cost": 380,
       "description": "Heavy IFV; infantry carrier",
       "disabled_reason": null,
       "family": "t_15_armata",
@@ -10987,34 +10987,43 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 130.0,
-                "rear": 40.0,
+                "front": 300.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.5,
                   "rear": 0.2,
                   "roof": 0.6,
                   "side": 0.35
                 },
-                "roof": 30.0,
-                "side": 75.0
+                "roof": 35.0,
+                "side": 100.0
               },
               "half_extents_m": [
                 4.75,
                 1.75,
                 1.6
               ],
-              "hp": 120.0,
+              "hp": 160.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
           },
           "capabilities": {
+            "active_protection": {
+              "capacity": 2,
+              "cooldown_s": 3.0,
+              "icon": "trophy",
+              "name": "Afganit",
+              "service_s": 10.0,
+              "standoff_m": 8.0,
+              "stock_per_charge": 20
+            },
             "carriage": {
               "seats": 8
             },
             "smoke": {
-              "capacity": 1,
+              "capacity": 2,
               "cloud": {
                 "bloom_s": 1.0,
                 "bloom_steps": 4,
@@ -11032,7 +11041,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 250,
+          "cost": 380,
           "description": "Heavy IFV; infantry carrier",
           "faction": "eastern",
           "family": "t_15_armata",
@@ -31556,34 +31565,43 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 130.0,
-            "rear": 40.0,
+            "front": 300.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.5,
               "rear": 0.2,
               "roof": 0.6,
               "side": 0.35
             },
-            "roof": 30.0,
-            "side": 75.0
+            "roof": 35.0,
+            "side": 100.0
           },
           "half_extents_m": [
             4.75,
             1.75,
             1.6
           ],
-          "hp": 120.0,
+          "hp": 160.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
       "capabilities": {
+        "active_protection": {
+          "capacity": 2,
+          "cooldown_s": 3.0,
+          "icon": "trophy",
+          "name": "Afganit",
+          "service_s": 10.0,
+          "standoff_m": 8.0,
+          "stock_per_charge": 20
+        },
         "carriage": {
           "seats": 8
         },
         "smoke": {
-          "capacity": 1,
+          "capacity": 2,
           "cloud": {
             "bloom_s": 1.0,
             "bloom_steps": 4,
@@ -31601,7 +31619,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 250,
+      "cost": 380,
       "description": "Heavy IFV; infantry carrier",
       "faction": "eastern",
       "family": "t_15_armata",

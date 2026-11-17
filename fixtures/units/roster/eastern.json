@@ -2281,9 +2281,18 @@
       "name": "T-15 Armata",
       "description": "Heavy IFV; infantry carrier",
       "capabilities": {
+        "active_protection": {
+          "name": "Afganit",
+          "icon": "trophy",
+          "capacity": 2,
+          "cooldown_s": 3,
+          "standoff_m": 8,
+          "service_s": 10,
+          "stock_per_charge": 20
+        },
         "carriage": { "seats": 8 },
         "smoke": {
-          "capacity": 1,
+          "capacity": 2,
           "service_s": 2,
           "stock_per_charge": 2,
           "cloud": {
@@ -2297,7 +2306,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 250,
+      "cost": 380,
       "roster": {
         "factions": [
           "eastern"
@@ -2314,12 +2323,12 @@
             1.75,
             1.6
           ],
-          "hp": 120,
+          "hp": 160,
           "armor": {
-            "front": 130,
-            "side": 75,
-            "rear": 40,
-            "roof": 30,
+            "front": 300,
+            "side": 100,
+            "rear": 50,
+            "roof": 35,
             "ricochet": {
               "front": 0.5,
               "side": 0.35,
