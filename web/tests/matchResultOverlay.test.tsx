@@ -54,10 +54,10 @@ function finished(
   };
 }
 
-const stay = { label: "Main menu", onExit: () => {} };
+const stay = { label: "Main menu", onLeave: () => {} };
 
 function report(players: Seat[], viewer: string | null, match = finished(players, "blue")) {
-  return render(<MatchResultOverlay match={match} seats={players} viewer={viewer} exit={stay} />, {
+  return render(<MatchResultOverlay match={match} seats={players} viewer={viewer} leave={stay} />, {
     wrapper: WithTestCatalog,
   });
 }
@@ -105,7 +105,7 @@ test("every finished report, won, lost or watched, offers its way out of the bat
         match={finished(players, result)}
         seats={players}
         viewer={viewer}
-        exit={{ label: "Main menu", onExit: () => left++ }}
+        leave={{ label: "Main menu", onLeave: () => left++ }}
       />,
       { wrapper: WithTestCatalog },
     );
@@ -235,7 +235,7 @@ test("consecutive battle clocks and report minutes use their own tick rates", ()
       catalog={{ ...TEST_CATALOG, rules: { ...TEST_CATALOG.rules, tick_hz: tickHz } }}
     >
       <BattleClock tick={1200} />
-      <MatchResultOverlay match={match} seats={players} viewer="blue-1" exit={stay} />
+      <MatchResultOverlay match={match} seats={players} viewer="blue-1" leave={stay} />
     </SessionCatalogProvider>
   );
   const view = render(battle(30));

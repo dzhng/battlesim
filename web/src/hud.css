@@ -2062,7 +2062,7 @@ html {
   padding: 12px 24px 16px;
   border-top: 1px solid rgb(255 255 255 / 0.09);
 }
-.match-result-exit {
+.match-result-leave {
   min-width: 240px;
   padding: 9px 28px;
   border: 1px solid rgb(var(--hud-accent) / 0.85);
@@ -2078,7 +2078,7 @@ html {
     box-shadow 80ms,
     background 80ms;
 }
-.match-result-exit:is(:hover, :focus-visible) {
+.match-result-leave:is(:hover, :focus-visible) {
   outline: none;
   border-color: rgb(var(--hud-accent));
   background: rgb(var(--hud-accent) / 0.32);

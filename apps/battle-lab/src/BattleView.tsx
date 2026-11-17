@@ -72,9 +72,8 @@ export function BattleView({
   onFailure,
   onLeave,
   onDecoded,
-  result,
+  callsigns,
 }: {
-  result?: (session: BattleSession) => ReactNode;
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
@@ -112,8 +111,12 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
-  /** Route-owned departure through the existing confirmation. */
+  /** Route-owned departure, from the pause menu (through its confirmation)
+   *  and from the finished match's report: back to Multiplayer. Without one
+   *  both leave for the main menu. */
   onLeave?: () => void;
+  /** An online battle's public player names, for its report. */
+  callsigns?: Record<string, string>;
   /** Scenario/runtime audio may react to the first authoritative publication. */
   onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
@@ -348,16 +351,19 @@ export function BattleView({
           {menu?.(session)}
         </PauseMenu>
       )}
-      {result
-        ? result(session)
-        : observation?.skirmish && (
-            <MatchResultOverlay
-              match={observation.skirmish}
-              seats={session.seats}
-              viewer={session.viewer?.id ?? null}
-              exit={{ label: "Main menu", onExit: onLeave ?? (() => navigate("/")) }}
-            />
-          )}
+      {observation?.skirmish && (
+        <MatchResultOverlay
+          match={observation.skirmish}
+          seats={session.seats}
+          viewer={session.viewer?.id ?? null}
+          callsigns={callsigns}
+          leave={
+            onLeave
+              ? { label: "Return to Multiplayer", onLeave }
+              : { label: "Main menu", onLeave: () => navigate("/") }
+          }
+        />
+      )}
     </SessionCatalogProvider>
   );
 }

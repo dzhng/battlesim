@@ -11,7 +11,6 @@ import { remoteConnection } from "@web/battle/remote/connection";
 import { streamEnded } from "@web/battle/remote/streamEnd";
 import { useOnlineMap, type OnlineMap } from "../online/useOnlineMap";
 import { useOnlineBattlePresence } from "../online/battlePresence";
-import { MatchResultOverlay } from "../MatchResultOverlay";
 import { BattleView } from "../BattleView";
 import { BattleClock } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
@@ -179,23 +178,7 @@ function PreparedOnlineBattle({
               : ROOM_BATTLE_FAILED_NOTICE,
         )
       }
-      result={(session) =>
-        session.sim.observation?.skirmish ? (
-          <MatchResultOverlay
-            match={session.sim.observation.skirmish}
-            seats={session.seats}
-            viewer={ticket.player}
-            callsigns={ticket.callsigns}
-            exit={{
-              label: "Return to Multiplayer",
-              onExit: () => {
-                leave();
-                back();
-              },
-            }}
-          />
-        ) : null
-      }
+      callsigns={ticket.callsigns}
       onLoadStage={(loaded) => {
         if (loaded === "world") setStage("renderer");
       }}
