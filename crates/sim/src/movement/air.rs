@@ -11,6 +11,7 @@
 //! low hover (D10), as does a carrier hold; an unrelated order lifts it back.
 
 use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
+use crate::deployment;
 use crate::math::{v2, V2};
 use crate::units::{Flight, Motion, Settle, Unit};
 use contract::catalog::AltitudeLayer;
@@ -48,14 +49,49 @@ pub(super) fn step_aircraft(
     };
     let side = units[i].side.index();
     plan(ctx, &mut units[i], &mut sides[side]);
-    let drift = separation(ctx, units, i);
+    let exempt = deployment::separation_exempt(&units[i]);
+    let drift = if exempt {
+        v2(0.0, 0.0)
+    } else {
+        separation(ctx, units, i)
+    };
     let low = sinks(units, i);
     let unit = &mut units[i];
+    let ground = ctx
+        .world
+        .height_at(unit.position.x, unit.position.y)
+        .unwrap_or(0.0);
+    if unit.landed() {
+        let air = unit.air.as_mut().expect("a landed aircraft's flight state");
+        air.velocity = crate::math::v3(0.0, 0.0, 0.0);
+        unit.position = crate::math::v3(unit.position.x, unit.position.y, ground);
+        unit.drive_speed_mps = 0.0;
+        return;
+    }
+    let landing = deployment::drop_progress(unit);
+    let packed_deployer = unit
+        .deployment
+        .as_ref()
+        .is_some_and(|d| d.drop_duration > 0 && d.current == 0 && unit.movement_goal().is_some());
+    let low_target = packed_deployer.then(|| {
+        height_target(
+            ctx.world,
+            ctx.rules,
+            unit.position.xy(),
+            v2(0.0, 0.0),
+            flight,
+            unit.hull.map_or(0.0, |h| h.x),
+            true,
+        )
+    });
+    let hold_for_low_hover = low_target.is_some_and(|height| unit.position.z < height - 1e-6);
     let here = unit.position.xy();
     let cruise_mps = flight.cruise_mps;
     let accel = cruise_mps / ctx.rules.air.rotor.acceleration_s;
     let air_rules = &ctx.rules.air;
-    let wanted = if may_advance(ctx, unit) {
+    let wanted = if landing.is_some() || hold_for_low_hover {
+        v2(0.0, 0.0)
+    } else if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
         let state = unit.air.as_mut().expect("an aircraft's flight state");
         // On the leg that ends at its goal it aims past the goal by its
@@ -104,22 +140,47 @@ pub(super) fn step_aircraft(
     } else {
         v2(0.0, 0.0)
     };
-    let air = unit.air.as_mut().expect("an aircraft's flight state");
-    let change = wanted - air.velocity.xy();
+    let air_state = unit.air.as_ref().expect("an aircraft's flight state");
+    let current_velocity = air_state.velocity;
+    let current_fuel = air_state.fuel_s;
+    let change = wanted - current_velocity.xy();
     let most = accel * dt;
     let velocity = if change.length() > most {
-        air.velocity.xy() + change.normalized() * most
+        current_velocity.xy() + change.normalized() * most
     } else {
         wanted
     };
-    air.fuel_s = (air.fuel_s - dt).max(0.0);
+    unit.air
+        .as_mut()
+        .expect("an aircraft's flight state")
+        .fuel_s = (current_fuel - dt).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
-    let target = height_target(ctx.world, ctx.rules, next, velocity, flight, reach, low);
-    // It sinks as fast as it climbs.
-    let climb = (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt);
-    unit.position = next.with_z(unit.position.z + climb);
-    air.velocity = crate::math::v3(velocity.x, velocity.y, climb / dt);
+    let target = landing
+        .map(|progress| landing_height(unit, ground, progress))
+        .unwrap_or_else(|| {
+            height_target(
+                ctx.world,
+                ctx.rules,
+                next,
+                velocity,
+                flight,
+                reach,
+                low || hold_for_low_hover,
+            )
+        });
+    // Landing bypasses the normal climb clamp so shots lead with its exact
+    // forced sink.
+    let climb = if landing.is_some() {
+        target - unit.position.z
+    } else {
+        (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt)
+    };
+    unit.position = crate::math::v3(next.x, next.y, unit.position.z + climb);
+    unit.air
+        .as_mut()
+        .expect("an aircraft's flight state")
+        .velocity = crate::math::v3(velocity.x, velocity.y, climb / dt);
     unit.drive_speed_mps = velocity.length();
     let back = unit.air.and_then(|a| a.settle).is_some_and(|s| s.back);
     turn(unit, flight, velocity, back, dt);
@@ -193,11 +254,25 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
     let tallest = catalog
         .indices()
         .map(|i| catalog.get(i))
-        .filter(|t| t.mobility.layer() == AltitudeLayer::Ground)
+        .filter(|t| {
+            t.mobility.layer() == AltitudeLayer::Ground
+                || (t.mobility.flight().is_some() && t.capabilities.deploy.is_some())
+        })
         .filter_map(|t| t.hull())
         .map(|h| 2.0 * h.half_extents_m[2])
         .fold(0.0, f64::max);
     tallest + LOW_HOVER_CLEARANCE_M
+}
+
+/// Landing's one height law: a fast initial drop easing into touchdown.
+fn landing_height(unit: &Unit, ground: f64, progress: f64) -> f64 {
+    let start = unit
+        .deployment
+        .as_ref()
+        .and_then(|d| d.landing_start_z)
+        .unwrap_or(unit.position.z);
+    let eased = 1.0 - (1.0 - progress).powi(2);
+    (start + (ground - start) * eased).max(ground)
 }
 
 /// Plan a route when the goal is new or moved, or the side's knowledge changed.
@@ -230,7 +305,12 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
     let here = units[i].position.xy();
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i || !other.on_field() || !other.airborne() {
+        if j == i
+            || !other.on_field()
+            || !other.airborne()
+            || deployment::separation_exempt(other)
+            || deployment::separation_exempt(&units[i])
+        {
             continue;
         }
         let away = here - other.position.xy();

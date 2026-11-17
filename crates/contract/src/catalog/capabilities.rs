@@ -37,6 +37,27 @@ pub struct Capabilities {
     pub smoke: Option<SmokeCapability>,
 }
 
+impl Capabilities {
+    /// What makes this set of abilities inadmissible for a type that does or
+    /// doesn't fly (`air`): supply serves only once set up, and an aircraft
+    /// sets up by landing, so it authors a drop shorter than its set-up and
+    /// nothing that drives authors one.
+    pub(super) fn problem(&self, air: bool) -> Option<&'static str> {
+        if self.supply.is_some() && self.deploy.is_none() {
+            return Some("supply serves only when deployed: it needs deploy");
+        }
+        let deploy = self.deploy?;
+        match deploy.drop_seconds {
+            None if air => Some("an aircraft with deploy needs capabilities.deploy.drop_seconds"),
+            Some(_) if !air => Some("capabilities.deploy.drop_seconds requires air mobility"),
+            Some(drop) if !(drop.is_finite() && drop > 0.0 && drop < deploy.seconds) => {
+                Some("capabilities.deploy.drop_seconds must be positive and shorter than seconds")
+            }
+            _ => None,
+        }
+    }
+}
+
 /// A hull's passenger capacity. Only the authored capacities are admitted so
 /// the card and simulation share a small, legible set of carriage sizes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,6 +109,9 @@ pub struct Deploy {
     pub pack_seconds: f64,
     /// Full setup duration.
     pub seconds: f64,
+    /// Portion of setup spent descending to the ground (aircraft only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drop_seconds: Option<f64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

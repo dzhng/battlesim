@@ -204,3 +204,38 @@ fn a_max_turn_is_a_fixed_wing_reserve() {
         "{rotor}"
     );
 }
+
+#[test]
+fn a_deploying_aircraft_must_author_a_shorter_drop() {
+    let mut heli = base_tank();
+    heli["abstract"] = json!(false);
+    heli["mobility"] = rotor_mobility(220, 90, 6);
+    heli["capabilities"] = json!({ "deploy": { "seconds": 3, "pack_seconds": 1 } });
+    let error = resolve(&units(json!({ "heli": heli })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("drop_seconds"), "{error}");
+    let mut heli = base_tank();
+    heli["abstract"] = json!(false);
+    heli["mobility"] = rotor_mobility(220, 90, 6);
+    heli["capabilities"] = json!({ "deploy": {
+        "seconds": 3, "pack_seconds": 1, "drop_seconds": 3
+    } });
+    let error = resolve(&units(json!({ "heli": heli })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("shorter than seconds"), "{error}");
+}
+
+#[test]
+fn a_ground_deployer_cannot_author_a_drop() {
+    let mut tank = base_tank();
+    tank["abstract"] = json!(false);
+    tank["capabilities"] = json!({ "deploy": {
+        "seconds": 3, "pack_seconds": 1, "drop_seconds": 2
+    } });
+    let error = resolve(&units(json!({ "tank": tank })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("requires air mobility"), "{error}");
+}

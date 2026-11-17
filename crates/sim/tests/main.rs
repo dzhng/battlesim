@@ -98,6 +98,7 @@ mod squad_aim;
 mod straight_ways;
 mod strike;
 mod supply;
+mod supply_heli;
 mod suppression;
 mod swamps;
 mod top_attack;

@@ -1,0 +1,12 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_supply_heli","position":[100,100]},
+    {"side":"blue","kind":"test_tank","position":[240,175],"engagement":"return_fire_only","condition":{"hp":40}},
+    {"side":"blue","kind":"test_at","position":[245,235],"engagement":"return_fire_only","condition":{"spent":{"atgm":3}}},
+    {"side":"blue","kind":"test_rifle","position":[165,245],"engagement":"return_fire_only","condition":{"casualties":3}}
+  ],
+  "events": [],
+  "scripts": [
+    {"tick":0,"side":"blue","order":{"kind":"move","units":[0],"gesture":9400,"goal":[200,200],"route":"shortest"}}
+  ]
+}

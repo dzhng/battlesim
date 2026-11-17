@@ -8,6 +8,6 @@
   "tags": [],
   "source": "authored",
   "seed": null,
-  "encounters": ["supply"],
+  "encounters": ["supply", "heli"],
   "benchmarks": []
 }

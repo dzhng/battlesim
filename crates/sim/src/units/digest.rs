@@ -273,6 +273,12 @@ impl Unit {
             if dep.deploy_step != dep.pack_step {
                 d.u64(dep.deploy_step as u64).u64(dep.pack_step as u64);
             }
+            if dep.landed {
+                d.u64(u64::MAX);
+            }
+            if let Some(z) = dep.landing_start_z {
+                d.f64(z);
+            }
         }
         d.u64(self.mounts.len() as u64);
         for m in &self.mounts {

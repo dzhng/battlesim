@@ -171,6 +171,9 @@ fn the_seam_reverses_from_current_progress_with_one_duration() {
         duration: n,
         deploy_step: 1,
         pack_step: 1,
+        drop_duration: 0,
+        landed: false,
+        landing_start_z: None,
         stationary: Posture::Deployed,
     };
     let step = |current, target| {

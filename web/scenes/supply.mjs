@@ -157,4 +157,57 @@ export async function run(ctx) {
     JSON.stringify({ stock: unit(o, 0).stock, before, services: o.own.map((u) => u.service) }),
   );
   await frame(ctx, page, "relocating", [250, 230]);
+
+  await runHeli(ctx);
+}
+
+/** The `?variant=heli` supply route: the same recipients with a landed,
+ * packing aircraft source. This keeps the first helicopter checkpoint beside
+ * the truck's existing browser contract. */
+async function runHeli(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "heli");
+  const page = await openBattle(ctx, { url: url.href });
+  let o = await obs(page);
+  ctx.check(
+    "the heli variant fields a supply helicopter",
+    unit(o, 0)?.kind === "test_supply_heli",
+    JSON.stringify(unit(o, 0)),
+  );
+  // It flies in, brakes, then drops; sample until it is set up.
+  let sawDrop = false;
+  for (let waited = 0; waited < 900; waited += 15) {
+    await advance(page, 15);
+    o = await obs(page);
+    const heli = unit(o, 0);
+    if (!sawDrop && heli.deployment.progress > 0 && heli.deployment.progress < 0.5) {
+      sawDrop = true;
+      await frame(ctx, page, "heli-drop", [heli.position[0], heli.position[1]]);
+    }
+    if (heli.deployment.progress === 1 && unit(o, 1).service === "serving") break;
+  }
+  await frame(ctx, page, "heli-serving", [unit(o, 0).position[0], unit(o, 0).position[1]]);
+  ctx.check(
+    "the supply helicopter lands and serves",
+    unit(o, 0)?.deployment?.progress === 1 && unit(o, 1)?.service === "serving",
+    JSON.stringify({ heli: unit(o, 0), recipient: unit(o, 1) }),
+  );
+  await lab(page, () => window.__lab.route.demo("Heli: lift off"));
+  await advance(page, 30);
+  o = await obs(page);
+  ctx.check(
+    "lift off starts packing on the ground",
+    unit(o, 0)?.deployment?.target === "packed",
+    JSON.stringify(unit(o, 0)?.deployment),
+  );
+  const before = unit(o, 0).position;
+  await lab(page, () => window.__lab.route.demo("Heli: fly on"));
+  await advance(page, 120);
+  o = await obs(page);
+  const after = unit(o, 0).position;
+  ctx.check(
+    "the packed heli climbs and flies on",
+    unit(o, 0)?.deployment?.progress === 0 && after[2] > before[2] && after[0] > before[0],
+    JSON.stringify({ before, after, deployment: unit(o, 0)?.deployment }),
+  );
 }

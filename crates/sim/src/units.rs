@@ -455,6 +455,11 @@ impl Unit {
         matches!(self.motion, Motion::Air(_))
     }
 
+    /// An aircraft that has completed its descent and is holding on the ground.
+    pub fn landed(&self) -> bool {
+        crate::deployment::landed(self)
+    }
+
     /// Where rounds aim on it, above its position: the one aim rule, keyed
     /// on the target. Anything in the air is aimed at its hull's centre,
     /// whatever fires; a ground vehicle at `vehicle_aim_height_fraction` of
