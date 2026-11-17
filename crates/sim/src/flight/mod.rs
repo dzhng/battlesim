@@ -15,6 +15,8 @@
 //! (terrain, then props, then bodies, each by id).
 mod advance;
 mod config;
+#[cfg(test)]
+mod guidance_tests;
 mod index;
 mod release;
 mod solve;
@@ -39,20 +41,21 @@ use index::BodyGrid;
 const TIME_EPSILON_S: f64 = 1e-9;
 
 /// A guided round's steering: toward `point`, turning at most `turn_rad_s`.
-/// While `supported`, its launcher renews the point from its side’s sighting;
-/// once released, the point is fixed for good, a coast ahead of where the
-/// release found it (P06: it never reacquires).
+/// Its launcher (while `supported`) or autonomous seeker renews the point.
+/// Release fixes a coast point ahead and clears the loft; passing that point
+/// ends steering altogether. Target ownership never returns after release.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Guidance {
     pub point: V3,
     pub turn_rad_s: f64,
+    /// Launcher support only; an autonomous seeker also flies with this false.
     pub supported: bool,
     /// A top-attack round's path above its point.
     pub loft: Option<Loft>,
 }
 
 impl Guidance {
-    /// Where a round at `position` steers. A supported top-attack round
+    /// Where a round at `position` steers. A top-attack round
     /// shoots up toward its loft height, as steeply as it will dive, holds
     /// that height until its commanded point lies inside its dive cone, then
     /// dives onto it; any other, and a released one, flies at its point.
@@ -65,7 +68,7 @@ impl Guidance {
     /// point above its target.
     pub fn aim(&self, position: V3) -> V3 {
         match self.loft {
-            Some(loft) if self.supported => {
+            Some(loft) => {
                 let toward = self.point.xy() - position.xy();
                 let across = toward.length();
                 if position.z - self.point.z >= loft.slope * across {
@@ -201,6 +204,24 @@ pub struct Projectile {
     /// The seeker was diverted to a flare; its point is a physical burst aim
     /// point and no longer follows the aircraft target.
     pub decoy: Option<Decoy>,
+}
+
+impl Projectile {
+    /// Whether this attempt can still track its commanded path from the
+    /// missile's own velocity. A loft follows its planned climb/dive aim.
+    /// No round turns back; a seeker may author a narrower full-angle cone.
+    pub fn tracks(&self, point: V3, fov_deg: Option<f64>) -> bool {
+        let Some(guidance) = self.guidance else {
+            return false;
+        };
+        let toward = Guidance { point, ..guidance }.aim(self.position) - self.position;
+        let along = toward.dot(self.velocity);
+        along > 0.0
+            && fov_deg.is_none_or(|fov| {
+                along
+                    >= libm::cos(fov.to_radians() * 0.5) * toward.length() * self.velocity.length()
+            })
+    }
 }
 
 /// Physical flare tracked by a diverted seeker, independent of the aircraft.
@@ -488,11 +509,13 @@ impl Projectiles {
             if let Some(g) = p.guidance.as_mut() {
                 g.point = decoy.position;
                 g.supported = false;
+                g.loft = None;
             }
         }
     }
 
-    /// End support for good (P06). The missile flies straight on:
+    /// End tracking. The caller drops target ownership; flight retains only
+    /// a fixed descent point. The missile flies straight on:
     /// its point is fixed where it would be `coast_s` from now, dropped to the
     /// ground beneath, so it runs on its line and then goes to ground within
     /// its turn limit. Beyond the map the point keeps the missile's height.
@@ -503,6 +526,7 @@ impl Projectiles {
         let ahead = p.position + p.velocity * coast_s;
         if let Some(g) = p.guidance.as_mut() {
             g.supported = false;
+            g.loft = None;
             g.point = ahead
                 .xy()
                 .with_z(world.height_at(ahead.x, ahead.y).unwrap_or(ahead.z));

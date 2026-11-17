@@ -70,6 +70,25 @@ impl Battle {
     /// to ground, so a far one misses a target it can no longer see.
     /// Flares are dispensed first, so a spoofed round is steered no more.
     pub(super) fn guide(&mut self, moved: &weapons::tick::Moved) {
+        // A physical miss may have ended steering last tick. Drop its
+        // ownership before countermeasures consult the remaining tracks.
+        for mount in self.units.iter_mut().flat_map(|u| &mut u.mounts) {
+            mount.support = mount.support.filter(|s| {
+                self.projectiles
+                    .get(s.projectile)
+                    .is_some_and(|p| p.guidance.is_some_and(|g| g.supported))
+            });
+        }
+        for (id, round) in &mut self.rounds {
+            if round.seeker_target.is_some()
+                && self
+                    .projectiles
+                    .get(*id)
+                    .is_none_or(|p| p.guidance.is_none())
+            {
+                round.seeker_target = None;
+            }
+        }
         self.dispense_flares();
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
@@ -137,8 +156,7 @@ impl Battle {
                 let keep = (!moved.carrier(i, unit, mount) || on_the_move)
                     && alive[i]
                     && settled
-                    && (unit.hull.is_some() || mount.operator.is_some())
-                    && self.projectiles.get(s.projectile).is_some();
+                    && (unit.hull.is_some() || mount.operator.is_some());
                 match sighting.filter(|&at| {
                     keep && weapons::guidance_clear(&self.world, &self.rules, unit, mount, at)
                 }) {
@@ -176,9 +194,22 @@ impl Battle {
                     .map(|p| (p.position, p.velocity)),
                 _ => None,
             };
-            if let (Some((at, velocity)), Some(seeker)) = (seen, self.projectiles.get(projectile)) {
-                let point = crate::flight::lead(seeker.position, seeker.velocity, at, velocity);
-                self.projectiles.steer_seeker(projectile, point);
+            let fov = self.arsenal.weapons[self.rounds[&projectile].weapon]
+                .def
+                .seeker_fov_deg;
+            match (seen, self.projectiles.get(projectile)) {
+                (Some((at, velocity)), Some(seeker)) if seeker.tracks(at, fov) => {
+                    let point = crate::flight::lead(seeker.position, seeker.velocity, at, velocity);
+                    self.projectiles.steer_seeker(projectile, point);
+                }
+                _ => {
+                    self.rounds.get_mut(&projectile).unwrap().seeker_target = None;
+                    self.projectiles.release(
+                        projectile,
+                        self.rules.guided.release_coast_s,
+                        &self.world,
+                    );
+                }
             }
         }
         let released: Vec<ProjectileId> = self

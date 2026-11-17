@@ -5,7 +5,7 @@ use super::*;
 
 /// A blue jeep at (100, 200) mounting `row` (patched into the rules as
 /// `test_interceptor`), and a still, interceptable red round hanging at
-/// `at`, fired from `layer`.
+/// `at`, assigned to `layer`.
 fn interceptor_and_round(row: serde_json::Value, at: V3, layer: AltitudeLayer) -> Battle {
     interceptor_and_flying_round(row, at, v3(0.0, 0.0, 0.0), 30.0, layer).0
 }
@@ -71,7 +71,7 @@ fn carried_interceptor_and_round(
 }
 
 /// A red interceptable round at `at`, flying at `velocity` without
-/// falling for `lifetime_s`, as if red's unit 1 fired it from `layer`.
+/// falling for `lifetime_s`, from red's unit 1 and assigned to `layer`.
 fn launch_red_round(
     battle: &mut Battle,
     at: V3,
@@ -112,7 +112,7 @@ fn launch_red_round(
 }
 
 /// A jeep (unit 0) at (1000, 1000) with a gun (its mount 1) firing at
-/// 600 m/s out to 800 m, at helicopters and at rounds fired from low
+/// 600 m/s out to 800 m, at helicopters and at rounds assigned to low
 /// air, locked on a red helicopter hovering 300 m east (unit 1), too
 /// tough to bring down here.
 fn interceptor_on_a_helicopter() -> Battle {
@@ -303,11 +303,11 @@ fn test_interceptor(mut targets: serde_json::Value) -> serde_json::Value {
 }
 
 /// An interceptor reaches a round as far as its row reaches the band the
-/// round was fired from, whatever height the round flies at: 300 m off,
-/// a round fired from the ground or low air is past this gun's 150 m,
-/// and one fired from high air is inside its 400 m.
+/// round is assigned to, whatever height the round flies at: 300 m off,
+/// a round assigned to the ground or low air is past this gun's 150 m,
+/// and one assigned to high air is inside its 400 m.
 #[test]
-fn an_interceptor_reaches_a_round_by_the_band_it_was_fired_from() {
+fn an_interceptor_reaches_a_round_by_its_assigned_band() {
     let row = test_interceptor(serde_json::json!({
         "ground": { "classes": ["missile"], "range_m": 150 },
         "low_air": { "classes": ["missile"], "range_m": 150 },
@@ -325,7 +325,7 @@ fn an_interceptor_reaches_a_round_by_the_band_it_was_fired_from() {
         match lock {
             Some(Target::Round(round)) => {
                 assert!(reached, "{layer:?}: locked past its reach");
-                assert_eq!(round.layer, layer, "aimed by the band it was fired from");
+                assert_eq!(round.layer, layer, "aimed by the assigned band");
             }
             _ => assert!(!reached, "{layer:?}: no lock inside its reach: {lock:?}"),
         }
@@ -333,7 +333,7 @@ fn an_interceptor_reaches_a_round_by_the_band_it_was_fired_from() {
 }
 
 /// An aircraft's gun that lists `missile` arms against a round as a
-/// ground mount's does: a helicopter's, 300 m from a round fired from
+/// ground mount's does: a helicopter's, 300 m from a round assigned to
 /// low air, locks on it.
 #[test]
 fn an_aircraft_arms_against_an_incoming_round() {
@@ -363,14 +363,14 @@ fn an_aircraft_arms_against_an_incoming_round() {
     );
 }
 
-/// A gun shoots down a round only when the layer the round was fired
-/// from lists `missile`. A gun that fires at men and vehicles on the
-/// ground but lists `missile` in high air alone fires at a round fired
-/// from high air and lets an identical one fired from the ground fly
+/// A gun shoots down a round only when its assigned layer lists `missile`.
+/// A gun that fires at men and vehicles on the ground but lists `missile`
+/// in high air alone fires at a round assigned to high air and lets an
+/// identical one assigned to the ground fly
 /// by. A gun listing `missile` on the ground fires at the ground round,
 /// though it lists no soldier there: a round is no area (W10).
 #[test]
-fn a_gun_shoots_down_rounds_fired_from_the_layers_that_list_missile() {
+fn a_gun_shoots_down_rounds_in_layers_that_list_missile() {
     let high_air = serde_json::json!({ "classes": ["air_rotor", "air_fixed_wing", "missile"] });
     let only_high = test_interceptor(serde_json::json!({
         "ground": { "classes": ["infantry", "vehicle"] },
@@ -405,7 +405,7 @@ fn a_gun_shoots_down_rounds_fired_from_the_layers_that_list_missile() {
         assert_eq!(
             (fired, spent),
             (shoots, shoots),
-            "a round fired from {layer:?}, the ground listing {ground}"
+            "a round assigned to {layer:?}, the ground listing {ground}"
         );
     }
 }
@@ -516,6 +516,11 @@ fn a_guided_missile_whose_round_ends_mid_flight_is_let_go() {
         let released = point(&battle);
         assert!(!released.supported, "seeker {seeker}: still supported");
         assert!(
+            released.point.z.abs() < 1e-6,
+            "seeker {seeker}: a lost target releases towards ground, not its stale airborne aim: {:?}",
+            released.point
+        );
+        assert!(
             battle.units[0].mounts[1].support.is_none(),
             "seeker {seeker}"
         );
@@ -541,13 +546,14 @@ fn a_ground_to_air_round_keeps_the_targets_layer_throughout_flight() {
             interceptor_round(&battle)
         })
         .expect("the gun fired at the helicopter");
-    let mut flew = false;
-    while let Some(round) = battle.rounds.get(&id) {
+    for _ in 0..300 {
+        let Some(round) = battle.rounds.get(&id) else {
+            return;
+        };
         assert_eq!(round.layer, AltitudeLayer::LowAir);
-        flew = true;
         battle.step();
     }
-    assert!(flew);
+    panic!("the shot never ended");
 }
 
 /// Deliberate lofting changes ground fire's engagement band. A direct
@@ -578,6 +584,10 @@ fn only_authored_indirect_or_top_attack_ground_fire_uses_low_air() {
         }
         rules["weapons"][weapon]["damage"] = json!(0);
         rules["weapons"][weapon]["aim_s"] = json!(0.1);
+        rules["weapons"][weapon]["min_range_m"] = json!(0);
+        rules["weapons"][weapon]["targets"] = json!({
+            "ground":{"classes":["vehicle"],"range_m":200,"scatter_mrad":16}
+        });
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
@@ -611,4 +621,168 @@ fn only_authored_indirect_or_top_attack_ground_fire_uses_low_air() {
             .unwrap_or_else(|| panic!("{weapon}: no launch"));
         assert_eq!(battle.rounds[&id].layer, expected, "{weapon}");
     }
+}
+
+/// One independently seeking round at a still ground hull, far enough away
+/// to change its tracking conditions before any physical collision.
+fn unit_missile(seeker: bool, patch: serde_json::Value) -> (Battle, ProjectileId) {
+    let mut row = test_guided_interceptor(seeker);
+    for (key, value) in patch.as_object().unwrap() {
+        row[key] = value.clone();
+    }
+    row["targets"] =
+        serde_json::json!({"ground":{"classes":["vehicle"],"range_m":1500,"scatter_mrad":0.5}});
+    row["ammo"] = serde_json::json!(1);
+    let (mut battle, _) = interceptor_and_flying_round(
+        row,
+        v3(2300.0, 300.0, 300.0),
+        V3::default(),
+        30.0,
+        AltitudeLayer::HighAir,
+    );
+    battle.units[1].position = v3(700.0, 200.0, 0.0);
+    battle.units[1].engagement = Engagement::ReturnFireOnly;
+    let id = (0..300)
+        .find_map(|_| {
+            battle.step();
+            interceptor_round(&battle)
+        })
+        .expect("the seeker launched");
+    (battle, id)
+}
+
+#[test]
+fn a_seeker_loses_a_target_outside_its_flight_cone_and_never_takes_it_back() {
+    let (mut battle, id) = unit_missile(true, serde_json::json!({"turn_deg_s":180}));
+    let original = battle.units[1].position;
+    // The missile is heading east. The target moves well outside its
+    // authored 100-degree cone, while remaining alive on the field.
+    battle.units[1].position = v3(200.0, 390.0, 0.0);
+    battle.step();
+    let released = battle.projectiles.get(id).unwrap().guidance.unwrap().point;
+    assert!(
+        released.y < 250.0,
+        "released ahead instead of following across its cone: {released:?}"
+    );
+    battle.units[1].position = original;
+    for _ in 0..30 {
+        battle.step();
+        if let Some(p) = battle.projectiles.get(id) {
+            if let Some(g) = p.guidance {
+                assert_eq!(g.point, released, "returning to the cone cannot reacquire");
+            }
+            assert!(p.velocity.x > 0.0, "it flies onward");
+        }
+    }
+}
+
+#[test]
+fn a_launcher_frees_its_mount_after_its_missile_passes_a_still_tracked_target() {
+    let (mut battle, id) = unit_missile(false, serde_json::json!({"turn_deg_s":1}));
+    battle.units[1].position.y += 60.0;
+    for _ in 0..300 {
+        battle.step();
+        let p = battle
+            .projectiles
+            .get(id)
+            .expect("the wide miss is still physical flight");
+        if p.guidance.is_none() {
+            battle.step();
+            assert!(
+                battle.units[0].mounts.iter().all(|m| m.support.is_none()),
+                "a terminal miss no longer occupies its launcher"
+            );
+            return;
+        }
+    }
+    panic!("the missile never ended its missed attempt");
+}
+
+#[test]
+fn an_autonomous_top_attack_keeps_its_loft_and_hits_after_its_launcher_moves_and_loses_sight() {
+    let (mut battle, id) = unit_missile(
+        true,
+        serde_json::json!({
+            "turn_deg_s":360,"top_attack":{"loft_m":60,"dive_deg":40}
+        }),
+    );
+    let hp = battle.units[1].hp;
+    let launcher = battle.units[0].position;
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        queued: false,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 50.0],
+            route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    });
+    assert_eq!(ack.error, None);
+    // The missile is east of this screen; the launcher stays west of it.
+    // The seeker's own track must remain independent of the operator's LOS.
+    battle.world.add_prop(
+        &serde_json::from_value(serde_json::json!({
+            "kind":"wall","center":[100.5,200],"yaw":0,"half_extents":[0.1,150,8]
+        }))
+        .unwrap(),
+    );
+    assert!(
+        battle.projectiles.get(id).unwrap().position.x > 100.6,
+        "screen behind the missile"
+    );
+    assert!(
+        !weapons::guidance_clear(
+            &battle.world,
+            &battle.rules,
+            &battle.units[0],
+            &battle.units[0].mounts[1],
+            battle.units[1].position
+        ),
+        "screen blocks launcher LOS"
+    );
+    let mut apex = 0.0_f64;
+    for _ in 0..300 {
+        battle.step();
+        if let Some(p) = battle.projectiles.get(id) {
+            apex = apex.max(p.position.z);
+        } else {
+            break;
+        }
+    }
+    assert!(
+        apex > 30.0,
+        "the autonomous missile keeps its planned loft: {apex}"
+    );
+    assert_ne!(battle.units[0].position, launcher, "the launcher moved");
+    assert!(
+        battle.units[1].hp < hp,
+        "the independent seeker hits through the roof"
+    );
+}
+
+#[test]
+fn losing_the_cone_does_not_erase_a_close_physical_hit() {
+    let (mut battle, id) = unit_missile(true, serde_json::json!({"turn_deg_s":180}));
+    let at = battle.projectiles.get(id).unwrap().position;
+    // The target centre is outside the seeker's cone, but its hull already
+    // crosses the live round. Losing homing cannot erase that physical hit.
+    battle.units[1].position = v3(at.x + 0.1, at.y + 0.5, 0.0);
+    let hp = battle.units[1].hp;
+    battle.step();
+    assert!(
+        battle.projectiles.get(id).is_none(),
+        "the physical hit consumes the missile"
+    );
+    assert!(
+        battle.units[1].hp < hp,
+        "normal impact damage survives tracking loss"
+    );
+    assert!(battle.flight_events.iter().any(|event| matches!(event,
+        FlightEvent::Impact(hit) if hit.projectile == id && matches!(hit.struck, Struck::Body(_))
+    )),"it physically struck the hull");
 }
