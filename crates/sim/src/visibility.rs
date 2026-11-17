@@ -29,7 +29,10 @@ struct ObserverField {
     eyes: Vec<V3>,
     sight: Sight,
     sensors: [f64; 2],
-    geometry: (u64, u32),
+    /// The newest body change within reach of an eye when swept.
+    bodies: u64,
+    /// Cleared cells already checked against the eyes' reach.
+    cleared: u32,
     /// Per eye, the clouds within its reach and their phases.
     smoke: Vec<u64>,
     field: VisibilityField,
@@ -49,8 +52,9 @@ impl OcclusionGrid {
 
     /// Union an observer's complete field, reusing it only while every sweep
     /// input is unchanged. Terrain and grid belong to this grid's world for
-    /// its lifetime; body edits and forest clearing invalidate independently.
-    /// Complete fields keep reuse valid when another observer dies or moves.
+    /// its lifetime; body edits and forest clearing invalidate only within
+    /// reach of an eye. Complete fields keep reuse valid when another
+    /// observer dies or moves.
     pub fn sweep_observer(
         &mut self,
         world: &WorldGeometry,
@@ -60,18 +64,34 @@ impl OcclusionGrid {
         sight: &Sight,
         field: &mut VisibilityField,
     ) {
-        let geometry = (world.obstacle_revision(), world.cleared_cells());
         let sensor_key = [sensors.fog_target_height_m, sensors.foliage_full_block];
         let smoke: Vec<u64> = eyes
             .iter()
             .map(|eye| world.smoke().key_near(eye.xy(), sight.max_range()))
             .collect();
-        let reusable = self.observers.get(&observer).is_some_and(|old| {
-            old.geometry == geometry
-                && old.eyes == eyes
+        // A ray samples up to one cell past its reach and reads the fog cell
+        // holding each sample; a body edit or clearing changes what is read
+        // only within the world's margin of a sample. Changes beyond this
+        // reach of every eye leave the field as it was.
+        let reach = sight.max_range() + 2.0 * self.cell + world.sight_change_margin();
+        let bodies = eyes
+            .iter()
+            .map(|eye| world.obstacle_revision_near(eye.xy(), reach))
+            .max()
+            .unwrap_or(0);
+        let cleared = world.cleared_cells();
+        let reusable = self.observers.get_mut(&observer).is_some_and(|old| {
+            let same = old.eyes == eyes
                 && old.sight == *sight
                 && old.sensors == sensor_key
                 && old.smoke == smoke
+                && old.bodies == bodies
+                && !world
+                    .cleared_since(old.cleared as usize)
+                    .any(|c| eyes.iter().any(|eye| (c - eye.xy()).within_radius(reach)));
+            // Checked through now: the next sweep scans only newer clearing.
+            old.cleared = cleared;
+            same
         });
         if !reusable {
             let mut own = self.field();
@@ -84,7 +104,8 @@ impl OcclusionGrid {
                     eyes: eyes.to_vec(),
                     sight: *sight,
                     sensors: sensor_key,
-                    geometry,
+                    bodies,
+                    cleared,
                     smoke,
                     field: own,
                 },
@@ -215,6 +236,10 @@ pub fn sweep(
         let mut horizon = f64::NEG_INFINITY; // steepest occluding slope so far
         let mut foliage = 0.0;
         let mut smoke = 0.0;
+        // The reach through what the ray has crossed so far, recomputed only
+        // when that depth grows.
+        let mut depth = 0.0;
+        let mut reach = crate::sensing::foliage_reach(range, depth, s);
         for k in 1..=steps {
             let dist = k as f64 * cell;
             let p = eye.xy() + dir * dist;
@@ -244,7 +269,11 @@ pub fn sweep(
             // Foliage and smoke only accumulate, so the reach only shrinks:
             // once this cell is past it, or they block fully, no later cell
             // on the ray can be seen.
-            match crate::sensing::foliage_reach(range, foliage + smoke, s) {
+            if foliage + smoke != depth {
+                depth = foliage + smoke;
+                reach = crate::sensing::foliage_reach(range, depth, s);
+            }
+            match reach {
                 Some(reach) if dist <= reach => {}
                 _ => break,
             }

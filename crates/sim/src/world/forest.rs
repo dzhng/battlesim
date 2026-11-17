@@ -150,10 +150,31 @@ impl ForestState {
             .then(|| j as usize * self.cleared_nx + i as usize)
     }
 
-    fn cell_index(&self, x: f64, y: f64) -> Option<usize> {
+    /// The foliage cell holding (x, y), when a forest's crowns may reach
+    /// it. A crown reaches only cells whose middle lies in a bucket of its
+    /// forest's span, so a cell in an empty bucket is open without a search
+    /// of its page.
+    fn crowned_cell(&self, x: f64, y: f64) -> Option<usize> {
         let (i, j) = ((x / self.foliage_m).floor(), (y / self.foliage_m).floor());
-        (i >= 0.0 && j >= 0.0 && (i as usize) < self.nx && (j as usize) < self.ny)
-            .then(|| j as usize * self.nx + i as usize)
+        if !(i >= 0.0 && j >= 0.0 && (i as usize) < self.nx && (j as usize) < self.ny) {
+            return None;
+        }
+        let bucket = |c: f64| ((c + 0.5) * self.foliage_m / GROUND_BUCKET_M) as usize;
+        let (bi, bj) = (bucket(i), bucket(j));
+        let crowned = bi >= self.ground_nx
+            || self
+                .ground_buckets
+                .get(bj * self.ground_nx + bi)
+                .is_none_or(|forests| !forests.is_empty());
+        let cell = j as usize * self.nx + i as usize;
+        debug_assert!(
+            crowned
+                || self.cells[cell / 256]
+                    .as_ref()
+                    .is_none_or(|page| page.get(cell % 256).is_open()),
+            "foliage outside its forest's span buckets"
+        );
+        crowned.then_some(cell)
     }
 }
 
@@ -279,7 +300,7 @@ impl WorldGeometry {
     pub fn foliage_at(&self, x: f64, y: f64) -> Foliage {
         let foliage = self
             .forest
-            .cell_index(x, y)
+            .crowned_cell(x, y)
             .and_then(|k| self.forest.cells[k / 256].as_ref().map(|p| p.get(k % 256)))
             .unwrap_or_else(Foliage::open);
         // Clearing can only remove foliage, so open cells need no mask query.
@@ -475,6 +496,13 @@ impl WorldGeometry {
     /// The cleared mask's cell edge (`ground.cell_m`).
     pub fn cleared_cell_m(&self) -> f64 {
         self.forest.cleared_m
+    }
+
+    /// How far from a point a body edit or a clearing can change what sight
+    /// reads there: a felled tree's crown leaves the foliage cell holding the
+    /// point, or the point's own cleared cell opens.
+    pub(crate) fn sight_change_margin(&self) -> f64 {
+        self.forest.rule.canopy_radius_m + self.forest.foliage_m + self.forest.cleared_m
     }
 
     /// Cells cleared so far.

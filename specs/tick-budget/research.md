@@ -27,7 +27,8 @@ since removed), per tick on average:
 | 3 | A mount that found nothing looks again later, not every tick | About 210 mounts redo a full search thirty times a second | Large, but changes when crews reacquire: a mechanic decision | queued behind 1 |
 | 4 | Soldiers' own-route planning and the vehicle shunt search | `final_leg::search` is a third of the trial-1 step; the 80 ms ticks recur every 61 ticks | The 80 ms ticks go; movement phase falls by half | **kept** (trial 2) |
 | 4b | A vehicle whose detour comes back the same keeps its failed shunt | One stuck vehicle repeats an identical failing search every 61 ticks | The remaining 20–30 ms movement ticks go; a rule change | queued |
-| 5 | Fog sweep | Flat share, bursty per sweep tick | Tail only | queued |
+| 5 | Fog sweep | 44% of the trial-2 mean tick; whole-side re-sweeps on any body edit | Fog phase falls by a third; the 500 M fog ticks go | **kept** (trial 3) |
+| 5b | Sweep fog from the eye's fog cell, not the eye | 86% of re-swept eyes stay in their fog cell | Fog falls by more than half; fog and spotting stop agreeing cell for cell: a rule change | not taken |
 | 6 | Larger kept-answer store for the solver | Half the requests miss | Moot if 1 removes 98% of requests | parked |
 
 ## Trials
@@ -90,3 +91,31 @@ known body or ringed by standing squadmates.
 | minute 15, all phases M instructions a tick | 197.1 | 97.9 |
 | whole replay, ticks over budget | 239 | 16 |
 | worst tick after setup, ms | 82 | 50 |
+
+### 3. Fog: body edits count only within reach of an eye: kept
+
+Outcome-preserving: the replay ends on trial 1's digest. A checking build
+that re-swept every reused field across the whole replay found each equal to
+its fresh sweep.
+
+Measured first: of 331,569 observer checks, 154,613 re-swept. A body edit or
+a felled tree anywhere on the map re-swept every observer of both sides
+(57,633 re-sweeps, and every tick over 500 M instructions in the phase).
+
+- `OcclusionGrid::sweep_observer` keys an observer's field on the newest body
+  change and the clearing within sight reach of its eyes (plus the margin a
+  felled crown changes foliage over), as it already keyed smoke.
+- `foliage_at` answers open ground without searching a foliage page when no
+  forest's span reaches the cell (a debug assertion holds the page to that).
+- `sweep` recomputes a ray's reach through foliage only when the depth it
+  crossed grows.
+
+| | trial 2 | trial 3 |
+|---|---:|---:|
+| whole battle, fog M instructions a tick | 30.3 | 18.6 |
+| whole battle, all phases M instructions a tick | 69.6 | 57.9 |
+| worst fog tick, M instructions | 539 | 428 |
+
+What is left in fog is four fifths single-eye units that moved: each move
+re-sweeps the whole circle. Sweeping from the eye's fog cell would halve it
+again but breaks the cell-for-cell agreement of fog and spotting; not taken.
