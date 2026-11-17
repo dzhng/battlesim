@@ -166,11 +166,10 @@ fn a_launcher_that_moves_with_its_missile_close_still_hits_a_still_target() {
     for _ in 0..60 {
         b.step();
     }
-    let tank = own(&b, Side::Red, 1).unwrap();
+    let hp = own(&b, Side::Red, 1).map_or(0.0, |u| u.hp);
     assert!(
-        (tank.hp - (full - damage)).abs() < 1e-9,
-        "normal damage: {}",
-        tank.hp
+        (hp - (full - damage).max(0.0)).abs() < 1e-9,
+        "normal damage: {hp}"
     );
 }
 
@@ -198,6 +197,9 @@ fn retreat(delay: u64, seed: u64, come_back: bool) -> (f64, bool) {
             o.ok(&mut b, Side::Red, move_to(1, [600.0, 290.0]));
         }
         b.step();
+        if own(&b, Side::Red, 1).is_none() {
+            break;
+        }
         if let Some(m) = missile(&b) {
             assert!(!(released && m.supported), "never reacquires");
             released |= !m.supported;

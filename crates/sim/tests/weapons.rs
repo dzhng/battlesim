@@ -2124,8 +2124,7 @@ fn the_engagement_policy_switches_per_unit() {
 
 #[test]
 fn attack_move_halts_for_what_only_a_stationary_weapon_reaches() {
-    // A tank 550 m away, inside the AT squad's own sight: its rifles cannot
-    // hurt it, so only the stationary ATGM can engage.
+    // Only the stationary ATGM can hurt the tank within the squad's sight.
     let mut b = battle(
         json!([]),
         json!([
@@ -2145,12 +2144,9 @@ fn attack_move_halts_for_what_only_a_stationary_weapon_reaches() {
             goal: [100.0, 100.0],
         },
     );
-    let shots = run(&mut b, 240);
+    let fired = (0..240).any(|_| !shots_by(&run(&mut b, 1), 0, "atgm").is_empty());
+    assert!(fired, "the halted launcher fires");
     assert_eq!(own(&b, Side::Blue, 0).state, MoveState::Halted);
-    assert!(
-        !shots_by(&shots, 0, "atgm").is_empty(),
-        "the halted launcher fires"
-    );
 }
 
 #[test]

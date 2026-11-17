@@ -44551,7 +44551,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 45.0,
+      "damage": 100.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45121,7 +45121,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 45.0,
+      "damage": 100.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45256,7 +45256,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 55.0,
+      "damage": 110.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45684,7 +45684,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 45.0,
+      "damage": 100.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -46050,7 +46050,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 55.0,
+      "damage": 110.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -46873,7 +46873,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 55.0,
+      "damage": 110.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -47102,7 +47102,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 45.0,
+      "damage": 100.0,
       "decoyable": false,
       "default": false,
       "derived": {

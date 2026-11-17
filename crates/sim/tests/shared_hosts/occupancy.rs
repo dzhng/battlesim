@@ -68,6 +68,8 @@ fn squads_sharing_a_house_fight_as_one_garrison() {
     // A fragment of the tank's shell that reaches a soldier kills him, the
     // house's cover or not.
     setup.rules.weapons.get_mut("tank_he").unwrap().damage = 1e6;
+    // Keep the tank available for the later garrison commands.
+    setup.rules.weapons.get_mut("atgm").unwrap().damage = 0.0;
     setup.rules.cover.building_fragment_probability_multiplier = 1.0;
     let plan = {
         let b = Battle::new(&setup, 1);

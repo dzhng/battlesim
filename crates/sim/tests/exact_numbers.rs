@@ -23,20 +23,10 @@ const MISREAD: [f64; 9] = [
 ];
 
 fn scenario() -> serde_json::Value {
-    let [a, b, c, d, e, f, g, h, yaw] = MISREAD;
-    json!({
-        "map": {
-            "size": [800.0, 600.0], "fog_cell_m": 8.0, "height_grid_m": 4.0, "slope_cutoff_deg": 35.0,
-            "props": [{ "kind": "bench", "center": [e, f], "yaw": yaw, "half_extents": [0.9, 0.3, 0.45] }],
-        },
-        "rules": sim::fixtures::test_rules(),
-        "units": [
-            { "side": "blue", "kind": "test_tank", "position": [a, b], "yaw": yaw, "engagement": "return_fire_only" },
-            { "side": "red", "kind": "test_rifle", "position": [c, d], "engagement": "return_fire_only" },
-        ],
-        "scripts": [{ "tick": 1, "side": "blue", "order":
-            { "kind": "move", "units": [0], "gesture": 1, "goal": [g, h], "route": "shortest" } }],
-    })
+    // The paired record owns its inputs, so balance tuning cannot move numeric parity.
+    let record: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/parity/exact-numbers.json")).unwrap();
+    record["scenario"].clone()
 }
 
 #[test]
