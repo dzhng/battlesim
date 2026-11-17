@@ -15,6 +15,7 @@ mod purchase;
 use purchase::lane_purchase_destination;
 mod relocation;
 mod smoke;
+mod support;
 pub mod team;
 use artillery::{artillery_ground_guess, artillery_objective_guess};
 pub use capability::unit_engages_aircraft_in;
@@ -867,73 +868,15 @@ impl BalancedDoctrine {
                 });
             }
             self.rides = collect;
-            // Support stays between the road-edge base and the observed combat
-            // group. An impossible support route falls back to the admitted base.
-            let combat: Vec<_> = own
-                .iter()
-                .filter(|u| !rules.catalog.get(u.kind).has_role("logistics"))
-                .collect();
-            let support = if combat.is_empty() {
-                entry.center
-            } else {
-                let mut center = [0.0; 2];
-                for u in &combat {
-                    center[0] += u.position[0];
-                    center[1] += u.position[1];
-                }
-                let share = self.tuning.supply_share;
-                [
-                    entry.center[0] + share * (center[0] / combat.len() as f64 - entry.center[0]),
-                    entry.center[1] + share * (center[1] / combat.len() as f64 - entry.center[1]),
-                ]
-            };
-            for truck in own
-                .iter()
-                .filter(|u| rules.catalog.get(u.kind).has_role("logistics"))
-            {
-                let here = [truck.position[0], truck.position[1]];
-                let slack = self.tuning.truck_slack_m;
-                if distance(here, support) > slack {
-                    if live_goal(truck).is_some_and(|old| distance(old, support) <= slack) {
-                        continue;
-                    }
-                    let goal = if route_time(truck.id, support)
-                        .is_some_and(|t| t.is_finite() && t >= 0.0)
-                    {
-                        support
-                    } else if route_time(truck.id, entry.center)
-                        .is_some_and(|t| t.is_finite() && t >= 0.0)
-                    {
-                        entry.center
-                    } else {
-                        continue;
-                    };
-                    if distance(here, goal) > slack {
-                        if truck.goal.is_none_or(|old| distance(old, goal) > slack) {
-                            orders.push(Order::Move {
-                                units: vec![truck.id],
-                                gesture: frame.tick,
-                                goal,
-                                route: contract::command::RoutePolicy::Fastest,
-                                direction: contract::command::MoveDirection::Forward,
-                                facing: None,
-                            });
-                        }
-                        continue;
-                    }
-                }
-                if truck.state != contract::observation::MoveState::RouteBlocked
-                    && truck.goal.is_none()
-                    && truck
-                        .deployment
-                        .is_some_and(|d| d.target == contract::observation::Posture::Packed)
-                {
-                    orders.push(Order::SetDeployment {
-                        units: vec![truck.id],
-                        deployed: true,
-                    });
-                }
-            }
+            support::support_orders(
+                &own,
+                rules,
+                entry.center,
+                &self.tuning,
+                frame.tick,
+                route_time,
+                &mut orders,
+            );
         }
         if view.phase == Phase::Preparation && !me.ready {
             orders.push(Order::Ready);
