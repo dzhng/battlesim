@@ -157,7 +157,7 @@ impl Room<'_> {
     fn free(&self, before: Obb2, after: Obb2) -> bool {
         let reach = self.half.length();
         let near =
-            |c: V2, r: f64| (c - after.center).length() < reach + r + super::TRAFFIC_MARGIN_M;
+            |c: V2, r: f64| (c - after.center).inside_radius(reach + r + super::TRAFFIC_MARGIN_M);
         !self
             .solids
             .iter()

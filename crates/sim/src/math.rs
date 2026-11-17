@@ -307,21 +307,23 @@ impl Obb2 {
     /// from this rectangle toward `o` (the first axis on a tie); a depth of
     /// zero or less means apart along that axis.
     fn least_overlap(&self, o: &Obb2) -> (f64, V2) {
+        // Each rectangle's own axes, turned once and reused for every projection.
+        let (mine, theirs) = (Rotation::new(self.yaw), Rotation::new(o.yaw));
         let axes = [
-            v2(1.0, 0.0).rotated(self.yaw),
-            v2(0.0, 1.0).rotated(self.yaw),
-            v2(1.0, 0.0).rotated(o.yaw),
-            v2(0.0, 1.0).rotated(o.yaw),
+            mine.apply(v2(1.0, 0.0)),
+            mine.apply(v2(0.0, 1.0)),
+            theirs.apply(v2(1.0, 0.0)),
+            theirs.apply(v2(0.0, 1.0)),
         ];
-        let project = |r: &Obb2, axis: V2| {
-            let ax = v2(1.0, 0.0).rotated(r.yaw);
-            let ay = v2(0.0, 1.0).rotated(r.yaw);
-            r.half.x * ax.dot(axis).abs() + r.half.y * ay.dot(axis).abs()
+        let project = |half: V2, (ax, ay): (V2, V2), axis: V2| {
+            half.x * ax.dot(axis).abs() + half.y * ay.dot(axis).abs()
         };
         let d = o.center - self.center;
         let mut best: Option<(f64, V2)> = None;
         for axis in axes {
-            let depth = project(self, axis) + project(o, axis) - d.dot(axis).abs();
+            let depth = project(self.half, (axes[0], axes[1]), axis)
+                + project(o.half, (axes[2], axes[3]), axis)
+                - d.dot(axis).abs();
             if best.is_none_or(|(b, _)| depth < b) {
                 let out = if d.dot(axis) < 0.0 { -axis } else { axis };
                 best = Some((depth, out));

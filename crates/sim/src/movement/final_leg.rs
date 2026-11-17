@@ -176,8 +176,6 @@ fn search(
         }
         state[k] == 1
     };
-    let mut g = vec![f64::INFINITY; n * n];
-    let mut parent = vec![u32::MAX; n * n];
     let point = |k| {
         if k == start {
             from
@@ -187,19 +185,6 @@ fn search(
             center(k)
         }
     };
-    let goal_c = center(goal);
-    let h = |k: usize| {
-        let d = center(k) - goal_c;
-        let (a, b) = (d.x.abs(), d.y.abs());
-        a.max(b) + (std::f64::consts::SQRT_2 - 1.0) * a.min(b)
-    };
-    let mut heap = BinaryHeap::new();
-    g[start] = 0.0;
-    parent[start] = start as u32;
-    heap.push(Open {
-        f: h(start),
-        cell: start as u32,
-    });
     const STEPS: [(isize, isize); 8] = [
         (1, 0),
         (-1, 0),
@@ -214,6 +199,56 @@ fn search(
         (i >= 0 && j >= 0 && (i as usize) < n && (j as usize) < n)
             .then(|| j as usize * n + i as usize)
     };
+    // The step from `cell` by (di, dj): the cell it lands in, if both are
+    // open and his disc passes on the way.
+    let mut step_to = |cell: usize, di: isize, dj: isize| -> Option<usize> {
+        let (ci, cj) = ((cell % n) as isize, (cell / n) as isize);
+        let next = index(ci + di, cj + dj)?;
+        if !open_cell(cell) || !open_cell(next) {
+            return None;
+        }
+        let (a, b) = (point(cell), point(next));
+        if !clear_segment(a, b, reach.near(a, b, &solids), &soldiers, radius, slide) {
+            return None;
+        }
+        if di != 0 && dj != 0 {
+            // Ground remains a cell field; do not cut a water/slope corner.
+            let a = index(ci + di, cj).is_some_and(|k| walkable(center(k)));
+            let b = index(ci, cj + dj).is_some_and(|k| walkable(center(k)));
+            if !(a && b) {
+                return None;
+            }
+        }
+        Some(next)
+    };
+    // The goal is entered only by a step from an open cell beside it. When
+    // no such step passes (its point inside a body, or ringed by soldiers),
+    // no way reaches it, and the rest of the window need not be searched to
+    // say so.
+    if start != goal {
+        let (gi, gj) = ((goal % n) as isize, (goal / n) as isize);
+        let enterable = STEPS.iter().any(|&(di, dj)| {
+            index(gi - di, gj - dj).is_some_and(|cell| step_to(cell, di, dj) == Some(goal))
+        });
+        if !enterable {
+            return None;
+        }
+    }
+    let mut g = vec![f64::INFINITY; n * n];
+    let mut parent = vec![u32::MAX; n * n];
+    let goal_c = center(goal);
+    let h = |k: usize| {
+        let d = center(k) - goal_c;
+        let (a, b) = (d.x.abs(), d.y.abs());
+        a.max(b) + (std::f64::consts::SQRT_2 - 1.0) * a.min(b)
+    };
+    let mut heap = BinaryHeap::new();
+    g[start] = 0.0;
+    parent[start] = start as u32;
+    heap.push(Open {
+        f: h(start),
+        cell: start as u32,
+    });
     let mut found = false;
     while let Some(Open { f, cell }) = heap.pop() {
         let cell = cell as usize;
@@ -224,27 +259,11 @@ fn search(
         if f > g[cell] + h(cell) + 1e-9 {
             continue;
         }
-        let (ci, cj) = ((cell % n) as isize, (cell / n) as isize);
         for (di, dj) in STEPS {
-            let Some(next) = index(ci + di, cj + dj) else {
+            let Some(next) = step_to(cell, di, dj) else {
                 continue;
             };
-            if !open_cell(next) {
-                continue;
-            }
             let diagonal = di != 0 && dj != 0;
-            let (a, b) = (point(cell), point(next));
-            if !clear_segment(a, b, reach.near(a, b, &solids), &soldiers, radius, slide) {
-                continue;
-            }
-            if diagonal {
-                // Ground remains a cell field; do not cut a water/slope corner.
-                let a = index(ci + di, cj).is_some_and(|k| walkable(center(k)));
-                let b = index(ci, cj + dj).is_some_and(|k| walkable(center(k)));
-                if !(a && b) {
-                    continue;
-                }
-            }
             let step = if diagonal {
                 FINE_CELL_M * std::f64::consts::SQRT_2
             } else {
