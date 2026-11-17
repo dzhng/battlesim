@@ -4869,16 +4869,16 @@
       "source_frames": [441504, 480000]
     },
     "aa-burst": {
-      "label": "Bofors \u00b7 three relayed reports at 300 ms",
+      "label": "Bofors \u00b7 three relayed reports at 100 ms",
       "category": "weapon",
       "role": "shot",
       "processing": "heavy-report",
       "url": "/audio/clips/aa-burst.wav",
-      "sha256": "8e185eca9f32398992647e90614cc34700f39c07e30ebd3f793509c358532561",
+      "sha256": "1d640f78187fd608d6c0e6b16f9b5bd5a6a022c705ada0455704dd600360a30f",
       "sample_rate": 48000,
-      "frames": 40560,
+      "frames": 21360,
       "loop": false,
-      "notes": "03 relay fallback: three distinct Bofors reports cut before the next attack, faded, placed at 0, 0.300, 0.600 s. Original 201/219 ms cadence fails the gate; this is constructed timing.",
+      "notes": "Three distinct Bofors reports cut before the next attack, faded and relayed 100 ms apart to match the AA guns. Source crops retain their original pitch and tails.",
       "source": "bofors-live-fire",
       "source_rate": 48000,
       "source_frames": [943200, 976800],
@@ -4888,7 +4888,7 @@
           [954576, 964320],
           [965040, 976800]
         ],
-        "interval_s": 0.3
+        "interval_s": 0.1
       }
     },
     "lmg-rifle-11-burst-a": {
@@ -6520,7 +6520,7 @@
       "loop": false
     },
     "aa-combat": {
-      "label": "AA gun \u00b7 300 ms relay fallback",
+      "label": "AA gun \u00b7 100 ms relayed reports",
       "clips": ["aa-burst"],
       "synth": null,
       "synth_gain": 0,
