@@ -5,6 +5,7 @@ use contract::ids::UnitId;
 use contract::observation::OwnUnit;
 use contract::scenario::Rules;
 
+use super::purchase::drives;
 use super::{distance, live_goal, Tuning};
 
 /// Orders that keep each supplier at its post: move there, or set up once
@@ -36,9 +37,10 @@ pub(super) fn support_orders(
             entry[1] + share * (center[1] / combat.len() as f64 - entry[1]),
         ]
     };
+    // Only a supplier that drives stands at the post.
     for truck in own
         .iter()
-        .filter(|u| rules.catalog.get(u.kind).has_role("logistics"))
+        .filter(|u| rules.catalog.get(u.kind).has_role("logistics") && drives(rules, u.kind))
     {
         let here = [truck.position[0], truck.position[1]];
         let slack = tuning.truck_slack_m;

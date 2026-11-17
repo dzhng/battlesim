@@ -50,6 +50,196 @@ fn two_infantry_cards(authored: &mut Value) {
     );
 }
 
+/// At equal cost the armed flyer wins on value, or on its earlier id when
+/// there is no known threat. Only its mobility should rule it out.
+fn supply_flyer_deck() -> Value {
+    let mut authored = deck();
+    let truck = authored["catalog"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(|doc| doc["units"].get("test_supply"))
+        .unwrap()
+        .clone();
+    fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_heli",
+        json!({
+            "roles": ["logistics"],
+            "cost": truck["cost"],
+            "capabilities": truck["capabilities"],
+            "roster": { "factions": ["us"], "category": "sup",
+                "family_name": "Test", "variant": "Test" }
+        }),
+    );
+    authored
+}
+
+#[test]
+fn the_opening_buys_the_supplier_that_drives_even_when_a_flyer_ties() {
+    let rules: Rules = serde_json::from_value(supply_flyer_deck()).unwrap();
+    for doctrine in [
+        Doctrine::BalancedOpening,
+        Doctrine::TankSwarm,
+        Doctrine::AirDenial,
+    ] {
+        for enemy in [None, Some("test_rifle")] {
+            let (_, mut frame, entry) = empty_match();
+            me(&mut frame).credits = 100_000.0;
+            me(&mut frame).cap = 1_000;
+            frame.identified = enemy.map(|id| seen(&rules, id)).into_iter().collect();
+            let mut ai = BalancedDoctrine {
+                doctrine,
+                ..BalancedDoctrine::default()
+            };
+            let orders = ai.decide(
+                DecisionInput {
+                    side: Side::Red,
+                    faction: Faction::Us,
+                    entry: &entry,
+                    assignment: None,
+                },
+                &frame,
+                &rules,
+                |_, _| Some(1.0),
+            );
+            let suppliers: Vec<_> = confirm_purchases(&rules, &mut frame, &orders)
+                .into_iter()
+                .filter(|&kind| rules.catalog.get(kind).has_role("logistics"))
+                .collect();
+            assert!(
+                !suppliers.is_empty(),
+                "{doctrine:?}, {enemy:?}: buys a supplier"
+            );
+            for kind in suppliers {
+                assert!(
+                    rules.catalog.get(kind).mobility.locomotion().is_some(),
+                    "{doctrine:?}, {enemy:?}: bought a flying standing supplier: {}",
+                    rules.catalog.id(kind)
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_lost_truck_is_replaced_by_one_that_drives() {
+    for flyer in ["absent", "owned", "pending"] {
+        let (rules, mut frame, entry) = transport_tests::transport_match_on(
+            supply_flyer_deck(),
+            json!([
+                {"side":"red","kind":"test_supply","position":[500,10]},
+                {"side":"red","kind":"test_heli","position":[540,30]}
+            ]),
+        );
+        // Lose the truck, with an emergency flyer absent, on the field, or
+        // still on its way. None can stand in for the lost driver.
+        frame
+            .own
+            .retain(|u| flyer == "owned" && rules.catalog.get(u.kind).mobility.flight().is_some());
+        me(&mut frame).unit_count = frame.own.len() as u32;
+        me(&mut frame).credits = 100_000.0;
+        if flyer == "pending" {
+            me(&mut frame).pending.push(pending(
+                1,
+                rules.catalog.index("test_heli").unwrap(),
+                entry.center,
+                0,
+            ));
+            me(&mut frame).unit_count += 1;
+        }
+        let orders = BalancedDoctrine::default().decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
+        let bought = confirm_purchases(&rules, &mut frame, &orders);
+        let kind = *bought.first().expect("replace the lost supplier");
+        let supplier = rules.catalog.get(kind);
+        assert!(
+            supplier.has_role("logistics") && supplier.mobility.locomotion().is_some(),
+            "flyer {flyer}: replacement must drive, bought {}",
+            rules.catalog.id(kind)
+        );
+    }
+}
+
+#[test]
+fn the_support_loop_never_moves_a_flyer() {
+    let (rules, mut frame, entry) = transport_tests::transport_match_on(
+        supply_flyer_deck(),
+        json!([
+            {"side":"red","kind":"test_rifle","position":[500,600]},
+            {"side":"red","kind":"test_supply","position":[500,10]},
+            {"side":"red","kind":"test_heli","position":[540,30]}
+        ]),
+    );
+    let (truck, flyer) = (frame.own[1].id, frame.own[2].id);
+    let mut ai = BalancedDoctrine::default();
+    let mut support = None;
+    for parked in [false, true] {
+        if parked {
+            let [x, y] = support.expect("the truck was sent to its support spot");
+            for unit in &mut frame.own[1..] {
+                unit.position[0] = x;
+                unit.position[1] = y;
+                unit.goal = None;
+                unit.deployment.as_mut().unwrap().target = contract::observation::Posture::Packed;
+            }
+            frame.tick += 5 * u64::from(rules.tick_hz);
+        }
+        let orders = ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
+        if parked {
+            assert!(
+                orders.iter().any(|order| matches!(order,
+                Order::SetDeployment { units, deployed: true } if units.contains(&truck))),
+                "the standing truck deploys: {orders:?}"
+            );
+        } else {
+            support = orders.iter().find_map(|order| match order {
+                Order::Move { units, goal, .. } if units.contains(&truck) => Some(*goal),
+                _ => None,
+            });
+            assert!(support.is_some(), "the standing truck moves: {orders:?}");
+        }
+        for order in &orders {
+            if let Order::Move { units, .. }
+            | Order::AttackMove { units, .. }
+            | Order::SetDeployment { units, .. } = order
+            {
+                assert!(
+                    !units.contains(&flyer),
+                    "parked={parked}: the support loop ordered the flyer: {order:?}"
+                );
+                for id in units {
+                    let kind = frame.own.iter().find(|u| u.id == *id).unwrap().kind;
+                    assert!(
+                        rules.catalog.get(kind).mobility.locomotion().is_some(),
+                        "support orders go only to ground movers: {order:?}"
+                    );
+                }
+            }
+        }
+    }
+}
+
 #[test]
 fn within_a_role_a_card_that_can_engage_the_enemy_seen_beats_a_cheaper_one_that_cannot() {
     let mut authored = deck();

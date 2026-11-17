@@ -1,6 +1,6 @@
 # Supply helicopter
 
-**Status:** planned; nothing implemented. **Updated:** 2026-11-17.
+**Status:** slice 01 done; slice 02 next. **Updated:** 2026-11-17.
 
 One supply helicopter per faction. It lands to resupply the units around it and
 takes off again when it packs. It costs the same as the supply truck, carries
@@ -10,9 +10,8 @@ is running dry far from its truck.
 
 ## Next Agent Prompt
 
-You are starting this spec at **slice 01** and **slice 02**. They are
-independent; run them in parallel if you can, but build serially: the disk was
-at 26 GB free on 2026-11-17, so check `df` first. Read
+Pick up at **slice 02**. Build serially: the disk was at 26 GB free on
+2026-11-17, so check `df` first. Read
 [`decisions.md`](decisions.md) before any slice; every row there is a given.
 Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
 before slices 06–08. Write each slice's test first. Each slice's "Digest" line
@@ -23,7 +22,7 @@ the next pickup point, and the TODO below.
 
 ### TODO
 
-- [ ] [01](slices/01-ai-standing-supplier-drives.md) The AI's standing supplier drives (no outcome change)
+- [x] [01](slices/01-ai-standing-supplier-drives.md) The AI's standing supplier drives (no outcome change)
 - [ ] [02](slices/02-lands-and-serves.md) A supply heli lands and serves (first playable)
 - [ ] [03](slices/03-landed-is-a-ground-vehicle.md) Landed, it is a ground vehicle
 - [ ] [04](slices/04-clear-landing-spot.md) Nearest clear spot, or NO LANDING ZONE

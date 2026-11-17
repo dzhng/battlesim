@@ -274,17 +274,13 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
     let mut ai = BalancedDoctrine::default();
-    let orders = ai.decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: None,
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
+    let input = DecisionInput {
+        side: Side::Red,
+        faction: Faction::Us,
+        entry: &entry,
+        assignment: None,
+    };
+    let orders = ai.decide(input, &frame, &rules, |_, _| Some(1.0));
     let Order::ConfirmPurchase {
         variant,
         destination,
@@ -295,35 +291,16 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     };
     let kind = rules.catalog.index(variant).unwrap();
     assert!(rules.catalog.get(kind).has_role("logistics"));
+    assert!(rules.catalog.get(kind).mobility.locomotion().is_some());
     assert_eq!(*destination, entry.center);
     me(&mut frame)
         .pending
         .push(pending(1, kind, *destination, 0));
     assert!(ai
-        .decide(
-            DecisionInput {
-                side: Side::Red,
-                faction: Faction::Us,
-                entry: &entry,
-                assignment: None
-            },
-            &frame,
-            &rules,
-            |_, _| Some(1.0)
-        )
+        .decide(input, &frame, &rules, |_, _| Some(1.0))
         .is_empty());
     frame.tick = 5 * u64::from(rules.tick_hz);
-    let orders = ai.decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: None,
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
+    let orders = ai.decide(input, &frame, &rules, |_, _| Some(1.0));
     let Order::ConfirmPurchase { variant, .. } = &orders[0] else {
         panic!("reinforce combat")
     };
@@ -365,10 +342,11 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
     }
     assert!(ready && frame.tick == 0, "the first decision readies");
     let view = frame.skirmish.as_ref().unwrap();
-    assert!(view.players[0]
-        .pending
-        .iter()
-        .any(|p| rules.catalog.get(p.kind).has_role("logistics")));
+    assert!(view.players[0].pending.iter().any(|p| rules
+        .catalog
+        .get(p.kind)
+        .has_role("logistics")
+        && rules.catalog.get(p.kind).mobility.locomotion().is_some()));
     let mut capped = frame.clone();
     let view = capped.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
