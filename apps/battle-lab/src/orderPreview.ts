@@ -21,6 +21,8 @@ interface Answer {
   key: string;
   destinations: MoveDestination[];
   building: BuildingPlacement | null;
+  /** A rejected building query means the target cannot accept this order. */
+  state?: PreviewAvailability;
 }
 
 const IDLE: OrderPreviewSnapshot = {
@@ -52,8 +54,8 @@ export class OrderPreview {
 
   get snapshot(): OrderPreviewSnapshot {
     if (this.answer) {
-      const { destinations, building } = this.answer;
-      return { destinations, building, state: availability(destinations, building) };
+      const { destinations, building, state } = this.answer;
+      return { destinations, building, state: state ?? availability(destinations, building) };
     }
     return this.gesture
       ? { destinations: [], building: null, state: "pending", carried: this.carried }
@@ -124,7 +126,12 @@ export class OrderPreview {
         },
         () => {
           if (request !== this.generation) return;
-          this.answer = { key, destinations: [], building: null };
+          this.answer = {
+            key,
+            destinations: [],
+            building: null,
+            state: intent.kind === "building" ? "blocked" : "pending",
+          };
         },
       )
       .finally(() => {
