@@ -392,7 +392,7 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     );
     assert_eq!(hover.articulation.rotor, 0.5 * tip);
     assert_eq!(
-        hover.articulation.rotor_blur, 1.0,
+        hover.articulation.rotor_speed, 1.0,
         "drawn as a shutter sees it"
     );
     let flown = at(1.5, 60.0);

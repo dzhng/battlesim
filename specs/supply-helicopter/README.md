@@ -1,6 +1,6 @@
 # Supply helicopter
 
-**Status:** slices 01–05 done; slice 06 next. **Updated:** 2026-11-17.
+**Status:** slices 01–06 done; slice 07 next. **Updated:** 2026-11-17.
 
 One supply helicopter per faction. It lands to resupply the units around it and
 takes off again when it packs. It costs the same as the supply truck, carries
@@ -10,7 +10,7 @@ is running dry far from its truck.
 
 ## Next Agent Prompt
 
-Pick up at **slice 06**. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
+Pick up at **slice 07**. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
 2026-11-17, so check `df` first. Read
 [`decisions.md`](decisions.md) before any slice; every row there is a given.
 Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
@@ -44,7 +44,7 @@ the TODO below.
 - [x] [03](slices/03-landed-is-a-ground-vehicle.md) Landed, it is a ground vehicle
 - [x] [04](slices/04-clear-landing-spot.md) Nearest clear spot, or NO LANDING ZONE
 - [x] [05](slices/05-enemies-see-it-land.md) Enemies see it land (knowledge and publication contract)
-- [ ] [06](slices/06-rotor-winds-down.md) The rotor winds down and up (visual: rotor)
+- [x] [06](slices/06-rotor-winds-down.md) The rotor winds down and up (visual: rotor)
 - [ ] [07](slices/07-ground-mark.md) Landed, it wears the ground mark (visual: marker)
 - [ ] [08](slices/08-rotor-sound.md) The rotor sound fades with the rotor (audio)
 - [ ] [09](slices/09-ai-emergency-airlift.md) The AI flies one in for an emergency

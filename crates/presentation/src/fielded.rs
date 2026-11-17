@@ -664,6 +664,7 @@ fn unit_types<'a>(
                     Mobility::Air { cruise_kmh, .. } => Some(cruise_kmh / 3.6),
                     _ => None,
                 },
+                "deploy": t["capabilities"]["deploy"],
                 "roles": roles,
                 "mounts": mount_rows,
                 "draws": draws,

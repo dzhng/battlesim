@@ -58,3 +58,13 @@ against the shipped code at closeout (slice 11).
 | `knowledge.rs` fills the identified unit's `deployment` and `grounded` where it builds the row, not a patch afterwards in `battle.rs`. Codex first patched them in battle.rs; moved. | Sound; one owner. |
 | Room for the ratchet: battle.rs `wear` moved to `battle/spawn.rs`; identified-row packing to `publication/identified_row.rs`; its decoding to `publication/reader/identified.rs`; the wire test to `tests/publication_wire.rs`; a shared AI test fixture to `skirmish_ai/tests/observed.rs`. | Sound; pure moves by concept. |
 | Cook-offs and shooter dust read the published `grounded`, not the type. | Sound. |
+
+## Slice 06
+
+| Choice | Verdict |
+|---|---|
+| One calculator, `units::rotor::rotor_speed(grounded, progress, target, drop_seconds, seconds)`, smoothstep-eased. Full while airborne; after touchdown it eases from 1 to 0 by full set-up; while packing it eases from 0 to 1 over the pack. A parked aircraft with no deployment is stopped. | Sound; one owner (P12). |
+| The articulation field `rotor_blur` (once a 0/1 switch) became `rotor_speed` (0 to 1). It was renamed in Rust and the TS mirror, and the key in `fixtures/parity/capture/poses/paris-corner-poses.json` follows. The effect style named `rotor_blur` is a different concept and keeps its name. | Sound; the name says what it holds. |
+| Blur hands over to the authored blades at speed 0.2 (`BLUR_CROSSOVER`, shared by Rust and TS), chosen from a probe strip. The disc's opacity and minimum chord fall with speed. | Reversible; tune by eye in motion. |
+| `airborne` is recomputed every frame from the published `grounded`; the flight attitude state resets on take-off; helicopter gear never stows. `FeedUnit::grounded` now carries the published landing latch, and the showcase's parked aircraft is its zero-speed case. | Sound. The first-sight freeze is deleted, not wrapped. |
+| Critique triage. A paused still draws the blur as sharp blades: an existing property of stills. The blades' shadow appears only once the geometry draws, and at zoom it breaks into soft blobs (shadow sampling of thin blades, as the showcase's parked aircraft already shows). Accepted at normal size. | Known; low priority. |

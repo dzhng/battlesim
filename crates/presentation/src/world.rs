@@ -179,6 +179,9 @@ pub struct UnitType {
     /// engines' throttle reads its drawn speed against it. None on the ground.
     #[serde(default)]
     pub cruise_mps: Option<f64>,
+    /// Authored deployment timing; rotor presentation reads the same capability.
+    #[serde(default)]
+    pub deploy: Option<contract::catalog::Deploy>,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,

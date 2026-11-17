@@ -179,7 +179,7 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
         travel_r: -k * 0.07,
         deploy: (k % 11) / 10,
         rotor: k * 1.3,
-        rotor_blur: 0,
+        rotor_speed: 0,
       };
       const { worlds } = posed(bundle, input);
       positionsBounds(articulatedPositions(bundle.nodes, worlds, 0), reached as never);
@@ -281,8 +281,16 @@ test("a rotor drawn by its blur draws none of its own geometry", async () => {
   const heli = await built("heli", heliGlb());
   const nodes = heli.nodes;
   const rig = articulationRig(nodes);
-  const locals = articulate(restLocals(nodes), nodes, rig, { ...REST_ARTICULATION, rotor_blur: 1 });
+  const locals = articulate(restLocals(nodes), nodes, rig, {
+    ...REST_ARTICULATION,
+    rotor_speed: 1,
+  });
   for (const r of rig.rotors) expect([...locals[r.node].s]).toEqual([0, 0, 0]);
   const shown = articulate(restLocals(nodes), nodes, rig, REST_ARTICULATION);
   for (const r of rig.rotors) expect([...shown[r.node].s]).not.toEqual([0, 0, 0]);
+  const slowing = articulate(restLocals(nodes), nodes, rig, {
+    ...REST_ARTICULATION,
+    rotor_speed: 0.1,
+  });
+  for (const r of rig.rotors) expect([...slowing[r.node].s]).not.toEqual([0, 0, 0]);
 });

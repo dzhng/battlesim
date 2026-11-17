@@ -61,3 +61,5 @@ tests.
 
 **Feedback that would change it.** A pop at the handoff, or a spin-down that
 reads too fast or too slow.
+
+**Resolution (2026-11-17).** The probe strip picked a crossover at speed 0.2. The unprimed critique found no missing or doubled rotor. Its other notes are triaged in `choices.md`. Air-hover production frames are byte-identical.

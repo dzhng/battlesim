@@ -42,9 +42,8 @@ pub struct FeedUnit {
     pub soldiers: Vec<FeedSoldier>,
     pub mounts: Vec<FeedMount>,
     pub deployment: Option<f64>,
-    /// The published landing latch, kept separate from the driver's showcase
-    /// `grounded` pose input until the rotor presentation consumes it.
-    pub published_grounded: bool,
+    /// Published target: deployed or packed; none without deployment.
+    pub deployment_target: Option<Arc<str>>,
     /// The squad is pinned, by the published tier (false where the side cannot know).
     pub pinned: bool,
     /// The squad is in a fight this moment: its own sensors see an enemy, or
@@ -54,9 +53,7 @@ pub struct FeedUnit {
     /// A downed airframe's (pitch, roll) as it falls, radians: nose up and
     /// right side down. None: a live unit.
     pub attitude: Option<(f64, f64)>,
-    /// It stands on the ground though its type flies: a parked aircraft,
-    /// shut down, posed as a ground vehicle is, its rotors still. False in
-    /// battle, where a live aircraft always flies.
+    /// Published landing latch, or a parked showcase aircraft.
     pub grounded: bool,
 }
 

@@ -127,6 +127,9 @@ pub(super) fn draw_rotors(blur: &RotorBlurStyle, rotors: &[DrawnRotor], batch: &
         disc,
     } = *blur;
     for r in rotors {
+        if r.speed <= crate::units::rotor::BLUR_CROSSOVER {
+            continue;
+        }
         // Past a whole turn every blade covers the whole disc alike.
         let sweep = (2.0 * PI).min(r.turned.abs() * shutter);
         let mut rotor = |radius: f64, sweep: f64, chord: f64, blades: f64, misc: f64| {
@@ -138,9 +141,15 @@ pub(super) fn draw_rotors(blur: &RotorBlurStyle, rotors: &[DrawnRotor], batch: &
                 shape,
             ]);
         };
-        rotor(r.radius, sweep, r.chord / r.radius, r.blades, min_chord_px);
+        rotor(
+            r.radius,
+            sweep,
+            r.chord / r.radius,
+            r.blades,
+            min_chord_px * r.speed,
+        );
         if sweep > 0.0 && disc > 0.0 {
-            rotor(r.radius, 0.0, 0.0, 0.0, disc);
+            rotor(r.radius, 0.0, 0.0, 0.0, disc * r.speed);
         }
         rotor(r.radius * hub_share, 0.0, 0.0, 0.0, 1.0);
         if let Some(mast) = &r.mast {

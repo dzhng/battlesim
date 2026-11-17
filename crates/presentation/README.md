@@ -260,10 +260,13 @@ dust off the whole hull and off the ground ahead of the muzzle; each of a
 soldier's own shots snaps his upper body back about his waist, his muzzle
 climbing. How hard each round kicks is its weapon look's `kick` and its flash's `dust`;
 `presentation.pose` owns the shared spring and recovery curves. The whole-model motion
-carries the drawn muzzle. A flying aircraft's rotor is drawn by the effects from the
+carries the drawn muzzle. A turning aircraft's rotor is drawn by the effects from the
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
-rate and a paused one shows its blades.
+rate and a paused one shows its blades. The published landing latch and
+deployment pose drive [one rotor speed](src/units/rotor.rs); grounded rotors
+wind down while setting up and up while packing, and hand over to authored
+blades before they stop. A parked showcase takes that same stopped pose.
 
 A running jet glows in every nozzle and leaves its engines' and wingtips'
 trails, as a war film shows a jet: visual only, so it never touches the

@@ -36,6 +36,8 @@ pub struct DrawnRotor {
     pub chord: f64,
     /// The angle it turned since the last drawn frame, radians.
     pub turned: f64,
+    /// Normalized rotor speed, shared with the pose.
+    pub speed: f64,
     /// Its mast from where it meets the airframe to the head's top.
     pub mast: Option<Mast>,
     #[serde(rename = "mastRadius")]

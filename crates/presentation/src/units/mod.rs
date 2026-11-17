@@ -51,3 +51,5 @@ fn slot<T: Default>(list: &mut Vec<T>, n: usize) -> &mut T {
 }
 
 pub mod feel;
+
+pub mod rotor;

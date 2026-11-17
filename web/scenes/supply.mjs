@@ -1,6 +1,8 @@
 // Slice 13: service eligibility, finite stock and replacements in the browser.
-import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
+import { decode, writeCrop, mostChanged } from "./_png.mjs";
+import { lab, obs, advance, snapshot, openBattle, presented } from "./_lab.mjs";
+
+import { unitType } from "./_units.mjs";
 
 const unit = (o, id) => o.own.find((u) => u.id === id);
 const seen = (o, id) => o.identified.find((u) => u.id === id);
@@ -35,7 +37,7 @@ async function select(page, ids) {
 async function frame(ctx, page, name, crop) {
   const shot = await snapshot(ctx, page, `frame-${name}-1280x800.png`);
   if (crop) {
-    const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), crop);
+    const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] ?? 0), crop);
     await writeCrop(
       decode(shot),
       ctx.evidencePath(`crop-${name}-2x.png`),
@@ -231,16 +233,64 @@ async function runHeli(ctx) {
   );
   // It flies in, brakes, then drops; sample until it is set up.
   let sawDrop = false;
+  let sawTouchdown = false;
+  let sawHalf = false;
+  const deploy = unitType("test_supply_heli").capabilities.deploy;
+  const touchdownProgress = deploy.drop_seconds / deploy.seconds;
+  const halfSetup = (1 + touchdownProgress) / 2;
   for (let waited = 0; waited < 900; waited += 15) {
     await advance(page, 15);
     o = await obs(page);
     const heli = unit(o, 0);
-    if (!sawDrop && heli.deployment.progress > 0 && heli.deployment.progress < 0.5) {
+    if (!sawDrop && heli.deployment.progress > 0 && heli.deployment.progress < touchdownProgress) {
       sawDrop = true;
-      await frame(ctx, page, "heli-drop", [heli.position[0], heli.position[1]]);
+      await frame(ctx, page, "heli-drop", heli.position);
+      const first = decode(await page.screenshot());
+      const mast = await lab(page, (p) => window.__lab.projectToCss(...p), [
+        heli.position[0],
+        heli.position[1],
+        heli.position[2] + 3,
+      ]);
+      await advance(page, 1);
+      await presented(page);
+      const moving = mostChanged(first, decode(await page.screenshot()), mast, 30);
+      ctx.check(
+        "the flying heli changes pixels round its mast between ticks",
+        moving > 0,
+        JSON.stringify({ moving }),
+      );
+    }
+    if (!sawTouchdown && heli.grounded) {
+      sawTouchdown = true;
+      await frame(ctx, page, "heli-touchdown", heli.position);
+    }
+    if (
+      !sawHalf &&
+      heli.grounded &&
+      heli.deployment.progress >= halfSetup &&
+      heli.deployment.progress < 1
+    ) {
+      sawHalf = true;
+      await frame(ctx, page, "heli-half-set-up", heli.position);
     }
     if (heli.deployment.progress === 1 && unit(o, 1).service === "serving") break;
   }
+  ctx.check("the heli capture visits touchdown and half set-up", sawTouchdown && sawHalf);
+  await frame(ctx, page, "heli-set-up", unit(o, 0).position);
+  const stopped = decode(await page.screenshot());
+  const heliMast = await lab(page, (p) => window.__lab.projectToCss(...p), [
+    unit(o, 0).position[0],
+    unit(o, 0).position[1],
+    unit(o, 0).position[2] + 3,
+  ]);
+  await advance(page, 1);
+  await presented(page);
+  const still = mostChanged(stopped, decode(await page.screenshot()), heliMast, 30);
+  ctx.check(
+    "the set-up heli holds the pixels round its mast between ticks",
+    still === 0,
+    JSON.stringify({ still }),
+  );
   await frame(ctx, page, "heli-serving", [unit(o, 0).position[0], unit(o, 0).position[1]]);
   ctx.check(
     "the supply helicopter lands and serves",

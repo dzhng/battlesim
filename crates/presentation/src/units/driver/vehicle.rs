@@ -44,8 +44,7 @@ impl PoseDriver {
         // own pitch limits (`articulate`).
         let gun_target = gun_mount.map_or(0.0, |m| m.elevation);
         let hmg_target = hmg_mount.map_or(0.0, |m| m.elevation);
-        // A flying type stood on the ground (`FeedUnit::grounded`) poses as a
-        // ground vehicle: rotors still, gear down, no lean.
+        // The publication owns touchdown and lift-off.
         let airborne = ty.airborne && !unit.grounded;
         let state = self
             .vehicles
@@ -68,9 +67,6 @@ impl PoseDriver {
                         articulation: Articulation {
                             gun_pitch: gun_target,
                             hmg_pitch: hmg_target,
-                            rotor_blur: if airborne { 1.0 } else { 0.0 },
-                            // A unit flies gear up or stands on it for life.
-                            gear_up: gear_up_for(ty, airborne),
                             ..Articulation::default()
                         },
                         motion: None,
@@ -82,11 +78,27 @@ impl PoseDriver {
         state.seen = generation;
         let feel = &self.feel;
         let pose = &mut state.pose;
+        if airborne && !pose.airborne {
+            state.flight = None;
+        }
+        pose.airborne = airborne;
         let a = &mut pose.articulation;
-        if pose.airborne {
-            // In the air its rotors turn and nothing rolls.
-            a.rotor += feel.rotor.tip_mps * dt;
+        a.gear_up = gear_up_for(ty, airborne);
+        let speed = if ty.airborne {
+            let deploy = ty.deploy.as_ref();
+            crate::units::rotor::rotor_speed(
+                unit.grounded,
+                unit.deployment,
+                unit.deployment_target.as_deref(),
+                deploy.and_then(|d| d.drop_seconds).unwrap_or(0.0),
+                deploy.map_or(1.0, |d| d.seconds),
+            )
         } else {
+            0.0
+        };
+        a.rotor_speed = speed;
+        a.rotor += feel.rotor.tip_mps * speed * dt;
+        if !ty.airborne {
             // Ground covered along the hull, plus each side's share of the turn.
             let forward = (unit.position[0] - pose.position[0]) * libm::cos(unit.yaw)
                 + (unit.position[1] - pose.position[1]) * libm::sin(unit.yaw);
