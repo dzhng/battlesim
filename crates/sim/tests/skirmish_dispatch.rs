@@ -23,7 +23,7 @@ fn run(battle: &mut Battle, seconds: u32) {
 }
 
 #[test]
-fn a_purchase_blocked_at_one_entry_does_not_hold_back_the_same_players_purchase_at_another() {
+fn an_occupied_entry_does_not_hold_back_later_purchases_or_other_lanes() {
     let mut setup = crate::skirmish_team::two_entry_setup();
     setup.skirmish.as_mut().unwrap().rules.preparation_s = 0;
     let mut battle = Battle::new(&setup, 5);
@@ -33,11 +33,7 @@ fn a_purchase_blocked_at_one_entry_does_not_hold_back_the_same_players_purchase_
     buy(&mut battle, "blue-1", 2, entry_a);
     run(&mut battle, 3);
     let status = battle.observe(Side::Blue).skirmish.clone().unwrap();
-    assert_eq!(status.players[0].pending.len(), 1);
-    assert!(
-        status.players[0].pending[0].blocked,
-        "entry A is not blocked"
-    );
+    assert!(status.players[0].pending.is_empty());
     // The same player's next purchase is routed through entry B.
     buy(&mut battle, "blue-1", 3, [700.0, 60.0]);
     run(&mut battle, 2);
@@ -54,8 +50,8 @@ fn a_purchase_blocked_at_one_entry_does_not_hold_back_the_same_players_purchase_
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(
         status.players[0].pending.len(),
-        1,
-        "the entry-A purchase still waits"
+        0,
+        "the occupied entry purchase still waits"
     );
 }
 

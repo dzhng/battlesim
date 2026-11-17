@@ -412,6 +412,8 @@ impl BalancedDoctrine {
                 || crate::carriage::seats(rules, kind) > 0
                 || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
                     .is_some();
+            let departure =
+                lane_purchase_destination(entry, entry.center, self.tuning.purchase_advance_m);
             let destination = if let Some(context) = context {
                 // Reserve just past the lane entry. Entries still owns the
                 // nearest-entry choice, while the unit clears the footprint
@@ -422,7 +424,7 @@ impl BalancedDoctrine {
                     self.tuning.purchase_advance_m,
                 )
             } else if waits {
-                entry.center
+                departure
             } else {
                 view.objectives
                     .iter()
@@ -432,7 +434,13 @@ impl BalancedDoctrine {
                             .total_cmp(&distance(entry.center, b.center))
                             .then(a.id.cmp(&b.id))
                     })
-                    .map_or(entry.center, |o| o.center)
+                    .map_or(departure, |o| {
+                        if distance(entry.center, o.center) > 0.0 {
+                            o.center
+                        } else {
+                            departure
+                        }
+                    })
             };
             orders.push(Order::ConfirmPurchase {
                 variant: rules.catalog.id(kind).into(),

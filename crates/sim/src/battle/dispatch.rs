@@ -40,18 +40,23 @@ impl Battle {
                 let delay_s = min + (max - min) * rng.unit();
                 reservation.data.arrival_tick = Some(self.tick + (delay_s * hz).round() as u64);
             }
+            // Ground arrivals carry the point that was actually found clear.
+            // The entry marker is a road mouth, not a permanent parking spot:
+            // a unit left there must not hold the queue when there is room to
+            // pull in beside it.
             let mut arrived = Vec::new();
             let mut i = 0;
             while i < skirmish.players[player_index].reservations.len() {
                 let reservation = &skirmish.players[player_index].reservations[i];
                 match reservation.data.arrival_tick {
                     Some(due) if due <= self.tick => {
-                        arrived.push(
+                        arrived.push((
                             skirmish.players[player_index]
                                 .reservations
                                 .remove(i)
                                 .unwrap(),
-                        );
+                            None,
+                        ));
                         continue;
                     }
                     Some(due) => {
@@ -110,47 +115,74 @@ impl Battle {
                 let t = self.rules.catalog.get(reservation.data.arriving());
                 // An aircraft flies in at cruise height over whatever
                 // stands there; a ground unit needs its entry site clear.
-                let clear = match units::ground_mobility(t, &self.rules) {
-                    None => true,
+                let spawn_at = match units::ground_mobility(t, &self.rules) {
+                    // Rotor aircraft with no off-map arrival delay are ready
+                    // immediately; their actual edge point is chosen below.
+                    None => Some(selected_point),
                     Some(mobility) => {
-                        let at = selected_point;
-                        let candidate = footprint(t, &self.rules, at, selected_yaw);
-                        stands_on(
-                            &self.world,
-                            self.sides[index].grid(&self.world, self.authored_props),
-                            &self.rules,
-                            t,
-                            &mobility,
-                            at,
-                            selected_yaw,
-                        )
-                        .is_ok()
-                            && self
-                                .units
-                                .iter()
-                                .filter(|u| u.on_field() && !u.airborne())
-                                .all(|u| {
-                                    apart(
-                                        &candidate,
-                                        &footprint(
-                                            self.rules.catalog.get(u.kind),
-                                            &self.rules,
-                                            u.position.xy(),
-                                            u.yaw,
-                                        ),
-                                        0.0,
-                                    )
-                                })
+                        let grid = self.sides[index].grid(&self.world, self.authored_props);
+                        let clear_at = |at: crate::math::V2| {
+                            let candidate = footprint(t, &self.rules, at, selected_yaw);
+                            stands_on(
+                                &self.world,
+                                grid,
+                                &self.rules,
+                                t,
+                                &mobility,
+                                at,
+                                selected_yaw,
+                            )
+                            .is_ok()
+                                && self
+                                    .units
+                                    .iter()
+                                    .filter(|u| u.on_field() && !u.airborne())
+                                    .all(|u| {
+                                        apart(
+                                            &candidate,
+                                            &footprint(
+                                                self.rules.catalog.get(u.kind),
+                                                &self.rules,
+                                                u.position.xy(),
+                                                u.yaw,
+                                            ),
+                                            0.0,
+                                        )
+                                    })
+                        };
+                        // Search a small deterministic spiral around the road
+                        // mouth. This gives a parked unit room to pull in
+                        // beside it while preserving the selected entry and
+                        // refusing a genuinely sealed road.
+                        let step = 2.5;
+                        let mut found = None;
+                        'search: for radius in 0_i32..=16 {
+                            for dx in -radius..=radius {
+                                for dy in -radius..=radius {
+                                    if dx.abs().max(dy.abs()) != radius {
+                                        continue;
+                                    }
+                                    let at = selected_point
+                                        + crate::math::v2(dx as f64 * step, dy as f64 * step);
+                                    if clear_at(at) {
+                                        found = Some(at);
+                                        break 'search;
+                                    }
+                                }
+                            }
+                        }
+                        found
                     }
                 };
-                reservation.data.blocked = !clear;
-                if clear {
-                    arrived.push(
+                reservation.data.blocked = spawn_at.is_none();
+                if let Some(at) = spawn_at {
+                    arrived.push((
                         skirmish.players[player_index]
                             .reservations
                             .remove(next)
                             .unwrap(),
-                    );
+                        Some(at),
+                    ));
                     skirmish.next_dispatch[entry_index.0] = self.tick
                         + u64::from(skirmish.setup.rules.dispatch_interval_s)
                             * u64::from(self.rules.tick_hz);
@@ -158,7 +190,7 @@ impl Battle {
                 skirmish.dispatch_turn[entry_index.0] =
                     skirmish.next_entry_player(entry_index, player_index);
             }
-            for reservation in arrived {
+            for (reservation, ground_spawn) in arrived {
                 let t = self.rules.catalog.get(reservation.data.arriving());
                 let destination = v2(
                     reservation.data.destination[0],
@@ -179,6 +211,8 @@ impl Battle {
                 let (at, yaw) = if matches!(units::motion(t, &self.rules), units::Motion::Air(_)) {
                     let selected_point = v2(selected_site.center[0], selected_site.center[1]);
                     crate::air::edge::arrival(&edge, selected_point, destination)
+                } else if let Some(at) = ground_spawn {
+                    (at, selected_site.yaw)
                 } else {
                     (
                         v2(selected_site.center[0], selected_site.center[1]),
