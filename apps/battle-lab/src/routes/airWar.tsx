@@ -393,7 +393,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
         return (
           <div key={name} data-weapon={name}>
             {w.name}: <span data-field="targets">{targets}</span> {w.range_m} m
-            {intercepts ? ` · intercepts missiles from ${intercepts}` : ""}
+            {intercepts ? ` · intercepts missiles in ${intercepts}` : ""}
             {w.decoyable ? " · decoyable" : ""}
             {w.seeker ? ` · ${String(w.seeker)} seeker` : ""}
           </div>
