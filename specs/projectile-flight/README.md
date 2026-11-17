@@ -6,6 +6,9 @@ ground-to-ground fire is LowAir. Ordinary bullet drop stays Ground. This rule
 applies to every projectile, including bomb submunitions and interceptor rounds.
 Authored interception and active-protection eligibility do not change.
 
+The user clarified that low-arc grenades stay Ground. Only authored indirect
+trajectories and top-attack climbs receive the ground-to-ground exception.
+
 A missile gets one attempt. Losing tracking or missing beyond its tracking cone
 ends homing irreversibly. It remains live, with normal physical impact and
 lifetime behavior. Autonomous seekers do not depend on their launcher's sight.
@@ -51,5 +54,7 @@ throwaway, and the owning READMEs define commands.
 Implement the two independent passes above, then integrate and verify the whole
 feature. Read development.md and the simulation README. Preserve every contract
 above, keep meaningful new product choices explicit, and record implementation
-decisions in decisions.md. No code has shipped yet. The source exploration map
+decisions in decisions.md. The behavior-preserving battle-module split passed
+all 19 authority tests and independent diff review; visibility is the next local
+pass while the delegated flight pass continues. The source exploration map
 is in throwaway/projectile-flight-map.md in the initiating checkout.
