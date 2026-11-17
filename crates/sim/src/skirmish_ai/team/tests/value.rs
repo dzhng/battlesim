@@ -120,6 +120,7 @@ fn help_comes_from_an_expensive_tank_not_from_squads_that_cannot_fight_the_threa
                 controller: ControllerKind::ActiveAi,
                 ready: true,
                 credits: 0.0,
+                income_per_minute: 0.0,
                 unit_count: [0, 1, 3][usize::from(index)],
                 cap: 30,
                 pending: vec![],

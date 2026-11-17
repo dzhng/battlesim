@@ -54,6 +54,7 @@ fn frame(
                 controller: ControllerKind::ActiveAi,
                 ready: true,
                 credits: 0.0,
+                income_per_minute: 0.0,
                 unit_count: count(index),
                 cap: 30,
                 pending: vec![],

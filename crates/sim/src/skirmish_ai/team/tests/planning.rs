@@ -355,6 +355,7 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
             controller: ControllerKind::ActiveAi,
             ready: true,
             credits: 0.0,
+            income_per_minute: 0.0,
             unit_count: 0,
             cap: 30,
             pending: vec![],

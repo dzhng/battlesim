@@ -145,6 +145,11 @@ export function Tutorial() {
             during preparation, and holding objectives does not pay credits: it pays score.
           </li>
           <li>
+            A big army costs upkeep: the more your units (and those on their way) cost in all, the
+            less you earn, down to a floor. Your current rate shows beside your credits. Losing or
+            refunding units brings it back up.
+          </li>
+          <li>
             Destroying an enemy unit pays you a share of what it cost (more for a supply truck).
           </li>
           <li>

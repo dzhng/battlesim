@@ -42,6 +42,7 @@ const economy = (id: string, index: number, credits: number, ready: boolean): Pl
   controller: id === "blue-2" ? "human" : "active_ai",
   ready,
   credits,
+  incomePerMinute: 200,
   unitCount: index,
   cap: 30,
   pending: [

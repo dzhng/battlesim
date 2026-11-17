@@ -197,6 +197,7 @@ fn settle(
             reservations: VecDeque::new(),
             next_purchase: 0,
             totals: Default::default(),
+            income_remainder: 0,
         },
         sim::skirmish::PlayerState {
             id: "red".into(),
@@ -208,6 +209,7 @@ fn settle(
             reservations: VecDeque::new(),
             next_purchase: 0,
             totals: Default::default(),
+            income_remainder: 0,
         },
     ];
     let killer_players = deaths
@@ -253,6 +255,7 @@ fn player_bonus_split_conserves_pool_and_ignores_death_order() {
             reservations: VecDeque::new(),
             next_purchase: 0,
             totals: Default::default(),
+            income_remainder: 0,
         })
         .collect()
     }

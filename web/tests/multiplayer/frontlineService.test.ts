@@ -142,6 +142,7 @@ test("a joiner's displaced units stay on their side under an AI that orders them
   const boundary = watching.seen.find((f) => f.tick === replay.seat_events[0].tick)!;
   expect(boundary.players.find((p) => p.id === ticket.player)).toMatchObject({
     controller: "human",
+    incomePerMinute: 200,
     unitCount: 0,
     credits: Math.fround(view.opening_credits),
   });

@@ -35,6 +35,7 @@ mod mount_row;
 mod operations;
 mod packing;
 mod pending_row;
+mod player_row;
 mod publisher;
 pub mod reader;
 mod report_row;
@@ -52,6 +53,7 @@ use operations::{
 };
 use packing::{pack_ground, PackedCount, PackedWriter};
 use pending_row::{pending_row, PENDING_FIELDS};
+use player_row::{player_row, PLAYER_FIELDS};
 pub use publisher::{Publisher, Publishers};
 use report_row::{report_event_row, REPORT_EVENT_FIELDS};
 pub use smoke::smoke_looks;
@@ -209,15 +211,6 @@ const SHOUT_FIELDS: [&str; 9] = [
 const PROP_DISPLAY_POSE_FIELDS: [&str; 5] = ["propId", "x", "y", "yaw", "baseZ"];
 const GRIND_FIELDS: [&str; 5] = ["x", "y", "z", "headingX", "headingY"];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
-const PLAYER_FIELDS: [&str; 7] = [
-    "index",
-    "id",
-    "controller",
-    "ready",
-    "credits",
-    "unitCount",
-    "cap",
-];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
     "x",
@@ -1035,23 +1028,7 @@ fn pack_record(
     }
     if let Some(skirmish) = &frame.skirmish {
         for player in &skirmish.players {
-            out.extend([
-                f32::from(player.index.0),
-                // The browser resolves this index through the layout's playerIds table.
-                player.index.0 as f32,
-                tag(
-                    &[
-                        ControllerKind::Human,
-                        ControllerKind::ActiveAi,
-                        ControllerKind::PassiveAi,
-                    ],
-                    &player.controller,
-                ),
-                player.ready as u8 as f32,
-                player.credits as f32,
-                player.unit_count as f32,
-                player.cap as f32,
-            ]);
+            out.extend(player_row(player));
         }
     }
     if let Some(ends) = ends.as_mut() {

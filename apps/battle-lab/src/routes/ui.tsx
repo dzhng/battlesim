@@ -51,6 +51,7 @@ const MATCH: SkirmishView = {
       controller: "human",
       ready: true,
       credits: 769,
+      incomePerMinute: 164,
       unitCount: 6,
       cap: 30,
       pending: [],

@@ -139,6 +139,13 @@ export function PurchasePicker({
         </button>
         <span className="hud-credits" aria-label="Credits">
           {Math.floor(viewingPlayer.credits)} CR
+          <span
+            className="hud-income"
+            aria-label="Income per minute"
+            title="Income per minute: the bigger your army, the less it earns"
+          >
+            +{Math.round(viewingPlayer.incomePerMinute)}/min
+          </span>
         </span>
       </div>
       {open && (

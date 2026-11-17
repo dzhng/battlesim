@@ -567,6 +567,8 @@ export interface PlayerView {
   controller: "human" | "active_ai" | "passive_ai";
   ready: boolean;
   credits: number;
+  /** The passive income this player's army now leaves it, per minute. */
+  incomePerMinute: number;
   unitCount: number;
   cap: number;
   pending: PendingPurchaseView[];

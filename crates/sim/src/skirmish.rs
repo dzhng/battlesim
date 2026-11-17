@@ -130,6 +130,27 @@ pub(crate) fn opening_wallet(rules: &MatchRules) -> u64 {
     u64::from(rules.credits_per_minute) * u64::from(rules.starting_minutes) * CREDIT_SCALE
 }
 
+/// Passive income in microcredits per minute for a player whose army is
+/// worth `army` credits.
+pub(crate) fn income_per_minute(rules: &MatchRules, army: u64) -> u64 {
+    let full = u64::from(rules.credits_per_minute) * CREDIT_SCALE;
+    let Some(upkeep) = rules.upkeep else {
+        return full;
+    };
+    let (from, to) = (u64::from(upkeep.taper_from), u64::from(upkeep.taper_to));
+    let into = army.clamp(from, to) - from;
+    let cut = u128::from(full) * u128::from(100 - upkeep.floor_percent) * u128::from(into)
+        / (100 * u128::from(to - from));
+    full - cut as u64
+}
+
+/// A player's living units: how many, and what they cost in credits.
+#[derive(Clone, Copy, Default)]
+pub struct Fielded {
+    pub units: u32,
+    pub cost: u64,
+}
+
 pub struct EnteredUnit {
     pub price: u32,
     pub entered_tick: Tick,
@@ -148,6 +169,8 @@ pub struct PlayerState {
     pub reservations: VecDeque<Reservation>,
     pub next_purchase: u32,
     pub totals: MatchTotals,
+    /// Income owed below one microcredit, carried to the next tick.
+    pub income_remainder: u64,
 }
 
 pub struct Skirmish {
@@ -161,7 +184,6 @@ pub struct Skirmish {
     pub dispatch_turn: Vec<usize>,
     pub entered: BTreeMap<UnitId, EnteredUnit>,
     pub report: MatchReport,
-    income_remainder: u64,
 }
 
 impl PlayerState {
@@ -177,6 +199,7 @@ impl PlayerState {
             reservations: VecDeque::new(),
             next_purchase: 0,
             totals: MatchTotals::default(),
+            income_remainder: 0,
         }
     }
 
@@ -184,6 +207,17 @@ impl PlayerState {
     /// in a carrier holds two.
     pub fn reserved_units(&self) -> u32 {
         self.reservations.iter().map(|r| r.data.units()).sum()
+    }
+
+    /// What this player's army is worth: its living units' purchase prices,
+    /// `fielded`, plus every purchase still on its way.
+    fn army(&self, fielded: u64) -> u64 {
+        fielded
+            + self
+                .reservations
+                .iter()
+                .map(|r| u64::from(r.total()))
+                .sum::<u64>()
     }
 }
 
@@ -221,8 +255,19 @@ impl Skirmish {
             next_dispatch: vec![0; entry_count],
             dispatch_turn,
             entered: BTreeMap::new(),
-            income_remainder: 0,
         }
+    }
+    /// Each player's living units among `units`.
+    pub fn fielded(&self, units: &[crate::units::Unit]) -> Vec<Fielded> {
+        let mut fielded = vec![Fielded::default(); self.players.len()];
+        for unit in units.iter().filter(|u| u.alive()) {
+            let Some(player) = unit.owner.as_deref().and_then(|id| self.player_index(id)) else {
+                continue;
+            };
+            fielded[player].units += 1;
+            fielded[player].cost += self.entered.get(&unit.id).map_or(0, |e| u64::from(e.price));
+        }
+        fielded
     }
     pub fn player_index(&self, id: &str) -> Option<usize> {
         self.players.iter().position(|p| p.id == id)
@@ -251,7 +296,7 @@ impl Skirmish {
                 })
             })
     }
-    pub fn advance(&mut self, tick: Tick, hz: u32) {
+    pub fn advance(&mut self, tick: Tick, hz: u32, fielded: &[Fielded]) {
         if self.phase == Phase::Preparation {
             if self.players.iter().all(|p| p.ready)
                 || tick >= u64::from(self.setup.rules.preparation_s) * u64::from(hz)
@@ -260,25 +305,28 @@ impl Skirmish {
             }
         } else if self.phase == Phase::Active {
             let den = 60 * u64::from(hz);
-            let num = self.income_remainder
-                + u64::from(self.setup.rules.credits_per_minute) * CREDIT_SCALE;
-            let income = num / den;
-            self.income_remainder = num % den;
-            for p in &mut self.players {
-                p.wallet += income;
+            for (index, p) in self.players.iter_mut().enumerate() {
+                let army = p.army(fielded.get(index).map_or(0, |f| f.cost));
+                let num = p.income_remainder + income_per_minute(&self.setup.rules, army);
+                p.wallet += num / den;
+                p.income_remainder = num % den;
             }
         }
     }
-    pub fn view(&self, side: Side, tick: Tick, hz: u32, living: &[u32]) -> SkirmishView {
+    pub fn view(&self, side: Side, tick: Tick, hz: u32, fielded: &[Fielded]) -> SkirmishView {
         let players: Vec<_> = self
             .side_players(side)
-            .map(|(index, p)| contract::skirmish::PlayerView {
+            .map(|(index, p)| (index, p, fielded.get(index).copied().unwrap_or_default()))
+            .map(|(index, p, fielded)| contract::skirmish::PlayerView {
                 index: contract::players::PlayerIndex(index as u16),
                 id: p.id.clone(),
                 controller: p.controller.clone(),
                 ready: p.ready,
                 credits: p.wallet as f64 / CREDIT_SCALE as f64,
-                unit_count: living.get(index).copied().unwrap_or(0) + p.reserved_units(),
+                income_per_minute: income_per_minute(&self.setup.rules, p.army(fielded.cost))
+                    as f64
+                    / CREDIT_SCALE as f64,
+                unit_count: fielded.units + p.reserved_units(),
                 cap: self.setup.rules.max_units,
                 pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
             })
@@ -422,10 +470,11 @@ impl Skirmish {
     pub fn digest(&self, d: &mut crate::digest::Digest) {
         self.objectives.digest(d);
         self.settlement.digest(d);
-        d.u64(self.phase as u64).u64(self.income_remainder);
+        d.u64(self.phase as u64);
         for (index, p) in self.players.iter().enumerate() {
             d.u64(p.side.index() as u64)
                 .u64(p.wallet)
+                .u64(p.income_remainder)
                 .u64(p.ready as u64)
                 .u64(p.next_purchase as u64);
             d.u64(p.reservations.len() as u64);

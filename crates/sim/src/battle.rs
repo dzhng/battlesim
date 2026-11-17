@@ -1350,7 +1350,8 @@ impl Battle {
             self.apply(command);
         }
         if let Some(skirmish) = &mut self.skirmish {
-            skirmish.advance(self.tick, self.rules.tick_hz);
+            let fielded = skirmish.fielded(&self.units);
+            skirmish.advance(self.tick, self.rules.tick_hz, &fielded);
         }
         self.apply_seat_events();
         self.break_dogfights();
@@ -3143,17 +3144,7 @@ impl Battle {
                 .skirmish
                 .as_ref()
                 .filter(|_| side != Side::Neutral)
-                .map(|s| {
-                    let mut living = vec![0; s.players.len()];
-                    for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
-                        if let Some(player) =
-                            unit.owner.as_deref().and_then(|id| s.player_index(id))
-                        {
-                            living[player] += 1;
-                        }
-                    }
-                    s.view(side, self.tick, self.rules.tick_hz, &living)
-                });
+                .map(|s| s.view(side, self.tick, self.rules.tick_hz, &s.fielded(&self.units)));
             frame.guided.clear();
             frame
                 .guided

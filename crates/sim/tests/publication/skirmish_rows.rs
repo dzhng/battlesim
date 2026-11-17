@@ -38,6 +38,7 @@ fn publication_layout_exposes_player_rows_instead_of_side_economy() {
             "controller",
             "ready",
             "credits",
+            "incomePerMinute",
             "unitCount",
             "cap"
         ]

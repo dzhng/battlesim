@@ -60,6 +60,7 @@ const match: SkirmishView = {
       controller: "human",
       ready: false,
       credits: 1000,
+      incomePerMinute: 200,
       unitCount: 0,
       cap: 30,
       pending: [],

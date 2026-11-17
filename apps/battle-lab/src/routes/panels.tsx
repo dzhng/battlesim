@@ -292,6 +292,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         controller: "human" as const,
         ready: false,
         credits: 769,
+        incomePerMinute: 200,
         unitCount: selection.units.length,
         cap: 30,
         pending: [],

@@ -49,6 +49,7 @@ impl Reader {
             controller: self.name("controllers", v!(f, "controller"))?,
             ready: v!(f, "ready") != 0.0,
             credits: v!(f, "credits"),
+            income_per_minute: v!(f, "incomePerMinute"),
             unit_count: v!(f, "unitCount"),
             cap: v!(f, "cap"),
             pending: Vec::new(),

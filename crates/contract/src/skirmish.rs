@@ -33,6 +33,22 @@ pub struct MatchRules {
     #[serde(default = "all_objectives_victory", skip_serializing_if = "is_true")]
     pub all_objectives_victory: bool,
     pub max_players_per_side: u32,
+    /// How a player's passive income tapers as the army it fields grows;
+    /// without it, income is flat.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upkeep: Option<Upkeep>,
+}
+
+/// Passive income falls linearly from full, at an army worth `taper_from`
+/// credits, to `floor_percent` of it at `taper_to`, and stays there. An
+/// army's worth is the purchase price of every living unit a player owns
+/// and every purchase still on its way.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Upkeep {
+    pub taper_from: u32,
+    pub taper_to: u32,
+    pub floor_percent: u32,
 }
 
 fn all_objectives_victory() -> bool {
@@ -77,6 +93,8 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
                 .and_then(|n| n.checked_mul(1_000_000))
                 .is_none()
             || r.max_players_per_side == 0
+            || r.upkeep
+                .is_some_and(|u| u.taper_from >= u.taper_to || u.floor_percent > 100)
         {
             return Err(
                 "skirmish requires positive affordable economy, dispatch and objective rules"
@@ -179,6 +197,8 @@ pub struct PlayerView {
     pub controller: crate::players::ControllerKind,
     pub ready: bool,
     pub credits: f64,
+    /// The passive income this player's army now leaves it, per minute.
+    pub income_per_minute: f64,
     pub unit_count: u32,
     pub cap: u32,
     pub pending: Vec<PendingPurchase>,

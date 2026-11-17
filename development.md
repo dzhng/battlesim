@@ -123,6 +123,9 @@ the one list of deliberate hard-coded rules:
   its roads in, the objectives and their score, and everything any of its
   units sees; each player owns its units, its credits (income and kill
   rewards), its own unit cap and its controller, and readies on its own. A
+  player's passive income tapers, by the match rules' `upkeep`, as the
+  purchase price of the army it fields grows, counting purchases on their
+  way, so a big army earns less and a gutted one rebuilds at full rate. A
   player's slot on its side names a lane, one of the side's roads, for the
   team to coordinate by; an AI opens on its own lane and lets the pull fade as
   the battle goes on, and every purchase still arrives by the side's quickest

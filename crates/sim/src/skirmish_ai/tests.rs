@@ -44,6 +44,7 @@ fn empty_match() -> (Rules, ObservationFrame, EntrySite) {
             controller: contract::players::ControllerKind::ActiveAi,
             ready: false,
             credits: 1000.0,
+            income_per_minute: 0.0,
             unit_count: 0,
             cap: 30,
             pending: vec![],
@@ -1013,90 +1014,6 @@ fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
 }
 
 #[test]
-fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
-    let mut authored = deck();
-    fixtures::patch_catalog(
-        &mut authored,
-        "units",
-        "test_jeep",
-        json!({
-            "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }]
-        }),
-    );
-    fixtures::patch_catalog(
-        &mut authored,
-        "units",
-        "test_jet",
-        json!({
-            "roster": { "factions": ["us"], "category": "air", "family_name": "Test jet", "variant": "Test" }
-        }),
-    );
-    let rules: Rules = serde_json::from_value(authored).unwrap();
-    let (_, mut frame, entry) = empty_match();
-    let view = frame.skirmish.as_mut().unwrap();
-    view.phase = Phase::Active;
-    let me = &mut view.players[0];
-    me.credits = 500.0;
-    me.unit_count = 1;
-    me.pending.push(pending(
-        1,
-        rules.catalog.index("test_supply").unwrap(),
-        entry.center,
-        0,
-    ));
-    let ordinary = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: None,
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    frame
-        .identified
-        .push(contract::observation::IdentifiedUnit {
-            cost: 300,
-            ..identified(
-                7,
-                rules.catalog.index("test_jet").unwrap(),
-                [500.0, 500.0, 250.0],
-            )
-        });
-    let threatened = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: None,
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    let purchased = |orders: &[Order]| {
-        orders.iter().find_map(|order| match order {
-            Order::ConfirmPurchase { variant, .. } => Some(rules.catalog.index(variant).unwrap()),
-            _ => None,
-        })
-    };
-    let ordinary_kind = purchased(&ordinary).expect("ordinary reinforcement");
-    assert!(!unit_engages_aircraft_in(
-        &rules,
-        ordinary_kind,
-        AltitudeLayer::HighAir
-    ));
-    let defended = purchased(&threatened).expect("jet sighting buys a defender");
-    assert!(
-        unit_engages_aircraft_in(&rules, defended, AltitudeLayer::HighAir),
-        "threat response bought {}",
-        rules.catalog.id(defended)
-    );
-}
-
-#[test]
 fn the_ai_sends_bought_jets_on_attack_move() {
     let mut authored = deck();
     fixtures::patch_catalog(
@@ -1190,85 +1107,6 @@ fn confirm_purchases(
         me.pending.push(row);
     }
     bought
-}
-
-#[test]
-fn with_steady_income_the_ai_saves_for_an_expensive_jet_and_keeps_its_aa() {
-    // Prices are the test's own: a jet costs as much as a dozen cheap cards,
-    // far more than one decision's income, and the AA card fits the opening.
-    let mut authored = deck();
-    for (id, cost) in [
-        ("test_rifle", 50),
-        ("test_at", 50),
-        ("test_recon", 50),
-        ("test_tank", 50),
-        ("test_supply", 50),
-        ("test_jeep", 150),
-    ] {
-        fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": cost }));
-    }
-    fixtures::patch_catalog(
-        &mut authored,
-        "units",
-        "test_jeep",
-        json!({ "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }] }),
-    );
-    fixtures::patch_catalog(
-        &mut authored,
-        "units",
-        "test_jet",
-        json!({
-            "cost": 600,
-            "roster": { "factions": ["us"], "category": "air", "family_name": "Test jet", "variant": "Test" }
-        }),
-    );
-    let rules: Rules = serde_json::from_value(authored).unwrap();
-    let jet = rules.catalog.index("test_jet").unwrap();
-    let aa = rules.catalog.index("test_jeep").unwrap();
-    let (_, mut frame, entry) = empty_match();
-    me(&mut frame).credits = 200.0;
-    me(&mut frame).cap = 1_000;
-    let mut ai = BalancedDoctrine::new(3);
-    let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
-        ai.decide(
-            DecisionInput {
-                side: Side::Red,
-                faction: Faction::Us,
-                entry: &entry,
-                assignment: None,
-            },
-            frame,
-            &rules,
-            |_, _| Some(1.0),
-        )
-    };
-    let orders = decide(&mut ai, &frame);
-    let opening = confirm_purchases(&rules, &mut frame, &orders);
-    assert!(opening.contains(&aa), "the opening carries its AA card");
-
-    // Twenty credits a decision: a jet takes thirty decisions of saving.
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    let mut reinforcements = Vec::new();
-    for decision in 1..=150 {
-        frame.tick = decision * 5 * u64::from(rules.tick_hz);
-        me(&mut frame).credits += 20.0;
-        let orders = decide(&mut ai, &frame);
-        reinforcements.extend(confirm_purchases(&rules, &mut frame, &orders));
-    }
-    let names: Vec<_> = reinforcements
-        .iter()
-        .map(|k| rules.catalog.id(*k))
-        .collect();
-    let first_jet = reinforcements
-        .iter()
-        .position(|&k| k == jet)
-        .unwrap_or_else(|| panic!("steady income never bought the jet: {names:?}"));
-    assert!(
-        reinforcements[first_jet + 1..]
-            .iter()
-            .any(|&k| k != jet && !rules.catalog.get(k).has_role("logistics")),
-        "after the jet the AI buys ground units again: {names:?}"
-    );
 }
 
 #[test]

@@ -1518,6 +1518,11 @@ html {
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
+.hud-income {
+  margin-left: 8px;
+  font-size: 0.9em;
+  color: rgb(var(--hud-credits) / 0.85);
+}
 .hud-panel.hud-purchase-picker {
   position: absolute;
   bottom: calc(100% + 10px);
