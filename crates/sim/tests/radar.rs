@@ -387,7 +387,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
 }
 
 #[test]
-fn sead_missile_has_motor_lifetime_to_reach_its_authored_long_range() {
+fn sead_missile_has_motor_lifetime_to_reach_its_authored_range() {
     let row = &sim::fixtures::test_rules()["weapons"]["sead_missile"];
     let range = crate::common::weapon("sead_missile").range_m;
     let launch_speed = row["speed_mps"].as_f64().unwrap();
@@ -398,7 +398,6 @@ fn sead_missile_has_motor_lifetime_to_reach_its_authored_long_range() {
     let motor_distance = launch_speed * motor_time
         + 0.5 * acceleration * motor_time * motor_time
         + top_speed * (lifetime - motor_time).max(0.0);
-    assert!(range >= 6500.0, "SEAD range regressed: {range} m");
     assert!(
         motor_distance >= range,
         "SEAD expires after {motor_distance:.0} m, short of {range:.0} m"

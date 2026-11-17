@@ -152,15 +152,14 @@ pub(super) fn step_vehicle(
 
     // A detouring tank must not pivot through its neighbour, nor through
     // a body. Give the turn room instead of deadlocking: back off from
-    // traffic; from a body, roll to where the whole turn clears.
+    // traffic; from a body, roll to where this tick's turn clears. Requiring
+    // the whole turn at once would forbid manoeuvring out in stages.
     let room = (unit.ground().drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
         && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw)
         .then(|| match (blocker, met.solid) {
             (Some(_), _) => Some(drive::away(unit) * f64::INFINITY),
-            (None, Some(_)) => drive::room_to_turn(ctx.world, unit, drive::away(unit), |at| {
-                drive::yaw_toward(at, target, unit.direction())
-            }),
+            (None, Some(_)) => drive::room_to_turn(ctx.world, unit, drive::away(unit), motion.yaw),
             (None, None) => None,
         })
         .flatten();

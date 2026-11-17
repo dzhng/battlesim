@@ -1,7 +1,7 @@
 {
   "props": {
     "bike_rack": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 20, "cover_tier": "light", "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "trivial", "topples": true, "hp": 20, "cover_tier": "light", "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.52, 0.36, 0.78], "drawn_by": "bike_rack", "map_only": true}
     },
@@ -11,7 +11,7 @@
       "appearance": {"stand_in_tint": [0.85, 0.35, 0.2], "drawn_by": "playground_frame", "map_only": true}
     },
     "swing": {
-      "body": {"blocks": {"infantry": false, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30, "metal": true},
+      "body": {"blocks": {"infantry": false, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "trivial", "topples": true, "hp": 30, "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.3, 0.55, 0.75], "drawn_by": "swing", "map_only": true}
     },
@@ -36,7 +36,7 @@
       "appearance": {"stand_in_tint": [0.92, 0.38, 0.7], "drawn_by": "laundry_poles", "map_only": true}
     },
     "chainlink_fence": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 25, "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "trivial", "topples": true, "hp": 25, "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.7, 0.72, 0.7], "drawn_by": "chainlink_fence", "modular": true, "map_only": true}
     },
@@ -74,7 +74,7 @@
       "appearance": {"stand_in_tint": [0.72, 0.7, 0.66], "drawn_by": "courtyard_wall", "modular": true, "map_only": true}
     },
     "iron_railing": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "topples": true, "hp": 30, "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "trivial", "topples": true, "hp": 30, "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.12, 0.13, 0.14], "drawn_by": "iron_railing", "modular": true, "map_only": true}
     },

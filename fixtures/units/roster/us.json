@@ -5,7 +5,7 @@
       "description": "A-10C",
       "faction": "us",
       "family": "a_10_warthog",
-      "cost": 300,
+      "cost": 320,
       "roster": {
         "factions": [
           "us"
@@ -158,7 +158,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 320,
+      "cost": 380,
       "roster": {
         "factions": [
           "us"
@@ -170,6 +170,7 @@
       "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
+          "hp": 200,
           "half_extents_m": [
             6.851,
             2.066,
@@ -226,7 +227,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 180,
+      "cost": 170,
       "roster": {
         "factions": [
           "us"
@@ -452,7 +453,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 240,
+      "cost": 260,
       "roster": {
         "factions": [
           "us"
@@ -595,7 +596,7 @@
       "description": "F-15E Strike Eagle",
       "faction": "us",
       "family": "f_15_eagle",
-      "cost": 400,
+      "cost": 420,
       "roster": {
         "factions": [
           "us"
@@ -678,7 +679,7 @@
       "description": "F-15EX Eagle II",
       "faction": "us",
       "family": "f_15_eagle",
-      "cost": 430,
+      "cost": 440,
       "roster": {
         "factions": [
           "us"
@@ -808,7 +809,7 @@
       "description": "F-35B",
       "faction": "us",
       "family": "f_35_lightning_ii",
-      "cost": 490,
+      "cost": 500,
       "roster": {
         "factions": [
           "us"
@@ -891,7 +892,7 @@
       "description": "F/A-18E",
       "faction": "us",
       "family": "f_a_18_super_hornet",
-      "cost": 370,
+      "cost": 390,
       "roster": {
         "factions": [
           "us"
@@ -1070,7 +1071,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 160,
+      "cost": 150,
       "roster": {
         "factions": [
           "us"
@@ -1238,7 +1239,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 280,
+      "cost": 300,
       "roster": {
         "factions": [
           "us"
@@ -1321,7 +1322,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 240,
+      "cost": 210,
       "roster": {
         "factions": [
           "us"
@@ -1338,9 +1339,9 @@
             1.7,
             1.3
           ],
-          "hp": 95,
+          "hp": 100,
           "armor": {
-            "front": 120,
+            "front": 200,
             "side": 55,
             "rear": 35,
             "roof": 20,
@@ -1516,7 +1517,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 180,
+      "cost": 200,
       "roster": {
         "factions": [
           "us"
@@ -1685,7 +1686,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 300,
+      "cost": 320,
       "roster": {
         "factions": [
           "us"
@@ -1769,7 +1770,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 400,
+      "cost": 420,
       "roster": {
         "factions": [
           "us"
@@ -1853,7 +1854,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 350,
+      "cost": 320,
       "roster": {
         "factions": [
           "us"
@@ -1870,9 +1871,9 @@
             1.83,
             1.22
           ],
-          "hp": 110,
+          "hp": 150,
           "armor": {
-            "front": 190,
+            "front": 340,
             "side": 100,
             "rear": 60,
             "roof": 35,
@@ -1966,7 +1967,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 410,
+      "cost": 380,
       "roster": {
         "factions": [
           "us"
@@ -1982,6 +1983,8 @@
       ],
       "body": {
         "hull": {
+          "armor": { "front": 340 },
+          "hp": 150,
           "half_extents_m": [
             3.965,
             1.83,
@@ -2042,7 +2045,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 450,
+      "cost": 480,
       "roster": {
         "factions": [
           "us"
@@ -2058,6 +2061,8 @@
       ],
       "body": {
         "hull": {
+          "armor": { "front": 400 },
+          "hp": 200,
           "half_extents_m": [
             3.965,
             1.83,
@@ -2122,7 +2127,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 460,
+      "cost": 500,
       "roster": {
         "factions": [
           "us"
@@ -2131,6 +2136,7 @@
         "variant": "M1E3",
         "family_name": "M1 Abrams"
       },
+      "body": { "hull": { "hp": 200, "armor": { "front": 400 } } },
       "extends": "us_m1_abrams_sep_v3_trophy",
       "appearance": "us_m1e3_abrams",
       "mobility": {
@@ -2164,7 +2170,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 350,
+      "cost": 370,
       "roster": {
         "factions": [
           "us"
@@ -2259,7 +2265,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 230,
+      "cost": 220,
       "roster": {
         "factions": [
           "us"
@@ -2362,7 +2368,7 @@
       "roles": [
         "recon"
       ],
-      "cost": 210,
+      "cost": 200,
       "roster": {
         "factions": [
           "us"
@@ -2573,7 +2579,7 @@
       "roles": [
         "infantry"
       ],
-      "cost": 110,
+      "cost": 120,
       "roster": {
         "factions": [
           "us"
@@ -2672,7 +2678,7 @@
       "roles": [
         "recon"
       ],
-      "cost": 100,
+      "cost": 110,
       "roster": {
         "factions": [
           "us"
@@ -2870,7 +2876,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 200,
+      "cost": 180,
       "roster": {
         "factions": [
           "us"
@@ -2954,7 +2960,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 180,
+      "cost": 170,
       "roster": {
         "factions": [
           "us"
@@ -3033,7 +3039,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 160,
+      "cost": 170,
       "roster": {
         "factions": [
           "us"
@@ -3110,7 +3116,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 180,
+      "cost": 190,
       "roster": {
         "factions": [
           "us"
@@ -3187,7 +3193,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 360,
+      "cost": 330,
       "roster": {
         "factions": [
           "us"
@@ -3269,7 +3275,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 360,
+      "cost": 290,
       "roster": {
         "factions": [
           "us"

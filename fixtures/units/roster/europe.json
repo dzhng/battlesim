@@ -9,7 +9,7 @@
       "roles": [
         "recon"
       ],
-      "cost": 220,
+      "cost": 200,
       "roster": {
         "factions": [
           "europe"
@@ -111,7 +111,7 @@
       "roles": [
         "at"
       ],
-      "cost": 150,
+      "cost": 180,
       "roster": {
         "factions": [
           "europe"
@@ -140,7 +140,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 230,
+      "cost": 250,
       "roster": {
         "factions": [
           "europe"
@@ -357,7 +357,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 240,
+      "cost": 220,
       "roster": {
         "factions": [
           "europe"
@@ -441,7 +441,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 180,
+      "cost": 170,
       "roster": {
         "factions": [
           "europe"
@@ -520,7 +520,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 260,
+      "cost": 280,
       "roster": {
         "factions": [
           "europe"
@@ -604,7 +604,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 240,
+      "cost": 210,
       "roster": {
         "factions": [
           "europe"
@@ -621,9 +621,9 @@
             1.58,
             1.6
           ],
-          "hp": 90,
+          "hp": 100,
           "armor": {
-            "front": 70,
+            "front": 200,
             "side": 40,
             "rear": 25,
             "roof": 15,
@@ -702,7 +702,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 240,
+      "cost": 260,
       "roster": {
         "factions": [
           "europe"
@@ -779,7 +779,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 390,
+      "cost": 440,
       "roster": {
         "factions": [
           "europe"
@@ -796,9 +796,9 @@
             2.1,
             1.245
           ],
-          "hp": 130,
+          "hp": 200,
           "armor": {
-            "front": 230,
+            "front": 400,
             "side": 120,
             "rear": 65,
             "roof": 40,
@@ -892,7 +892,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 450,
+      "cost": 490,
       "roster": {
         "factions": [
           "europe"
@@ -908,9 +908,9 @@
       ],
       "body": {
         "hull": {
-          "hp": 135,
+          "hp": 200,
           "armor": {
-            "front": 250,
+            "front": 400,
             "side": 125,
             "roof": 45
           },
@@ -953,7 +953,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 250,
+      "cost": 220,
       "roster": {
         "factions": [
           "europe"
@@ -970,9 +970,9 @@
             1.65,
             1.25
           ],
-          "hp": 90,
+          "hp": 100,
           "armor": {
-            "front": 110,
+            "front": 200,
             "side": 50,
             "rear": 30,
             "roof": 20,
@@ -1063,7 +1063,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 220,
+      "cost": 200,
       "roster": {
         "factions": [
           "europe"
@@ -1158,7 +1158,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 260,
+      "cost": 250,
       "roster": {
         "factions": [
           "europe"
@@ -1241,7 +1241,7 @@
       "roles": [
         "recon"
       ],
-      "cost": 230,
+      "cost": 210,
       "roster": {
         "factions": [
           "europe"
@@ -1337,7 +1337,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 350,
+      "cost": 400,
       "roster": {
         "factions": [
           "europe"
@@ -1349,6 +1349,7 @@
       "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
+          "hp": 200,
           "half_extents_m": [
             7.04,
             2.158,
@@ -1405,7 +1406,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 330,
+      "cost": 380,
       "roster": {
         "factions": [
           "europe"
@@ -1417,6 +1418,7 @@
       "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
+          "hp": 200,
           "half_extents_m": [
             7.04,
             2.226,
@@ -1470,7 +1472,7 @@
       "description": "Tranche 3",
       "faction": "europe",
       "family": "eurofighter_typhoon",
-      "cost": 410,
+      "cost": 420,
       "roster": {
         "factions": [
           "europe"
@@ -1624,7 +1626,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 200,
+      "cost": 180,
       "roster": {
         "factions": [
           "europe"
@@ -1701,7 +1703,7 @@
       "description": "E",
       "faction": "europe",
       "family": "jas_39_gripen",
-      "cost": 350,
+      "cost": 370,
       "roster": {
         "factions": [
           "europe"
@@ -1840,7 +1842,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 460,
+      "cost": 500,
       "roster": {
         "factions": [
           "europe"
@@ -1857,9 +1859,9 @@
             1.85,
             1.25
           ],
-          "hp": 135,
+          "hp": 200,
           "armor": {
-            "front": 260,
+            "front": 400,
             "side": 130,
             "rear": 70,
             "roof": 45,
@@ -1954,7 +1956,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 390,
+      "cost": 370,
       "roster": {
         "factions": [
           "europe"
@@ -1971,9 +1973,9 @@
             1.8,
             1.265
           ],
-          "hp": 120,
+          "hp": 160,
           "armor": {
-            "front": 220,
+            "front": 350,
             "side": 115,
             "rear": 65,
             "roof": 40,
@@ -2068,7 +2070,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 340,
+      "cost": 310,
       "roster": {
         "factions": [
           "europe"
@@ -2085,9 +2087,9 @@
             1.875,
             1.35
           ],
-          "hp": 110,
+          "hp": 150,
           "armor": {
-            "front": 190,
+            "front": 340,
             "side": 100,
             "rear": 60,
             "roof": 35,
@@ -2182,7 +2184,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 390,
+      "cost": 370,
       "roster": {
         "factions": [
           "europe"
@@ -2199,9 +2201,9 @@
             1.875,
             1.415
           ],
-          "hp": 120,
+          "hp": 160,
           "armor": {
-            "front": 220,
+            "front": 350,
             "side": 115,
             "rear": 65,
             "roof": 40,
@@ -2295,7 +2297,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 450,
+      "cost": 490,
       "roster": {
         "factions": [
           "europe"
@@ -2304,6 +2306,7 @@
         "variant": "2A8",
         "family_name": "Leopard 2"
       },
+      "body": { "hull": { "hp": 200, "armor": { "front": 400 } } },
       "extends": "europe_leopard_2_2a7v",
       "appearance": "europe_leopard_2_2a8",
       "parts": [
@@ -2400,7 +2403,7 @@
       "roles": [
         "infantry"
       ],
-      "cost": 110,
+      "cost": 120,
       "roster": {
         "factions": [
           "europe"
@@ -2432,7 +2435,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 340,
+      "cost": 360,
       "roster": {
         "factions": [
           "europe"
@@ -2511,7 +2514,7 @@
       "description": "2000D RMV",
       "faction": "europe",
       "family": "mirage_2000",
-      "cost": 290,
+      "cost": 310,
       "roster": {
         "factions": [
           "europe"
@@ -2580,7 +2583,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 300,
+      "cost": 280,
       "roster": {
         "factions": [
           "europe"
@@ -2662,7 +2665,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 190,
+      "cost": 200,
       "roster": {
         "factions": [
           "europe"
@@ -2751,7 +2754,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 260,
+      "cost": 250,
       "roster": {
         "factions": [
           "europe"
@@ -2853,7 +2856,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 310,
+      "cost": 330,
       "roster": {
         "factions": [
           "europe"
@@ -2932,7 +2935,7 @@
       "description": "C F4",
       "faction": "europe",
       "family": "rafale",
-      "cost": 420,
+      "cost": 440,
       "roster": {
         "factions": [
           "europe"
@@ -3155,7 +3158,7 @@
       "description": "IDS",
       "faction": "europe",
       "family": "tornado",
-      "cost": 310,
+      "cost": 330,
       "roster": {
         "factions": [
           "europe"
@@ -3225,7 +3228,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 220,
+      "cost": 210,
       "roster": {
         "factions": [
           "europe"
@@ -3394,7 +3397,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 360,
+      "cost": 290,
       "roster": {
         "factions": [
           "europe"

@@ -451,7 +451,7 @@ impl<'a> Pass<'a> {
                 .collect(),
             house_ids: BTreeMap::new(),
             field: Field {
-                objectives: crate::skirmish::objective_clearances(plan.skirmish.as_ref())
+                objectives: crate::skirmish::objective_clearances_in(plan)
                     .map(|(center, clearance)| Rect {
                         center,
                         axis: [1.0, 0.0],

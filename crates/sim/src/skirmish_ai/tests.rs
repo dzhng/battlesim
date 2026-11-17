@@ -295,7 +295,10 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     };
     let kind = rules.catalog.index(variant).unwrap();
     assert!(rules.catalog.get(kind).has_role("logistics"));
-    assert_eq!(*destination, entry.center);
+    assert!(
+        distance(*destination, entry.center) > 10.0,
+        "replacement truck would remain on the entry: {destination:?}"
+    );
     me(&mut frame)
         .pending
         .push(pending(1, kind, *destination, 0));

@@ -936,14 +936,15 @@ fn a_heard_helicopter_report_is_airborne() {
     );
 }
 
-/// Blue's tank and, 720 m off and beyond each other's sight, a red `kind`
-/// that fires every second: blue holds only its firing area.
+/// A tank hears an unseen enemy firing within its HE range.
 fn hidden_fire_at_a_tank(fixture: &Value, kind: &str) -> Battle {
+    let mut fixture = fixture.clone();
+    json_ground_reach(&mut fixture["weapons"]["tank_he"], 1000.0);
     let fire: Vec<Value> = (0..20)
         .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 1 } }))
         .collect();
     scripted(
-        fixture,
+        &fixture,
         strip(),
         json!([
             { "side": "blue", "kind": "test_tank", "position": [100, 200] },
@@ -970,10 +971,8 @@ fn blue_rounds(b: &mut Battle, ticks: u64) -> usize {
 
 #[test]
 fn area_fire_refuses_an_air_contact() {
-    // A tank crew hears a helicopter's gun but can't see it: shelling the
-    // field under where the sound came from would be silly, so neither the
-    // player's attack order nor the crew's own fire aims at the report. A
-    // squad's report from the same place draws HE as before.
+    // A crew cannot shell an unseen helicopter's firing report; an unseen
+    // ground squad at the same distance still draws HE.
     let fixture = fixture();
     let mut b = hidden_fire_at_a_tank(&fixture, "test_heli");
     let mut ground = hidden_fire_at_a_tank(&fixture, "test_rifle");

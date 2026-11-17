@@ -8,7 +8,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 360,
+      "cost": 410,
       "roster": {
         "factions": [
           "us",
@@ -21,6 +21,7 @@
       "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
+          "hp": 200,
           "half_extents_m": [
             7.35,
             2.615,
@@ -137,7 +138,7 @@
       "description": "F-16C Block 50",
       "faction": "us",
       "family": "f_16_fighting_falcon",
-      "cost": 350,
+      "cost": 370,
       "roster": {
         "factions": [
           "us",
@@ -221,7 +222,7 @@
       "description": "F-35A",
       "faction": "us",
       "family": "f_35_lightning_ii",
-      "cost": 470,
+      "cost": 490,
       "roster": {
         "factions": [
           "us",
@@ -308,7 +309,7 @@
       "roles": [
         "at"
       ],
-      "cost": 150,
+      "cost": 180,
       "roster": {
         "factions": [
           "us",
@@ -337,7 +338,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 100,
+      "cost": 90,
       "roster": {
         "factions": [
           "us",

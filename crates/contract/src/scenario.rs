@@ -19,6 +19,7 @@ pub use crate::maps::{MapIdentity, MapSource, ResolvedMap};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WeightClass {
+    Trivial,
     Light,
     Medium,
     Heavy,
@@ -26,9 +27,10 @@ pub enum WeightClass {
 }
 
 impl WeightClass {
-    /// Light 1, medium 2, heavy 3; immovable beyond every push class.
+    /// Numeric rank for pushing.
     pub fn rank(self) -> u8 {
         match self {
+            WeightClass::Trivial => 0,
             WeightClass::Light => 1,
             WeightClass::Medium => 2,
             WeightClass::Heavy => 3,
@@ -36,10 +38,10 @@ impl WeightClass {
         }
     }
 
-    /// The cover tier a body of this weight gives (Q24): its class, none
-    /// when immovable. A vehicle's hull, and its wreck, give this.
+    /// The cover tier a body of this weight gives.
     pub fn cover_tier(self) -> Option<CoverTier> {
         match self {
+            WeightClass::Trivial => None,
             WeightClass::Light => Some(CoverTier::Light),
             WeightClass::Medium => Some(CoverTier::Medium),
             WeightClass::Heavy => Some(CoverTier::Heavy),

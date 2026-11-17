@@ -1,7 +1,7 @@
 {
   "cards": [
     {
-      "cost": 360,
+      "cost": 410,
       "description": "AH-64E Guardian",
       "disabled_reason": null,
       "family": "ah_64_apache",
@@ -37,7 +37,7 @@
       }
     },
     {
-      "cost": 270,
+      "cost": 290,
       "description": "2S19M2",
       "disabled_reason": null,
       "family": "2s19_msta_s",
@@ -54,7 +54,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 380,
       "description": "Heavy rocket artillery",
       "disabled_reason": null,
       "family": "9k515_tornado_s",
@@ -71,7 +71,7 @@
       }
     },
     {
-      "cost": 100,
+      "cost": 90,
       "description": "FN-6",
       "disabled_reason": null,
       "family": "air_defense_team",
@@ -88,7 +88,7 @@
       }
     },
     {
-      "cost": 100,
+      "cost": 90,
       "description": "Igla-S",
       "disabled_reason": null,
       "family": "air_defense_team",
@@ -122,7 +122,7 @@
       }
     },
     {
-      "cost": 220,
+      "cost": 240,
       "description": "BM-21 rocket artillery",
       "disabled_reason": null,
       "family": "bm_21_grad",
@@ -139,7 +139,7 @@
       }
     },
     {
-      "cost": 190,
+      "cost": 180,
       "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "bmp_ifv_family",
@@ -156,7 +156,7 @@
       }
     },
     {
-      "cost": 210,
+      "cost": 200,
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "bmp_ifv_family",
@@ -173,7 +173,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 170,
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "disabled_reason": null,
       "family": "brm",
@@ -190,7 +190,7 @@
       }
     },
     {
-      "cost": 140,
+      "cost": 130,
       "description": "BTR-82A; infantry carrier",
       "disabled_reason": null,
       "family": "btr",
@@ -207,7 +207,7 @@
       }
     },
     {
-      "cost": 300,
+      "cost": 260,
       "description": "Buk-M3 medium-range air defense",
       "disabled_reason": null,
       "family": "buk",
@@ -224,7 +224,7 @@
       }
     },
     {
-      "cost": 340,
+      "cost": 350,
       "description": "J-10C",
       "disabled_reason": null,
       "family": "j_10_vigorous_dragon",
@@ -241,7 +241,7 @@
       }
     },
     {
-      "cost": 490,
+      "cost": 500,
       "description": "Stealth fighter",
       "disabled_reason": null,
       "family": "j_20_mighty_dragon",
@@ -258,7 +258,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 410,
       "description": "Ka-52M",
       "disabled_reason": null,
       "family": "ka_52_alligator",
@@ -275,7 +275,7 @@
       }
     },
     {
-      "cost": 110,
+      "cost": 120,
       "description": "SVD-equipped longer-range infantry",
       "disabled_reason": null,
       "family": "marksman_squad",
@@ -292,7 +292,7 @@
       }
     },
     {
-      "cost": 270,
+      "cost": 300,
       "description": "Mi-35M",
       "disabled_reason": null,
       "family": "mi_24_mi_35_hind",
@@ -309,7 +309,7 @@
       }
     },
     {
-      "cost": 330,
+      "cost": 390,
       "description": "Mi-28NM",
       "disabled_reason": null,
       "family": "mi_28_havoc",
@@ -326,7 +326,7 @@
       }
     },
     {
-      "cost": 170,
+      "cost": 180,
       "description": "Mi-8AMTSh",
       "disabled_reason": null,
       "family": "mi_8_hip",
@@ -343,7 +343,7 @@
       }
     },
     {
-      "cost": 280,
+      "cost": 300,
       "description": "MiG-29SMT",
       "disabled_reason": null,
       "family": "mig_29_fulcrum",
@@ -360,7 +360,7 @@
       }
     },
     {
-      "cost": 350,
+      "cost": 360,
       "description": "MiG-31BM",
       "disabled_reason": null,
       "family": "mig_31_foxhound",
@@ -377,7 +377,7 @@
       }
     },
     {
-      "cost": 250,
+      "cost": 230,
       "description": "Pantsir-SM",
       "disabled_reason": null,
       "family": "pantsir",
@@ -394,7 +394,7 @@
       }
     },
     {
-      "cost": 280,
+      "cost": 300,
       "description": "Chinese tracked 155 mm howitzer",
       "disabled_reason": null,
       "family": "plz_05",
@@ -462,7 +462,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 330,
       "description": "S-300PMU2 Favorit long-range air defence.",
       "disabled_reason": null,
       "family": "air_defense",
@@ -479,7 +479,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 330,
       "description": "S-350 long-range air defence.",
       "disabled_reason": null,
       "family": "air_defense",
@@ -513,7 +513,7 @@
       }
     },
     {
-      "cost": 100,
+      "cost": 110,
       "description": "ASVK heavy sniper team",
       "disabled_reason": null,
       "family": "sniper_team",
@@ -530,7 +530,7 @@
       }
     },
     {
-      "cost": 270,
+      "cost": 290,
       "description": "Su-25SM3",
       "disabled_reason": null,
       "family": "su_25_frogfoot",
@@ -547,7 +547,7 @@
       }
     },
     {
-      "cost": 480,
+      "cost": 500,
       "description": "Stealth multirole fighter",
       "disabled_reason": null,
       "family": "su_57_felon",
@@ -564,7 +564,7 @@
       }
     },
     {
-      "cost": 310,
+      "cost": 320,
       "description": "Su-27SM3",
       "disabled_reason": null,
       "family": "sukhoi_flanker_family",
@@ -598,7 +598,7 @@
       }
     },
     {
-      "cost": 390,
+      "cost": 410,
       "description": "Su-34",
       "disabled_reason": null,
       "family": "sukhoi_flanker_family",
@@ -615,7 +615,7 @@
       }
     },
     {
-      "cost": 410,
+      "cost": 420,
       "description": "Su-35S",
       "disabled_reason": null,
       "family": "sukhoi_flanker_family",
@@ -632,7 +632,7 @@
       }
     },
     {
-      "cost": 440,
+      "cost": 480,
       "description": "Main battle tank",
       "disabled_reason": null,
       "family": "t_14_armata",
@@ -649,7 +649,7 @@
       }
     },
     {
-      "cost": 300,
+      "cost": 250,
       "description": "Heavy IFV; infantry carrier",
       "disabled_reason": null,
       "family": "t_15_armata",
@@ -666,7 +666,7 @@
       }
     },
     {
-      "cost": 280,
+      "cost": 260,
       "description": "T-72B3 (2016)",
       "disabled_reason": null,
       "family": "t_72",
@@ -683,7 +683,7 @@
       }
     },
     {
-      "cost": 310,
+      "cost": 300,
       "description": "T-80BVM",
       "disabled_reason": null,
       "family": "t_80",
@@ -700,7 +700,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 350,
       "description": "T-90M Proryv",
       "disabled_reason": null,
       "family": "t_90",
@@ -734,7 +734,7 @@
       }
     },
     {
-      "cost": 230,
+      "cost": 200,
       "description": "ZTQ-15 light tank",
       "disabled_reason": null,
       "family": "type_15",
@@ -751,7 +751,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 350,
       "description": "ZTZ-99A",
       "disabled_reason": null,
       "family": "type_99",
@@ -785,7 +785,7 @@
       }
     },
     {
-      "cost": 300,
+      "cost": 330,
       "description": "Attack helicopter",
       "disabled_reason": null,
       "family": "z_10",
@@ -802,7 +802,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 190,
       "description": "Utility transport",
       "disabled_reason": null,
       "family": "z_20",
@@ -819,7 +819,7 @@
       }
     },
     {
-      "cost": 190,
+      "cost": 180,
       "description": "Wheeled IFV; infantry carrier",
       "disabled_reason": null,
       "family": "zbl_08",
@@ -836,7 +836,7 @@
       }
     },
     {
-      "cost": 220,
+      "cost": 200,
       "description": "Tracked reconnaissance vehicle",
       "disabled_reason": null,
       "family": "ajax",
@@ -853,7 +853,7 @@
       }
     },
     {
-      "cost": 150,
+      "cost": 180,
       "description": "Akeron MP; top attack, the gunner must keep sight",
       "disabled_reason": null,
       "family": "atgm_team",
@@ -870,7 +870,7 @@
       }
     },
     {
-      "cost": 230,
+      "cost": 250,
       "description": "HC4",
       "disabled_reason": null,
       "family": "aw101_merlin",
@@ -921,7 +921,7 @@
       }
     },
     {
-      "cost": 240,
+      "cost": 220,
       "description": "RCT30; infantry carrier",
       "disabled_reason": null,
       "family": "boxer",
@@ -938,7 +938,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
       "disabled_reason": null,
       "family": "boxer_skyranger_30",
@@ -955,7 +955,7 @@
       }
     },
     {
-      "cost": 260,
+      "cost": 280,
       "description": "8×8",
       "disabled_reason": null,
       "family": "caesar",
@@ -972,7 +972,7 @@
       }
     },
     {
-      "cost": 240,
+      "cost": 210,
       "description": "Wheeled 120 mm tank destroyer",
       "disabled_reason": null,
       "family": "centauro_ii",
@@ -989,7 +989,7 @@
       }
     },
     {
-      "cost": 240,
+      "cost": 260,
       "description": "HC6",
       "disabled_reason": null,
       "family": "ch_47_chinook",
@@ -1006,7 +1006,7 @@
       }
     },
     {
-      "cost": 390,
+      "cost": 440,
       "description": "Challenger 2 TES",
       "disabled_reason": null,
       "family": "challenger",
@@ -1023,7 +1023,7 @@
       }
     },
     {
-      "cost": 450,
+      "cost": 490,
       "description": "Challenger 3",
       "disabled_reason": null,
       "family": "challenger",
@@ -1040,7 +1040,7 @@
       }
     },
     {
-      "cost": 250,
+      "cost": 220,
       "description": "Light tank",
       "disabled_reason": null,
       "family": "cv90120",
@@ -1057,7 +1057,7 @@
       }
     },
     {
-      "cost": 220,
+      "cost": 200,
       "description": "CV9040C; infantry carrier",
       "disabled_reason": null,
       "family": "cv90",
@@ -1074,7 +1074,7 @@
       }
     },
     {
-      "cost": 260,
+      "cost": 250,
       "description": "Mk IV; infantry carrier",
       "disabled_reason": null,
       "family": "cv90",
@@ -1091,7 +1091,7 @@
       }
     },
     {
-      "cost": 230,
+      "cost": 210,
       "description": "Armed reconnaissance vehicle",
       "disabled_reason": null,
       "family": "ebrc_jaguar",
@@ -1108,7 +1108,7 @@
       }
     },
     {
-      "cost": 350,
+      "cost": 400,
       "description": "HAD",
       "disabled_reason": null,
       "family": "ec665_tiger",
@@ -1125,7 +1125,7 @@
       }
     },
     {
-      "cost": 330,
+      "cost": 380,
       "description": "UHT",
       "disabled_reason": null,
       "family": "ec665_tiger",
@@ -1142,7 +1142,7 @@
       }
     },
     {
-      "cost": 410,
+      "cost": 420,
       "description": "Tranche 3",
       "disabled_reason": null,
       "family": "eurofighter_typhoon",
@@ -1176,7 +1176,7 @@
       }
     },
     {
-      "cost": 200,
+      "cost": 180,
       "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
       "disabled_reason": null,
       "family": "gepard",
@@ -1193,7 +1193,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 290,
       "description": "IRIS-T SLM long-range air defence.",
       "disabled_reason": null,
       "family": "air_defense",
@@ -1210,7 +1210,7 @@
       }
     },
     {
-      "cost": 350,
+      "cost": 370,
       "description": "E",
       "disabled_reason": null,
       "family": "jas_39_gripen",
@@ -1227,7 +1227,7 @@
       }
     },
     {
-      "cost": 460,
+      "cost": 500,
       "description": "Prototype main battle tank",
       "disabled_reason": null,
       "family": "kf51_panther",
@@ -1244,7 +1244,7 @@
       }
     },
     {
-      "cost": 390,
+      "cost": 370,
       "description": "XLR",
       "disabled_reason": null,
       "family": "leclerc",
@@ -1261,7 +1261,7 @@
       }
     },
     {
-      "cost": 340,
+      "cost": 310,
       "description": "2A6",
       "disabled_reason": null,
       "family": "leopard_2",
@@ -1278,7 +1278,7 @@
       }
     },
     {
-      "cost": 390,
+      "cost": 370,
       "description": "2A7V",
       "disabled_reason": null,
       "family": "leopard_2",
@@ -1295,7 +1295,7 @@
       }
     },
     {
-      "cost": 450,
+      "cost": 490,
       "description": "2A8",
       "disabled_reason": null,
       "family": "leopard_2",
@@ -1329,7 +1329,7 @@
       }
     },
     {
-      "cost": 110,
+      "cost": 120,
       "description": "Longer-range infantry",
       "disabled_reason": null,
       "family": "marksman_squad",
@@ -1346,7 +1346,7 @@
       }
     },
     {
-      "cost": 340,
+      "cost": 360,
       "description": "Multiple-launch rocket system",
       "disabled_reason": null,
       "family": "mars_ii",
@@ -1363,7 +1363,7 @@
       }
     },
     {
-      "cost": 290,
+      "cost": 310,
       "description": "2000D RMV",
       "disabled_reason": null,
       "family": "mirage_2000",
@@ -1380,7 +1380,7 @@
       }
     },
     {
-      "cost": 300,
+      "cost": 280,
       "description": "NASAMS 3",
       "disabled_reason": null,
       "family": "nasams",
@@ -1397,7 +1397,7 @@
       }
     },
     {
-      "cost": 190,
+      "cost": 200,
       "description": "TTH",
       "disabled_reason": null,
       "family": "nh90",
@@ -1414,7 +1414,7 @@
       }
     },
     {
-      "cost": 260,
+      "cost": 250,
       "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "puma",
@@ -1431,7 +1431,7 @@
       }
     },
     {
-      "cost": 310,
+      "cost": 330,
       "description": "Tracked 155 mm howitzer",
       "disabled_reason": null,
       "family": "pzh_2000",
@@ -1448,7 +1448,7 @@
       }
     },
     {
-      "cost": 420,
+      "cost": 440,
       "description": "C F4",
       "disabled_reason": null,
       "family": "rafale",
@@ -1499,7 +1499,7 @@
       }
     },
     {
-      "cost": 310,
+      "cost": 330,
       "description": "IDS",
       "disabled_reason": null,
       "family": "tornado",
@@ -1516,7 +1516,7 @@
       }
     },
     {
-      "cost": 220,
+      "cost": 210,
       "description": "Infantry fighting vehicle",
       "disabled_reason": null,
       "family": "vbci",
@@ -1550,7 +1550,7 @@
       }
     },
     {
-      "cost": 350,
+      "cost": 370,
       "description": "F-16C Block 50",
       "disabled_reason": null,
       "family": "f_16_fighting_falcon",
@@ -1568,7 +1568,7 @@
       }
     },
     {
-      "cost": 470,
+      "cost": 490,
       "description": "F-35A",
       "disabled_reason": null,
       "family": "f_35_lightning_ii",
@@ -1586,7 +1586,7 @@
       }
     },
     {
-      "cost": 150,
+      "cost": 180,
       "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
       "disabled_reason": null,
       "family": "atgm_team",
@@ -1604,7 +1604,7 @@
       }
     },
     {
-      "cost": 100,
+      "cost": 90,
       "description": "FIM-92 Stinger",
       "disabled_reason": null,
       "family": "air_defense_team",
@@ -1640,7 +1640,7 @@
       }
     },
     {
-      "cost": 300,
+      "cost": 320,
       "description": "A-10C",
       "disabled_reason": null,
       "family": "a_10_warthog",
@@ -1674,7 +1674,7 @@
       }
     },
     {
-      "cost": 320,
+      "cost": 380,
       "description": "Attack helicopter",
       "disabled_reason": null,
       "family": "ah_1z_viper",
@@ -1691,7 +1691,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 170,
       "description": "AH-6M",
       "disabled_reason": null,
       "family": "ah_6_mh_6_little_bird",
@@ -1759,7 +1759,7 @@
       }
     },
     {
-      "cost": 240,
+      "cost": 260,
       "description": "CH-47F",
       "disabled_reason": null,
       "family": "ch_47_chinook",
@@ -1793,7 +1793,7 @@
       }
     },
     {
-      "cost": 400,
+      "cost": 420,
       "description": "F-15E Strike Eagle",
       "disabled_reason": null,
       "family": "f_15_eagle",
@@ -1810,7 +1810,7 @@
       }
     },
     {
-      "cost": 430,
+      "cost": 440,
       "description": "F-15EX Eagle II",
       "disabled_reason": null,
       "family": "f_15_eagle",
@@ -1844,7 +1844,7 @@
       }
     },
     {
-      "cost": 490,
+      "cost": 500,
       "description": "F-35B",
       "disabled_reason": null,
       "family": "f_35_lightning_ii",
@@ -1861,7 +1861,7 @@
       }
     },
     {
-      "cost": 370,
+      "cost": 390,
       "description": "F/A-18E",
       "disabled_reason": null,
       "family": "f_a_18_super_hornet",
@@ -1895,7 +1895,7 @@
       }
     },
     {
-      "cost": 160,
+      "cost": 150,
       "description": "LAV-25A2; infantry carrier",
       "disabled_reason": null,
       "family": "lav",
@@ -1929,7 +1929,7 @@
       }
     },
     {
-      "cost": 280,
+      "cost": 300,
       "description": "M109A7",
       "disabled_reason": null,
       "family": "m109_paladin",
@@ -1946,7 +1946,7 @@
       }
     },
     {
-      "cost": 240,
+      "cost": 210,
       "description": "Light tank",
       "disabled_reason": null,
       "family": "m10_booker",
@@ -1980,7 +1980,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 200,
       "description": "120 mm mortar carrier",
       "disabled_reason": null,
       "family": "m1129_stryker_mortar",
@@ -2014,7 +2014,7 @@
       }
     },
     {
-      "cost": 300,
+      "cost": 320,
       "description": "GMLRS",
       "disabled_reason": null,
       "family": "m142_himars",
@@ -2031,7 +2031,7 @@
       }
     },
     {
-      "cost": 400,
+      "cost": 420,
       "description": "PrSM",
       "disabled_reason": null,
       "family": "m142_himars",
@@ -2048,7 +2048,7 @@
       }
     },
     {
-      "cost": 350,
+      "cost": 320,
       "description": "SEP v2",
       "disabled_reason": null,
       "family": "m1_abrams",
@@ -2065,7 +2065,7 @@
       }
     },
     {
-      "cost": 410,
+      "cost": 380,
       "description": "SEP v2 Trophy",
       "disabled_reason": null,
       "family": "m1_abrams",
@@ -2082,7 +2082,7 @@
       }
     },
     {
-      "cost": 450,
+      "cost": 480,
       "description": "SEP v3 Trophy",
       "disabled_reason": null,
       "family": "m1_abrams",
@@ -2099,7 +2099,7 @@
       }
     },
     {
-      "cost": 460,
+      "cost": 500,
       "description": "M1E3 prototype main battle tank",
       "disabled_reason": null,
       "family": "m1_abrams",
@@ -2116,7 +2116,7 @@
       }
     },
     {
-      "cost": 350,
+      "cost": 370,
       "description": "M270A2",
       "disabled_reason": null,
       "family": "m270_mlrs",
@@ -2133,7 +2133,7 @@
       }
     },
     {
-      "cost": 230,
+      "cost": 220,
       "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "m2_bradley_ifv",
@@ -2150,7 +2150,7 @@
       }
     },
     {
-      "cost": 210,
+      "cost": 200,
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "m3_bradley_cfv",
@@ -2201,7 +2201,7 @@
       }
     },
     {
-      "cost": 110,
+      "cost": 120,
       "description": "M110-equipped longer-range infantry",
       "disabled_reason": null,
       "family": "marksman_squad",
@@ -2218,7 +2218,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 290,
       "description": "NASAMS 3 long-range air defence.",
       "disabled_reason": null,
       "family": "air_defense",
@@ -2235,7 +2235,7 @@
       }
     },
     {
-      "cost": 360,
+      "cost": 330,
       "description": "Patriot PAC-3 long-range air defence.",
       "disabled_reason": null,
       "family": "air_defense",
@@ -2252,7 +2252,7 @@
       }
     },
     {
-      "cost": 100,
+      "cost": 110,
       "description": "M107 heavy sniper team",
       "disabled_reason": null,
       "family": "scout_snipers",
@@ -2303,7 +2303,7 @@
       }
     },
     {
-      "cost": 200,
+      "cost": 180,
       "description": "M1296 Dragoon; infantry carrier",
       "disabled_reason": null,
       "family": "stryker",
@@ -2320,7 +2320,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
       "disabled_reason": null,
       "family": "stryker_m_shorad",
@@ -2337,7 +2337,7 @@
       }
     },
     {
-      "cost": 160,
+      "cost": 170,
       "description": "Utility transport",
       "disabled_reason": null,
       "family": "uh_1y_venom",
@@ -2354,7 +2354,7 @@
       }
     },
     {
-      "cost": 180,
+      "cost": 190,
       "description": "UH-60M",
       "disabled_reason": null,
       "family": "uh_60_black_hawk",
@@ -2733,8 +2733,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -2761,8 +2761,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -2817,8 +2817,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -2967,7 +2967,7 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
+            "topples": true,
             "weight_class": "light"
           },
           "destroyed": "removed"
@@ -3023,8 +3023,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3084,8 +3084,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3140,8 +3140,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3231,7 +3231,7 @@
             "occludes": true,
             "stops_rounds": false,
             "topples": true,
-            "weight_class": "light"
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3286,8 +3286,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3464,8 +3464,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3556,7 +3556,7 @@
             "occludes": false,
             "stops_rounds": false,
             "topples": true,
-            "weight_class": "light"
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -3640,7 +3640,7 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
+            "topples": true,
             "weight_class": "light"
           },
           "destroyed": "removed"
@@ -3813,8 +3813,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4046,8 +4046,8 @@
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4188,8 +4188,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4328,8 +4328,8 @@
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
-            "topples": false,
-            "weight_class": "light"
+            "topples": true,
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -4357,7 +4357,7 @@
             "occludes": true,
             "stops_rounds": false,
             "topples": true,
-            "weight_class": "light"
+            "weight_class": "trivial"
           },
           "destroyed": "removed"
         },
@@ -7037,7 +7037,7 @@
                 2.615,
                 2.36
               ],
-              "hp": 120.0,
+              "hp": 200.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -7050,7 +7050,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 410,
           "description": "AH-64E Guardian",
           "faction": "us",
           "family": "ah_64_apache",
@@ -7258,7 +7258,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 270,
+          "cost": 290,
           "description": "2S19M2",
           "faction": "eastern",
           "family": "2s19_msta_s",
@@ -7349,7 +7349,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 380,
           "description": "Heavy rocket artillery",
           "faction": "eastern",
           "family": "9k515_tornado_s",
@@ -7424,7 +7424,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 100,
+          "cost": 90,
           "description": "FN-6",
           "faction": "eastern",
           "family": "air_defense_team",
@@ -7473,7 +7473,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 100,
+          "cost": 90,
           "description": "Igla-S",
           "faction": "eastern",
           "family": "air_defense_team",
@@ -7593,7 +7593,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 220,
+          "cost": 240,
           "description": "BM-21 rocket artillery",
           "faction": "eastern",
           "family": "bm_21_grad",
@@ -7689,7 +7689,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 190,
+          "cost": 180,
           "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
           "family": "bmp_ifv_family",
@@ -7806,7 +7806,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 210,
+          "cost": 200,
           "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
           "family": "bmp_ifv_family",
@@ -7924,7 +7924,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 180,
+          "cost": 170,
           "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
           "faction": "eastern",
           "family": "brm",
@@ -8021,7 +8021,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 140,
+          "cost": 130,
           "description": "BTR-82A; infantry carrier",
           "faction": "eastern",
           "family": "btr",
@@ -8116,7 +8116,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 300,
+          "cost": 260,
           "description": "Buk-M3 medium-range air defense",
           "faction": "eastern",
           "family": "buk",
@@ -8192,14 +8192,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.45,
                 4.86,
                 2.72
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8224,7 +8224,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 340,
+          "cost": 350,
           "description": "J-10C",
           "faction": "eastern",
           "family": "j_10_vigorous_dragon",
@@ -8329,14 +8329,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 10.41,
                 6.51,
                 2.29
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8361,7 +8361,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 490,
+          "cost": 500,
           "description": "Stealth fighter",
           "faction": "eastern",
           "family": "j_20_mighty_dragon",
@@ -8452,7 +8452,7 @@
                 3.65,
                 2.425
               ],
-              "hp": 120.0,
+              "hp": 200.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8465,7 +8465,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 410,
           "description": "Ka-52M",
           "faction": "eastern",
           "family": "ka_52_alligator",
@@ -8616,7 +8616,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 110,
+          "cost": 120,
           "description": "SVD-equipped longer-range infantry",
           "faction": "eastern",
           "family": "marksman_squad",
@@ -8674,7 +8674,7 @@
                 2.635,
                 1.95
               ],
-              "hp": 150.0,
+              "hp": 170.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8690,7 +8690,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 270,
+          "cost": 300,
           "description": "Mi-35M",
           "faction": "eastern",
           "family": "mi_24_mi_35_hind",
@@ -8795,7 +8795,7 @@
                 2.495,
                 2.355
               ],
-              "hp": 150.0,
+              "hp": 200.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8808,7 +8808,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 330,
+          "cost": 390,
           "description": "Mi-28NM",
           "faction": "eastern",
           "family": "mi_28_havoc",
@@ -8913,7 +8913,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8929,7 +8929,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 170,
+          "cost": 180,
           "description": "Mi-8AMTSh",
           "faction": "eastern",
           "family": "mi_8_hip",
@@ -9035,14 +9035,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.58,
                 5.67,
                 2.36
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9067,7 +9067,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 280,
+          "cost": 300,
           "description": "MiG-29SMT",
           "faction": "eastern",
           "family": "mig_29_fulcrum",
@@ -9193,14 +9193,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 11.35,
                 6.74,
                 3.08
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9225,7 +9225,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 350,
+          "cost": 360,
           "description": "MiG-31BM",
           "faction": "eastern",
           "family": "mig_31_foxhound",
@@ -9368,7 +9368,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 250,
+          "cost": 230,
           "description": "Pantsir-SM",
           "faction": "eastern",
           "family": "pantsir",
@@ -9460,7 +9460,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 280,
+          "cost": 300,
           "description": "Chinese tracked 155 mm howitzer",
           "faction": "eastern",
           "family": "plz_05",
@@ -9705,7 +9705,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 330,
           "description": "S-300PMU2 Favorit long-range air defence.",
           "faction": "eastern",
           "family": "air_defense",
@@ -9799,7 +9799,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 330,
           "description": "S-350 long-range air defence.",
           "faction": "eastern",
           "family": "air_defense",
@@ -9944,7 +9944,7 @@
           },
           "capabilities": {},
           "concealment": 0.5,
-          "cost": 100,
+          "cost": 110,
           "description": "ASVK heavy sniper team",
           "faction": "eastern",
           "family": "sniper_team",
@@ -9996,14 +9996,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.11,
                 7.32,
                 2.4
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10028,7 +10028,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 270,
+          "cost": 290,
           "description": "Su-25SM3",
           "faction": "eastern",
           "family": "su_25_frogfoot",
@@ -10133,14 +10133,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 10.0,
                 7.06,
                 2.31
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10165,7 +10165,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 480,
+          "cost": 500,
           "description": "Stealth multirole fighter",
           "faction": "eastern",
           "family": "su_57_felon",
@@ -10291,14 +10291,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 10.9,
                 7.39,
                 2.96
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10323,7 +10323,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 310,
+          "cost": 320,
           "description": "Su-27SM3",
           "faction": "eastern",
           "family": "sukhoi_flanker_family",
@@ -10428,14 +10428,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 10.92,
                 7.39,
                 3.18
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10568,14 +10568,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 11.62,
                 7.39,
                 3.05
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10600,7 +10600,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 390,
+          "cost": 410,
           "description": "Su-34",
           "faction": "eastern",
           "family": "sukhoi_flanker_family",
@@ -10726,14 +10726,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 10.9,
                 7.65,
                 2.95
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10758,7 +10758,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 410,
+          "cost": 420,
           "description": "Su-35S",
           "faction": "eastern",
           "family": "sukhoi_flanker_family",
@@ -10854,7 +10854,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 260.0,
+                "front": 400.0,
                 "rear": 70.0,
                 "ricochet": {
                   "front": 0.5,
@@ -10870,7 +10870,7 @@
                 1.75,
                 1.4
               ],
-              "hp": 135.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -10896,7 +10896,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 440,
+          "cost": 480,
           "description": "Main battle tank",
           "faction": "eastern",
           "family": "t_14_armata",
@@ -11032,7 +11032,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 300,
+          "cost": 250,
           "description": "Heavy IFV; infantry carrier",
           "faction": "eastern",
           "family": "t_15_armata",
@@ -11121,7 +11121,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 160.0,
+                "front": 340.0,
                 "rear": 55.0,
                 "ricochet": {
                   "front": 0.5,
@@ -11137,7 +11137,7 @@
                 1.795,
                 1.115
               ],
-              "hp": 100.0,
+              "hp": 150.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -11163,7 +11163,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 280,
+          "cost": 260,
           "description": "T-72B3 (2016)",
           "faction": "eastern",
           "family": "t_72",
@@ -11254,7 +11254,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 190.0,
+                "front": 340.0,
                 "rear": 60.0,
                 "ricochet": {
                   "front": 0.5,
@@ -11270,7 +11270,7 @@
                 1.8015,
                 1.101
               ],
-              "hp": 110.0,
+              "hp": 150.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -11296,7 +11296,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 310,
+          "cost": 300,
           "description": "T-80BVM",
           "faction": "eastern",
           "family": "t_80",
@@ -11387,7 +11387,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 220.0,
+                "front": 350.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -11403,7 +11403,7 @@
                 1.89,
                 1.11
               ],
-              "hp": 120.0,
+              "hp": 160.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -11429,7 +11429,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 360,
+          "cost": 350,
           "description": "T-90M Proryv",
           "faction": "eastern",
           "family": "t_90",
@@ -11617,7 +11617,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 110.0,
+                "front": 200.0,
                 "rear": 35.0,
                 "ricochet": {
                   "front": 0.3,
@@ -11659,7 +11659,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 230,
+          "cost": 200,
           "description": "ZTQ-15 light tank",
           "faction": "eastern",
           "family": "type_15",
@@ -11749,7 +11749,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 220.0,
+                "front": 350.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -11765,7 +11765,7 @@
                 1.85,
                 1.25
               ],
-              "hp": 120.0,
+              "hp": 160.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -11791,7 +11791,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 350,
           "description": "ZTZ-99A",
           "faction": "eastern",
           "family": "type_99",
@@ -11975,7 +11975,7 @@
                 2.175,
                 1.75
               ],
-              "hp": 120.0,
+              "hp": 150.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -11988,7 +11988,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 300,
+          "cost": 330,
           "description": "Attack helicopter",
           "faction": "eastern",
           "family": "z_10",
@@ -12093,7 +12093,7 @@
                 2.19,
                 1.875
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12109,7 +12109,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 180,
+          "cost": 190,
           "description": "Utility transport",
           "faction": "eastern",
           "family": "z_20",
@@ -12234,7 +12234,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 190,
+          "cost": 180,
           "description": "Wheeled IFV; infantry carrier",
           "faction": "eastern",
           "family": "zbl_08",
@@ -12327,7 +12327,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 220,
+          "cost": 200,
           "description": "Tracked reconnaissance vehicle",
           "faction": "europe",
           "family": "ajax",
@@ -12424,7 +12424,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 150,
+          "cost": 180,
           "description": "Akeron MP; top attack, the gunner must keep sight",
           "faction": "europe",
           "family": "atgm_team",
@@ -12482,7 +12482,7 @@
                 2.2,
                 2.31
               ],
-              "hp": 120.0,
+              "hp": 140.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12498,7 +12498,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 230,
+          "cost": 250,
           "description": "HC4",
           "faction": "europe",
           "family": "aw101_merlin",
@@ -12821,7 +12821,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 240,
+          "cost": 220,
           "description": "RCT30; infantry carrier",
           "faction": "europe",
           "family": "boxer",
@@ -12914,7 +12914,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 180,
+          "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
           "faction": "europe",
           "family": "boxer_skyranger_30",
@@ -13006,7 +13006,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 260,
+          "cost": 280,
           "description": "8×8",
           "faction": "europe",
           "family": "caesar",
@@ -13074,7 +13074,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 70.0,
+                "front": 200.0,
                 "rear": 25.0,
                 "ricochet": {
                   "front": 0.1,
@@ -13090,7 +13090,7 @@
                 1.58,
                 1.6
               ],
-              "hp": 90.0,
+              "hp": 100.0,
               "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
@@ -13098,7 +13098,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 240,
+          "cost": 210,
           "description": "Wheeled 120 mm tank destroyer",
           "faction": "europe",
           "family": "centauro_ii",
@@ -13205,7 +13205,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 120.0,
+              "hp": 140.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -13221,7 +13221,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 240,
+          "cost": 260,
           "description": "HC6",
           "faction": "europe",
           "family": "ch_47_chinook",
@@ -13318,7 +13318,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 230.0,
+                "front": 400.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -13334,7 +13334,7 @@
                 2.1,
                 1.245
               ],
-              "hp": 130.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -13360,7 +13360,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 390,
+          "cost": 440,
           "description": "Challenger 2 TES",
           "faction": "europe",
           "family": "challenger",
@@ -13451,7 +13451,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 250.0,
+                "front": 400.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -13467,7 +13467,7 @@
                 2.1,
                 1.35
               ],
-              "hp": 135.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -13502,7 +13502,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 450,
+          "cost": 490,
           "description": "Challenger 3",
           "faction": "europe",
           "family": "challenger",
@@ -13596,7 +13596,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 110.0,
+                "front": 200.0,
                 "rear": 30.0,
                 "ricochet": {
                   "front": 0.3,
@@ -13612,7 +13612,7 @@
                 1.65,
                 1.25
               ],
-              "hp": 90.0,
+              "hp": 100.0,
               "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
@@ -13638,7 +13638,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 250,
+          "cost": 220,
           "description": "Light tank",
           "faction": "europe",
           "family": "cv90120",
@@ -13756,7 +13756,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 220,
+          "cost": 200,
           "description": "CV9040C; infantry carrier",
           "faction": "europe",
           "family": "cv90",
@@ -13869,7 +13869,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 260,
+          "cost": 250,
           "description": "Mk IV; infantry carrier",
           "faction": "europe",
           "family": "cv90",
@@ -13961,7 +13961,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 230,
+          "cost": 210,
           "description": "Armed reconnaissance vehicle",
           "faction": "europe",
           "family": "ebrc_jaguar",
@@ -14068,7 +14068,7 @@
                 2.158,
                 1.75
               ],
-              "hp": 120.0,
+              "hp": 200.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -14081,7 +14081,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 350,
+          "cost": 400,
           "description": "HAD",
           "faction": "europe",
           "family": "ec665_tiger",
@@ -14186,7 +14186,7 @@
                 2.226,
                 2.16
               ],
-              "hp": 120.0,
+              "hp": 200.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -14199,7 +14199,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 330,
+          "cost": 380,
           "description": "UHT",
           "faction": "europe",
           "family": "ec665_tiger",
@@ -14297,14 +14297,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.05,
                 5.54,
                 2.64
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -14329,7 +14329,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 410,
+          "cost": 420,
           "description": "Tranche 3",
           "faction": "europe",
           "family": "eurofighter_typhoon",
@@ -14545,7 +14545,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 200,
+          "cost": 180,
           "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
           "faction": "europe",
           "family": "gepard",
@@ -14638,7 +14638,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 290,
           "description": "IRIS-T SLM long-range air defence.",
           "faction": "europe",
           "family": "air_defense",
@@ -14715,14 +14715,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 7.6,
                 4.28,
                 2.25
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -14747,7 +14747,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 350,
+          "cost": 370,
           "description": "E",
           "faction": "europe",
           "family": "jas_39_gripen",
@@ -14916,7 +14916,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 260.0,
+                "front": 400.0,
                 "rear": 70.0,
                 "ricochet": {
                   "front": 0.5,
@@ -14932,7 +14932,7 @@
                 1.85,
                 1.25
               ],
-              "hp": 135.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -14958,7 +14958,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 460,
+          "cost": 500,
           "description": "Prototype main battle tank",
           "faction": "europe",
           "family": "kf51_panther",
@@ -15049,7 +15049,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 220.0,
+                "front": 350.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -15065,7 +15065,7 @@
                 1.8,
                 1.265
               ],
-              "hp": 120.0,
+              "hp": 160.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -15091,7 +15091,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 390,
+          "cost": 370,
           "description": "XLR",
           "faction": "europe",
           "family": "leclerc",
@@ -15182,7 +15182,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 190.0,
+                "front": 340.0,
                 "rear": 60.0,
                 "ricochet": {
                   "front": 0.5,
@@ -15198,7 +15198,7 @@
                 1.875,
                 1.35
               ],
-              "hp": 110.0,
+              "hp": 150.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -15224,7 +15224,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 340,
+          "cost": 310,
           "description": "2A6",
           "faction": "europe",
           "family": "leopard_2",
@@ -15315,7 +15315,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 220.0,
+                "front": 350.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -15331,7 +15331,7 @@
                 1.875,
                 1.415
               ],
-              "hp": 120.0,
+              "hp": 160.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -15357,7 +15357,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 390,
+          "cost": 370,
           "description": "2A7V",
           "faction": "europe",
           "family": "leopard_2",
@@ -15448,7 +15448,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 220.0,
+                "front": 400.0,
                 "rear": 65.0,
                 "ricochet": {
                   "front": 0.5,
@@ -15464,7 +15464,7 @@
                 1.875,
                 1.415
               ],
-              "hp": 120.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -15499,7 +15499,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 450,
+          "cost": 490,
           "description": "2A8",
           "faction": "europe",
           "family": "leopard_2",
@@ -15680,7 +15680,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 110,
+          "cost": 120,
           "description": "Longer-range infantry",
           "faction": "europe",
           "family": "marksman_squad",
@@ -15746,7 +15746,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 340,
+          "cost": 360,
           "description": "Multiple-launch rocket system",
           "faction": "europe",
           "family": "mars_ii",
@@ -15822,14 +15822,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 7.2,
                 4.57,
                 2.6
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -15854,7 +15854,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 290,
+          "cost": 310,
           "description": "2000D RMV",
           "faction": "europe",
           "family": "mirage_2000",
@@ -15976,7 +15976,7 @@
             "radar_emitter": true
           },
           "concealment": 2.4,
-          "cost": 300,
+          "cost": 280,
           "description": "NASAMS 3",
           "faction": "europe",
           "family": "nasams",
@@ -16060,7 +16060,7 @@
                 1.8,
                 2.0
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -16076,7 +16076,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 190,
+          "cost": 200,
           "description": "TTH",
           "faction": "europe",
           "family": "nh90",
@@ -16218,7 +16218,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 260,
+          "cost": 250,
           "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "europe",
           "family": "puma",
@@ -16331,7 +16331,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 310,
+          "cost": 330,
           "description": "Tracked 155 mm howitzer",
           "faction": "europe",
           "family": "pzh_2000",
@@ -16407,14 +16407,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 7.63,
                 5.46,
                 2.67
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -16439,7 +16439,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 420,
+          "cost": 440,
           "description": "C F4",
           "faction": "europe",
           "family": "rafale",
@@ -16657,14 +16657,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.38,
                 6.89,
                 2.98
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -16797,14 +16797,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.38,
                 6.89,
                 2.98
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -16829,7 +16829,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 310,
+          "cost": 330,
           "description": "IDS",
           "faction": "europe",
           "family": "tornado",
@@ -16953,7 +16953,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 220,
+          "cost": 210,
           "description": "Infantry fighting vehicle",
           "faction": "europe",
           "family": "vbci",
@@ -17128,14 +17128,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 7.54,
                 5.02,
                 2.44
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -17160,7 +17160,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 350,
+          "cost": 370,
           "description": "F-16C Block 50",
           "faction": "us",
           "family": "f_16_fighting_falcon",
@@ -17287,14 +17287,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 7.82,
                 5.36,
                 2.2
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -17319,7 +17319,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 470,
+          "cost": 490,
           "description": "F-35A",
           "faction": "us",
           "family": "f_35_lightning_ii",
@@ -17444,7 +17444,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 150,
+          "cost": 180,
           "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
           "faction": "us",
           "family": "atgm_team",
@@ -17494,7 +17494,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 100,
+          "cost": 90,
           "description": "FIM-92 Stinger",
           "faction": "us",
           "family": "air_defense_team",
@@ -17601,14 +17601,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 8.26,
                 8.77,
                 2.23
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -17633,7 +17633,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 300,
+          "cost": 320,
           "description": "A-10C",
           "faction": "us",
           "family": "a_10_warthog",
@@ -17842,7 +17842,7 @@
                 2.066,
                 1.725
               ],
-              "hp": 120.0,
+              "hp": 200.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -17855,7 +17855,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 320,
+          "cost": 380,
           "description": "Attack helicopter",
           "faction": "us",
           "family": "ah_1z_viper",
@@ -17973,7 +17973,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 180,
+          "cost": 170,
           "description": "AH-6M",
           "faction": "us",
           "family": "ah_6_mh_6_little_bird",
@@ -18306,7 +18306,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 120.0,
+              "hp": 140.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -18322,7 +18322,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 240,
+          "cost": 260,
           "description": "CH-47F",
           "faction": "us",
           "family": "ch_47_chinook",
@@ -18428,14 +18428,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 9.09,
                 6.89,
                 2.44
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -18568,14 +18568,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 9.75,
                 6.55,
                 2.82
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -18600,7 +18600,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 400,
+          "cost": 420,
           "description": "F-15E Strike Eagle",
           "faction": "us",
           "family": "f_15_eagle",
@@ -18726,14 +18726,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 9.75,
                 6.55,
                 2.82
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -18758,7 +18758,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 430,
+          "cost": 440,
           "description": "F-15EX Eagle II",
           "faction": "us",
           "family": "f_15_eagle",
@@ -18863,14 +18863,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 9.46,
                 6.79,
                 2.56
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -19000,14 +19000,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 7.82,
                 5.36,
                 2.19
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -19032,7 +19032,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 490,
+          "cost": 500,
           "description": "F-35B",
           "faction": "us",
           "family": "f_35_lightning_ii",
@@ -19158,14 +19158,14 @@
                   "side": 0.0
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 66.0
               },
               "half_extents_m": [
                 9.09,
                 6.84,
                 2.43
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -19190,7 +19190,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 370,
+          "cost": 390,
           "description": "F/A-18E",
           "faction": "us",
           "family": "f_a_18_super_hornet",
@@ -19455,7 +19455,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 160,
+          "cost": 150,
           "description": "LAV-25A2; infantry carrier",
           "faction": "us",
           "family": "lav",
@@ -19641,7 +19641,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 280,
+          "cost": 300,
           "description": "M109A7",
           "faction": "us",
           "family": "m109_paladin",
@@ -19708,7 +19708,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 120.0,
+                "front": 200.0,
                 "rear": 35.0,
                 "ricochet": {
                   "front": 0.3,
@@ -19724,7 +19724,7 @@
                 1.7,
                 1.3
               ],
-              "hp": 95.0,
+              "hp": 100.0,
               "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
@@ -19750,7 +19750,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 240,
+          "cost": 210,
           "description": "Light tank",
           "faction": "us",
           "family": "m10_booker",
@@ -19962,7 +19962,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 180,
+          "cost": 200,
           "description": "120 mm mortar carrier",
           "faction": "us",
           "family": "m1129_stryker_mortar",
@@ -20151,7 +20151,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 300,
+          "cost": 320,
           "description": "GMLRS",
           "faction": "us",
           "family": "m142_himars",
@@ -20243,7 +20243,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 400,
+          "cost": 420,
           "description": "PrSM",
           "faction": "us",
           "family": "m142_himars",
@@ -20311,7 +20311,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 190.0,
+                "front": 340.0,
                 "rear": 60.0,
                 "ricochet": {
                   "front": 0.5,
@@ -20327,7 +20327,7 @@
                 1.83,
                 1.22
               ],
-              "hp": 110.0,
+              "hp": 150.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -20353,7 +20353,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 350,
+          "cost": 320,
           "description": "SEP v2",
           "faction": "us",
           "family": "m1_abrams",
@@ -20444,7 +20444,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 190.0,
+                "front": 340.0,
                 "rear": 60.0,
                 "ricochet": {
                   "front": 0.5,
@@ -20460,7 +20460,7 @@
                 1.83,
                 1.22
               ],
-              "hp": 110.0,
+              "hp": 150.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -20495,7 +20495,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 410,
+          "cost": 380,
           "description": "SEP v2 Trophy",
           "faction": "us",
           "family": "m1_abrams",
@@ -20589,7 +20589,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 190.0,
+                "front": 400.0,
                 "rear": 60.0,
                 "ricochet": {
                   "front": 0.5,
@@ -20605,7 +20605,7 @@
                 1.83,
                 1.22
               ],
-              "hp": 110.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -20640,7 +20640,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 450,
+          "cost": 480,
           "description": "SEP v3 Trophy",
           "faction": "us",
           "family": "m1_abrams",
@@ -20734,7 +20734,7 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 190.0,
+                "front": 400.0,
                 "rear": 60.0,
                 "ricochet": {
                   "front": 0.5,
@@ -20750,7 +20750,7 @@
                 1.83,
                 1.22
               ],
-              "hp": 110.0,
+              "hp": 200.0,
               "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
@@ -20785,7 +20785,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 460,
+          "cost": 500,
           "description": "M1E3 prototype main battle tank",
           "faction": "us",
           "family": "m1_abrams",
@@ -20903,7 +20903,7 @@
           },
           "capabilities": {},
           "concealment": 2.4,
-          "cost": 350,
+          "cost": 370,
           "description": "M270A2",
           "faction": "us",
           "family": "m270_mlrs",
@@ -21015,7 +21015,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 230,
+          "cost": 220,
           "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
           "family": "m2_bradley_ifv",
@@ -21132,7 +21132,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 210,
+          "cost": 200,
           "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
           "family": "m3_bradley_cfv",
@@ -21381,7 +21381,7 @@
           },
           "capabilities": {},
           "concealment": 1.0,
-          "cost": 110,
+          "cost": 120,
           "description": "M110-equipped longer-range infantry",
           "faction": "us",
           "family": "marksman_squad",
@@ -21475,7 +21475,7 @@
             "radar_emitter": true
           },
           "concealment": 2.4,
-          "cost": 360,
+          "cost": 290,
           "description": "NASAMS 3 long-range air defence.",
           "faction": "us",
           "family": "air_defense",
@@ -21569,7 +21569,7 @@
             "radar_emitter": true
           },
           "concealment": 2.8,
-          "cost": 360,
+          "cost": 330,
           "description": "Patriot PAC-3 long-range air defence.",
           "faction": "us",
           "family": "air_defense",
@@ -21685,7 +21685,7 @@
           },
           "capabilities": {},
           "concealment": 0.5,
-          "cost": 100,
+          "cost": 110,
           "description": "M107 heavy sniper team",
           "faction": "us",
           "family": "scout_snipers",
@@ -21946,7 +21946,7 @@
             }
           },
           "concealment": 2.4,
-          "cost": 200,
+          "cost": 180,
           "description": "M1296 Dragoon; infantry carrier",
           "faction": "us",
           "family": "stryker",
@@ -22039,7 +22039,7 @@
           },
           "capabilities": {},
           "concealment": 2.8,
-          "cost": 180,
+          "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
           "faction": "us",
           "family": "stryker_m_shorad",
@@ -22123,7 +22123,7 @@
                 1.45,
                 1.8
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -22139,7 +22139,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 160,
+          "cost": 170,
           "description": "Utility transport",
           "faction": "us",
           "family": "uh_1y_venom",
@@ -22252,7 +22252,7 @@
                 2.19,
                 1.825
               ],
-              "hp": 100.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -22268,7 +22268,7 @@
             }
           },
           "concealment": 2.8,
-          "cost": 180,
+          "cost": 190,
           "description": "UH-60M",
           "faction": "us",
           "family": "uh_60_black_hawk",
@@ -22467,8 +22467,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22495,8 +22495,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22551,8 +22551,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22701,7 +22701,7 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
+        "topples": true,
         "weight_class": "light"
       },
       "destroyed": "removed"
@@ -22757,8 +22757,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22818,8 +22818,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22874,8 +22874,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -22965,7 +22965,7 @@
         "occludes": true,
         "stops_rounds": false,
         "topples": true,
-        "weight_class": "light"
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23020,8 +23020,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23198,8 +23198,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23290,7 +23290,7 @@
         "occludes": false,
         "stops_rounds": false,
         "topples": true,
-        "weight_class": "light"
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23374,7 +23374,7 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
+        "topples": true,
         "weight_class": "light"
       },
       "destroyed": "removed"
@@ -23547,8 +23547,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23780,8 +23780,8 @@
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -23922,8 +23922,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -24062,8 +24062,8 @@
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
-        "topples": false,
-        "weight_class": "light"
+        "topples": true,
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -24091,7 +24091,7 @@
         "occludes": true,
         "stops_rounds": false,
         "topples": true,
-        "weight_class": "light"
+        "weight_class": "trivial"
       },
       "destroyed": "removed"
     },
@@ -26771,7 +26771,7 @@
             2.615,
             2.36
           ],
-          "hp": 120.0,
+          "hp": 200.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -26784,7 +26784,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 410,
       "description": "AH-64E Guardian",
       "faction": "us",
       "family": "ah_64_apache",
@@ -27132,7 +27132,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 270,
+      "cost": 290,
       "description": "2S19M2",
       "faction": "eastern",
       "family": "2s19_msta_s",
@@ -27226,7 +27226,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 380,
       "description": "Heavy rocket artillery",
       "faction": "eastern",
       "family": "9k515_tornado_s",
@@ -27304,7 +27304,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 100,
+      "cost": 90,
       "description": "FN-6",
       "faction": "eastern",
       "family": "air_defense_team",
@@ -27415,7 +27415,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 100,
+      "cost": 90,
       "description": "Igla-S",
       "faction": "eastern",
       "family": "air_defense_team",
@@ -27663,7 +27663,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 220,
+      "cost": 240,
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
       "family": "bm_21_grad",
@@ -27762,7 +27762,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 190,
+      "cost": 180,
       "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
@@ -27883,7 +27883,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 210,
+      "cost": 200,
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
@@ -28005,7 +28005,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 180,
+      "cost": 170,
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "faction": "eastern",
       "family": "brm",
@@ -28105,7 +28105,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 140,
+      "cost": 130,
       "description": "BTR-82A; infantry carrier",
       "faction": "eastern",
       "family": "btr",
@@ -28203,7 +28203,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 300,
+      "cost": 260,
       "description": "Buk-M3 medium-range air defense",
       "faction": "eastern",
       "family": "buk",
@@ -28282,14 +28282,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.45,
             4.86,
             2.72
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -28314,7 +28314,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 340,
+      "cost": 350,
       "description": "J-10C",
       "faction": "eastern",
       "family": "j_10_vigorous_dragon",
@@ -28423,14 +28423,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             10.41,
             6.51,
             2.29
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -28455,7 +28455,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 490,
+      "cost": 500,
       "description": "Stealth fighter",
       "faction": "eastern",
       "family": "j_20_mighty_dragon",
@@ -28549,7 +28549,7 @@
             3.65,
             2.425
           ],
-          "hp": 120.0,
+          "hp": 200.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -28562,7 +28562,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 410,
       "description": "Ka-52M",
       "faction": "eastern",
       "family": "ka_52_alligator",
@@ -28665,7 +28665,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 110,
+      "cost": 120,
       "description": "SVD-equipped longer-range infantry",
       "faction": "eastern",
       "family": "marksman_squad",
@@ -28868,7 +28868,7 @@
             2.635,
             1.95
           ],
-          "hp": 150.0,
+          "hp": 170.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -28884,7 +28884,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 270,
+      "cost": 300,
       "description": "Mi-35M",
       "faction": "eastern",
       "family": "mi_24_mi_35_hind",
@@ -28993,7 +28993,7 @@
             2.495,
             2.355
           ],
-          "hp": 150.0,
+          "hp": 200.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -29006,7 +29006,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 330,
+      "cost": 390,
       "description": "Mi-28NM",
       "faction": "eastern",
       "family": "mi_28_havoc",
@@ -29115,7 +29115,7 @@
             2.7,
             2.2
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -29131,7 +29131,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 170,
+      "cost": 180,
       "description": "Mi-8AMTSh",
       "faction": "eastern",
       "family": "mi_8_hip",
@@ -29241,14 +29241,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.58,
             5.67,
             2.36
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -29273,7 +29273,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 280,
+      "cost": 300,
       "description": "MiG-29SMT",
       "faction": "eastern",
       "family": "mig_29_fulcrum",
@@ -29404,14 +29404,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             11.35,
             6.74,
             3.08
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -29436,7 +29436,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 350,
+      "cost": 360,
       "description": "MiG-31BM",
       "faction": "eastern",
       "family": "mig_31_foxhound",
@@ -29562,7 +29562,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 250,
+      "cost": 230,
       "description": "Pantsir-SM",
       "faction": "eastern",
       "family": "pantsir",
@@ -29657,7 +29657,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 280,
+      "cost": 300,
       "description": "Chinese tracked 155 mm howitzer",
       "faction": "eastern",
       "family": "plz_05",
@@ -30144,7 +30144,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 330,
       "description": "S-300PMU2 Favorit long-range air defence.",
       "faction": "eastern",
       "family": "air_defense",
@@ -30241,7 +30241,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 330,
       "description": "S-350 long-range air defence.",
       "faction": "eastern",
       "family": "air_defense",
@@ -30426,7 +30426,7 @@
       },
       "capabilities": {},
       "concealment": 0.5,
-      "cost": 100,
+      "cost": 110,
       "description": "ASVK heavy sniper team",
       "faction": "eastern",
       "family": "sniper_team",
@@ -30535,14 +30535,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.11,
             7.32,
             2.4
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -30567,7 +30567,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 270,
+      "cost": 290,
       "description": "Su-25SM3",
       "faction": "eastern",
       "family": "su_25_frogfoot",
@@ -30676,14 +30676,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             10.0,
             7.06,
             2.31
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -30708,7 +30708,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 480,
+      "cost": 500,
       "description": "Stealth multirole fighter",
       "faction": "eastern",
       "family": "su_57_felon",
@@ -30839,14 +30839,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             10.9,
             7.39,
             2.96
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -30871,7 +30871,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 310,
+      "cost": 320,
       "description": "Su-27SM3",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -30980,14 +30980,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             10.92,
             7.39,
             3.18
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -31124,14 +31124,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             11.62,
             7.39,
             3.05
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -31156,7 +31156,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 390,
+      "cost": 410,
       "description": "Su-34",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -31287,14 +31287,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             10.9,
             7.65,
             2.95
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -31319,7 +31319,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 410,
+      "cost": 420,
       "description": "Su-35S",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -31419,7 +31419,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 260.0,
+            "front": 400.0,
             "rear": 70.0,
             "ricochet": {
               "front": 0.5,
@@ -31435,7 +31435,7 @@
             1.75,
             1.4
           ],
-          "hp": 135.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -31461,7 +31461,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 440,
+      "cost": 480,
       "description": "Main battle tank",
       "faction": "eastern",
       "family": "t_14_armata",
@@ -31601,7 +31601,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 300,
+      "cost": 250,
       "description": "Heavy IFV; infantry carrier",
       "faction": "eastern",
       "family": "t_15_armata",
@@ -31694,7 +31694,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 160.0,
+            "front": 340.0,
             "rear": 55.0,
             "ricochet": {
               "front": 0.5,
@@ -31710,7 +31710,7 @@
             1.795,
             1.115
           ],
-          "hp": 100.0,
+          "hp": 150.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -31736,7 +31736,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 280,
+      "cost": 260,
       "description": "T-72B3 (2016)",
       "faction": "eastern",
       "family": "t_72",
@@ -31831,7 +31831,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 190.0,
+            "front": 340.0,
             "rear": 60.0,
             "ricochet": {
               "front": 0.5,
@@ -31847,7 +31847,7 @@
             1.8015,
             1.101
           ],
-          "hp": 110.0,
+          "hp": 150.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -31873,7 +31873,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 310,
+      "cost": 300,
       "description": "T-80BVM",
       "faction": "eastern",
       "family": "t_80",
@@ -31968,7 +31968,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 220.0,
+            "front": 350.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -31984,7 +31984,7 @@
             1.89,
             1.11
           ],
-          "hp": 120.0,
+          "hp": 160.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -32010,7 +32010,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 360,
+      "cost": 350,
       "description": "T-90M Proryv",
       "faction": "eastern",
       "family": "t_90",
@@ -32205,7 +32205,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 110.0,
+            "front": 200.0,
             "rear": 35.0,
             "ricochet": {
               "front": 0.3,
@@ -32247,7 +32247,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 230,
+      "cost": 200,
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
       "family": "type_15",
@@ -32341,7 +32341,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 220.0,
+            "front": 350.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -32357,7 +32357,7 @@
             1.85,
             1.25
           ],
-          "hp": 120.0,
+          "hp": 160.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -32383,7 +32383,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 350,
       "description": "ZTZ-99A",
       "faction": "eastern",
       "family": "type_99",
@@ -32574,7 +32574,7 @@
             2.175,
             1.75
           ],
-          "hp": 120.0,
+          "hp": 150.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -32587,7 +32587,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 300,
+      "cost": 330,
       "description": "Attack helicopter",
       "faction": "eastern",
       "family": "z_10",
@@ -32696,7 +32696,7 @@
             2.19,
             1.875
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -32712,7 +32712,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 180,
+      "cost": 190,
       "description": "Utility transport",
       "faction": "eastern",
       "family": "z_20",
@@ -32841,7 +32841,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 190,
+      "cost": 180,
       "description": "Wheeled IFV; infantry carrier",
       "faction": "eastern",
       "family": "zbl_08",
@@ -32937,7 +32937,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 220,
+      "cost": 200,
       "description": "Tracked reconnaissance vehicle",
       "faction": "europe",
       "family": "ajax",
@@ -33038,7 +33038,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 150,
+      "cost": 180,
       "description": "Akeron MP; top attack, the gunner must keep sight",
       "faction": "europe",
       "family": "atgm_team",
@@ -33158,7 +33158,7 @@
             2.2,
             2.31
           ],
-          "hp": 120.0,
+          "hp": 140.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -33174,7 +33174,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 230,
+      "cost": 250,
       "description": "HC4",
       "faction": "europe",
       "family": "aw101_merlin",
@@ -33507,7 +33507,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 240,
+      "cost": 220,
       "description": "RCT30; infantry carrier",
       "faction": "europe",
       "family": "boxer",
@@ -33603,7 +33603,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 180,
+      "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "europe",
       "family": "boxer_skyranger_30",
@@ -33698,7 +33698,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 260,
+      "cost": 280,
       "description": "8×8",
       "faction": "europe",
       "family": "caesar",
@@ -33769,7 +33769,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 70.0,
+            "front": 200.0,
             "rear": 25.0,
             "ricochet": {
               "front": 0.1,
@@ -33785,7 +33785,7 @@
             1.58,
             1.6
           ],
-          "hp": 90.0,
+          "hp": 100.0,
           "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
@@ -33793,7 +33793,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 240,
+      "cost": 210,
       "description": "Wheeled 120 mm tank destroyer",
       "faction": "europe",
       "family": "centauro_ii",
@@ -33904,7 +33904,7 @@
             1.945,
             2.713
           ],
-          "hp": 120.0,
+          "hp": 140.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -33920,7 +33920,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 240,
+      "cost": 260,
       "description": "HC6",
       "faction": "europe",
       "family": "ch_47_chinook",
@@ -34021,7 +34021,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 230.0,
+            "front": 400.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -34037,7 +34037,7 @@
             2.1,
             1.245
           ],
-          "hp": 130.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -34063,7 +34063,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 390,
+      "cost": 440,
       "description": "Challenger 2 TES",
       "faction": "europe",
       "family": "challenger",
@@ -34158,7 +34158,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 250.0,
+            "front": 400.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -34174,7 +34174,7 @@
             2.1,
             1.35
           ],
-          "hp": 135.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -34209,7 +34209,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 450,
+      "cost": 490,
       "description": "Challenger 3",
       "faction": "europe",
       "family": "challenger",
@@ -34307,7 +34307,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 110.0,
+            "front": 200.0,
             "rear": 30.0,
             "ricochet": {
               "front": 0.3,
@@ -34323,7 +34323,7 @@
             1.65,
             1.25
           ],
-          "hp": 90.0,
+          "hp": 100.0,
           "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
@@ -34349,7 +34349,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 250,
+      "cost": 220,
       "description": "Light tank",
       "faction": "europe",
       "family": "cv90120",
@@ -34471,7 +34471,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 220,
+      "cost": 200,
       "description": "CV9040C; infantry carrier",
       "faction": "europe",
       "family": "cv90",
@@ -34587,7 +34587,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 260,
+      "cost": 250,
       "description": "Mk IV; infantry carrier",
       "faction": "europe",
       "family": "cv90",
@@ -34682,7 +34682,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 230,
+      "cost": 210,
       "description": "Armed reconnaissance vehicle",
       "faction": "europe",
       "family": "ebrc_jaguar",
@@ -34793,7 +34793,7 @@
             2.158,
             1.75
           ],
-          "hp": 120.0,
+          "hp": 200.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -34806,7 +34806,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 350,
+      "cost": 400,
       "description": "HAD",
       "faction": "europe",
       "family": "ec665_tiger",
@@ -34915,7 +34915,7 @@
             2.226,
             2.16
           ],
-          "hp": 120.0,
+          "hp": 200.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -34928,7 +34928,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 330,
+      "cost": 380,
       "description": "UHT",
       "faction": "europe",
       "family": "ec665_tiger",
@@ -35030,14 +35030,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.05,
             5.54,
             2.64
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -35062,7 +35062,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 410,
+      "cost": 420,
       "description": "Tranche 3",
       "faction": "europe",
       "family": "eurofighter_typhoon",
@@ -35285,7 +35285,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 200,
+      "cost": 180,
       "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
       "faction": "europe",
       "family": "gepard",
@@ -35381,7 +35381,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 290,
       "description": "IRIS-T SLM long-range air defence.",
       "faction": "europe",
       "family": "air_defense",
@@ -35461,14 +35461,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             7.6,
             4.28,
             2.25
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -35493,7 +35493,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 350,
+      "cost": 370,
       "description": "E",
       "faction": "europe",
       "family": "jas_39_gripen",
@@ -35615,7 +35615,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 260.0,
+            "front": 400.0,
             "rear": 70.0,
             "ricochet": {
               "front": 0.5,
@@ -35631,7 +35631,7 @@
             1.85,
             1.25
           ],
-          "hp": 135.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -35657,7 +35657,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 460,
+      "cost": 500,
       "description": "Prototype main battle tank",
       "faction": "europe",
       "family": "kf51_panther",
@@ -35752,7 +35752,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 220.0,
+            "front": 350.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -35768,7 +35768,7 @@
             1.8,
             1.265
           ],
-          "hp": 120.0,
+          "hp": 160.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -35794,7 +35794,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 390,
+      "cost": 370,
       "description": "XLR",
       "faction": "europe",
       "family": "leclerc",
@@ -35889,7 +35889,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 190.0,
+            "front": 340.0,
             "rear": 60.0,
             "ricochet": {
               "front": 0.5,
@@ -35905,7 +35905,7 @@
             1.875,
             1.35
           ],
-          "hp": 110.0,
+          "hp": 150.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -35931,7 +35931,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 340,
+      "cost": 310,
       "description": "2A6",
       "faction": "europe",
       "family": "leopard_2",
@@ -36026,7 +36026,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 220.0,
+            "front": 350.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -36042,7 +36042,7 @@
             1.875,
             1.415
           ],
-          "hp": 120.0,
+          "hp": 160.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -36068,7 +36068,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 390,
+      "cost": 370,
       "description": "2A7V",
       "faction": "europe",
       "family": "leopard_2",
@@ -36163,7 +36163,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 220.0,
+            "front": 400.0,
             "rear": 65.0,
             "ricochet": {
               "front": 0.5,
@@ -36179,7 +36179,7 @@
             1.875,
             1.415
           ],
-          "hp": 120.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -36214,7 +36214,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 450,
+      "cost": 490,
       "description": "2A8",
       "faction": "europe",
       "family": "leopard_2",
@@ -36402,7 +36402,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 110,
+      "cost": 120,
       "description": "Longer-range infantry",
       "faction": "europe",
       "family": "marksman_squad",
@@ -36613,7 +36613,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 340,
+      "cost": 360,
       "description": "Multiple-launch rocket system",
       "faction": "europe",
       "family": "mars_ii",
@@ -36692,14 +36692,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             7.2,
             4.57,
             2.6
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -36724,7 +36724,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 290,
+      "cost": 310,
       "description": "2000D RMV",
       "faction": "europe",
       "family": "mirage_2000",
@@ -36850,7 +36850,7 @@
         "radar_emitter": true
       },
       "concealment": 2.4,
-      "cost": 300,
+      "cost": 280,
       "description": "NASAMS 3",
       "faction": "europe",
       "family": "nasams",
@@ -36937,7 +36937,7 @@
             1.8,
             2.0
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -36953,7 +36953,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 190,
+      "cost": 200,
       "description": "TTH",
       "faction": "europe",
       "family": "nh90",
@@ -37099,7 +37099,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 260,
+      "cost": 250,
       "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "europe",
       "family": "puma",
@@ -37216,7 +37216,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 310,
+      "cost": 330,
       "description": "Tracked 155 mm howitzer",
       "faction": "europe",
       "family": "pzh_2000",
@@ -37295,14 +37295,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             7.63,
             5.46,
             2.67
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -37327,7 +37327,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 420,
+      "cost": 440,
       "description": "C F4",
       "faction": "europe",
       "family": "rafale",
@@ -37566,14 +37566,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.38,
             6.89,
             2.98
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -37710,14 +37710,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.38,
             6.89,
             2.98
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -37742,7 +37742,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 310,
+      "cost": 330,
       "description": "IDS",
       "faction": "europe",
       "family": "tornado",
@@ -37870,7 +37870,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 220,
+      "cost": 210,
       "description": "Infantry fighting vehicle",
       "faction": "europe",
       "family": "vbci",
@@ -38051,14 +38051,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             7.54,
             5.02,
             2.44
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -38083,7 +38083,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 350,
+      "cost": 370,
       "description": "F-16C Block 50",
       "faction": "us",
       "family": "f_16_fighting_falcon",
@@ -38215,14 +38215,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             7.82,
             5.36,
             2.2
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -38247,7 +38247,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 470,
+      "cost": 490,
       "description": "F-35A",
       "faction": "us",
       "family": "f_35_lightning_ii",
@@ -38377,7 +38377,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 150,
+      "cost": 180,
       "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
       "faction": "us",
       "family": "atgm_team",
@@ -38489,7 +38489,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 100,
+      "cost": 90,
       "description": "FIM-92 Stinger",
       "faction": "us",
       "family": "air_defense_team",
@@ -38773,14 +38773,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             8.26,
             8.77,
             2.23
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -38805,7 +38805,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 300,
+      "cost": 320,
       "description": "A-10C",
       "faction": "us",
       "family": "a_10_warthog",
@@ -39021,7 +39021,7 @@
             2.066,
             1.725
           ],
-          "hp": 120.0,
+          "hp": 200.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -39034,7 +39034,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 320,
+      "cost": 380,
       "description": "Attack helicopter",
       "faction": "us",
       "family": "ah_1z_viper",
@@ -39156,7 +39156,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 180,
+      "cost": 170,
       "description": "AH-6M",
       "faction": "us",
       "family": "ah_6_mh_6_little_bird",
@@ -39621,7 +39621,7 @@
             1.945,
             2.713
           ],
-          "hp": 120.0,
+          "hp": 140.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -39637,7 +39637,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 240,
+      "cost": 260,
       "description": "CH-47F",
       "faction": "us",
       "family": "ch_47_chinook",
@@ -39747,14 +39747,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             9.09,
             6.89,
             2.44
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -39891,14 +39891,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             9.75,
             6.55,
             2.82
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -39923,7 +39923,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 400,
+      "cost": 420,
       "description": "F-15E Strike Eagle",
       "faction": "us",
       "family": "f_15_eagle",
@@ -40054,14 +40054,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             9.75,
             6.55,
             2.82
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -40086,7 +40086,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 430,
+      "cost": 440,
       "description": "F-15EX Eagle II",
       "faction": "us",
       "family": "f_15_eagle",
@@ -40195,14 +40195,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             9.46,
             6.79,
             2.56
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -40336,14 +40336,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             7.82,
             5.36,
             2.19
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -40368,7 +40368,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 490,
+      "cost": 500,
       "description": "F-35B",
       "faction": "us",
       "family": "f_35_lightning_ii",
@@ -40499,14 +40499,14 @@
               "side": 0.0
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 66.0
           },
           "half_extents_m": [
             9.09,
             6.84,
             2.43
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -40531,7 +40531,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 370,
+      "cost": 390,
       "description": "F/A-18E",
       "faction": "us",
       "family": "f_a_18_super_hornet",
@@ -40827,7 +40827,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 160,
+      "cost": 150,
       "description": "LAV-25A2; infantry carrier",
       "faction": "us",
       "family": "lav",
@@ -41019,7 +41019,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 280,
+      "cost": 300,
       "description": "M109A7",
       "faction": "us",
       "family": "m109_paladin",
@@ -41089,7 +41089,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 120.0,
+            "front": 200.0,
             "rear": 35.0,
             "ricochet": {
               "front": 0.3,
@@ -41105,7 +41105,7 @@
             1.7,
             1.3
           ],
-          "hp": 95.0,
+          "hp": 100.0,
           "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
@@ -41131,7 +41131,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 240,
+      "cost": 210,
       "description": "Light tank",
       "faction": "us",
       "family": "m10_booker",
@@ -41350,7 +41350,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 180,
+      "cost": 200,
       "description": "120 mm mortar carrier",
       "faction": "us",
       "family": "m1129_stryker_mortar",
@@ -41545,7 +41545,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 300,
+      "cost": 320,
       "description": "GMLRS",
       "faction": "us",
       "family": "m142_himars",
@@ -41640,7 +41640,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 400,
+      "cost": 420,
       "description": "PrSM",
       "faction": "us",
       "family": "m142_himars",
@@ -41711,7 +41711,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 190.0,
+            "front": 340.0,
             "rear": 60.0,
             "ricochet": {
               "front": 0.5,
@@ -41727,7 +41727,7 @@
             1.83,
             1.22
           ],
-          "hp": 110.0,
+          "hp": 150.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -41753,7 +41753,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 350,
+      "cost": 320,
       "description": "SEP v2",
       "faction": "us",
       "family": "m1_abrams",
@@ -41848,7 +41848,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 190.0,
+            "front": 340.0,
             "rear": 60.0,
             "ricochet": {
               "front": 0.5,
@@ -41864,7 +41864,7 @@
             1.83,
             1.22
           ],
-          "hp": 110.0,
+          "hp": 150.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -41899,7 +41899,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 410,
+      "cost": 380,
       "description": "SEP v2 Trophy",
       "faction": "us",
       "family": "m1_abrams",
@@ -41997,7 +41997,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 190.0,
+            "front": 400.0,
             "rear": 60.0,
             "ricochet": {
               "front": 0.5,
@@ -42013,7 +42013,7 @@
             1.83,
             1.22
           ],
-          "hp": 110.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -42048,7 +42048,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 450,
+      "cost": 480,
       "description": "SEP v3 Trophy",
       "faction": "us",
       "family": "m1_abrams",
@@ -42146,7 +42146,7 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 190.0,
+            "front": 400.0,
             "rear": 60.0,
             "ricochet": {
               "front": 0.5,
@@ -42162,7 +42162,7 @@
             1.83,
             1.22
           ],
-          "hp": 110.0,
+          "hp": 200.0,
           "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
@@ -42197,7 +42197,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 460,
+      "cost": 500,
       "description": "M1E3 prototype main battle tank",
       "faction": "us",
       "family": "m1_abrams",
@@ -42319,7 +42319,7 @@
       },
       "capabilities": {},
       "concealment": 2.4,
-      "cost": 350,
+      "cost": 370,
       "description": "M270A2",
       "faction": "us",
       "family": "m270_mlrs",
@@ -42434,7 +42434,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 230,
+      "cost": 220,
       "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m2_bradley_ifv",
@@ -42555,7 +42555,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 210,
+      "cost": 200,
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m3_bradley_cfv",
@@ -42946,7 +42946,7 @@
       },
       "capabilities": {},
       "concealment": 1.0,
-      "cost": 110,
+      "cost": 120,
       "description": "M110-equipped longer-range infantry",
       "faction": "us",
       "family": "marksman_squad",
@@ -43159,7 +43159,7 @@
         "radar_emitter": true
       },
       "concealment": 2.4,
-      "cost": 360,
+      "cost": 290,
       "description": "NASAMS 3 long-range air defence.",
       "faction": "us",
       "family": "air_defense",
@@ -43256,7 +43256,7 @@
         "radar_emitter": true
       },
       "concealment": 2.8,
-      "cost": 360,
+      "cost": 330,
       "description": "Patriot PAC-3 long-range air defence.",
       "faction": "us",
       "family": "air_defense",
@@ -43333,7 +43333,7 @@
       },
       "capabilities": {},
       "concealment": 0.5,
-      "cost": 100,
+      "cost": 110,
       "description": "M107 heavy sniper team",
       "faction": "us",
       "family": "scout_snipers",
@@ -43657,7 +43657,7 @@
         }
       },
       "concealment": 2.4,
-      "cost": 200,
+      "cost": 180,
       "description": "M1296 Dragoon; infantry carrier",
       "faction": "us",
       "family": "stryker",
@@ -43753,7 +43753,7 @@
       },
       "capabilities": {},
       "concealment": 2.8,
-      "cost": 180,
+      "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "us",
       "family": "stryker_m_shorad",
@@ -43840,7 +43840,7 @@
             1.45,
             1.8
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -43856,7 +43856,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 160,
+      "cost": 170,
       "description": "Utility transport",
       "faction": "us",
       "family": "uh_1y_venom",
@@ -43973,7 +43973,7 @@
             2.19,
             1.825
           ],
-          "hp": 100.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -43989,7 +43989,7 @@
         }
       },
       "concealment": 2.8,
-      "cost": 180,
+      "cost": 190,
       "description": "UH-60M",
       "faction": "us",
       "family": "uh_60_black_hawk",
@@ -44090,12 +44090,12 @@
     "aa_ballistic": {
       "accel_mps2": null,
       "aim_s": 1.0,
-      "ammo": 300,
+      "ammo": 1200,
       "anti_radiation": false,
       "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 100.0,
+      "damage": 13.0,
       "decoyable": false,
       "default": true,
       "derived": {
@@ -44104,17 +44104,17 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 1500.0
+            "range_m": 650.0
           },
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 350.0
+            "range_m": 800.0
           },
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -44126,26 +44126,26 @@
       "lifetime_s": null,
       "magazine": {
         "burst": {
-          "aim_max_s": 1.0,
-          "rounds": 3
+          "aim_max_s": 0.3,
+          "rounds": 12
         },
-        "rounds": 30,
-        "shot_interval_s": 0.3
+        "rounds": 120,
+        "shot_interval_s": 0.1
       },
       "min_range_m": 0.0,
       "name": "Short AA gun",
-      "near_miss_suppression": 0.1,
+      "near_miss_suppression": 0.0325,
       "partial_from": 0.08,
-      "penetration": 65.0,
+      "penetration": 25.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 1500.0,
+      "range_m": 1000.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 1.0,
+      "resupply_rounds_per_s": 4.0,
       "round_cost": 1,
       "speed_mps": 600.0,
       "stationary": false,
-      "structural_damage": 8.0,
+      "structural_damage": 2.6,
       "suppression_radius_m": 6.0,
       "targets": {
         "ground": {
@@ -44153,7 +44153,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 1500.0,
+          "range_m": 650.0,
           "scatter_mrad": 6.0
         },
         "high_air": {
@@ -44162,7 +44162,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 42.0
         },
         "low_air": {
@@ -44171,7 +44171,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 350.0,
+          "range_m": 800.0,
           "scatter_mrad": 28.0
         }
       },
@@ -44187,7 +44187,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 260.0,
+      "damage": 130.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -44196,7 +44196,7 @@
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 5200.0
+            "range_m": 3000.0
           }
         ]
       },
@@ -44214,7 +44214,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 5200.0,
+      "range_m": 3000.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.03333333333333333,
@@ -44231,7 +44231,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 5200.0,
+          "range_m": 3000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -44247,7 +44247,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 120.0,
+      "damage": 70.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -44256,12 +44256,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 2600.0
+            "range_m": 2000.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 2600.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -44279,7 +44279,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 2600.0,
+      "range_m": 2000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -44296,7 +44296,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2600.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -44304,7 +44304,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2600.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -44329,7 +44329,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 900.0
+            "range_m": 750.0
           }
         ]
       },
@@ -44343,9 +44343,9 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 300.0,
-      "range_m": 900.0,
+      "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -44360,7 +44360,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 900.0,
+          "range_m": 750.0,
           "scatter_mrad": 3.43
         }
       },
@@ -44376,7 +44376,7 @@
       "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
-      "damage": 80.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -44385,7 +44385,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 900.0
+            "range_m": 750.0
           }
         ]
       },
@@ -44400,8 +44400,8 @@
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
-      "penetration": 30.0,
-      "range_m": 900.0,
+      "penetration": 20.0,
+      "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -44416,7 +44416,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 900.0,
+          "range_m": 750.0,
           "scatter_mrad": 3.43
         }
       },
@@ -44431,7 +44431,7 @@
       "anti_radiation": false,
       "appearance": "bomb",
       "armor_piercing": false,
-      "blast_radius_m": 32.0,
+      "blast_radius_m": 80.0,
       "damage": 440.0,
       "decoyable": false,
       "default": false,
@@ -44457,7 +44457,7 @@
       "name": "Iron bomb",
       "near_miss_suppression": 0.5,
       "partial_from": 0.08,
-      "penetration": 44.0,
+      "penetration": 12.0,
       "range_m": 0.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
@@ -44488,7 +44488,7 @@
       "anti_radiation": false,
       "appearance": "bomb",
       "armor_piercing": false,
-      "blast_radius_m": 16.0,
+      "blast_radius_m": 40.0,
       "damage": 220.0,
       "decoyable": false,
       "default": false,
@@ -44514,7 +44514,7 @@
       "name": "Cluster bombs",
       "near_miss_suppression": 0.5,
       "partial_from": 0.08,
-      "penetration": 60.0,
+      "penetration": 12.0,
       "range_m": 0.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
@@ -44526,7 +44526,7 @@
       "submunitions": {
         "count": 44,
         "ripple_s": 0.5,
-        "spread_m": 75.0
+        "spread_m": 90.0
       },
       "suppression_radius_m": 20.0,
       "targets": {
@@ -44563,7 +44563,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 2000.0
+            "range_m": 1200.0
           }
         ]
       },
@@ -44580,7 +44580,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 2000.0,
+      "range_m": 1200.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -44594,7 +44594,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 2000.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         }
       },
@@ -44610,7 +44610,7 @@
       "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 100.0,
+      "damage": 13.0,
       "decoyable": false,
       "default": true,
       "derived": {
@@ -44619,12 +44619,12 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 900.0
+            "range_m": 750.0
           },
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 700.0
+            "range_m": 750.0
           },
           {
             "intercepts": false,
@@ -44641,23 +44641,23 @@
       "lifetime_s": null,
       "magazine": {
         "burst": {
-          "aim_max_s": 1.0,
-          "rounds": 3
+          "aim_max_s": 0.3,
+          "rounds": 12
         },
-        "rounds": 30,
-        "shot_interval_s": 0.3
+        "rounds": 120,
+        "shot_interval_s": 0.1
       },
       "min_range_m": 0.0,
       "name": "Aircraft cannon",
-      "near_miss_suppression": 0.1,
+      "near_miss_suppression": 0.0325,
       "partial_from": 0.08,
-      "penetration": 65.0,
+      "penetration": 25.0,
       "range_m": 900.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "speed_mps": 600.0,
       "stationary": false,
-      "structural_damage": 8.0,
+      "structural_damage": 2.6,
       "suppression_radius_m": 6.0,
       "targets": {
         "ground": {
@@ -44665,7 +44665,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 900.0,
+          "range_m": 750.0,
           "scatter_mrad": 6.0
         },
         "high_air": {
@@ -44681,7 +44681,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 700.0,
+          "range_m": 750.0,
           "scatter_mrad": 24.0
         }
       },
@@ -44697,7 +44697,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 150.0,
+      "damage": 90.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -44706,12 +44706,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 3000.0
+            "range_m": 2000.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 3000.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -44729,7 +44729,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 3000.0,
+      "range_m": 2000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -44746,7 +44746,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 3000.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -44754,7 +44754,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 3000.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -44770,7 +44770,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 55.0,
+      "damage": 105.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -44832,7 +44832,7 @@
       "anti_radiation": false,
       "appearance": "artillery",
       "armor_piercing": false,
-      "blast_radius_m": 18.0,
+      "blast_radius_m": 36.0,
       "damage": 240.0,
       "decoyable": false,
       "default": false,
@@ -44842,7 +44842,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2500.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -44857,8 +44857,8 @@
       "name": "Howitzer",
       "near_miss_suppression": 0.65,
       "partial_from": 0.08,
-      "penetration": 45.0,
-      "range_m": 2500.0,
+      "penetration": 12.0,
+      "range_m": 2000.0,
       "reload_s": 7.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.05,
@@ -44873,8 +44873,8 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2500.0,
-          "scatter_mrad": 9.0
+          "range_m": 2000.0,
+          "scatter_mrad": 8.0
         }
       },
       "top_speed_mps": null,
@@ -44888,7 +44888,7 @@
       "anti_radiation": false,
       "appearance": "mortar",
       "armor_piercing": false,
-      "blast_radius_m": 15.0,
+      "blast_radius_m": 30.0,
       "damage": 180.0,
       "decoyable": false,
       "default": false,
@@ -44898,7 +44898,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 1800.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -44913,8 +44913,8 @@
       "name": "Mortar",
       "near_miss_suppression": 0.55,
       "partial_from": 0.08,
-      "penetration": 25.0,
-      "range_m": 1800.0,
+      "penetration": 10.0,
+      "range_m": 1500.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.1,
@@ -44929,8 +44929,8 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 1800.0,
-          "scatter_mrad": 13.0
+          "range_m": 1500.0,
+          "scatter_mrad": 10.0
         }
       },
       "top_speed_mps": null,
@@ -44944,7 +44944,7 @@
       "anti_radiation": false,
       "appearance": "rocket_artillery",
       "armor_piercing": false,
-      "blast_radius_m": 24.0,
+      "blast_radius_m": 40.0,
       "damage": 300.0,
       "decoyable": false,
       "default": false,
@@ -44973,7 +44973,7 @@
       "name": "Heavy rocket salvo",
       "near_miss_suppression": 0.8,
       "partial_from": 0.08,
-      "penetration": 45.0,
+      "penetration": 11.0,
       "range_m": 2500.0,
       "reload_s": 12.0,
       "requires_clear_launch_path": true,
@@ -44990,7 +44990,7 @@
             "vehicle"
           ],
           "range_m": 2500.0,
-          "scatter_mrad": 11.0
+          "scatter_mrad": 10.0
         }
       },
       "top_speed_mps": null,
@@ -45004,7 +45004,7 @@
       "anti_radiation": false,
       "appearance": "rocket_artillery",
       "armor_piercing": false,
-      "blast_radius_m": 20.0,
+      "blast_radius_m": 32.0,
       "damage": 200.0,
       "decoyable": false,
       "default": false,
@@ -45033,7 +45033,7 @@
       "name": "Rocket salvo",
       "near_miss_suppression": 0.7,
       "partial_from": 0.08,
-      "penetration": 30.0,
+      "penetration": 10.0,
       "range_m": 2200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
@@ -45050,7 +45050,7 @@
             "vehicle"
           ],
           "range_m": 2200.0,
-          "scatter_mrad": 12.0
+          "scatter_mrad": 11.0
         }
       },
       "top_speed_mps": null,
@@ -45064,7 +45064,7 @@
       "anti_radiation": false,
       "appearance": "strike_missile",
       "armor_piercing": false,
-      "blast_radius_m": 28.0,
+      "blast_radius_m": 48.0,
       "damage": 440.0,
       "decoyable": false,
       "default": false,
@@ -45089,7 +45089,7 @@
       "name": "Strike missile",
       "near_miss_suppression": 0.9,
       "partial_from": 0.08,
-      "penetration": 80.0,
+      "penetration": 9.0,
       "range_m": 2500.0,
       "reload_s": 15.0,
       "requires_clear_launch_path": true,
@@ -45106,7 +45106,7 @@
             "vehicle"
           ],
           "range_m": 2500.0,
-          "scatter_mrad": 7.0
+          "scatter_mrad": 6.0
         }
       },
       "top_speed_mps": null,
@@ -45180,7 +45180,7 @@
       "appearance": "autocannon",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 100.0,
+      "damage": 40.0,
       "decoyable": false,
       "default": true,
       "derived": {
@@ -45194,7 +45194,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 350.0
+            "range_m": 500.0
           }
         ]
       },
@@ -45216,7 +45216,7 @@
       "name": "Autocannon",
       "near_miss_suppression": 0.1,
       "partial_from": 0.08,
-      "penetration": 65.0,
+      "penetration": 25.0,
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
@@ -45240,7 +45240,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 350.0,
+          "range_m": 500.0,
           "scatter_mrad": 18.0
         }
       },
@@ -45268,7 +45268,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 650.0
+            "range_m": 850.0
           }
         ]
       },
@@ -45285,7 +45285,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 320.0,
-      "range_m": 650.0,
+      "range_m": 850.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45299,7 +45299,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 650.0,
+          "range_m": 850.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45324,12 +45324,12 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 240.0
+            "range_m": 250.0
           },
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 100.0
+            "range_m": 150.0
           }
         ]
       },
@@ -45350,9 +45350,9 @@
       "min_range_m": 0.0,
       "name": "Carbine",
       "near_miss_suppression": 0.025,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 5.0,
-      "range_m": 240.0,
+      "range_m": 250.0,
       "reload_s": 0.0,
       "requires_clear_launch_path": false,
       "speed_mps": 800.0,
@@ -45365,7 +45365,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 240.0,
+          "range_m": 250.0,
           "scatter_mrad": 10.0
         },
         "low_air": {
@@ -45373,7 +45373,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 100.0,
+          "range_m": 150.0,
           "scatter_mrad": 50.0
         }
       },
@@ -45389,7 +45389,7 @@
       "appearance": "manpads",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 260.0,
+      "damage": 50.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -45398,7 +45398,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -45416,7 +45416,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1500.0,
+      "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45431,7 +45431,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45447,7 +45447,7 @@
       "appearance": "grenade",
       "armor_piercing": false,
       "blast_radius_m": 6.0,
-      "damage": 20.0,
+      "damage": 80.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45471,7 +45471,7 @@
       "name": "Grenade",
       "near_miss_suppression": 0.15,
       "partial_from": 0.08,
-      "penetration": 20.0,
+      "penetration": 10.0,
       "range_m": 150.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": false,
@@ -45512,7 +45512,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 850.0
+            "range_m": 700.0
           }
         ]
       },
@@ -45526,9 +45526,9 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 250.0,
-      "range_m": 850.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -45543,7 +45543,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 850.0,
+          "range_m": 700.0,
           "scatter_mrad": 3.43
         }
       },
@@ -45559,7 +45559,7 @@
       "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
-      "damage": 80.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45568,7 +45568,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 850.0
+            "range_m": 700.0
           }
         ]
       },
@@ -45583,8 +45583,8 @@
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
-      "penetration": 30.0,
-      "range_m": 850.0,
+      "penetration": 20.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -45599,7 +45599,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 850.0,
+          "range_m": 700.0,
           "scatter_mrad": 3.43
         }
       },
@@ -45643,7 +45643,7 @@
       "min_range_m": 0.0,
       "name": "Heavy Sniper",
       "near_miss_suppression": 0.025,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 30.0,
       "range_m": 700.0,
       "reload_s": 2.5,
@@ -45661,7 +45661,7 @@
             "vehicle"
           ],
           "range_m": 700.0,
-          "scatter_mrad": 8.0
+          "scatter_mrad": 3.5
         },
         "low_air": {
           "classes": [
@@ -45696,7 +45696,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 1200.0
+            "range_m": 900.0
           }
         ]
       },
@@ -45713,7 +45713,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 1200.0,
+      "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45727,7 +45727,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 1200.0,
+          "range_m": 900.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45752,7 +45752,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 800.0
+            "range_m": 700.0
           }
         ]
       },
@@ -45768,7 +45768,7 @@
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
       "penetration": 25.0,
-      "range_m": 800.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -45783,7 +45783,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 800.0,
+          "range_m": 700.0,
           "scatter_mrad": 3.43
         }
       },
@@ -45808,12 +45808,12 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 400.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 200.0
+            "range_m": 300.0
           }
         ]
       },
@@ -45834,9 +45834,9 @@
       "min_range_m": 0.0,
       "name": "HMG",
       "near_miss_suppression": 0.04,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 20.0,
-      "range_m": 400.0,
+      "range_m": 500.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": false,
       "speed_mps": 800.0,
@@ -45849,7 +45849,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 400.0,
+          "range_m": 500.0,
           "scatter_mrad": 6.0
         },
         "low_air": {
@@ -45857,7 +45857,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 200.0,
+          "range_m": 300.0,
           "scatter_mrad": 24.0
         }
       },
@@ -45872,8 +45872,8 @@
       "anti_radiation": false,
       "appearance": "ifv_cannon",
       "armor_piercing": false,
-      "blast_radius_m": 12.0,
-      "damage": 65.0,
+      "blast_radius_m": 10.0,
+      "damage": 110.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45897,7 +45897,7 @@
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
-      "penetration": 25.0,
+      "penetration": 15.0,
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
@@ -45929,7 +45929,7 @@
       "appearance": "manpads",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 260.0,
+      "damage": 50.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -45938,7 +45938,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -45956,7 +45956,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1500.0,
+      "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45971,7 +45971,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45987,7 +45987,7 @@
       "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
-      "damage": 55.0,
+      "damage": 105.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45999,7 +45999,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 800.0
+            "range_m": 900.0
           }
         ]
       },
@@ -46016,7 +46016,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 200.0,
-      "range_m": 800.0,
+      "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46030,7 +46030,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 800.0,
+          "range_m": 900.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46062,7 +46062,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 950.0
+            "range_m": 900.0
           }
         ]
       },
@@ -46079,7 +46079,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 320.0,
-      "range_m": 950.0,
+      "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46093,7 +46093,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 950.0,
+          "range_m": 900.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46118,7 +46118,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 750.0
+            "range_m": 650.0
           }
         ]
       },
@@ -46132,9 +46132,9 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 170.0,
-      "range_m": 750.0,
+      "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -46149,8 +46149,8 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 750.0,
-          "scatter_mrad": 3.43
+          "range_m": 650.0,
+          "scatter_mrad": 3.7
         }
       },
       "top_speed_mps": null,
@@ -46165,7 +46165,7 @@
       "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
-      "damage": 65.0,
+      "damage": 110.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -46174,7 +46174,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 750.0
+            "range_m": 650.0
           }
         ]
       },
@@ -46189,8 +46189,8 @@
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
-      "penetration": 30.0,
-      "range_m": 750.0,
+      "penetration": 20.0,
+      "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -46205,8 +46205,8 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 750.0,
-          "scatter_mrad": 3.43
+          "range_m": 650.0,
+          "scatter_mrad": 3.7
         }
       },
       "top_speed_mps": null,
@@ -46256,7 +46256,7 @@
       "min_range_m": 0.0,
       "name": "LMG",
       "near_miss_suppression": 0.05,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 400.0,
       "reload_s": 3.5,
@@ -46306,12 +46306,12 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 450.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 100.0
+            "range_m": 150.0
           }
         ]
       },
@@ -46329,9 +46329,9 @@
       "min_range_m": 0.0,
       "name": "Marksman Rifle",
       "near_miss_suppression": 0.025,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 8.0,
-      "range_m": 450.0,
+      "range_m": 500.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 1.0,
@@ -46346,15 +46346,15 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 450.0,
-          "scatter_mrad": 8.0
+          "range_m": 500.0,
+          "scatter_mrad": 5.4
         },
         "low_air": {
           "classes": [
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 100.0,
+          "range_m": 150.0,
           "scatter_mrad": 40.0
         }
       },
@@ -46370,7 +46370,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 120.0,
+      "damage": 70.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -46379,12 +46379,12 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 2600.0
+            "range_m": 2000.0
           },
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 2600.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -46402,7 +46402,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 2600.0,
+      "range_m": 2000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46420,7 +46420,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 2600.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -46429,7 +46429,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 2600.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46445,7 +46445,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 260.0,
+      "damage": 130.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -46454,7 +46454,7 @@
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 5200.0
+            "range_m": 3000.0
           }
         ]
       },
@@ -46472,7 +46472,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 5200.0,
+      "range_m": 3000.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.03333333333333333,
@@ -46490,7 +46490,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 5200.0,
+          "range_m": 3000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46520,7 +46520,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 100.0
+            "range_m": 150.0
           }
         ]
       },
@@ -46541,7 +46541,7 @@
       "min_range_m": 0.0,
       "name": "Rifle",
       "near_miss_suppression": 0.025,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 5.0,
       "range_m": 300.0,
       "reload_s": 0.0,
@@ -46564,7 +46564,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 100.0,
+          "range_m": 150.0,
           "scatter_mrad": 40.0
         }
       },
@@ -46589,7 +46589,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 900.0
+            "range_m": 750.0
           }
         ]
       },
@@ -46608,8 +46608,8 @@
       "name": "Rocket Pod",
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
-      "penetration": 30.0,
-      "range_m": 900.0,
+      "penetration": 15.0,
+      "range_m": 750.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.5,
@@ -46624,7 +46624,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 900.0,
+          "range_m": 750.0,
           "scatter_mrad": 12.0
         }
       },
@@ -46639,8 +46639,8 @@
       "anti_radiation": false,
       "appearance": "rpg_heavy",
       "armor_piercing": false,
-      "blast_radius_m": 6.0,
-      "damage": 55.0,
+      "blast_radius_m": 4.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -46652,7 +46652,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 400.0
+            "range_m": 450.0
           }
         ]
       },
@@ -46667,8 +46667,8 @@
       "name": "RPG-29",
       "near_miss_suppression": 0.15,
       "partial_from": 0.08,
-      "penetration": 240.0,
-      "range_m": 400.0,
+      "penetration": 130.0,
+      "range_m": 450.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46682,7 +46682,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 400.0,
+          "range_m": 450.0,
           "scatter_mrad": 8.0
         }
       },
@@ -46697,8 +46697,8 @@
       "anti_radiation": false,
       "appearance": "rpg",
       "armor_piercing": false,
-      "blast_radius_m": 6.0,
-      "damage": 45.0,
+      "blast_radius_m": 4.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -46710,7 +46710,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 300.0
+            "range_m": 350.0
           }
         ]
       },
@@ -46725,8 +46725,8 @@
       "name": "RPG-7",
       "near_miss_suppression": 0.15,
       "partial_from": 0.08,
-      "penetration": 160.0,
-      "range_m": 300.0,
+      "penetration": 90.0,
+      "range_m": 350.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46740,7 +46740,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 300.0,
+          "range_m": 350.0,
           "scatter_mrad": 8.0
         }
       },
@@ -46755,8 +46755,8 @@
       "anti_radiation": false,
       "appearance": "rpg",
       "armor_piercing": false,
-      "blast_radius_m": 6.0,
-      "damage": 50.0,
+      "blast_radius_m": 8.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -46765,7 +46765,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 280.0
+            "range_m": 300.0
           }
         ]
       },
@@ -46780,8 +46780,8 @@
       "name": "RPG HE",
       "near_miss_suppression": 0.15,
       "partial_from": 0.08,
-      "penetration": 80.0,
-      "range_m": 280.0,
+      "penetration": 20.0,
+      "range_m": 300.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46796,7 +46796,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 280.0,
+          "range_m": 300.0,
           "scatter_mrad": 10.0
         }
       },
@@ -46824,7 +46824,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 6500.0
+            "range_m": 4000.0
           }
         ]
       },
@@ -46841,7 +46841,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 180.0,
-      "range_m": 6500.0,
+      "range_m": 4000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46857,7 +46857,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 6500.0,
+          "range_m": 4000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46932,7 +46932,7 @@
       "appearance": "manpads",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 260.0,
+      "damage": 50.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -46941,7 +46941,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -46959,7 +46959,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1500.0,
+      "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -46974,7 +46974,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46999,7 +46999,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 800.0
+            "range_m": 700.0
           }
         ]
       },
@@ -47013,9 +47013,9 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": 0.6,
+      "partial_from": 0.5,
       "penetration": 180.0,
-      "range_m": 800.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -47030,7 +47030,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 800.0,
+          "range_m": 700.0,
           "scatter_mrad": 3.43
         }
       },
@@ -47046,7 +47046,7 @@
       "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
-      "damage": 80.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -47055,7 +47055,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 800.0
+            "range_m": 700.0
           }
         ]
       },
@@ -47070,8 +47070,8 @@
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
-      "penetration": 30.0,
-      "range_m": 800.0,
+      "penetration": 20.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
@@ -47086,7 +47086,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 800.0,
+          "range_m": 700.0,
           "scatter_mrad": 3.43
         }
       },

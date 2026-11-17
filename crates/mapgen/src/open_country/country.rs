@@ -139,7 +139,7 @@ impl<'a> Country<'a> {
             presets,
             rules,
             size,
-            objectives: crate::skirmish::objective_clearances(plan.skirmish.as_ref()).collect(),
+            objectives: crate::skirmish::objective_clearances_in(plan).collect(),
             own_objective: None,
             network: Network::new(plan, clearance, &presets.parcels.geometry),
             towns,
