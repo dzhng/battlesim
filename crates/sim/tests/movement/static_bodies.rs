@@ -2,6 +2,68 @@
 use super::*;
 
 #[test]
+fn tracks_manoeuvre_past_a_post_without_room_for_the_whole_turn_at_once() {
+    // A post at the front corner, with a building beside the hull and a
+    // tree and parked car behind it. There is room to back and turn in
+    // stages, but nowhere on its length to make the whole turn at once.
+    let map = serde_json::json!({
+        "size": [200, 200], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35,
+        "props": [
+            { "kind": "bollard", "center": [101.187948, 96.560323], "yaw": -1.423656,
+              "half_extents": [0.15, 0.15, 0.5] },
+            { "kind": "wall", "center": [109.818586, 101.088760], "yaw": -1.423656,
+              "half_extents": [3.75, 6.5, 6.575] },
+            { "kind": "street_tree", "center": [102.907948, 105.410323], "yaw": -1.423656,
+              "half_extents": [0.35, 0.35, 5.0] },
+            { "kind": "parked_car", "center": [100.007948, 109.660323], "yaw": -1.423656,
+              "half_extents": [2.1, 0.9, 0.75] }
+        ]
+    });
+    let mut setup = common::scenario(
+        &map.to_string(),
+        serde_json::json!([{ "side": "blue", "kind": "test_tank",
+            "position": [100, 100], "yaw": -1.553578439499702 }]),
+        serde_json::json!([]),
+    );
+    let mut rules = common::scenario_rules();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        serde_json::json!({
+            "body": { "hull": { "half_extents_m": [3.275, 1.8, 1.38], "push_class": "medium" } },
+            "mobility": { "tracked": { "offroad_kmh": 28, "road_kmh": 65,
+                "turn_deg_s": 45, "reverse_speed_factor": 0.4 } }
+        }),
+    );
+    setup.rules = serde_json::from_value(rules).unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let goal = [98.2, 65.34];
+    let mut orders = Orders { seq: 0 };
+    orders.go(&mut b, &[0], goal, 1, RoutePolicy::Shortest, false);
+    let limit = 60 * b.rules().tick_hz;
+    run(&mut b, &[0], limit, |b| {
+        let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
+        assert!(
+            !b.world()
+                .props()
+                .filter(|p| p.blocks(MoverClass::Vehicle))
+                .any(|p| hull.overlaps(&p.footprint())),
+            "drove into a body at {:?}",
+            hull.center
+        );
+    });
+    let end = own(&b, 0);
+    assert!(
+        dist(xy(&end), goal) < 1.0,
+        "never manoeuvred past the post: {:?} {:?}",
+        end.position,
+        end.state
+    );
+}
+
+#[test]
 fn a_tank_routes_around_walls_and_arrives() {
     let mut b = Battle::new(
         &scenario(
