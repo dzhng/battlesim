@@ -1,5 +1,6 @@
-// A decoyable 290 m/s proximity-fused air missile on air-jet: a Buk fires on
-// a flared F-16 and an Apache without flares.
+// Decoyable proximity-fused air missiles on air-jet: dedicated launchers
+// engage a flared F-16 and an Apache without flares, so target priority cannot
+// leave either engagement unexercised.
 // The simulation's tests behind it:
 //   crates/sim/tests/air_missiles.rs::a_missile_bursts_within_its_blast_radius_of_a_passing_jet
 //   crates/sim/tests/guidance.rs::a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives
