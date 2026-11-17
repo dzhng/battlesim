@@ -90,6 +90,18 @@ impl Battle {
                 .map(|s| s.target)
                 .collect();
             let fog = &self.fog[side.index()];
+            let sees_round = |layer, point: V3| match layer {
+                AltitudeLayer::Ground => fog.visible(point.x, point.y),
+                _ => sensing::side_sees_round(
+                    &self.world,
+                    &self.rules,
+                    &self.units,
+                    &self.windows,
+                    side,
+                    point,
+                    layer,
+                ),
+            };
             let player_ids = self.player_ids.clone();
             let frame = &mut self.observations[side.index()];
             frame.tick = self.tick;
@@ -202,15 +214,24 @@ impl Battle {
                 if round.side == side {
                     frame.projectiles.push(round.whole());
                 } else {
-                    frame.projectiles.extend(clip_to_seen(fog, round));
+                    frame
+                        .projectiles
+                        .extend(clip_to_seen(round, |point| sees_round(round.layer, point)));
                 }
             }
             frame.blasts.clear();
             frame.blasts.extend(
                 self.blasts
                     .iter()
-                    .filter(|(by, b)| *by == side || fog.visible(b.point[0], b.point[1]))
-                    .map(|(_, b)| b.clone()),
+                    .filter(|b| {
+                        let at = if b.layer == AltitudeLayer::Ground {
+                            v3(b.blast.point[0], b.blast.point[1], b.blast.point[2])
+                        } else {
+                            b.sample
+                        };
+                        b.side == side || sees_round(b.layer, at)
+                    })
+                    .map(|b| b.blast.clone()),
             );
             let target_ref = |t| order_steps::target_ref(knowledge, t);
             frame.own.clear();

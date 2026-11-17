@@ -70,6 +70,13 @@ Sight into ground, low air and high air is authored independently on each unit.
 means blind. Radar emission is an independent signature read by receivers and
 anti-radiation weapons, with no sight override or body-based range table.
 
+A projectile keeps its engagement and visibility band through its flight and
+burst. The band is the higher of its launch and target bands, with indirect and
+top-attack ground fire in low air; direct ground fire, including low-arc grenades,
+stays on the ground. Air sensing reveals the projectile and its burst without
+clearing the ground beneath or identifying its launcher. Interception eligibility
+remains a separate property of the weapon row.
+
 ## Battle rules
 
 [Admission](src/admission.rs) refuses external rules before a world or battle is

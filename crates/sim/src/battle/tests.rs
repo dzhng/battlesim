@@ -333,6 +333,7 @@ fn an_enemy_round_is_clipped_to_seen_ground_leg_by_leg_keeping_its_ricochets() {
     let normal = v3(-1.0, 0.0, 0.0);
     let round = Flown {
         side: Side::Blue,
+        layer: AltitudeLayer::Ground,
         from: v3(2.0, 4.0, 1.0),
         ricochets: vec![(v3(40.0, 4.0, 1.0), normal)],
         to: v3(60.0, 4.0, 1.0),
@@ -340,7 +341,7 @@ fn an_enemy_round_is_clipped_to_seen_ground_leg_by_leg_keeping_its_ricochets() {
         shooter: None,
         hit: Some((SegmentHit::Ground, v3(0.0, 0.0, 1.0))),
     };
-    let pieces = clip_to_seen(&fog, &round);
+    let pieces = clip_to_seen(&round, |p| fog.visible(p.x, p.y));
     let paths: Vec<Vec<[f64; 3]>> = pieces.iter().map(|p| p.path.clone()).collect();
     // The first leg samples every 4.75 m: seen to 11.5, unseen at 16.25
     // and 21, seen again from 25.75 through the ricochet to the end.

@@ -23,7 +23,7 @@ or casualty knowledge. Expiry does not gain a new explosion.
 
 - [ ] Flight: reproduce stale-point circling; implement endpoint layers and
   one-attempt guidance, with regression tests written first.
-- [ ] Visibility (independent of flight internals): preserve layer evidence
+- [x] Visibility (independent of flight internals): preserve layer evidence
   through paths and bursts; use it for side publication and missile warnings.
 - [ ] Integrate: focused simulation checks, deterministic replay, actual visual
   evidence, and the complete repository closeout checks once.
@@ -55,6 +55,9 @@ Implement the two independent passes above, then integrate and verify the whole
 feature. Read development.md and the simulation README. Preserve every contract
 above, keep meaningful new product choices explicit, and record implementation
 decisions in decisions.md. The behavior-preserving battle-module split passed
-all 19 authority tests and independent diff review; visibility is the next local
-pass while the delegated flight pass continues. The source exploration map
+all 19 authority tests and independent diff review. Visibility has red/green
+proof for airborne flight and ground impacts, blind bands, same-tick round
+removal and incoming warnings. All 201 sim unit tests and 41 shout tests pass;
+independent review found no actionable defects. Integrate the delegated flight
+pass next, then complete combined checks and visual evidence. The source exploration map
 is in throwaway/projectile-flight-map.md in the initiating checkout.

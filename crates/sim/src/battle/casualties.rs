@@ -84,14 +84,16 @@ impl Battle {
             &mut self.damage_rng,
         );
         let side = self.units[crash.unit.0 as usize].side;
-        self.blasts.push((
+        self.blasts.push(Burst {
             side,
-            Blast {
+            layer: AltitudeLayer::Ground,
+            sample: at,
+            blast: Blast {
                 point: xyz(at),
                 radius: def.blast_radius_m,
                 kind: weapon,
             },
-        ));
+        });
         let fallen_before: BTreeSet<PropId> = self.fallen.keys().copied().collect();
         self.consequences(outcome);
         self.ground

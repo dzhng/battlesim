@@ -3,7 +3,7 @@
 
 use super::*;
 
-/// Enemy round flight is shown only over seen ground, sampled this finely.
+/// Enemy round flight is sampled this finely against side visibility.
 const SEGMENT_SAMPLES: usize = 8;
 
 /// One round's flight this tick, for the animation feed: presentation data
@@ -11,6 +11,7 @@ const SEGMENT_SAMPLES: usize = 8;
 #[derive(Clone, Debug)]
 pub(super) struct Flown {
     pub(super) side: Side,
+    pub(super) layer: AltitudeLayer,
     pub(super) from: V3,
     /// Where it glanced off hulls on the way, in order, with the outward
     /// normal there.
@@ -21,6 +22,14 @@ pub(super) struct Flown {
     pub(super) shooter: Option<u32>,
     /// What it struck at `to`, and the outward normal there.
     pub(super) hit: Option<(SegmentHit, V3)>,
+}
+
+/// A detonation retains the round's band after flight consumes the round.
+pub(super) struct Burst {
+    pub(super) side: Side,
+    pub(super) layer: AltitudeLayer,
+    pub(super) blast: Blast,
+    pub(super) sample: V3,
 }
 
 /// What a round struck, as its segment shows it: a body's id says whether
@@ -80,13 +89,15 @@ struct Piece {
     pub(super) ricochets: Vec<(usize, V3)>,
 }
 
-/// The parts of a round's flight over ground `fog` shows as seen, leg by leg
-/// between its ricochets.
-pub(super) fn clip_to_seen(fog: &VisibilityField, round: &Flown) -> Vec<VisibleSegment> {
+/// The parts of a round's flight this side sees, leg by leg between ricochets.
+pub(super) fn clip_to_seen(
+    round: &Flown,
+    mut visible: impl FnMut(V3) -> bool,
+) -> Vec<VisibleSegment> {
     let corners: Vec<V3> = round.corners().collect();
     let legs = corners.len() - 1;
     // Runs of seen samples, each ending at its last seen sample: a drawn
-    // stretch never reaches over unseen ground. A run keeps each ricochet it
+    // stretch never reaches over an unseen interval. A run keeps each ricochet it
     // passes as a corner; along a leg only its latest sample (`tail`)
     // matters. An impact shows only if the struck point itself is seen.
     let mut out = Vec::new();
@@ -96,7 +107,11 @@ pub(super) fn clip_to_seen(fog: &VisibilityField, round: &Flown) -> Vec<VisibleS
         for k in (leg.min(1))..=SEGMENT_SAMPLES {
             let p = a + (b - a) * (k as f64 / SEGMENT_SAMPLES as f64);
             let end = leg + 1 == legs && k == SEGMENT_SAMPLES;
-            let seen = fog.visible(p.x, p.y);
+            let sample = round
+                .hit
+                .filter(|_| end && round.layer != AltitudeLayer::Ground)
+                .map_or(p, |(_, normal)| damage::blast_origin(p, normal));
+            let seen = visible(sample);
             if seen {
                 let (piece, tail) = run.get_or_insert_with(Default::default);
                 let ricochet = (k == SEGMENT_SAMPLES && !end).then(|| round.ricochets[leg].1);
@@ -179,7 +194,12 @@ impl Battle {
                             radius: self.arsenal.weapons[round.weapon].def.blast_radius_m,
                             kind: round.weapon,
                         };
-                        self.blasts.push((round.side, blast));
+                        self.blasts.push(Burst {
+                            side: round.side,
+                            layer: round.layer,
+                            blast,
+                            sample: damage::blast_origin(i.point, i.normal),
+                        });
                     }
                 }
                 // Events come in time order, so each round's ricochets do too.
@@ -200,6 +220,7 @@ impl Battle {
             if let (Some(&to), Some(round)) = (ends.get(&id), self.rounds.get(&id)) {
                 self.segments.push(Flown {
                     side: round.side,
+                    layer: round.layer,
                     from,
                     ricochets: ricochets.remove(&id).unwrap_or_default(),
                     to,
@@ -235,7 +256,7 @@ impl Battle {
             &self.rules,
         );
         // Each burst marks the ground after it has done its damage.
-        for (_, blast) in &self.blasts {
+        for Burst { blast, .. } in &self.blasts {
             let [x, y, z] = blast.point;
             self.ground
                 .burst(&self.world, v3(x, y, z), blast.radius, &self.rules.ground);

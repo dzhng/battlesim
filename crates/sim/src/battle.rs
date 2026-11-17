@@ -81,7 +81,7 @@ use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_B
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
 pub use fire::Round;
-use flown::{clip_to_seen, Flown};
+use flown::{clip_to_seen, Burst, Flown};
 use replay_identity::{config_digest, scenario_digest};
 use spawn::spawn_unit;
 
@@ -225,8 +225,8 @@ pub struct Battle {
     flight_events: Vec<FlightEvent>,
     /// This tick's flown stretch per round.
     segments: Vec<Flown>,
-    /// This tick's bursts, by firing side.
-    blasts: Vec<(Side, Blast)>,
+    /// This tick's bursts, with the round's side and visibility band.
+    blasts: Vec<Burst>,
     next_seq: [u64; 3],
     order_bucket: [(u64, Tick); 3],
     player_next_seq: Vec<u64>,
