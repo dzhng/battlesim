@@ -29,7 +29,19 @@ async function controls(ctx, page, side) {
     (await forbidden.count()) === 0,
   );
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  ctx.check(`${side}: settings offer no speed or replay export`, (await forbidden.count()) === 0);
+  // A seated player may save the live battle's replay (both sides' orders,
+  // as the server's replay export gives them); the authority's own controls
+  // stay offline-only.
+  const authority = page
+    .getByRole("button", { name: /^(?:pause|resume|restart)\b|speed/i })
+    .or(page.getByRole("slider", { name: /speed/i }))
+    .or(page.getByRole("spinbutton", { name: /speed/i }))
+    .or(page.getByRole("combobox", { name: /speed/i }));
+  ctx.check(
+    `${side}: settings offer Save replay, and no pause, restart or speed`,
+    (await authority.count()) === 0 &&
+      (await page.getByRole("button", { name: "Save replay", exact: true }).count()) === 1,
+  );
   await page.getByRole("button", { name: "Close settings", exact: true }).click();
   await page.waitForFunction((tick) => window.__lab.route.tick() > tick, before);
   ctx.check(
