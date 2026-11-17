@@ -58,6 +58,277 @@ fn ground(b: &Battle, id: UnitId) -> f64 {
     b.world().height_at(p.x, p.y).unwrap()
 }
 
+fn set_up(b: &mut Battle) {
+    let (setup, _, _) = timing(b);
+    for _ in 0..setup {
+        b.step();
+    }
+    assert!(b.unit(HELI).unwrap().landed());
+}
+
+fn quiet_fixture() -> Value {
+    let mut rules = fixture();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply_heli",
+        json!({"body":{"hull":{"hp":10000.0}}}),
+    );
+    rules
+}
+
+fn shots(b: &Battle, unit: u32, mount: &str) -> u32 {
+    let u = b.unit(UnitId(unit)).unwrap();
+    b.rules()
+        .catalog
+        .mounts(u.kind)
+        .iter()
+        .zip(&u.mounts)
+        .filter(|(spec, _)| spec.def.id == mount)
+        .map(|(_, m)| m.shots)
+        .sum()
+}
+
+#[test]
+fn landed_a_ground_gun_engages_it_and_an_air_only_weapon_does_not() {
+    let mut b = battle_with(
+        &quiet_fixture(),
+        open_map(),
+        json!([
+            json!({"side":"blue","kind":"test_supply_heli","position":[200,200]}),
+            json!({"side":"red","kind":"test_tank","position":[230,200]}),
+            json!({"side":"red","kind":"test_aa","position":[230,220]})
+        ]),
+    );
+    set_up(&mut b);
+    for _ in 0..3 * b.rules().tick_hz {
+        b.step();
+    }
+    assert!(
+        shots(&b, 1, "cannon") > 0,
+        "tank mounts: {:?}",
+        b.unit(UnitId(1)).unwrap().mounts
+    );
+    assert_eq!(shots(&b, 2, "AA launcher"), 0);
+}
+
+#[test]
+fn once_packed_the_air_only_weapon_engages_and_the_ground_gun_does_not() {
+    let mut b = battle_with(
+        &quiet_fixture(),
+        open_map(),
+        json!([
+            json!({"side":"blue","kind":"test_supply_heli","position":[200,200]}),
+            json!({"side":"red","kind":"test_tank","position":[230,200]}),
+            json!({"side":"red","kind":"test_aa","position":[230,220]})
+        ]),
+    );
+    set_up(&mut b);
+    deploy(&mut b, false);
+    let (_, pack, _) = timing(&b);
+    for _ in 0..pack + 3 * b.rules().tick_hz as u64 {
+        b.step();
+    }
+    assert!(!b.unit(HELI).unwrap().landed());
+    assert!(
+        b.unit(UnitId(2))
+            .unwrap()
+            .mounts
+            .iter()
+            .any(|m| m.shots > 0),
+        "aa mounts: {:?}",
+        b.unit(UnitId(2)).unwrap().mounts
+    );
+}
+
+#[test]
+fn a_ground_mover_routes_round_a_landed_heli() {
+    let mut b = battle(json!([
+        json!({"side":"blue","kind":"test_jeep","position":[170,200]})
+    ]));
+    set_up(&mut b);
+    assert_eq!(b.accept(order(&[1], [250.0, 200.0])).error, None);
+    b.step();
+    for _ in 0..10 * b.rules().tick_hz {
+        b.step();
+    }
+    let jeep = b.unit(UnitId(1)).unwrap();
+    assert!(
+        (jeep.position.y - 200.0).abs() > 1e-3
+            || jeep
+                .route
+                .as_ref()
+                .is_some_and(|r| r.iter().any(|p| (p.y - 200.0).abs() > 1e-3)),
+        "jeep: {jeep:?}"
+    );
+}
+
+#[test]
+fn a_landed_heli_is_never_shoved_and_fells_no_trees() {
+    let map = json!({
+        "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "forests": [{"shape":{"kind":"polygon","ring":[[180,180],[220,180],[220,220],[180,220]]}}]
+    });
+    let mut b = battle_with(
+        &fixture(),
+        map,
+        json!([json!({"side":"blue","kind":"test_supply_heli","position":[200,200]})]),
+    );
+    set_up(&mut b);
+    let at = b.unit(HELI).unwrap().position.xy();
+    assert!(b.unit(HELI).unwrap().ground_footprint().is_some());
+    for _ in 0..b.rules().tick_hz {
+        b.step();
+    }
+    assert_eq!(b.unit(HELI).unwrap().position.xy(), at);
+    assert!(b.world().forest_near(at, 20.0));
+}
+
+#[test]
+fn landed_it_takes_forest_and_smoke_concealment() {
+    let map = json!({
+        "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "forests": [{"shape":{"kind":"polygon","ring":[[180,180],[220,180],[220,220],[180,220]]}}]
+    });
+    let mut b = battle_with(
+        &fixture(),
+        map,
+        json!([
+            json!({"side":"blue","kind":"test_supply_heli","position":[200,200]}),
+            json!({"side":"blue","kind":"test_smoke_squad","position":[200,200]}),
+            json!({"side":"red","kind":"test_rifle","position":[260,200],"engagement":"return_fire_only"})
+        ]),
+    );
+    set_up(&mut b);
+    assert_eq!(
+        b.unit(HELI).unwrap().layer(),
+        contract::catalog::AltitudeLayer::Ground
+    );
+    assert_eq!(
+        b.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq: 1,
+            order: Order::PopSmoke {
+                units: vec![UnitId(1)]
+            },
+            queued: false
+        })
+        .error,
+        None
+    );
+    b.step();
+    assert!(b.unit(HELI).unwrap().ground_footprint().is_some());
+    assert!(b.world().smoke_concealment(200.0, 200.0) < 1.0);
+}
+
+#[test]
+fn killed_landed_it_leaves_a_ground_wreck_and_no_crash_blast() {
+    let mut fixture = fixture();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_supply_heli",
+        json!({"body":{"hull":{"hp":1.0}}}),
+    );
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            json!({"side":"blue","kind":"test_supply_heli","position":[200,200]}),
+            json!({"side":"red","kind":"test_tank","position":[300,200],"engagement":"return_fire_only"})
+        ]),
+    );
+    set_up(&mut b);
+    for _ in 0..10 * b.rules().tick_hz {
+        b.step();
+        if !b.unit(HELI).unwrap().alive() {
+            break;
+        }
+    }
+    assert!(!b.unit(HELI).unwrap().alive());
+    assert!(b.crashes().is_empty());
+    assert!(b
+        .world()
+        .props()
+        .any(|p| p.wreck_of == Some(b.unit(HELI).unwrap().kind)));
+}
+
+#[test]
+fn killed_in_the_drop_it_crashes() {
+    let mut fixture = fixture();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_supply_heli",
+        json!({"body":{"hull":{"hp":1.0}},"capabilities":{"deploy":{"seconds":10,"drop_seconds":8}}}),
+    );
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            json!({"side":"blue","kind":"test_supply_heli","position":[200,200],"engagement":"return_fire_only"}),
+            json!({"side":"red","kind":"test_jeep","position":[300,200]})
+        ]),
+    );
+    b.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        order: Order::SetDeployment {
+            units: vec![HELI],
+            deployed: true,
+        },
+        queued: false,
+    });
+    for _ in 0..10 * b.rules().tick_hz {
+        b.step();
+        if !b.crashes().is_empty() {
+            break;
+        }
+    }
+    assert!(
+        !b.crashes().is_empty(),
+        "heli={:?} aa={:?} tick={}",
+        b.unit(HELI).unwrap(),
+        b.unit(UnitId(1)).unwrap(),
+        b.tick()
+    );
+}
+
+#[test]
+fn its_door_guns_fire_while_landed() {
+    let mut b = battle(json!([
+        json!({"side":"red","kind":"test_jeep","position":[230,200]})
+    ]));
+    set_up(&mut b);
+    for _ in 0..2 * b.rules().tick_hz {
+        b.step();
+    }
+    assert!(shots(&b, 0, "HMG") > 0);
+}
+
+#[test]
+fn a_packed_heli_never_reaches_ground_movement() {
+    let mut b = battle(json!([
+        json!({"side":"blue","kind":"test_jeep","position":[250,200]})
+    ]));
+    assert_eq!(b.accept(order(&[0], [500.0, 200.0])).error, None);
+    b.step();
+    assert!(b.unit(HELI).unwrap().airborne());
+    let mut landed = battle(json!([]));
+    set_up(&mut landed);
+    deploy(&mut landed, false);
+    let mut move_order = order(&[0], [500.0, 200.0]);
+    move_order.seq = 2;
+    assert_eq!(landed.accept(move_order).error, None);
+    let (_, pack, _) = timing(&landed);
+    for _ in 0..pack {
+        landed.step();
+    }
+    assert!(!landed.unit(HELI).unwrap().landed());
+}
+
 #[test]
 fn it_brakes_to_a_hover_before_it_starts_to_land() {
     let mut b = battle(json!([]));

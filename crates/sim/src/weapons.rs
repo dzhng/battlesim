@@ -333,7 +333,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 current: track.last_seen == ctx.tick,
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
-                class: Some(unit.unit_type(ctx.rules).target_class()),
+                class: Some(unit.target_class(ctx.rules)),
                 emits: unit.unit_type(ctx.rules).capabilities.radar_emitter,
             })
         }
@@ -598,10 +598,7 @@ fn return_fire_threat(
                 && distance >= weapon.def.min_range_m
                 && weapon
                     .def
-                    .engages(
-                        shooter.layer(),
-                        Some(shooter.unit_type(ctx.rules).target_class()),
-                    )
+                    .engages(shooter.layer(), Some(shooter.target_class(ctx.rules)))
                     .is_some_and(|fire| distance <= fire.range_m)
                 && (weapon.profile.turn_rad_s.is_none()
                     || (ctx.world.sight_clear(eye, target)
@@ -648,7 +645,7 @@ fn select(
     // What a loaded seeker row engages comes first: a seeker is carried
     // for those targets.
     let seeker_target = |target: &Unit| {
-        let class = target.unit_type(ctx.rules).target_class();
+        let class = target.target_class(ctx.rules);
         spec.kinds.iter().enumerate().any(|(slot, &kind)| {
             let def = &weapons[kind].def;
             mount.has_rounds(slot)
@@ -740,11 +737,8 @@ fn share_through(
         .filter(|&k| mount.has_rounds(k))
         .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
         .filter(|def| {
-            def.engages(
-                target.layer(),
-                Some(target.unit_type(ctx.rules).target_class()),
-            )
-            .is_some()
+            def.engages(target.layer(), Some(target.target_class(ctx.rules)))
+                .is_some()
         })
         .map(|def| damage_share(def, armor, ctx.rules))
         .fold(0.0, f64::max)
@@ -761,7 +755,7 @@ fn compatible(
     let (armor, layer, class) = match target {
         Target::Unit(u) => {
             let unit = &units[u.0 as usize];
-            let class = unit.unit_type(ctx.rules).target_class();
+            let class = unit.target_class(ctx.rules);
             (
                 Some(unit.armor(ctx.rules).copied()),
                 unit.layer(),

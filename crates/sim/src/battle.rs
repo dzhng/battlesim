@@ -1824,28 +1824,6 @@ impl Battle {
         }
     }
 
-    /// Where every walking soldier and every vehicle track touches the ground,
-    /// in unit order: the same list before and after movement.
-    fn treads(&self) -> Vec<(V2, Wear)> {
-        let mut out = Vec::new();
-        for unit in self
-            .units
-            .iter()
-            .filter(|u| u.on_field() && !u.garrisoned() && !u.airborne())
-        {
-            match unit.hull {
-                Some(half) => {
-                    let side = v2(0.0, half.y * self.rules.ground.track_gauge).rotated(unit.yaw);
-                    let c = unit.position.xy();
-                    out.push((c + side, Wear::Tracks));
-                    out.push((c - side, Wear::Tracks));
-                }
-                None => out.extend(unit.member_positions().map(|p| (p.xy(), Wear::Trampled))),
-            }
-        }
-        out
-    }
-
     /// The opponent reads its side's fresh observation and commands through
     /// the same path as a player; its commands are recorded, so a replay
     /// replays them and never reruns it. Its memory is outside the digest:
@@ -2190,7 +2168,8 @@ impl Battle {
                 }
             }
             // A downed aircraft falls first; its wreck lies where it lands.
-            if let Some(air) = unit.air {
+            if unit.airborne() {
+                let air = unit.air.expect("an airborne unit has flight state");
                 self.crashes.push(crate::crash::Crash::new(
                     id,
                     unit.position,

@@ -127,7 +127,7 @@ pub(crate) fn advance(
             continue;
         }
         // Aircraft plan their own routes as they fly (`air`).
-        if unit.airborne() {
+        if unit.flies() {
             continue;
         }
         let s = unit.side.index();
@@ -153,7 +153,7 @@ pub(crate) fn advance(
         if !units[i].on_field() {
             continue;
         }
-        if units[i].airborne() {
+        if units[i].flies() {
             // The flight model picks the flight law, never the layer.
             if units[i].fixed_wing() {
                 crate::air::step_fixed_wing(ctx, &mut units[i]);
@@ -326,8 +326,10 @@ fn request_route(
                         ROUTE_RECHECK_REACH_M,
                     )
                     && {
-                        let weighs =
-                            side.reweighs(unit.planned_revision, push::pressed(ctx.world, unit));
+                        let weighs = side.reweighs(
+                            unit.planned_revision,
+                            push::pressed(ctx.world, ctx.rules, unit),
+                        );
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, unit.ground())
                             || grid.route_pushes_where(from, route, unit.ground(), swerve, &weighs)
@@ -675,7 +677,7 @@ fn arrive(unit: &mut Unit) {
         // at rest; wheels drove in along it as far as they could (`line_up`).
         match m.facing {
             Some(f) if !unit.is_vehicle() => unit.yaw = f,
-            Some(f) if unit.airborne() || unit.ground().drive.is_some_and(|d| d.tracked) => {
+            Some(f) if unit.flies() || unit.ground().drive.is_some_and(|d| d.tracked) => {
                 unit.turn_to = Some(f)
             }
             _ => {}

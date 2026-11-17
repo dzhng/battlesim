@@ -3,6 +3,7 @@ import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
 
 const unit = (o, id) => o.own.find((u) => u.id === id);
+const seen = (o, id) => o.identified.find((u) => u.id === id);
 
 /** The supply rows a recipient's panel can carry. */
 const SUPPLY_ROWS = ["resupplying"];
@@ -159,6 +160,8 @@ export async function run(ctx) {
   await frame(ctx, page, "relocating", [250, 230]);
 
   await runHeli(ctx);
+  await runHeliFire(ctx);
+  await runHeliGround(ctx);
 }
 
 /** The `?variant=heli` supply route: the same recipients with a landed,
@@ -210,4 +213,91 @@ async function runHeli(ctx) {
     unit(o, 0)?.deployment?.progress === 0 && after[2] > before[2] && after[0] > before[0],
     JSON.stringify({ before, after, deployment: unit(o, 0)?.deployment }),
   );
+}
+
+/** The `?variant=heli-fire` route: the tank's ground gun opens only after
+ * touchdown, then the AA team takes over when the helicopter lifts. */
+async function runHeliFire(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "heli-fire");
+  const page = await openBattle(ctx, { url: url.href });
+  await advance(page, 180);
+  let o = await obs(page);
+  const tank = seen(o, 1);
+  const aa = seen(o, 2);
+  ctx.check(
+    "heli-fire: the tank fires at the landed heli while AA holds",
+    (tank?.weaponPoses ?? []).some((p) => p.shots > 0) &&
+      !(aa?.weaponPoses ?? []).some((p) => p.shots > 0),
+    JSON.stringify({ tank, aa }),
+  );
+  await frame(ctx, page, "heli-fire-landed", [180, 200]);
+  const shotsOf = (u) => (u?.weaponPoses ?? []).reduce((n, p) => n + p.shots, 0);
+  // The tank's main gun (its first mount) engages only ground targets.
+  const gunShots = (u) => u?.weaponPoses?.[0]?.shots ?? 0;
+  const tankGunBefore = gunShots(seen(o, 1));
+  const aaBefore = shotsOf(seen(o, 2));
+  await lab(page, () => window.__lab.route.demo("Heli: lift off"));
+  // Packing takes its pack time on the ground; then it is an aircraft again.
+  await advance(page, 140);
+  o = await obs(page);
+  ctx.check(
+    "heli-fire: once it lifts, the AA team fires and the tank's gun stops",
+    unit(o, 0)?.position[2] > 1 &&
+      shotsOf(seen(o, 2)) > aaBefore &&
+      gunShots(seen(o, 1)) === tankGunBefore,
+    JSON.stringify({
+      heli: unit(o, 0)?.position,
+      tankGunBefore,
+      tankGun: gunShots(seen(o, 1)),
+      aaBefore,
+      aa: shotsOf(seen(o, 2)),
+    }),
+  );
+  await frame(ctx, page, "heli-fire-airborne", [180, 200]);
+}
+
+/** The `?variant=heli-ground` route: a jeep detours around the landed
+ * helicopter, while the observation records a ground wreck and a crash. */
+async function runHeliGround(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "heli-ground");
+  const page = await openBattle(ctx, { url: url.href });
+  // The jeep drives the lane the heli landed on; it must go round the hull,
+  // never through it (the heli lands facing along the lane).
+  let overlapped = null;
+  let passed = false;
+  let wrecked = null;
+  let crashed = null;
+  for (let t = 0; t < 1800 && (!wrecked || !crashed || !passed); t += 5) {
+    await advance(page, 5);
+    const o = await obs(page);
+    const heli = unit(o, 0);
+    const jeep = unit(o, 1);
+    if (heli && jeep && heli.position[2] < 0.5) {
+      const dx = Math.abs(jeep.position[0] - heli.position[0]);
+      const dy = Math.abs(jeep.position[1] - heli.position[1]);
+      // The jeep's centre never enters the heli's hull.
+      if (dx < 7 && dy < 1.2) overlapped ??= { heli: heli.position, jeep: jeep.position };
+      if (jeep.position[0] > heli.position[0] + 20) passed = true;
+    }
+    wrecked ||= o.knownProps.some((p) => p.wreckOf === "test_supply_heli") ? o : null;
+    crashed ||= (o.crashes ?? []).length > 0 ? o : null;
+  }
+  ctx.check(
+    "heli-ground: the jeep drives round the landed heli, never through it",
+    passed && !overlapped,
+    JSON.stringify({ passed, overlapped }),
+  );
+  ctx.check(
+    "heli-ground: killed on the ground it leaves a wreck, not a crash",
+    !!wrecked && !(wrecked.crashes ?? []).some((c) => c.id === 0),
+    JSON.stringify({ crashes: wrecked?.crashes ?? null }),
+  );
+  ctx.check(
+    "heli-ground: killed in the drop it crashes",
+    !!crashed && crashed.crashes.some((c) => c.id === 2),
+    JSON.stringify({ crashes: crashed?.crashes ?? [] }),
+  );
+  await frame(ctx, page, "heli-ground-wrecks", [300, 200]);
 }

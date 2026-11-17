@@ -24,3 +24,14 @@ against the shipped code at closeout (slice 11).
 | Adding `test_supply_heli` renumbers the test catalog's type indices. Three paired-record fixtures (`scenario-overrides`, `publication/stream`, `publication/contact-lifecycle`) were re-blessed. Their digests first diverge at the first sighting, because contacts fold the type index. Codex had instead added a filter that dropped the new row from those tests' catalogs, which is a compatibility shim; it was removed. | Sound; a named re-bless, no outcome change. |
 | The lab lists each supplier by its type's name, not by a kind-id string. | Sound; no presentation keyed on an id. |
 | The heli variant's camera frames the landing point and the recipients at 150 m. | Reversible; judged from the scene frames. |
+
+## Slice 03
+
+| Choice | Verdict |
+|---|---|
+| Carriage keeps `airborne()` for its loading-height test; a landed carrier would board as a ground carrier. No supply heli carries, so this never fires today. | Sound; the honest reading of "in the air now". |
+| `Unit::push_class(rules)` reads the hull's authored push class for every unit, ground units included, so tree-felling and pressed bodies read one owner. It is the same value `Mobility.push` held, so digests are unchanged. | Sound. |
+| Slice 01's in-test flying supplier gained `drop_seconds`, since slice 02's catalog rule requires one. Slice 02 had left that test red, and this pass caught it. | Sound; process note: run the sim lib tests after a catalog rule change. |
+| The `heli-fire` encounter overrides `test_supply_heli`'s hull hp to 5000, a lab-only durable airframe, so the demo shows both phases without the tank killing it first. | Sound; lab staging, not game data. |
+| Scene checks rewritten to assert the behaviour. Codex's versions would pass even with the heli dead, or without the jeep passing. Now: the tank's main gun stops after lift-off while the AA team fires; the jeep passes without its centre entering the heli's hull. | Sound. |
+| The `heli-fire` and `heli-ground` variants use the truck's wide camera. | Reversible. |

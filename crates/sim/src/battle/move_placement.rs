@@ -112,7 +112,7 @@ impl Battle {
             .copied()
             .filter(|id| {
                 let u = &self.units[id.0 as usize];
-                !u.airborne()
+                !u.flies()
                     && grid
                         .destination_point(
                             v2(goal[0], goal[1]),
@@ -136,7 +136,7 @@ impl Battle {
                 }
                 let u = &self.units[id.0 as usize];
                 // An aircraft hovers over its point, whatever stands there.
-                if u.airborne() {
+                if u.flies() {
                     shorts.borrow_mut().insert(id, (p, None));
                     return Some(p);
                 }

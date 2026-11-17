@@ -499,7 +499,7 @@ pub fn final_yaw(
     direction: MoveDirection,
 ) -> Option<f64> {
     // Tracks and rotors turn on the spot, so they end facing as ordered.
-    let pivots = unit.airborne() || unit.ground().drive.is_some_and(|d| d.tracked);
+    let pivots = unit.flies() || unit.ground().drive.is_some_and(|d| d.tracked);
     if let Some(f) = facing.filter(|_| pivots || !unit.is_vehicle()) {
         return Some(f);
     }
@@ -671,6 +671,9 @@ pub fn death_roll(
 ) -> V2 {
     const STEP_M: f64 = 0.25;
     let at = unit.position.xy();
+    if unit.landed() {
+        return at;
+    }
     let Some(here) = unit.ground_footprint() else {
         return at;
     };

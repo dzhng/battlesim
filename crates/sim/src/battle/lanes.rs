@@ -1,5 +1,5 @@
-//! Lanes through forest: a hull that knocks trees down leaves open ground
-//! behind it.
+//! What hulls and feet leave on the ground: the treads that wear it, and the
+//! lanes a hull that knocks trees down leaves through forest.
 use super::*;
 
 impl Battle {
@@ -15,7 +15,7 @@ impl Battle {
             let (Some(hull), Some(h)) = (u.ground_footprint(), u.hull) else {
                 continue;
             };
-            let knocks = tree.topples && u.ground().push.pushes(tree.weight_class);
+            let knocks = tree.topples && u.push_class(&self.rules).pushes(tree.weight_class);
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }
@@ -36,5 +36,27 @@ impl Battle {
                 self.ground.clear(cell);
             }
         }
+    }
+
+    /// Where every walking soldier and every vehicle track touches the ground,
+    /// in unit order: the same list before and after movement.
+    pub(super) fn treads(&self) -> Vec<(V2, Wear)> {
+        let mut out = Vec::new();
+        for unit in self
+            .units
+            .iter()
+            .filter(|u| u.on_field() && !u.garrisoned() && !u.airborne())
+        {
+            match unit.hull {
+                Some(half) => {
+                    let side = v2(0.0, half.y * self.rules.ground.track_gauge).rotated(unit.yaw);
+                    let c = unit.position.xy();
+                    out.push((c + side, Wear::Tracks));
+                    out.push((c - side, Wear::Tracks));
+                }
+                None => out.extend(unit.member_positions().map(|p| (p.xy(), Wear::Trampled))),
+            }
+        }
+        out
     }
 }

@@ -1,0 +1,80 @@
+{
+  "units": [
+    {
+      "side": "blue",
+      "kind": "test_supply_heli",
+      "position": [
+        180,
+        200
+      ],
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "test_tank",
+      "position": [
+        260,
+        200
+      ],
+      "yaw": 3.141592653589793,
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "test_aa",
+      "position": [
+        260,
+        240
+      ],
+      "yaw": 3.141592653589793,
+      "engagement": "return_fire_only"
+    }
+  ],
+  "events": [],
+  "scripts": [
+    {
+      "tick": 110,
+      "side": "red",
+      "order": {
+        "kind": "set_engagement",
+        "units": [
+          1
+        ],
+        "policy": "fire_at_will"
+      }
+    },
+    {
+      "tick": 190,
+      "side": "red",
+      "order": {
+        "kind": "set_engagement",
+        "units": [
+          1
+        ],
+        "policy": "return_fire_only"
+      }
+    },
+    {
+      "tick": 200,
+      "side": "red",
+      "order": {
+        "kind": "set_engagement",
+        "units": [
+          2
+        ],
+        "policy": "fire_at_will"
+      }
+    }
+  ],
+  "overrides": {
+    "units": {
+      "test_supply_heli": {
+        "body": {
+          "hull": {
+            "hp": 5000
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Supply helicopter
 
-**Status:** slices 01–02 done; slice 03 next. **Updated:** 2026-11-17.
+**Status:** slices 01–03 done; slice 04 next. **Updated:** 2026-11-17.
 
 One supply helicopter per faction. It lands to resupply the units around it and
 takes off again when it packs. It costs the same as the supply truck, carries
@@ -10,7 +10,7 @@ is running dry far from its truck.
 
 ## Next Agent Prompt
 
-Pick up at **slice 03**. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
+Pick up at **slice 04** (05 may run beside it). Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
 2026-11-17, so check `df` first. Read
 [`decisions.md`](decisions.md) before any slice; every row there is a given.
 Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
@@ -24,7 +24,7 @@ the next pickup point, and the TODO below.
 
 - [x] [01](slices/01-ai-standing-supplier-drives.md) The AI's standing supplier drives (no outcome change)
 - [x] [02](slices/02-lands-and-serves.md) A supply heli lands and serves (first playable)
-- [ ] [03](slices/03-landed-is-a-ground-vehicle.md) Landed, it is a ground vehicle
+- [x] [03](slices/03-landed-is-a-ground-vehicle.md) Landed, it is a ground vehicle
 - [ ] [04](slices/04-clear-landing-spot.md) Nearest clear spot, or NO LANDING ZONE
 - [ ] [05](slices/05-enemies-see-it-land.md) Enemies see it land (knowledge and publication contract)
 - [ ] [06](slices/06-rotor-winds-down.md) The rotor winds down and up (visual: rotor)

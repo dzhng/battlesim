@@ -61,6 +61,8 @@ fn supply_flyer_deck() -> Value {
         .find_map(|doc| doc["units"].get("test_supply"))
         .unwrap()
         .clone();
+    let mut capabilities = truck["capabilities"].clone();
+    capabilities["deploy"]["drop_seconds"] = json!(0.1);
     fixtures::patch_catalog(
         &mut authored,
         "units",
@@ -68,7 +70,7 @@ fn supply_flyer_deck() -> Value {
         json!({
             "roles": ["logistics"],
             "cost": truck["cost"],
-            "capabilities": truck["capabilities"],
+            "capabilities": capabilities,
             "roster": { "factions": ["us"], "category": "sup",
                 "family_name": "Test", "variant": "Test" }
         }),

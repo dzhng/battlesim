@@ -489,7 +489,7 @@ impl SideKnowledge {
                             velocity: v2(0.0, 0.0),
                             members,
                             layer: unit.layer(),
-                            class: unit.unit_type(rules).target_class(),
+                            class: unit.target_class(rules),
                         },
                     );
                 }
