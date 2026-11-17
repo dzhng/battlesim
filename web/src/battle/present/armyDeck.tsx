@@ -5,7 +5,7 @@ import { StrengthMeter, UnitFace } from "./unitFace";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
-import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
+import { LOW_AMMO, ownPanel, unitReserve, unitStrength, type PanelRules } from "./panelRows";
 import { unitName } from "./readouts";
 import { CommandBar, type ArmyCommandState } from "./commandBar";
 import { Feed, useFeedValue, type FeedSource } from "@web/feed";
@@ -254,6 +254,26 @@ export function ArmyDeck({
               // rides in, and picks its carrier.
               const host = carrierOf(unit);
               const carrier = host === null ? undefined : own.find((u) => u.id === host);
+              // One state mark per card: a riding squad's seats and a unit on
+              // its way home already own the corner, so a low reserve waits
+              // for a plain card.
+              const reserve =
+                !lost && !carrier && !unit.withdrawing ? unitReserve(units, unit, rules) : null;
+              const low = reserve && reserve.fill <= LOW_AMMO ? reserve : null;
+              const mark = low
+                ? {
+                    path:
+                      low.resource === "stock"
+                        ? low.out
+                          ? stateIcon("supply_blocked")
+                          : stateIcon("stock")
+                        : hudIcon(low.out ? "no_ammo" : "low_ammo"),
+                    tone: low.out && !low.stillArmed ? "bad" : "warn",
+                    title: `${low.out ? "Out of" : "Low on"} ${
+                      low.resource === "stock" ? "supplies" : "ammo"
+                    }`,
+                  }
+                : null;
               const picks = pickOf(unit, own);
               const selectedHere = selected.includes(picks);
               const group = groupOf.get(unit.id);
@@ -274,7 +294,9 @@ export function ArmyDeck({
                         ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}`
                         : unit.withdrawing
                           ? `${name}, returning to base`
-                          : name) + (group ? `, group ${group}` : "")
+                          : name) +
+                    (mark ? `, ${mark.title.toLowerCase()}` : "") +
+                    (group ? `, group ${group}` : "")
                   }
                   aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
@@ -335,6 +357,13 @@ export function ArmyDeck({
                   {carrier && <Icon path={stateIcon("seats")} className="hud-army-aboard" />}
                   {unit.withdrawing && (
                     <Icon path={stateIcon("withdrawing")} className="hud-army-withdrawing" />
+                  )}
+                  {mark && (
+                    <Icon
+                      path={mark.path}
+                      className={`hud-army-ammo hud-army-ammo-${mark.tone}`}
+                      title={mark.title}
+                    />
                   )}
                 </button>,
                 blinks.get(unit.id),

@@ -201,6 +201,13 @@ const row = (
 /** How many of a row's five pips an amount lights: any amount at all shows
  *  one, none shows none, a full one all five. */
 export const PIPS = 5;
+
+/** The share of its finite rounds or stock a unit must have left at or below
+ *  for its army card to mark it running out (`unitReserve`). A quarter leaves
+ *  time to reach a truck or turn for home without crying wolf on every
+ *  skirmish. */
+export const LOW_AMMO = 0.25;
+
 export function pipsLit(fill: number): number {
   if (!(fill > 0)) return 0;
   return Math.min(PIPS, Math.max(1, Math.round(fill * PIPS)));
@@ -518,6 +525,59 @@ export function unitStrength(
   if (hull) return u.hp / hull.hp;
   const full = units.slots(u.kind).reduce((sum, kind) => sum + units.soldier(kind).hp, 0);
   return Math.min(1, u.memberHp.reduce((a, b) => a + b, 0) / (full || 1));
+}
+
+/** What an army card warns is running out. */
+export interface Reserve {
+  /** Its finite rounds, or a supply vehicle's finite stock. */
+  resource: "ammo" | "stock";
+  /** Left against full, in [0, 1]. */
+  fill: number;
+  /** Nothing left. */
+  out: boolean;
+  /** An unlimited ammunition kind remains, so the unit still has a weapon
+   *  to fight with: its warning stays a warning. */
+  stillArmed: boolean;
+}
+
+/** The finite ammunition a unit has left, or a supply vehicle's stock.
+ *  Unlimited kinds are skipped: they can't run out. Each finite kind counts
+ *  once whatever its magazine size, so a tank's AP and HE weigh the same and
+ *  a helicopter's autocannon doesn't drown its missiles. Null for a unit
+ *  with neither rounds nor stock. */
+export function unitReserve(
+  units: UnitCatalog,
+  u: Pick<OwnUnitView, "kind" | "mounts" | "stock">,
+  rules: Pick<PanelRules, "weapons">,
+): Reserve | null {
+  const mounts = units.type(u.kind).mounts;
+  let sum = 0;
+  let kinds = 0;
+  let stillArmed = false;
+  for (const mount of u.mounts) {
+    const rows = mounts[mount.mount]?.weapons ?? [];
+    rows.forEach((row, k) => {
+      const full = rules.weapons[row]?.ammo;
+      const left = mount.ammo[k];
+      if (typeof full !== "number") {
+        if (left === null) stillArmed = true;
+        return;
+      }
+      if (full <= 0 || typeof left !== "number") return;
+      kinds += 1;
+      sum += Math.min(1, Math.max(0, left / full));
+    });
+  }
+  if (kinds > 0) {
+    const fill = sum / kinds;
+    return { resource: "ammo", fill, out: fill === 0, stillArmed };
+  }
+  const stock = units.type(u.kind).capabilities?.supply?.stock;
+  if (typeof u.stock === "number" && typeof stock === "number" && stock > 0) {
+    const fill = Math.min(1, Math.max(0, u.stock / stock));
+    return { resource: "stock", fill, out: fill === 0, stillArmed: false };
+  }
+  return null;
 }
 
 /** One info panel: NAME (with its strength), then WEAPONS, then STATES. */

@@ -1313,12 +1313,30 @@ html {
 .hud-army-card .ro-icon {
   margin: 0;
 }
-/* A riding squad's seat mark, or a unit's return to base, in its card's top
-   corner. A rider never withdraws on its own, so the two never share it. */
-.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing) {
+/* A unit state — a riding squad's seats, a return to base, or a reserve
+   running out — in its card's top corner. At most one is drawn, so they
+   never share it. A reserve is a warning while the unit can still fight,
+   and the shared "can't" red only once it is empty with no unlimited
+   weapon left. */
+.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-ammo) {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 3px;
+  right: 3px;
+}
+/* A small corner mark, clear of the role icon centred above the silhouette. */
+.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-ammo) svg {
+  height: 1.1em;
+}
+/* The warm marks are the only ones on a dark card, but they are small: a
+   dark edge keeps the thin strokes from dissolving into the glass. */
+.hud-army-card .hud-army-ammo {
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95));
+}
+.hud-army-card .hud-army-ammo-warn {
+  color: rgb(var(--hud-warn));
+}
+.hud-army-card .hud-army-ammo-bad {
+  color: rgb(var(--hud-bad));
 }
 .hud-unit-role svg {
   width: 25px;
