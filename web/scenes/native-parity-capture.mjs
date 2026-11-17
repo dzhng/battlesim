@@ -14,9 +14,8 @@
 // (`page-<reel ms>.png`), its cards as the player sees them, to set beside
 // the frame native draws at that reel time.
 // PARITY_COUNTS=1 also counts what chosen frames drew, on tick boundaries
-// and between (`?counts=1`, the manifest's `frameCounts`): the committed
-// fixture `native-client`'s replay test counts against. Run it under the
-// GPU lock.
+// and between (`?counts=1`, the manifest's `frameCounts`), for native's
+// replay check to count against. Run it under the GPU lock.
 import { filmParityRun, parityViewport } from "./_parityRun.mjs";
 
 /** The graphics test's URL from the scene's `base` URL and the `PARITY_*`

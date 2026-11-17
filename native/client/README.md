@@ -135,12 +135,11 @@ integration checks stay here when they require those native services.
 GPU admission; [runtime generation checks](tests/runtime_generation.rs) verify held
 static reconstruction without reframing the battle.
 
-`tests/counts.rs` replays a committed count-only browser run (`fixtures/parity/capture/counts`,
-gzipped as written) and holds native's counts (`counts.rs`: the models, the
+A replay check of a plate holds native's counts (`counts.rs`: the models, the
 effects, the building modules, the props and the scenery, all the
-presentation's) to the browser's on every frame it counted, on tick boundaries
-and between; it needs no GPU. A replay check of a plate counts the same way.
-The fixture-backed checks replay the run's world through what native reads (the
+presentation's) to the browser's for that run. No committed test pins a
+recorded run's counts: the run is of the menu reel, which changes with the
+game. The fixture-backed checks replay the run's world through what native reads (the
 models, the props, the scenery and the sound) and need the Git LFS files each
 names. Plates are judged against the control's, region by region, with the
 spec's screenshot skills.
