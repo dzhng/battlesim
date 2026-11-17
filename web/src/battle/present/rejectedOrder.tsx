@@ -32,6 +32,7 @@ const REFUSAL_TEXT: Record<string, string> = {
   not_a_building: "NOT A BUILDING",
   capacity_full: "TOO MANY TO FIT",
   no_room_to_unload: "NO ROOM TO UNLOAD",
+  too_close: "TOO CLOSE",
   not_a_carrier: "NOT A CARRIER",
   aboard: "ABOARD",
   wrong_player: "AN ALLY'S UNIT",

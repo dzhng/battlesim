@@ -50,6 +50,10 @@ pub struct WeaponDefinition {
     /// Rounds in a magazine/belt and spacing within it; absent is single-shot.
     #[serde(default)]
     pub magazine: Option<Magazine>,
+    /// A bomb that is a canister of bomblets (a cluster bomb): absent, it
+    /// is one bomb.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub submunitions: Option<Submunitions>,
     pub ammo: AmmoCapacity,
     /// Supply stock consumed to restore one finite round. Children inherit it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -110,6 +114,21 @@ pub struct WeaponDefinition {
     /// with a much wider spread than along the ground; a tank gun, a grenade
     /// or a ground missile cannot. A layer it does not list, it never engages.
     pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
+}
+
+/// A canister's bomblets. The canister falls with its bomb's launch spread
+/// and opens over where it lands; its bomblets come down spread evenly
+/// across a disc round that point, each with the row's own impact, damage
+/// and blast. Ammunition counts canisters, not bomblets.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Submunitions {
+    pub count: u32,
+    /// The radius of the disc its bomblets cover.
+    pub spread_m: f64,
+    /// How long the bomblets take to land, first to last: each falls at its
+    /// own rate, so they burst one after another across the disc.
+    pub ripple_s: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -580,6 +599,28 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     if def.intercepts() && def.ballistics.guidance.is_none() && def.seeker.is_some() {
                         return Err(serde::de::Error::custom(
                             "a seeker interception row must be guided",
+                        ));
+                    }
+                    if let Some(sub) = def.submunitions {
+                        if !unpowered {
+                            // Only a bombing run's release dispenses them.
+                            return Err(serde::de::Error::custom(
+                                "submunitions are a bomb's: only an unpowered row carries them",
+                            ));
+                        }
+                        if sub.count < 2
+                            || !(sub.spread_m.is_finite() && sub.spread_m > 0.0)
+                            || !(sub.ripple_s.is_finite() && sub.ripple_s >= 0.0)
+                        {
+                            return Err(serde::de::Error::custom(
+                                "submunitions needs a count of at least two, a positive spread_m and a nonnegative ripple_s",
+                            ));
+                        }
+                    }
+                    if unpowered && def.magazine.is_some() {
+                        // A bombing run releases once; a salvo is submunitions.
+                        return Err(serde::de::Error::custom(
+                            "an unpowered row (a bomb) releases one round a run: author submunitions, not a magazine",
                         ));
                     }
                     if let Some(m) = def.magazine {

@@ -516,3 +516,66 @@ fn a_class_limit_shows_only_where_it_narrows_its_layer() {
     assert_eq!(at(HighAir).only, None, "missile is no class limit");
     assert!(at(HighAir).intercepts);
 }
+
+/// A bombing run releases once, so a bomb's salvo is its canister of
+/// bomblets: a bomb with a magazine would drop one round a run and is
+/// refused, as is a canister of one bomblet or with no disc to cover.
+#[test]
+fn a_bomb_carries_its_salvo_as_bomblets_not_a_magazine() {
+    let bomb = || {
+        let mut rows = test_rows(json!({
+            "ground": { "classes": ["vehicle"], "range_m": 0, "scatter_mrad": 5 }
+        }));
+        let row = rows["test_gun"].as_object_mut().unwrap();
+        row.remove("range_m");
+        row.remove("speed_mps");
+        row.insert("delivery".into(), json!("unpowered"));
+        rows
+    };
+    let mut cluster = bomb();
+    cluster["test_gun"]["submunitions"] = json!({ "count": 12, "spread_m": 30, "ripple_s": 0.5 });
+    let resolved = contract::weapons::resolve_weapons(cluster).expect("a cluster bomb loads");
+    assert_eq!(resolved["test_gun"].submunitions.map(|c| c.count), Some(12));
+    for (field, value) in [
+        ("magazine", json!({ "rounds": 8, "shot_interval_s": 0.08 })),
+        (
+            "submunitions",
+            json!({ "count": 1, "spread_m": 30, "ripple_s": 0.5 }),
+        ),
+        (
+            "submunitions",
+            json!({ "count": 12, "spread_m": 0, "ripple_s": 0.5 }),
+        ),
+        (
+            "submunitions",
+            json!({ "count": 12, "spread_m": 30, "ripple_s": -1 }),
+        ),
+    ] {
+        let mut rows = bomb();
+        rows["test_gun"][field] = value;
+        let error = contract::weapons::resolve_weapons(rows)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("weapons.test_gun") && error.contains(field),
+            "{error}"
+        );
+    }
+}
+
+/// Only a bomb dispenses bomblets: a gun or launcher row carrying them is
+/// refused, not silently fired as one round.
+#[test]
+fn only_a_bomb_carries_submunitions() {
+    let mut rows = test_rows(json!({
+        "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 5 }
+    }));
+    rows["test_gun"]["submunitions"] = json!({ "count": 12, "spread_m": 30, "ripple_s": 0.5 });
+    let error = contract::weapons::resolve_weapons(rows)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("weapons.test_gun") && error.contains("submunitions"),
+        "{error}"
+    );
+}

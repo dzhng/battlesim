@@ -375,6 +375,10 @@ pub struct AirState {
     pub afterburner: bool,
     /// Close air engagement target while this aircraft is in a dogfight.
     pub dogfight_target: Option<UnitId>,
+    /// While it comes round for its next pass, the jet it fights and the side
+    /// of the line to it that it swings out to, fixed in the world when the
+    /// turn began (`air::dogfight::intent`).
+    pub come_round: Option<(UnitId, V2)>,
     /// Its attack on a ground target, in runs (`air::pass`).
     pub pass: Option<crate::air::pass::PassPlan>,
     /// The one tick in which a pass's unpowered round may leave the jet.

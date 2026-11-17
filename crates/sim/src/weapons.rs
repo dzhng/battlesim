@@ -15,6 +15,7 @@ mod assessment;
 pub use admission::check_rules;
 use assessment::{assess, seen_soldiers, Assessed, Ready};
 mod bearing;
+mod bomb;
 mod cycle;
 mod engagement;
 use engagement::engage;
@@ -32,6 +33,7 @@ pub use window_requests::{garrison_aims, MountAim, MountAims};
 pub mod tick;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
 pub use bearing::{nose_on, nose_on_bearing, Arc};
+use bomb::bomb_release;
 use cycle::Cycle;
 use muzzle::{infantry_offset, muzzle, placed_muzzle};
 
@@ -1140,6 +1142,7 @@ fn fire(
         Vec::new()
     };
     let mut launches = Vec::new();
+    let mut fired = 0u32;
     let mut cycle_ended = false;
     for (n, (origin, body, member)) in shooters.into_iter().enumerate() {
         let owner = spec.squad.then_some(body.0);
@@ -1278,29 +1281,12 @@ fn fire(
                 false
             }
         };
-        let launch = if weapon.def.ballistics.delivery == Delivery::Unpowered {
-            (!hold(rng)).then(|| {
-                // A bomb leaves the jet with the jet's velocity; its
-                // scatter is a small push off the rack that spreads where it
-                // lands around where the drop carries it (its assessment's
-                // landing point and fall).
-                let lands = ready.intercept;
-                let scattered = crate::flight::scatter_aim(aim.origin, lands, scatter, rng);
-                let push = (scattered - lands).xy()
-                    * (1.0 / ready.time_of_flight_s.max(f64::MIN_POSITIVE));
-                Launch {
-                    origin: aim.origin,
-                    carrier: aim.carrier,
-                    velocity: push.with_z(0.0),
-                    gravity_scale: weapon.profile.gravity_scale,
-                    lifetime_s: weapon.profile.lifetime_s,
-                    suppression_radius_m: weapon.profile.suppression_radius_m,
-                    shooter,
-                    guidance: None,
-                    motor: None,
-                    fall: None,
-                }
-            })
+        let round: Vec<Launch> = if weapon.def.ballistics.delivery == Delivery::Unpowered {
+            if hold(rng) {
+                Vec::new()
+            } else {
+                bomb_release(weapon, &aim, ready, scatter, shooter, rng)
+            }
         } else {
             crate::flight::fire_round(
                 ctx.world,
@@ -1316,9 +1302,12 @@ fn fire(
             .ok()
             .flatten()
             .map(|(launch, _)| launch)
+            .into_iter()
+            .collect()
         };
-        if let Some(launch) = launch {
-            launches.push(launch);
+        if !round.is_empty() {
+            launches.extend(round);
+            fired += 1;
             if let Some(n) = mount.ammo[k].as_mut() {
                 *n -= 1;
             }
@@ -1338,7 +1327,7 @@ fn fire(
     let last = launches.last()?.velocity;
     mount.elevation = libm::atan2(last.z, libm::hypot(last.x, last.y));
     mount.round = k as u8;
-    mount.shots = mount.shots.wrapping_add(launches.len() as u32);
+    mount.shots = mount.shots.wrapping_add(fired);
     Some(Shot {
         unit: unit.id,
         mount: m,

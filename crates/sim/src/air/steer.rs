@@ -36,12 +36,9 @@ pub enum Intent {
         heading: f64,
         agl: f64,
     },
-    /// Chase `point`, moving at `vel`, aimed `lag_s` behind it, flown at
-    /// `agl` metres above ground.
+    /// Fly at `point`, `agl` metres above ground.
     Pursue {
         point: V2,
-        vel: V2,
-        lag_s: f64,
         agl: f64,
     },
     Exit {
@@ -292,14 +289,8 @@ fn intent_turn(
             let wanted = heading - libm::atan2(cross_track, lookahead);
             (turn_toward(state.heading, wanted, limits, dt_s), agl)
         }
-        Intent::Pursue {
-            point,
-            vel,
-            lag_s,
-            agl,
-        } => {
-            let aim = point - vel * lag_s.max(0.0);
-            let direction = aim - state.pos.xy();
+        Intent::Pursue { point, agl } => {
+            let direction = point - state.pos.xy();
             let wanted = if direction.length() > 1e-9 {
                 libm::atan2(direction.y, direction.x)
             } else {

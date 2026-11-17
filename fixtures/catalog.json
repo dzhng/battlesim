@@ -768,7 +768,7 @@
       }
     },
     {
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "disabled_reason": null,
       "family": "ural_4320",
@@ -1312,7 +1312,7 @@
       }
     },
     {
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "disabled_reason": null,
       "family": "man_hx",
@@ -2167,7 +2167,7 @@
       }
     },
     {
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "disabled_reason": null,
       "family": "m977_hemtt",
@@ -3837,7 +3837,7 @@
             "conceals": 0.0,
             "cover_tier": "medium",
             "garrison": false,
-            "hp": 120.0,
+            "hp": 80.0,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -11910,11 +11910,11 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 250
+              "stock": 1000
             }
           },
           "concealment": 2.4,
-          "cost": 90,
+          "cost": 150,
           "description": "General resupply",
           "faction": "eastern",
           "family": "ural_4320",
@@ -15621,11 +15621,11 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 250
+              "stock": 1000
             }
           },
           "concealment": 2.8,
-          "cost": 90,
+          "cost": 150,
           "description": "General resupply",
           "faction": "europe",
           "family": "man_hx",
@@ -21250,11 +21250,11 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 250
+              "stock": 1000
             }
           },
           "concealment": 2.8,
-          "cost": 90,
+          "cost": 150,
           "description": "General resupply",
           "faction": "us",
           "family": "m977_hemtt",
@@ -23571,7 +23571,7 @@
         "conceals": 0.0,
         "cover_tier": "medium",
         "garrison": false,
-        "hp": 120.0,
+        "hp": 80.0,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -32506,11 +32506,11 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 250
+          "stock": 1000
         }
       },
       "concealment": 2.4,
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "faction": "eastern",
       "family": "ural_4320",
@@ -36340,11 +36340,11 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 250
+          "stock": 1000
         }
       },
       "concealment": 2.8,
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "faction": "europe",
       "family": "man_hx",
@@ -42677,11 +42677,11 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 250
+          "stock": 1000
         }
       },
       "concealment": 2.8,
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "faction": "us",
       "family": "m977_hemtt",
@@ -44426,8 +44426,8 @@
       "anti_radiation": false,
       "appearance": "bomb",
       "armor_piercing": false,
-      "blast_radius_m": 28.0,
-      "damage": 140.0,
+      "blast_radius_m": 32.0,
+      "damage": 220.0,
       "decoyable": false,
       "default": false,
       "delivery": "unpowered",
@@ -44450,17 +44450,17 @@
       "magazine": null,
       "min_range_m": 0.0,
       "name": "Iron bomb",
-      "near_miss_suppression": 0.3,
+      "near_miss_suppression": 0.5,
       "partial_from": 0.08,
-      "penetration": 40.0,
+      "penetration": 80.0,
       "range_m": 0.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
       "round_cost": 25,
       "speed_mps": 0.0,
       "stationary": false,
-      "structural_damage": 80.0,
-      "suppression_radius_m": 18.0,
+      "structural_damage": 120.0,
+      "suppression_radius_m": 30.0,
       "targets": {
         "ground": {
           "classes": [
@@ -44468,7 +44468,7 @@
             "vehicle"
           ],
           "range_m": 0.0,
-          "scatter_mrad": 4.0
+          "scatter_mrad": 2.0
         }
       },
       "top_speed_mps": null,
@@ -44482,8 +44482,8 @@
       "anti_radiation": false,
       "appearance": "bomb",
       "armor_piercing": false,
-      "blast_radius_m": 18.0,
-      "damage": 70.0,
+      "blast_radius_m": 16.0,
+      "damage": 110.0,
       "decoyable": false,
       "default": false,
       "delivery": "unpowered",
@@ -44497,30 +44497,31 @@
           }
         ]
       },
-      "description": "Wide-spread cluster bomb salvo for area attacks.",
+      "description": "A canister that bursts into a carpet of bomblets across the target area.",
       "fires_on_its_own": false,
       "gravity_scale": 4.5,
       "icon": "bomb",
       "interceptable": false,
       "lifetime_s": null,
-      "magazine": {
-        "burst": null,
-        "rounds": 8,
-        "shot_interval_s": 0.08
-      },
+      "magazine": null,
       "min_range_m": 0.0,
       "name": "Cluster bombs",
-      "near_miss_suppression": 0.45,
+      "near_miss_suppression": 0.5,
       "partial_from": 0.08,
-      "penetration": 20.0,
+      "penetration": 60.0,
       "range_m": 0.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
       "round_cost": 25,
       "speed_mps": 0.0,
       "stationary": false,
-      "structural_damage": 35.0,
-      "suppression_radius_m": 24.0,
+      "structural_damage": 50.0,
+      "submunitions": {
+        "count": 44,
+        "ripple_s": 0.5,
+        "spread_m": 75.0
+      },
+      "suppression_radius_m": 20.0,
       "targets": {
         "ground": {
           "classes": [
@@ -44528,7 +44529,7 @@
             "vehicle"
           ],
           "range_m": 0.0,
-          "scatter_mrad": 28.0
+          "scatter_mrad": 14.0
         }
       },
       "top_speed_mps": null,
@@ -44897,7 +44898,7 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 180.0,
+      "min_range_m": 120.0,
       "name": "Mortar",
       "near_miss_suppression": 0.55,
       "partial_from": 0.08,

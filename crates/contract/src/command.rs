@@ -320,6 +320,9 @@ pub enum OrderError {
     NotACarrier,
     /// No reachable standing spots exist for every passenger.
     NoRoomToUnload,
+    /// The ground aim lies inside the minimum range the unit strikes from
+    /// where it stands.
+    TooClose,
 }
 
 impl OrderError {
@@ -356,7 +359,8 @@ impl OrderError {
             | Self::NoValidDestination
             | Self::RateLimited
             | Self::CapacityFull
-            | Self::NoRoomToUnload => false,
+            | Self::NoRoomToUnload
+            | Self::TooClose => false,
         }
     }
 
@@ -390,6 +394,7 @@ impl OrderError {
             Self::Aboard { .. } => "aboard",
             Self::NotACarrier => "not_a_carrier",
             Self::NoRoomToUnload => "no_room_to_unload",
+            Self::TooClose => "too_close",
         }
     }
 }

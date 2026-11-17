@@ -35,6 +35,7 @@ mod flown;
 mod move_placement;
 mod order_steps;
 mod purchase_preview;
+mod refusals;
 mod replay;
 mod replay_identity;
 mod return_to_base;
@@ -56,7 +57,7 @@ use crate::ground::{GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::hold;
 use crate::knowledge::SideKnowledge;
-use crate::math::{body_distance, v2, v3, Obb2, Rotation, V2, V3};
+use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::navigation::RoadNet;
 use crate::route_planner::RoutePlanner;
@@ -324,8 +325,8 @@ impl Battle {
             })
         })
     }
-    /// A dogfight ends when either aircraft can no longer fight or they
-    /// draw apart past the break range.
+    /// End each jet's dogfight that is over (`air::dogfight::broken`): past
+    /// the break range and no longer closing, unless it is coming round.
     fn break_dogfights(&mut self) {
         for i in 0..self.units.len() {
             let Some(target) = self.units[i]
@@ -335,16 +336,8 @@ impl Battle {
             else {
                 continue;
             };
-            let broken =
-                !crate::air::dogfight::can_dogfight(&self.units[i], &self.units[target.0 as usize])
-                    || crate::air::dogfight::breaks(
-                        body_distance(
-                            self.units[i].position,
-                            self.units[target.0 as usize].position,
-                        ),
-                        &self.rules.air.fixed_wing,
-                    );
-            if broken {
+            let (unit, other) = (&self.units[i], &self.units[target.0 as usize]);
+            if crate::air::dogfight::broken(unit, other, &self.rules.air.fixed_wing) {
                 crate::air::dogfight::clear(&mut self.units[i]);
             }
         }
@@ -2703,24 +2696,7 @@ impl Battle {
             }
             _ => None,
         };
-        let mut refused =
-            hold::refuse_oversized_riders(&self.units, &mut command.order, &self.rules)
-                .unwrap_or(building_refused);
-        if let Order::Unload {
-            units, goal: None, ..
-        } = &command.order
-        {
-            for &unit in units {
-                if crate::carriage::unload_spots(&self.world, &self.units, unit, &self.rules)
-                    .is_none()
-                {
-                    refused.push(contract::command::Refusal {
-                        unit,
-                        reason: OrderError::NoRoomToUnload,
-                    });
-                }
-            }
-        }
+        let refused = self.refuse_at_command(&mut command, building_refused)?;
         Ok(PreparedCommand {
             command,
             placement,
