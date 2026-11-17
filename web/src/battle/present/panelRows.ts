@@ -6,8 +6,8 @@
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
  *    building, concealment, holding fire, suppression, a blocked route, a
- *    truck's stock and its supplying, a unit's supply in a set-up truck's
- *    reach, and a carrier's seats.
+ *    truck's stock and its supplying, a reserve running out, a unit's supply
+ *    in a set-up truck's reach, and a carrier's seats.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
  *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
@@ -72,6 +72,36 @@ export const STATE_ROWS = {
     word: (n: number | string) => `SUPPLY ${n}`,
     lasting: true,
     amount: true,
+  },
+  // A reserve running out (`reserveRow`): the emptiest finite ammunition
+  // kind, or a supply vehicle's stock. Form tells low from out.
+  low_ammo: {
+    icon: hudIcon("low_ammo"),
+    word: () => "LOW AMMO",
+    lasting: true,
+    tone: "warn",
+    byName: true,
+  },
+  no_ammo: {
+    icon: hudIcon("no_ammo"),
+    word: () => "OUT OF AMMO",
+    lasting: true,
+    tone: "warn",
+    byName: true,
+  },
+  low_supply: {
+    icon: stateIcon("stock"),
+    word: () => "LOW SUPPLY",
+    lasting: true,
+    tone: "warn",
+    byName: true,
+  },
+  no_supply: {
+    icon: stateIcon("supply_blocked"),
+    word: () => "OUT OF SUPPLY",
+    lasting: true,
+    tone: "warn",
+    byName: true,
   },
   withdrawing: {
     icon: stateIcon("withdrawing"),
@@ -203,10 +233,10 @@ const row = (
 export const PIPS = 5;
 
 /** The share of its finite rounds or stock a unit must have left at or below
- *  for its army card to mark it running out (`unitReserve`). A quarter leaves
- *  time to reach a truck or turn for home without crying wolf on every
- *  skirmish. */
-export const LOW_AMMO = 0.25;
+ *  for its panel and army card to warn it is running out (`reserveRow`). A
+ *  quarter leaves time to reach a truck or turn for home without crying wolf
+ *  on every skirmish. */
+export const LOW_RESERVE = 0.25;
 
 export function pipsLit(fill: number): number {
   if (!(fill > 0)) return 0;
@@ -324,6 +354,7 @@ export function ownStateRows(
     );
     if (supplying(u, own, rules)) rows.push(row("supplying"));
   }
+  rows.push(reserveRow(units, u, rules));
   rows.push(serviceRow(u.service));
   const shown = rows.filter((r): r is StateRow => r !== null);
   return [...shown.filter((r) => r.lasting), ...shown.filter((r) => !r.lasting)];
@@ -527,30 +558,23 @@ export function unitStrength(
   return Math.min(1, u.memberHp.reduce((a, b) => a + b, 0) / (full || 1));
 }
 
-/** Whether a panel's weapons include an empty ammunition kind: the state its
- *  out-of-ammo mark by the name reports, and the state an army card's reserve
- *  crosses at zero. */
-export function outOfAmmo(weapons: readonly Pick<WeaponRow, "kinds">[]): boolean {
-  return weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0));
-}
-
-/** What an army card warns is running out. */
+/** What a unit's panel and army card warn is running out. */
 export interface Reserve {
   /** Its finite rounds, or a supply vehicle's finite stock. */
   resource: "ammo" | "stock";
   /** The emptiest finite kind's share against its full load, in [0, 1]: the
    *  row the unit's panel shows nearest empty. */
   fill: number;
-  /** Some finite kind (or the stock) is empty, so the panel's out-of-ammo
-   *  mark stands by the unit's name. */
+  /** Some finite kind (or the stock) is empty. */
   out: boolean;
 }
 
 /** The emptiest finite ammunition kind a unit has left, or a supply vehicle's
  *  stock. Unlimited kinds are skipped: they can't run out. Each finite kind
  *  counts whatever its magazine size, so a tank with full HE and no AP still
- *  warns about the AP the panel marks spent. Null for a unit with neither
- *  rounds nor stock. */
+ *  warns about the AP its weapon row marks spent. Protection charges are not
+ *  rounds: a tank with its Trophy spent still fights. Null for a unit with
+ *  neither rounds nor stock. */
 export function unitReserve(
   units: UnitCatalog,
   u: Pick<OwnUnitView, "kind" | "mounts" | "stock">,
@@ -577,6 +601,20 @@ export function unitReserve(
     return { resource: "stock", fill, out: fill === 0 };
   }
   return null;
+}
+
+/** The warning row for a reserve at or below `LOW_RESERVE`, low or out; null
+ *  while every finite reserve has more. The unit's panel lists it, and its
+ *  army card draws the same icon. */
+export function reserveRow(
+  units: UnitCatalog,
+  u: Pick<OwnUnitView, "kind" | "mounts" | "stock">,
+  rules: Pick<PanelRules, "weapons">,
+): StateRow | null {
+  const reserve = unitReserve(units, u, rules);
+  if (!reserve || reserve.fill > LOW_RESERVE) return null;
+  if (reserve.resource === "stock") return row(reserve.out ? "no_supply" : "low_supply");
+  return row(reserve.out ? "no_ammo" : "low_ammo");
 }
 
 /** One info panel: NAME (with its strength), then WEAPONS, then STATES. */

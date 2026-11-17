@@ -368,6 +368,12 @@ export function panelSpecimens(
   add(s, "packing 70%", panelOf(truckAt(0.3, "packed")));
   add(s, "deployed", panelOf(truckAt(1, "deployed")));
   add(s, "stock empty", panelOf(truckAt(1, "deployed", { stock: 0 })));
+  add(s, "low supply", panelOf(truckAt(1, "deployed", { stock: 50 })));
+  const lowTank = panelOf(specimenUnit(catalog, "test_tank", {}, [{ ammo: [2, 3] }]));
+  add(s, "low ammo", lowTank);
+  add(s, "low ammo, compact", lowTank, "own", { zoom: "compressed" });
+  // Full HE does not hide the empty AP rack.
+  add(s, "out of ammo", panelOf(specimenUnit(catalog, "test_tank", {}, [{ ammo: [0, 12] }])));
   const served = specimenUnit(catalog, "test_tank", { id: 2, service: "serving" });
   add(s, "supplying", panelOf(truckAt(1, "deployed", { stock: 412 }), [served]));
   add(s, "resupplying", panelOf(served));

@@ -1,11 +1,11 @@
-// An army card warns about the same reserve its unit panel shows: the
-// emptiest finite ammunition kind, or a supply truck's stock. Unlimited kinds
-// are skipped. The test sets its own capacities, so a catalog retune cannot
+// A unit's reserve, which its panel's warning row and army card both read:
+// the emptiest finite ammunition kind, or a supply truck's stock. Unlimited
+// kinds are skipped. The test sets its own capacities, so a catalog retune cannot
 // move it.
 import { expect, test } from "vitest";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
-import { outOfAmmo, ownPanel, unitReserve, type PanelRules } from "../src/battle/present/panelRows";
+import { unitReserve, type PanelRules } from "../src/battle/present/panelRows";
 import type { OwnUnitView } from "../src/battle/sim/observationView";
 import { TEST_CATALOG } from "./catalog";
 
@@ -23,27 +23,12 @@ const RULES = {
 const tank = (ammo: number[]) => specimenUnit(TEST_CATALOG, "test_tank", {}, [{ ammo }]);
 const reserveOf = (unit: OwnUnitView, units = TEST_CATALOG.units) =>
   unitReserve(units, unit, RULES);
-/** The panel's own out-of-ammo mark, from the same weapons it draws. */
-const panelOut = (unit: OwnUnitView) =>
-  outOfAmmo(ownPanel(TEST_CATALOG.units, unit, [unit], RULES).weapons);
 
 test("the emptiest finite kind sets the fill, and an empty one is out", () => {
   expect(reserveOf(tank([10, 20]))).toEqual({ resource: "ammo", fill: 1, out: false });
   // AP is the emptiest kind: HE's fuller magazine does not average it away.
   expect(reserveOf(tank([5, 20]))?.fill).toBeCloseTo(0.5);
   expect(reserveOf(tank([0, 20]))).toEqual({ resource: "ammo", fill: 0, out: true });
-});
-
-test("the card and the unit's panel agree on when ammunition is out", () => {
-  for (const ammo of [
-    [10, 20],
-    [5, 5],
-    [0, 20],
-    [0, 0],
-  ]) {
-    const unit = tank(ammo);
-    expect(panelOut(unit), String(ammo)).toBe(reserveOf(unit)!.out);
-  }
 });
 
 test("a supply truck's stock is its reserve, and empty is out", () => {

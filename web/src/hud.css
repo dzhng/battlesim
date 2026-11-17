@@ -1315,22 +1315,20 @@ html {
 }
 /* A unit state — a riding squad's seats, a return to base, or a reserve
    running out — in its card's top corner. At most one is drawn, so they
-   never share it. A reserve is a warning while the unit can still fight,
-   and the shared "can't" red only once it is empty with no unlimited
-   weapon left. */
-.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-ammo) {
+   never share it. */
+.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-reserve) {
   position: absolute;
   top: 3px;
   right: 3px;
 }
 /* A small corner mark, clear of the role icon centred above the silhouette. */
-.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-ammo) svg {
+.hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-reserve) svg {
   height: 1.1em;
 }
 /* The same warning tone the unit's panel uses, and the only warm mark on a
    dark card. It is small, so a dark edge keeps the thin strokes from
    dissolving into the glass. */
-.hud-army-card .hud-army-ammo {
+.hud-army-card .hud-army-reserve {
   color: rgb(var(--hud-warn));
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95));
 }
