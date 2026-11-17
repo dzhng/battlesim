@@ -502,12 +502,10 @@ fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
     );
 }
 
-/// A round keeps the band its shooter fired it from for its whole flight,
-/// never one read from its height: a ground launcher's missile lofting 60 m
-/// over the field is a ground round throughout, and a helicopter's bullets
-/// falling to the ground stay low-air rounds.
+/// A deliberately lofted ground missile and a helicopter's falling bullets
+/// both stay LowAir throughout flight, regardless of their physical height.
 #[test]
-fn a_round_keeps_the_band_it_was_fired_from_for_its_whole_flight() {
+fn a_round_keeps_its_assigned_band_throughout_flight() {
     let mut rules = fixture();
     rules["weapons"]["atgm"]["top_attack"] = json!({ "loft_m": 60, "dive_deg": 40 });
     rules["weapons"]["atgm"]["turn_deg_s"] = json!(360);
@@ -527,10 +525,10 @@ fn a_round_keeps_the_band_it_was_fired_from_for_its_whole_flight() {
         for (p, r) in b.rounds() {
             let ground = b.world().height_at(p.position.x, p.position.y).unwrap();
             match r.unit {
-                UnitId(0) => {
+                UnitId(0) if b.arsenal().weapons[r.weapon].profile.loft.is_some() => {
                     assert_eq!(
                         r.layer,
-                        AltitudeLayer::Ground,
+                        AltitudeLayer::LowAir,
                         "at {:.0} m up",
                         p.position.z - ground
                     );

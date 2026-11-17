@@ -4,15 +4,8 @@
   "label": "Air jet lab",
   "character": "arena",
   "biome": "summer",
-  "size_m": [
-    3000,
-    3000
-  ],
-  "tags": [
-    "road",
-    "forest",
-    "building"
-  ],
+  "size_m": [3000, 3000],
+  "tags": ["road", "forest", "building"],
   "source": "authored",
   "seed": null,
   "encounters": [
@@ -21,6 +14,7 @@
     "ground",
     "high-air",
     "hud",
+    "projectile-visibility",
     "survivability"
   ],
   "benchmarks": []

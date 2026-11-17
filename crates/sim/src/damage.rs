@@ -30,6 +30,11 @@ use contract::random::Rng;
 /// Blast samples start this far off the struck surface.
 const BLAST_LIFT_M: f64 = 0.05;
 
+/// The burst starts outside the struck surface, shared by damage and sight.
+pub(crate) fn blast_origin(point: V3, normal: V3) -> V3 {
+    point + normal * BLAST_LIFT_M
+}
+
 pub struct DamageContext<'a> {
     pub world: &'a WorldGeometry,
     pub windows: &'a crate::garrison::Windows,
@@ -403,7 +408,7 @@ pub fn resolve(
                     });
                 }
                 if hit.detonated {
-                    let at = hit.point + hit.normal * BLAST_LIFT_M;
+                    let at = blast_origin(hit.point, hit.normal);
                     blast_props(
                         ctx.world,
                         def,
@@ -440,7 +445,7 @@ pub fn resolve(
                         ));
                     }
                 }
-                let at = hit.point + hit.normal * BLAST_LIFT_M;
+                let at = blast_origin(hit.point, hit.normal);
                 if hit.detonated {
                     let skip = direct.map(|(b, _)| b);
                     blast(ctx, def, at, skip, units, rng, |i, died| {

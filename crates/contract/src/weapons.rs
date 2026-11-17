@@ -89,14 +89,17 @@ pub struct WeaponDefinition {
     #[serde(default)]
     pub fires_on_its_own: bool,
     /// A missile/rocket body vulnerable to active protection; shells and
-    /// bullets do not inherit eligibility from penetration or guidance.
+    /// bullets do not inherit eligibility from penetration, guidance or
+    /// the projectile's assigned engagement layer.
     #[serde(default)]
     pub interceptable: bool,
     /// Optional seeker mounted on a guided air weapon. A seeker is authored
     /// separately from launcher guidance so fire-and-forget rows are explicit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seeker: Option<SeekerSupport>,
-    /// Forward seeker cone in degrees. It is required when a seeker exists.
+    /// Full forward seeker cone in degrees, for launch acquisition and
+    /// in-flight tracking. Flight follows the missile's own velocity and
+    /// planned loft/dive aim, independently of its launcher. Required for a seeker.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seeker_fov_deg: Option<f64>,
     /// Whether a seeker can be diverted by an aircraft flare.
@@ -156,7 +159,7 @@ pub struct LayerFire {
     pub scatter_mrad: f64,
     /// The kinds of target it engages at this layer: `infantry` and
     /// `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air,
-    /// and `missile` in any layer, an interceptable round fired from it.
+    /// and `missile` in any layer, an interceptable round assigned to it.
     /// A dedicated anti-tank row lists `vehicle` alone.
     pub classes: Vec<TargetClass>,
 }
@@ -172,7 +175,7 @@ pub enum TargetClass {
     Vehicle,
     AirRotor,
     AirFixedWing,
-    /// An interceptable round, in the layer it was fired from (`Round.layer`
+    /// An interceptable round, in its fixed engagement layer (`Round.layer`
     /// in the simulation): a row listing it shoots such rounds down.
     Missile,
 }
@@ -187,7 +190,7 @@ impl TargetClass {
     ];
 
     /// The classes found in `layer`: aircraft fly, soldiers and hulls stand
-    /// on the ground, and a round may be fired from any layer.
+    /// on the ground, and a round may be assigned to any layer.
     pub fn found_in(self, layer: crate::catalog::AltitudeLayer) -> bool {
         let ground = layer == crate::catalog::AltitudeLayer::Ground;
         match self {
@@ -216,7 +219,7 @@ pub struct Reach {
     /// takes every kind found here.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub only: Option<Vec<TargetClass>>,
-    /// It shoots down rounds fired from this layer (`missile`).
+    /// It shoots down rounds assigned to this layer (`missile`).
     pub intercepts: bool,
 }
 
@@ -253,7 +256,7 @@ impl WeaponDefinition {
             .then(|| self.against(layer))?
     }
 
-    /// Whether it shoots down rounds fired from some layer (`missile`).
+    /// Whether it shoots down rounds assigned to some layer (`missile`).
     pub fn intercepts(&self) -> bool {
         self.targets
             .keys()

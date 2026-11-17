@@ -166,17 +166,19 @@ fn a_seeker_flies_at_its_own_sides_contact() {
         .iter()
         .position(|w| w.def.seeker.is_some())
         .expect("a seeker row");
-    let mut launch = |side: Side, unit: UnitId| {
+    let mut launch = |side: Side, unit: UnitId, at: V3| {
+        let origin = v3(3000.0, 3000.0, 100.0);
+        let velocity = (at - origin).normalized() * 100.0;
         let projectile = battle.projectiles.launch(crate::flight::Launch {
-            origin: v3(3000.0, 3000.0, 100.0),
+            origin,
             carrier: v3(0.0, 0.0, 0.0),
-            velocity: v3(0.0, 0.0, 100.0),
+            velocity,
             gravity_scale: 0.0,
             lifetime_s: 30.0,
             suppression_radius_m: 0.0,
             shooter: None,
             guidance: Some(crate::flight::Guidance {
-                point: v3(3000.0, 3000.0, 1000.0),
+                point: origin + velocity,
                 turn_rad_s: 1.0,
                 supported: false,
                 loft: None,
@@ -197,8 +199,8 @@ fn a_seeker_flies_at_its_own_sides_contact() {
         );
         projectile
     };
-    let blue_round = launch(Side::Blue, UnitId(0));
-    let red_round = launch(Side::Red, UnitId(1));
+    let blue_round = launch(Side::Blue, UnitId(0), blue_at);
+    let red_round = launch(Side::Red, UnitId(1), red_at);
     battle.step();
     let steered = |round| {
         battle
@@ -336,6 +338,7 @@ fn an_enemy_round_is_clipped_to_seen_ground_leg_by_leg_keeping_its_ricochets() {
     let normal = v3(-1.0, 0.0, 0.0);
     let round = Flown {
         side: Side::Blue,
+        layer: AltitudeLayer::Ground,
         from: v3(2.0, 4.0, 1.0),
         ricochets: vec![(v3(40.0, 4.0, 1.0), normal)],
         to: v3(60.0, 4.0, 1.0),
@@ -343,7 +346,7 @@ fn an_enemy_round_is_clipped_to_seen_ground_leg_by_leg_keeping_its_ricochets() {
         shooter: None,
         hit: Some((SegmentHit::Ground, v3(0.0, 0.0, 1.0))),
     };
-    let pieces = clip_to_seen(&fog, &round);
+    let pieces = clip_to_seen(&round, |p| fog.visible(p.x, p.y));
     let paths: Vec<Vec<[f64; 3]>> = pieces.iter().map(|p| p.path.clone()).collect();
     // The first leg samples every 4.75 m: seen to 11.5, unseen at 16.25
     // and 21, seen again from 25.75 through the ricochet to the end.
