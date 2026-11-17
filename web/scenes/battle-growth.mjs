@@ -2,12 +2,15 @@
 // faction's kind once its side meets it. That battle grows in place: the 3D
 // keeps drawing, and the timeline the page logs shows the battle staged and
 // its art committed, never a scene rebuild (which draws nothing until done).
-// The fixture's link is a fixed small skirmish, so the meeting is the same
-// every run.
+// The growth's art is held at the network edge until the new kind's stand-in
+// blocks are judged and attacked (`_stand-ins.mjs`), then released. The
+// fixture's link is a fixed small skirmish, so the meeting is the same every
+// run.
 import { readFile } from "node:fs/promises";
 import { advance, lab, obs, presented } from "./_lab.mjs";
 import { growthArt } from "./_growthArt.mjs";
 import { approachContact, followEnemyObjective } from "./_contact-battle.mjs";
+import { heldUnit, holdArt, judgeStandIns } from "./_stand-ins.mjs";
 
 /** Minutes of play allowed for blue to meet red. */
 const ROUNDS = 10;
@@ -51,6 +54,7 @@ export async function run(ctx) {
       snapshots.push(page.evaluate(() => window.__lab.stats().models.installed));
   };
   page.on("console", record);
+  const network = await holdArt(page);
   await ctx.openLab(page, ctx.url, 120000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab?.route?.status().status === "paused");
@@ -60,38 +64,49 @@ export async function run(ctx) {
   const initialWork = timeline.find((e) => e.kind === "scene installed")?.detail?.work;
   const initialNames = await snapshots.at(-1);
   console.log("battle-growth admission work", JSON.stringify(initialWork));
-  // The first scene is built: from here on, only growth.
+  // The first scene is built: from here on, only growth, its art held.
   timeline.length = 0;
   snapshots.length = 0;
   details.length = 0;
+  network.start();
 
   // Recon's longer sight reaches the firing vehicles before they can kill a
   // short-sighted tank on the approach. This fixture is a meeting, not an assault.
   const scoutId = await approachContact(page);
-  for (
-    let ticks = 0;
-    ticks < ROUNDS * 60 * 30 && !timeline.some((e) => e.kind === "battle staged");
-    ticks += 30
-  ) {
+  // Stop at the first held growth, rather than fast-forwarding through a
+  // whole minute in which a second kind could arrive as well. Staging waits
+  // on the art, so a held growth shows as blocks before it logs anything.
+  let meeting = await obs(page);
+  let unit = null;
+  for (let ticks = 0; ticks < ROUNDS * 60 * 30; ticks += 30) {
     await advance(page, 30);
-    // Stop at the first drawn growth, rather than fast-forwarding through a
-    // whole minute in which a second kind could arrive as well.
     await presented(page);
-    if (!timeline.some((event) => event.kind === "battle staged"))
-      await followEnemyObjective(page, await obs(page), scoutId);
+    meeting = await obs(page);
+    unit = network.held.length ? await heldUnit(page, meeting) : null;
+    if (unit) break;
+    await followEnemyObjective(page, meeting, scoutId);
   }
-  // Its art is admitted while the scene keeps drawing.
-  const staged = Date.now();
   const committed = () => {
     const lastStage = timeline.map((e) => e.kind).lastIndexOf("battle staged");
     return lastStage >= 0 && timeline.slice(lastStage).some((e) => e.kind === "art committed");
   };
-  while (
-    timeline.some((e) => e.kind === "battle staged") &&
-    !committed() &&
-    Date.now() - staged < 60_000
-  )
-    await page.waitForTimeout(250);
+  const attacker = meeting.own.find((u) => u.id === scoutId);
+  ctx.check(
+    "the held growth draws a seen enemy unit as stand-ins, the scout alive",
+    !!unit && !!attacker,
+    JSON.stringify({
+      tick: meeting.tick,
+      held: network.held.length,
+      identified: meeting.identified,
+      own: meeting.own,
+    }),
+  );
+  if (unit && attacker)
+    await judgeStandIns(ctx, page, { unit, attacker, release: network.release, committed });
+  // Released, its art is admitted while the scene keeps drawing.
+  await network.release();
+  const released = Date.now();
+  while (!committed() && Date.now() - released < 60_000) await page.waitForTimeout(250);
   await presented(page);
   // Allow the frame observer to publish the commit's last long-frame entry.
   await page.waitForTimeout(1000);

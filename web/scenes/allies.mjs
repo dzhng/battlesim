@@ -122,7 +122,8 @@ export async function run(ctx) {
     JSON.stringify((await obs(page)).own.map((u) => [u.id, u.owner, u.kind])),
   );
   if (!o) return;
-  // Your tanks drive over beside your ally's force, so one frame holds both.
+  // Your tanks drive over beside your ally's force, so one frame holds both:
+  // to its unit nearest them, since a spread force's middle can be empty ground.
   const mineIds = o.own.filter((u) => u.owner === YOU).map((u) => u.id);
   const near = (o) => {
     const allies = o.own.filter((u) => u.owner === ALLY);
@@ -130,7 +131,10 @@ export async function run(ctx) {
     return mine.length > 0 && mine.every((m) => allies.some((a) => dist(a, m) < 70));
   };
   for (let leg = 0; leg < 6 && !near(o); leg++) {
-    const goal = centroid(o.own.filter((u) => u.owner === ALLY));
+    const from = { position: centroid(o.own.filter((u) => u.owner === YOU)) };
+    const goal = o.own
+      .filter((u) => u.owner === ALLY)
+      .sort((a, b) => dist(a, from) - dist(b, from))[0].position;
     await lab(page, (order) => window.__lab.route.command(order), {
       kind: "move",
       units: mineIds,
@@ -140,7 +144,13 @@ export async function run(ctx) {
     });
     o = (await until(page, near, 20 * 30, 150)) ?? (await obs(page));
   }
-  ctx.check("your tanks reach your ally's force", near(o));
+  ctx.check(
+    "your tanks reach your ally's force",
+    near(o),
+    JSON.stringify(
+      o.own.map((u) => [u.id, u.owner, u.kind, u.position.slice(0, 2).map(Math.round), u.goal]),
+    ),
+  );
   await ctx.writeEvidence(
     "units.json",
     o.own.map((u) => [u.id, u.owner, u.kind, u.position]),

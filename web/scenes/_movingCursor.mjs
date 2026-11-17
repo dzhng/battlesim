@@ -132,3 +132,97 @@ export async function buildingCursor(ctx) {
   );
   await page.close();
 }
+
+/** Each frame from now until `act` settles plus `frames` more: the cursor
+ *  action, the outlined garrison target and the count of held move marks. */
+async function watch(page, act, frames) {
+  await page.evaluate(() => {
+    const seen = (window.__restSeen = []);
+    const sample = () => {
+      seen.push([
+        document.documentElement.dataset.cursor,
+        window.__lab.route.garrisonTarget(),
+        window.__lab.route.movePreview().length,
+      ]);
+      if (window.__restSeen === seen) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await act();
+  for (let k = 0; k < frames; k++)
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  return page.evaluate(() => {
+    const seen = window.__restSeen;
+    window.__restSeen = null;
+    return seen;
+  });
+}
+
+/** A pointer at rest keeps what it offers while the rest of the side's
+ *  orders change around it: the badge and outline over a building a squad
+ *  can enter, and the ghosts of a held right-drag over open ground. */
+export async function restingCursor(ctx) {
+  const page = await openBattle(ctx, { url: `${base(ctx)}/labs/garrison`, tick: 40 });
+  await lab(page, () =>
+    window.__lab.setCamera({
+      ...window.__lab.camera(),
+      target: [346, 252, 0],
+      distance: 130,
+      pitch: 0.95,
+      yaw: -0.75,
+    }),
+  );
+  // Squad 0 points; squad 1, not selected, takes new orders meanwhile.
+  await select(page, [0]);
+  await lab(page, () => window.__lab.route.resume());
+  let gesture = 9100;
+  const orderOther = async () => {
+    for (const goal of [
+      [320, 270],
+      [322, 274],
+      [318, 268],
+    ]) {
+      await lab(page, (order) => window.__lab.route.command(order), {
+        kind: "move",
+        units: [1],
+        gesture: gesture++,
+        goal,
+        route: "shortest",
+      });
+      for (let k = 0; k < 6; k++)
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+    }
+  };
+
+  await page.mouse.move(...(await project(page, [360, 250, 8])));
+  await expects(page, "garrison");
+  await page.waitForFunction(() => window.__lab.route.garrisonTarget() !== null);
+  const resting = await watch(page, orderOther, 30);
+  ctx.check(
+    "a resting pointer's garrison badge holds while other units take orders",
+    resting.length > 20 && resting.every(([action]) => action === "garrison"),
+    JSON.stringify(resting.map(([action]) => action)),
+  );
+  ctx.check(
+    "the building it offers stays outlined while other units take orders",
+    resting.every(([, outlined]) => outlined !== null),
+    JSON.stringify(resting.map(([, outlined]) => outlined)),
+  );
+
+  // A right-drag on open ground west of the house, held while turning.
+  const from = await project(page, [330, 250, 0]);
+  const to = await project(page, [330, 240, 0]);
+  await page.mouse.move(...from);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(...to, { steps: 4 });
+  await page.waitForFunction(() => window.__lab.route.movePreview().length > 0);
+  const held = await watch(page, orderOther, 30);
+  await page.keyboard.press("Escape");
+  await page.mouse.up({ button: "right" });
+  ctx.check(
+    "a held drag's ghosts stay while other units take orders",
+    held.length > 20 && held.every(([, , marks]) => marks > 0),
+    JSON.stringify(held.map(([, , marks]) => marks)),
+  );
+  await page.close();
+}

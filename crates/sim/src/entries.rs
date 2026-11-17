@@ -12,6 +12,10 @@ use contract::players::{ControllerKind, Player};
 
 use crate::math::V2;
 
+/// A returning unit may finish this far before the exact entry point. It is a
+/// physical approach tolerance, independent of the marker's presentation.
+const ENTRY_APPROACH_M: f64 = 8.0;
+
 /// An index into the ordered entry list for one side (centre, left, right).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -75,8 +79,10 @@ pub fn site(sites: &SkirmishSites, index: EntryIndex) -> &EntrySite {
     sites.entries.get(index.0).expect("entry index")
 }
 
-/// Whether a withdrawing ground or rotor aircraft has reached any entry on
-/// its side.
+/// Whether a withdrawing ground or rotor aircraft is close enough to any entry
+/// on its side to leave the field. The unit's footprint tolerance is retained
+/// around the exit, with a small approach margin so it need not hit the exact
+/// point.
 pub fn retire_at(sites: &SkirmishSites, side: Side, point: [f64; 2], half_extent: f64) -> bool {
     sites
         .entries
@@ -87,7 +93,7 @@ pub fn retire_at(sites: &SkirmishSites, side: Side, point: [f64; 2], half_extent
                 x: point[0] - entry.center[0],
                 y: point[1] - entry.center[1],
             };
-            delta.length() <= half_extent * 2.0
+            delta.length() <= half_extent * 2.0 + ENTRY_APPROACH_M
         })
 }
 

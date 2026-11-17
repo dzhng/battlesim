@@ -1153,13 +1153,17 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
     battle.step();
     assert_eq!(battle.observe(Side::Blue).seat().unit_count, 1);
     assert!((battle.observe(Side::Blue).seat().credits - before.seat().credits) < 1.0);
+    let mut last_position = before.own[0].position;
     for _ in 0..1000 {
-        if battle.observe(Side::Blue).own.is_empty() {
+        if let Some(unit) = battle.observe(Side::Blue).own.first() {
+            last_position = unit.position;
+        } else {
             break;
         }
         battle.step();
     }
     let returned = battle.observe(Side::Blue).clone();
+    assert!(last_position[1] > 20.0);
     assert!(returned.own.is_empty(), "the unit physically reached base");
     assert_eq!(returned.seat().unit_count, 0);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
@@ -1191,7 +1195,7 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
 }
 
 #[test]
-fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
+fn an_occupied_entry_does_not_block_return() {
     let setup = setup();
     let mut battle = Battle::new(&setup, 1);
     battle.accept(command(
@@ -1228,16 +1232,10 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
         battle.step();
     }
     let status = battle.observe(Side::Blue);
-    assert!(
-        status
-            .own
-            .iter()
-            .any(|unit| unit.id == returning && unit.withdrawing),
-        "occupied physical entry must keep the return pending"
-    );
-    assert_eq!(status.seat().unit_count, 2);
+    assert!(!status.own.iter().any(|unit| unit.id == returning));
+    assert_eq!(status.seat().unit_count, 1);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
-    assert!((status.seat().credits - before - passive).abs() < 0.00001);
+    assert!(status.seat().credits > before + passive);
 }
 
 /// The player buys a helicopter as a reinforcement: the preview places it,

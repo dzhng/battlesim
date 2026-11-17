@@ -347,6 +347,23 @@ html {
   gap: 14px;
   align-items: center;
 }
+.hud-replay-camera {
+  position: absolute;
+  top: 12px;
+  right: 64px;
+  pointer-events: auto;
+  padding: 7px 12px;
+  color: rgb(var(--hud-text));
+  font: 10.5px/1.45 var(--hud-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(var(--hud-glass) / 0.92);
+  border: 1px solid rgb(var(--hud-accent) / 0.32);
+  cursor: pointer;
+}
+.hud-replay-camera:hover {
+  border-color: rgb(var(--hud-accent));
+}
 /* Master, music and voices: a name column and a slider column, so the
    sliders start and end together. */
 .sound-levels {
@@ -1048,6 +1065,12 @@ html {
 .hud-panel.hud-settings-modal {
   width: min(560px, 100%);
 }
+.hud-settings-modal .hud-menu-section {
+  padding-block: 12px;
+}
+.hud-settings-modal .hud-menu-section:last-child {
+  padding-bottom: 0;
+}
 .hud-tutorial-head {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1073,10 +1096,9 @@ html {
   gap: 10px;
   pointer-events: none;
 }
-/* The deck stands on the screen's edge; without it (no units, nothing to
-   buy) the contact lines keep their margin. */
+/* The deck stands on the bottom edge. Keep side margins on this measured
+   wrapper so ArmyDeck's row capacity matches the panel's available width. */
 .hud-lower:has(.hud-army-deck) {
-  inset-inline: 0;
   bottom: 0;
 }
 .hud-panel.hud-bar {
@@ -1132,14 +1154,27 @@ html {
   align-items: stretch;
   gap: 0;
   width: max-content;
-  max-width: calc(100vw - 32px);
+  max-width: 100%;
   min-height: 0;
   padding: 5px 5px 6px;
   border-inline: 0;
 }
-.hud-bottom.hud-army-deck:has(.hud-army[data-army-rows]:not([data-army-rows="1"])) {
-  width: 100%;
-  max-width: none;
+.hud-army-header {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) auto minmax(70px, 1fr);
+  align-items: center;
+  min-height: 25px;
+}
+.hud-army-header > .hud-reinforcements {
+  grid-column: 2;
+}
+.hud-army-count {
+  grid-column: 3;
+  justify-self: end;
+  padding-right: 8px;
+  color: rgb(var(--hud-text));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 /* Each card's cell is placed from its slot (`deckLayout.ts`): one sequence
    filled top to bottom, then across, so the deck never has a gap. */
@@ -2067,7 +2102,7 @@ html {
   padding: 12px 24px 16px;
   border-top: 1px solid rgb(255 255 255 / 0.09);
 }
-.match-result-exit {
+.match-result-leave {
   min-width: 240px;
   padding: 9px 28px;
   border: 1px solid rgb(var(--hud-accent) / 0.85);
@@ -2083,7 +2118,7 @@ html {
     box-shadow 80ms,
     background 80ms;
 }
-.match-result-exit:is(:hover, :focus-visible) {
+.match-result-leave:is(:hover, :focus-visible) {
   outline: none;
   border-color: rgb(var(--hud-accent));
   background: rgb(var(--hud-accent) / 0.32);

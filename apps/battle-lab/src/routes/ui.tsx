@@ -35,6 +35,7 @@ import type { ObjectiveView, SkirmishView } from "@web/battle/sim/observationVie
 import { BattleClock, SkirmishStatus } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
 import { MenuButton, PauseMenu } from "../PauseMenu";
+import { ReplayCameraButton } from "../replayFile";
 import { specimenUnit } from "../panelSpecimens";
 import { MatchResultOverlay } from "../MatchResultOverlay";
 import { reportSpecimen } from "../reportSpecimens";
@@ -495,8 +496,29 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
       </div>
     ),
   },
-  { id: "pause-menu", draw: () => <PauseMenu onClose={() => {}} onRestart={() => {}} /> },
+  {
+    id: "pause-menu",
+    draw: () => <PauseMenu onClose={() => {}} onRestart={() => {}} onSaveReplay={async () => {}} />,
+  },
   { id: "pause-menu-no-restart", draw: () => <PauseMenu onClose={() => {}} /> },
+  {
+    id: "replay-camera",
+    draw: () => (
+      <div className="hud">
+        <MenuButton onOpen={() => {}} />
+        <ReplayCameraButton following onToggle={() => {}} />
+      </div>
+    ),
+  },
+  {
+    id: "replay-camera-free",
+    draw: () => (
+      <div className="hud">
+        <MenuButton onOpen={() => {}} />
+        <ReplayCameraButton following={false} onToggle={() => {}} />
+      </div>
+    ),
+  },
   {
     id: "loading",
     draw: () => (

@@ -175,11 +175,12 @@ export async function appJourney(ctx) {
       covered.tick === 90,
     JSON.stringify(covered),
   );
-  // Replays have no menu item yet: the battle saves one through its
-  // diagnostics, and the viewer is reached by its address below.
+  // Save from the player's settings, then reach the viewer by its address below.
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   const download = page.waitForEvent("download");
-  await page.evaluate(() => window.__lab.route.exportReplay());
+  await page.getByRole("button", { name: "Save replay", exact: true }).click();
   await download;
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
   await closeMenu(page);
   // A unit of the player's own: bought and placed at blue's entry, the
   // battle readied, and in through the road-edge entry.
@@ -401,7 +402,7 @@ export async function armyJourney(ctx) {
   // (here, its three corner shops), the rules or what the digest folds.
   ctx.check(
     "matched army capture preserves the original battle digest",
-    armyDigest === "33b09b5433b68108",
+    armyDigest === "566008cf13255b24",
     armyDigest,
   );
   await roster.first().click();

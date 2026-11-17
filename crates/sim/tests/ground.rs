@@ -477,3 +477,73 @@ fn a_tank_on_a_bridge_deck_leaves_no_tracks_on_the_ground_under_it() {
         "tracks under the deck"
     );
 }
+
+/// Bombs and missiles in flight dig craters where they strike the ground,
+/// as the lab's bursts do: a jet's iron bombs, and a launcher's strike
+/// missiles, each leave a crater deep enough to be cover where they land.
+#[test]
+fn a_bomb_or_missile_striking_the_ground_digs_a_crater_there() {
+    use crate::attack_runs::{run_field, run_rules, RUN_START};
+    use contract::command::{CommandEnvelope, Order, TargetRef};
+    use sim::flight::{FlightEvent, Struck};
+    use std::collections::BTreeMap;
+
+    let mut rules = run_rules(&["air_bomb"]);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "name": "Launcher", "weapons": ["artillery_strike_missile"],
+            "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
+    );
+    let mut b = run_field(
+        rules,
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 },
+            { "side": "blue", "kind": "test_jeep", "position": [1200.0, 3200.0], "yaw": 0.0 }
+        ]),
+    );
+    let aims = [[2000.0, 2000.0], [2600.0, 2600.0]];
+    for (unit, aim) in aims.iter().enumerate() {
+        let ack = b.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq: unit as u64 + 1,
+            queued: false,
+            order: Order::Attack {
+                units: vec![UnitId(unit as u32)],
+                target: TargetRef::Ground {
+                    point: [aim[0], aim[1], 0.0],
+                },
+            },
+        });
+        assert_eq!(ack.error, None, "unit {unit}");
+    }
+    let r = b.rules().clone();
+    let mut fired_by = BTreeMap::new();
+    let mut landed: Vec<(u32, sim::math::V2)> = Vec::new();
+    for _ in 0..90 * r.tick_hz {
+        b.step();
+        for (p, round) in b.rounds() {
+            fired_by.entry(p.id).or_insert(round.unit.0);
+        }
+        for e in b.flight_events() {
+            if let FlightEvent::Impact(i) = e {
+                if matches!(i.struck, Struck::Terrain) && i.detonated {
+                    landed.push((fired_by[&i.projectile], i.point.xy()));
+                }
+            }
+        }
+    }
+    for unit in [0, 1] {
+        let points: Vec<_> = landed.iter().filter(|(u, _)| *u == unit).collect();
+        assert!(!points.is_empty(), "unit {unit}'s rounds never landed");
+        for (_, at) in points {
+            let fill = b.ground().crater_fill(at.x, at.y, &r.ground);
+            assert!(
+                fill >= r.cover.crater_min_fill,
+                "unit {unit}'s round landed at {at:?} and left a crater only {fill:.2} full"
+            );
+        }
+    }
+}

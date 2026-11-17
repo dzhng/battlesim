@@ -180,9 +180,10 @@ plate is paired with the frame records of its own run.
 - **Counts are exact.** Per plate, native's model, building-module, prop,
   scenery and effect counts must equal the browser's. They do on every plate of
   both scenes, fog off and on, over five consecutive fresh captures (120 plates).
-  `native/client/tests/counts.rs` holds this on every frame of a committed
-  count-only run (`fixtures/parity/capture/`), tick boundaries included, with no
-  GPU. Counts prove the same lists were built, not the pixels.
+  A committed count-only run once held this on every frame in a test; it was
+  removed because the run is of the menu reel, which changes with the game,
+  so a fresh run's replay check (`PARITY_COUNTS=1`) is how to hold it now.
+  Counts prove the same lists were built, not the pixels.
 - **Looks are judged by eye,** side by side, with `compare-screenshots` and an
   unprimed `screenshot-critique`. There is no pixel budget. The last whole-set
   critique (all 24 pairs) found differences only in the tank's road wheels,

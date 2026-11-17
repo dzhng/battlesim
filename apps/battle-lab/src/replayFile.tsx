@@ -7,11 +7,14 @@ import { usePageVisitActive } from "./navigation";
 import { useEffect, useRef, useState } from "react";
 import type { PreparedBattle } from "@web/battle/prepare/protocol";
 import { LoadingScreen } from "./LoadingScreen";
+import { validateReplayCamera, type ReplayCameraTrack } from "./replayCamera";
 
 /** A prepared battle and every command it accepted. */
 export interface ReplayFile {
   battle: PreparedBattle;
   replay: string;
+  /** Only the human using the recording browser; never an AI camera. */
+  camera?: ReplayCameraTrack;
   /** The resolved fixture lighting look. A file without one plays the
    *  document's default look (`presentation.light_preset`). */
   light_preset?: string;
@@ -49,6 +52,13 @@ export function parseReplayFile(text: string): ReplayFile {
   const file = JSON.parse(text) as Partial<ReplayFile> | null;
   const named = typeof file?.battle?.scenario === "string" && !!file.battle.report?.request;
   if (!file || typeof file.replay !== "string" || !named) throw new Error("not a saved battle");
+  if (file.camera !== undefined) {
+    validateReplayCamera(file.camera);
+    // A human can take a seat that began under AI; the recording owns that history.
+    const player = file.battle!.report.request.players?.find((p) => p.id === file.camera!.player);
+    if (!player || player.side !== file.camera.side)
+      throw new Error("replay camera does not belong to a battle player");
+  }
   return file as ReplayFile;
 }
 
@@ -113,6 +123,56 @@ export async function saveReplay(file: ReplayFile, name: string) {
   a.click();
   // Revoking at once can cancel the download in some browsers.
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+export function SaveReplayButton({ save }: { save: () => Promise<unknown> }) {
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const saveNow = async () => {
+    setState("saving");
+    try {
+      await save();
+      setState("saved");
+    } catch {
+      setState("failed");
+    }
+  };
+  return (
+    <button
+      type="button"
+      className="hud-menu-item"
+      disabled={state === "saving"}
+      onClick={() => void saveNow()}
+      aria-live="polite"
+    >
+      {state === "saving"
+        ? "Saving replay…"
+        : state === "saved"
+          ? "Replay saved"
+          : state === "failed"
+            ? "Save failed — retry"
+            : "Save replay"}
+    </button>
+  );
+}
+
+export function ReplayCameraButton({
+  following,
+  onToggle,
+}: {
+  following: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="hud-replay-camera"
+      data-occludes-readouts
+      aria-pressed={following}
+      onClick={onToggle}
+    >
+      {following ? "Following player camera" : "Follow player camera"}
+    </button>
+  );
 }
 
 /** Load a saved battle from a file, keep it as the last saved battle and

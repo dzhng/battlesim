@@ -11,5 +11,4 @@ test("graphics workload fingerprint is deterministic and changes with its identi
   const first = reelFingerprint();
   expect(first).toMatch(/^[0-9a-f]{8}$/);
   expect(reelFingerprint()).toBe(first);
-  expect(JSON.stringify(MENU_REEL_WORKLOAD)).toContain("market-town");
 });

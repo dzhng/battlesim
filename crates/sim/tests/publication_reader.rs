@@ -102,15 +102,14 @@ fn both_fixture_captures_decode_as_the_browser_decoded_them() {
         }
         let mut reader = Reader::new(capture["layout"].as_str().unwrap()).unwrap();
         let samples = capture["samples"].as_array().unwrap();
-        assert_eq!(
-            samples.len(),
-            expected["observations"].as_array().unwrap().len()
-        );
+        let expected = expected["observations"].as_array().unwrap();
+        // A re-recorded run may change length; blessing rewrites the file.
+        let blessing = std::env::var_os("BLESS_PARITY").is_some();
+        if !blessing {
+            assert_eq!(samples.len(), expected.len());
+        }
         let mut recorded = Vec::with_capacity(samples.len());
-        for (sample, expected) in samples
-            .iter()
-            .zip(expected["observations"].as_array().unwrap())
-        {
+        for (index, sample) in samples.iter().enumerate() {
             let words: Vec<u32> = sample["publication"]
                 .as_array()
                 .unwrap()
@@ -123,8 +122,12 @@ fn both_fixture_captures_decode_as_the_browser_decoded_them() {
                 .expect("a capture is one stream");
             let view = observation_value(&observation);
             recorded.push(view.clone());
-            if std::env::var_os("BLESS_PARITY").is_none() {
-                same(&view, expected, &format!("{scene} tick {}", sample["tick"]));
+            if !blessing {
+                same(
+                    &view,
+                    &expected[index],
+                    &format!("{scene} tick {}", sample["tick"]),
+                );
             }
         }
         if std::env::var_os("BLESS_PARITY").is_some() {

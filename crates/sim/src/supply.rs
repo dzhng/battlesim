@@ -3,8 +3,9 @@
 //! finite ammunition in parallel first, defensive charges
 //! (active protection, then flares), then vehicle health, then replacement
 //! soldiers, then smoke charges, each at its configured rate and paid from the
-//! vehicle's stock. Stock is debited whole and in ascending unit order, never
-//! below zero, and never refilled (L05). Readiness is the deployment module's.
+//! vehicle's stock. Stock is debited in ascending unit order; its final
+//! positive remainder buys one last item, never going below zero or refilling
+//! (L05). Readiness is the deployment module's.
 use contract::map::MoverClass;
 use contract::observation::ServiceStatus;
 use contract::scenario::Rules;
@@ -132,13 +133,25 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
     }
 }
 
-/// Every finite round must have a price, or a truck could give it away (L05).
+/// Every finite round has an authored price and positive delivery rate.
 pub(crate) fn validate(rules: &Rules) -> Result<(), crate::RulesError> {
     for (id, weapon) in &rules.weapons {
-        if matches!(weapon.ammo, AmmoCapacity::Rounds(_)) && weapon.round_cost.is_none() {
+        if !matches!(weapon.ammo, AmmoCapacity::Rounds(_)) {
+            continue;
+        }
+        if weapon.round_cost.is_none() {
             return Err(crate::RulesError::new(
                 format!("weapons.{id}.round_cost"),
                 "missing price for finite weapon row",
+            ));
+        }
+        if !weapon
+            .resupply_rounds_per_s
+            .is_some_and(|rate| rate.is_finite() && rate > 0.0)
+        {
+            return Err(crate::RulesError::new(
+                format!("weapons.{id}.resupply_rounds_per_s"),
+                "finite weapon row needs a finite positive resupply rate",
             ));
         }
     }
@@ -146,7 +159,7 @@ pub(crate) fn validate(rules: &Rules) -> Result<(), crate::RulesError> {
 }
 
 /// Serve one tick. Recipients go in ascending unit order, so an earlier unit
-/// pays first; each item takes the first set-up truck in reach that can pay.
+/// pays first; each item takes the first set-up truck in reach with stock.
 /// `next_soldier` issues fresh soldier ids for replacements.
 pub fn service(
     world: &WorldGeometry,
@@ -199,7 +212,7 @@ pub fn service(
                     if let Some(src) = ready
                         .iter()
                         .copied()
-                        .find(|&s| units[s].stock.is_some_and(|n| n >= cost))
+                        .find(|&s| units[s].stock.is_some_and(|n| n > 0))
                     {
                         status = serve(
                             world,
@@ -209,6 +222,7 @@ pub fn service(
                             r,
                             item,
                             cost,
+                            arsenal,
                             rules,
                             next_soldier,
                         );
@@ -231,6 +245,7 @@ fn serve(
     r: usize,
     need: Need,
     cost: u32,
+    arsenal: &Arsenal,
     rules: &Rules,
     next_soldier: &mut u32,
 ) -> ServiceStatus {
@@ -239,7 +254,13 @@ fn serve(
     let unit = &mut units[r];
     let progress = &mut unit.progress_service;
     let (clock, period) = match need {
-        Need::Round(m, k, _) => (&mut unit.mounts[m].resupply_s[k], 1.0 / s.ammo_rounds_per_s),
+        Need::Round(m, k, row) => (
+            &mut unit.mounts[m].resupply_s[k],
+            1.0 / arsenal.weapons[row]
+                .def
+                .resupply_rounds_per_s
+                .expect("finite ammunition has a resupply rate at admission"),
+        ),
         Need::Protection { service_s, .. } => (&mut progress.protection_s, service_s),
         Need::Flare { .. } => (&mut progress.flare_s, s.flare_service_s),
         Need::Health => (&mut progress.hp_s, 1.0 / s.vehicle_hp_per_s),
@@ -252,7 +273,7 @@ fn serve(
     }
     *clock -= period;
     let stock = units[src].stock.as_mut().expect("a supply source");
-    *stock -= cost;
+    *stock = stock.saturating_sub(cost);
     let unit = &mut units[r];
     match need {
         Need::Round(m, k, _) => {

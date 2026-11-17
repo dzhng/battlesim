@@ -62,8 +62,10 @@ export class OrderPreview {
 
   /**
    * Advances the current preview on the same frame cadence as the cursor.
-   * Facing is excluded from the gesture identity, so its last answer remains
-   * available while the replacement query is in flight. The selected-unit
+   * A new `revision` (the battle moved on) or facing asks again and keeps
+   * the last answer until the replacement lands: the marks and badge never
+   * blink while the pointer rests. A new request or `identity` (a new press)
+   * drops it. The selected-unit
    * input stays at this seam with the existing controller call; PointerPaint
    * still projects the current unit inputs into markers.
    */

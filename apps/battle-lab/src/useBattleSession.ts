@@ -147,7 +147,7 @@ export function useBattleSession({
   const commanding = commandingPlayer(players, side, player);
   /** The human the client plays as; null when it watches a battle it has no
    *  seat in (AI against AI), and the result reads neutral. */
-  const viewer = players.find((p) => p.id === commanding && p.controller === "human") ?? null;
+  const viewer = players.find((p) => p.id === commanding) ?? null;
   const sim = useSimSession({
     scenario,
     seed,
@@ -579,8 +579,8 @@ export function useBattleSession({
     const previewSnapshot = orderPreview.update(
       active ? previewForIntent(queryIntent) : null,
       active ? sim.client : null,
-      `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
-      `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
+      `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}:${semanticRevision.current.version}`,
+      `${held?.generation ?? (waiting ? pending.generation : 0)}`,
     );
     const marks = pointerPaint.markers(previewSnapshot, shown?.own ?? []);
     const showDestinations =

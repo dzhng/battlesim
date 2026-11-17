@@ -173,7 +173,7 @@ export function createReelRun(
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
-  const pilot: ViewportPilot = {
+  const pilot = {
     plates,
     frameRate: true,
     attach(frame) {
@@ -260,7 +260,7 @@ export function createReelRun(
       if (recording.elapsed(now) >= durationMs)
         finish({ status: "complete", reason: "Full scene complete" });
     },
-  };
+  } satisfies ViewportPilot;
   const scripted: ScriptedSim = {
     warmTo: startTick,
     onReady(info) {

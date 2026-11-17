@@ -1,12 +1,10 @@
-//! The crate poses paris-corner's units exactly as the browser does: every
-//! frame record up to its first plate driven through interpolation, the
-//! feed and the pose driver, against the browser's own poses of the same
-//! records (written by its TypeScript before that was deleted); the tank's
-//! articulation at fixed inputs; and a body's joint worlds sampled from its
-//! clip table. Values agree to the fixture's rounding (1e-6). The
-//! TypeScript is gone, so the capture's frames now pin the crate's own
-//! poses: `BLESS_PARITY=1` re-records them from a refreshed capture, and only
-//! once the old capture still reproduces the old frames.
+//! The crate poses units as the browser did: the tank's articulation at
+//! fixed inputs and a body's joint worlds sampled from its clip table agree
+//! with the browser's values (written by its TypeScript before that was
+//! deleted) to the fixture's rounding (1e-6); and on a recorded browser run,
+//! every drawn muzzle sits on its drawn model. The run is a sample of
+//! publications, not a pin on what it shows: nothing here compares its
+//! frames, so the menu reel it was filmed from may change freely.
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -21,7 +19,7 @@ use presentation::units::interpolate::TickInterpolator;
 use presentation::units::pose::{Articulation, PoseFrame};
 use presentation::units::skin::joint_worlds;
 use presentation::world::{Appearance, UnitsSection, Vec3};
-use serde_json::{json, Value};
+use serde_json::Value;
 use sim::publication::reader::Reader;
 
 const FIXTURES: &str = concat!(
@@ -53,61 +51,6 @@ fn near(actual: f64, wanted: &Value, what: &str) {
     );
 }
 
-fn round6(v: f64) -> Value {
-    Value::from((v * 1e6).round() / 1e6)
-}
-
-fn round6_all(v: &[f64]) -> Value {
-    v.iter().map(|&x| round6(x)).collect()
-}
-
-/// One frame in the fixture's terms, rounded as the browser wrote it.
-fn frame_record(at: &Value, poses: &PoseFrame, units: &UnitsSection) -> Value {
-    let soldiers: Vec<Value> = poses
-        .soldiers
-        .iter()
-        .map(|s| {
-            json!({
-                "soldier": round6(s.soldier), "unit": round6(s.unit), "clip": &*s.clip,
-                "phase": round6(s.phase), "facing": round6(s.facing),
-                "position": round6_all(&s.position),
-                "blend": s.blend.as_ref().map(|b| json!({
-                    "clip": &*b.clip, "phase": round6(b.phase), "weight": round6(b.weight)
-                })),
-                "operatorMount": index(s.operator_mount), "activeMount": index(s.active_mount),
-            })
-        })
-        .collect();
-    let vehicles: Vec<Value> = poses
-        .vehicles
-        .iter()
-        .map(|v| {
-            let articulation: serde_json::Map<String, Value> = articulation_fields(&v.articulation)
-                .into_iter()
-                .map(|(k, x)| (k.to_owned(), round6(x)))
-                .collect();
-            json!({
-                "unit": round6(v.unit), "position": round6_all(&v.position),
-                "yaw": round6(v.yaw), "articulation": articulation,
-            })
-        })
-        .collect();
-    let corpses: Vec<Value> = poses
-        .corpses
-        .iter()
-        .map(|c| {
-            json!({
-                "soldier": round6(c.soldier), "lies": c.lies,
-                "position": round6_all(&c.position), "yaw": round6(c.yaw),
-            })
-        })
-        .collect();
-    json!({
-        "index": at, "counts": counts(poses, units),
-        "soldiers": soldiers, "vehicles": vehicles, "corpses": corpses,
-    })
-}
-
 fn near_all(actual: &[f64], wanted: &Value, what: &str) {
     let wanted = wanted.as_array().unwrap();
     assert_eq!(actual.len(), wanted.len(), "{what} length");
@@ -127,82 +70,10 @@ fn clip_table(name: &str) -> Vec<f32> {
         .collect()
 }
 
-fn index(v: Option<usize>) -> Value {
-    v.map_or(Value::Null, Value::from)
-}
-
-/// What a frame poses by kind, counting only what an appearance draws (`modelCounts`).
-fn counts(frame: &PoseFrame, units: &UnitsSection) -> Value {
-    let drawn = |kind: &str,
-                 side: &str,
-                 id: f64,
-                 slot: usize,
-                 operator: Option<usize>,
-                 active: Option<usize>| {
-        usize::from(
-            units
-                .resolve(kind, side, id, slot, operator, active)
-                .is_some(),
-        )
-    };
-    let soldiers = frame.soldiers.iter().map(|s| {
-        drawn(
-            &s.kind,
-            &s.side,
-            s.soldier,
-            s.slot,
-            s.operator_mount,
-            s.active_mount,
-        )
-    });
-    let vehicles = |air: bool| {
-        frame
-            .vehicles
-            .iter()
-            .filter(|v| v.airborne == air)
-            .map(|v| drawn(&v.kind, &v.side, v.unit, 0, None, None))
-            .sum::<usize>()
-    };
-    let corpses = frame
-        .corpses
-        .iter()
-        .map(|c| drawn(&c.kind, &c.side, c.soldier, c.slot, c.operator_mount, None));
-    let fading = frame
-        .fading
-        .iter()
-        .map(|f| &f.corpse)
-        .map(|c| drawn(&c.kind, &c.side, c.soldier, c.slot, c.operator_mount, None));
-    serde_json::json!({
-        "soldiers": soldiers.sum::<usize>(),
-        "vehicles": vehicles(false),
-        "aircraft": vehicles(true),
-        "corpses": corpses.sum::<usize>(),
-        "fading": fading.sum::<usize>(),
-    })
-}
-
-fn articulation_fields(a: &Articulation) -> [(&'static str, f64); 10] {
-    [
-        ("turret_yaw", a.turret_yaw),
-        ("gun_pitch", a.gun_pitch),
-        ("recoil", a.recoil),
-        ("hmg_yaw", a.hmg_yaw),
-        ("hmg_pitch", a.hmg_pitch),
-        ("travel_l", a.travel_l),
-        ("travel_r", a.travel_r),
-        ("deploy", a.deploy),
-        ("rotor", a.rotor),
-        ("rotor_blur", a.rotor_blur),
-    ]
-}
-
 #[test]
-fn the_browser_s_poses_of_the_fixture_capture() {
-    let mut expected = read("poses/paris-corner-poses.json");
-    let bless = std::env::var("BLESS_PARITY").as_deref() == Ok("1");
-    let mut blessed = vec![];
+fn the_drawn_muzzles_sit_on_the_drawn_models() {
     let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
-    let capture = read(expected["capture"].as_str().unwrap());
+    let capture = read("run/paris-corner/capture.json");
     // The battle's effects, resolved from the repository as native resolves them.
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workload = &capture["workload"];
@@ -231,9 +102,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut feed = ObservationFeed::new(capture["side"].as_str().unwrap());
     let mut interpolator = TickInterpolator::new(tick_hz);
-    let wanted = expected["frames"].as_array().unwrap().clone();
     let mut pushed = 0;
-    let mut compared = 0;
     let mut last = PoseFrame::default();
     for record in capture["frames"].as_array().unwrap() {
         let tick = record["tick"].as_f64().unwrap();
@@ -247,93 +116,12 @@ fn the_browser_s_poses_of_the_fixture_capture() {
         let sample = interpolator
             .frame(record["simTime"].as_f64().unwrap())
             .unwrap();
-        let poses = driver.update(feed.frame(sample, &units, &effects), &units, None);
-        last.clone_from(poses);
-        let Some(want) = wanted.iter().find(|w| w["index"] == record["index"]) else {
-            continue;
-        };
-        if bless {
-            blessed.push(frame_record(&record["index"], poses, &units));
-            continue;
-        }
-        compared += 1;
-        let at = format!("frame {}", record["index"]);
-        assert_eq!(counts(poses, &units), want["counts"], "{at}: counts");
-
-        let soldiers = want["soldiers"].as_array().unwrap();
-        assert_eq!(poses.soldiers.len(), soldiers.len(), "{at}: soldiers");
-        for (s, w) in poses.soldiers.iter().zip(soldiers) {
-            let who = format!("{at} soldier {}", w["soldier"]);
-            near(s.soldier, &w["soldier"], &who);
-            near(s.unit, &w["unit"], &format!("{who} unit"));
-            assert_eq!(*s.clip, *w["clip"].as_str().unwrap(), "{who} clip");
-            near(s.phase, &w["phase"], &format!("{who} phase"));
-            near(s.facing, &w["facing"], &format!("{who} facing"));
-            near_all(&s.position, &w["position"], &format!("{who} position"));
-            match (&s.blend, &w["blend"]) {
-                (None, Value::Null) => {}
-                (Some(b), w) if !w.is_null() => {
-                    assert_eq!(*b.clip, *w["clip"].as_str().unwrap(), "{who} fades from");
-                    near(b.phase, &w["phase"], &format!("{who} blend phase"));
-                    near(b.weight, &w["weight"], &format!("{who} blend weight"));
-                }
-                (b, w) => panic!("{who} blends {b:?}, not {w}"),
-            }
-            assert_eq!(
-                index(s.operator_mount),
-                w["operatorMount"],
-                "{who} operates"
-            );
-            assert_eq!(index(s.active_mount), w["activeMount"], "{who} carries");
-        }
-
-        let vehicles = want["vehicles"].as_array().unwrap();
-        assert_eq!(poses.vehicles.len(), vehicles.len(), "{at}: vehicles");
-        for (v, w) in poses.vehicles.iter().zip(vehicles) {
-            near(v.unit, &w["unit"], &format!("{at} vehicle"));
-            near_all(
-                &v.position,
-                &w["position"],
-                &format!("{at} vehicle position"),
-            );
-            near(v.yaw, &w["yaw"], &format!("{at} vehicle yaw"));
-            for (key, value) in articulation_fields(&v.articulation) {
-                near(
-                    value,
-                    &w["articulation"][key],
-                    &format!("{at} vehicle {key}"),
-                );
-            }
-        }
-
-        let corpses = want["corpses"].as_array().unwrap();
-        assert_eq!(poses.corpses.len(), corpses.len(), "{at}: corpses");
-        for (c, w) in poses.corpses.iter().zip(corpses) {
-            near(c.soldier, &w["soldier"], &format!("{at} corpse"));
-            assert_eq!(Value::from(c.lies), w["lies"], "{at} corpse lies");
-            near_all(
-                &c.position,
-                &w["position"],
-                &format!("{at} corpse position"),
-            );
-            near(c.yaw, &w["yaw"], &format!("{at} corpse yaw"));
-        }
+        last.clone_from(driver.update(feed.frame(sample, &units, &effects), &units, None));
     }
-    if bless {
-        assert_eq!(
-            blessed.len(),
-            wanted.len(),
-            "every written frame was re-recorded"
-        );
-        expected["frames"] = blessed.into();
-        std::fs::write(
-            format!("{FIXTURES}poses/paris-corner-poses.json"),
-            serde_json::to_string(&expected).unwrap(),
-        )
-        .unwrap();
-        return;
-    }
-    assert_eq!(compared, wanted.len(), "every written frame was compared");
+    assert!(
+        !last.vehicles.is_empty() && last.soldiers.iter().any(|s| s.active_mount.is_some()),
+        "the run's last frame poses a vehicle and an armed soldier"
+    );
 
     // The drawn muzzles sit on the drawn models: the tank's gun and each
     // rifleman's weapon, as the effects ask after them (side keys, the

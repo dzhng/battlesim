@@ -231,6 +231,13 @@ unit catalog so it enforces the same rule before preparing voices.
 
 ## How a battle looks
 
+Weapon flight must stand out from the strategic RTS camera, roughly 700 m
+above the battlefield. Judge glows and smoke at that height as well as close
+up: a bright muzzle flash cannot substitute for a readable round in flight.
+Tune the shared weapon looks rather than adding camera-specific effects.
+Damage guides the visual weight of comparable rounds: heavier hits deserve
+stronger glows and smoke, with those looks authored alongside the weapon family.
+
 Soldier poses follow actual published soldiers rather than formation slots. A
 soldier down in a posture, or shooting, keeps his weapon toward the threat as he
 moves and steps, crouches or crawls the way he goes, with a clip for every way;

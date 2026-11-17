@@ -319,6 +319,7 @@ fn blast_is_sampled_per_soldier_and_spares_no_team() {
         // One HE shell, without gunfire changing the victims before its arrival.
         for (name, weapon) in &mut setup.rules.weapons {
             weapon.round_cost.get_or_insert(1);
+            weapon.resupply_rounds_per_s.get_or_insert(1.0);
             weapon.ammo = contract::weapons::AmmoCapacity::Rounds(u32::from(name == "tank_he"));
         }
         let mut b = Battle::new(&setup, seed);

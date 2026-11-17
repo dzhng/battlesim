@@ -11,7 +11,6 @@ import { remoteConnection } from "@web/battle/remote/connection";
 import { streamEnded } from "@web/battle/remote/streamEnd";
 import { useOnlineMap, type OnlineMap } from "../online/useOnlineMap";
 import { useOnlineBattlePresence } from "../online/battlePresence";
-import { MatchResultOverlay } from "../MatchResultOverlay";
 import { BattleView } from "../BattleView";
 import { BattleClock } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
@@ -26,6 +25,9 @@ import { gameCamera } from "../gameCamera";
 import { resolveLighting } from "../lobby/lighting";
 import { setMatchLighting } from "../gameLight";
 import { usePageVisitActive } from "../navigation";
+import { onlineRequest } from "../online/requests";
+import type { ReplayAnswer } from "@packages/multiplayer/src/wire";
+import { saveReplay } from "../replayFile";
 
 function Cover({
   stage,
@@ -163,6 +165,27 @@ function PreparedOnlineBattle({
       prepared={world.session}
       side={ticket.side}
       player={ticket.player}
+      onSaveReplay={async ({ sim }, camera) => {
+        const { replay } = await onlineRequest<ReplayAnswer>(
+          ticket.address,
+          `/battles/${encodeURIComponent(ticket.battle)}/replay`,
+          {},
+          AbortSignal.timeout(10_000),
+        );
+        if (!active()) return;
+        await saveReplay(
+          {
+            battle: world.battle,
+            replay,
+            camera,
+            light_preset: resolveLighting(
+              ticket.setup.lighting,
+              String(request.map_source.request.seed),
+            ),
+          },
+          `battle-online-${ticket.battle}-tick${sim.latest.current?.tick ?? 0}.json`,
+        );
+      }}
       camera={view.camera}
       cameraConfig={view.config}
       cover={cover}
@@ -179,23 +202,7 @@ function PreparedOnlineBattle({
               : ROOM_BATTLE_FAILED_NOTICE,
         )
       }
-      result={(session) =>
-        session.sim.observation?.skirmish ? (
-          <MatchResultOverlay
-            match={session.sim.observation.skirmish}
-            seats={session.seats}
-            viewer={ticket.player}
-            callsigns={ticket.callsigns}
-            exit={{
-              label: "Return to Multiplayer",
-              onExit: () => {
-                leave();
-                back();
-              },
-            }}
-          />
-        ) : null
-      }
+      callsigns={ticket.callsigns}
       onLoadStage={(loaded) => {
         if (loaded === "world") setStage("renderer");
       }}

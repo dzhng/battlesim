@@ -138,9 +138,9 @@ function FinishedPage() {
         ]}
         viewer="red-1"
         callsigns={{ "blue-1": "SCOUT", "red-1": "WING" }}
-        exit={{
+        leave={{
           label: "Return to Multiplayer",
-          onExit: () => returnToMultiplayer(navigate, ""),
+          onLeave: () => returnToMultiplayer(navigate, ""),
         }}
       />
     </WithTestCatalog>

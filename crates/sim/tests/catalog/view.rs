@@ -21,6 +21,7 @@ fn every_published_weapon_row_carries_its_contracts_derived_facts() {
                 } else {
                     row.insert("ammo".into(), json!(30));
                     row.insert("round_cost".into(), json!(1));
+                    row.insert("resupply_rounds_per_s".into(), json!(1.0));
                 }
             }
             let view = fixtures::admit(

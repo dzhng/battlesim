@@ -83,6 +83,12 @@ membership and never makes one.
 | `GET /battles/:id/stream?after=<id>` |                | battle stream for the caller's side                   |
 | `POST /battles/:id/up`               | `UpBatch`      | `UpReply`                                             |
 | `POST /battles/:id/preview`          | `PreviewQuery` | `PreviewAnswer`, or refused `invalid` or `not_seated` |
+| `POST /battles/:id/replay`           | `{}`           | `ReplayAnswer`, or refused `not_seated`               |
+
+A seated player may export the full accepted command history while the battle
+is running, including the opponent's orders outside their fog. Replay export
+does not broaden the side's ordinary publication. The browser adds its own
+human camera history to the downloaded battle; cameras are not sent to the server.
 
 ### The control surface
 

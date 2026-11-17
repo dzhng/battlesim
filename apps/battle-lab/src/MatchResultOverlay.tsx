@@ -279,9 +279,9 @@ function Scoreboard({ side, report, names }: { side: SideName; report: Report; n
 
 /** Where the report's one action leaves the finished battle for: the main
  *  menu, or Multiplayer for an online battle. */
-export interface ReportExit {
+export interface ReportLeave {
   label: string;
-  onExit: () => void;
+  onLeave: () => void;
 }
 
 /** The report over a finished battle. `seats` are the battle's players in
@@ -293,10 +293,10 @@ export function MatchResultOverlay({
   seats,
   viewer,
   callsigns,
-  exit,
+  leave,
 }: {
   callsigns?: Record<string, string>;
-  exit: ReportExit;
+  leave: ReportLeave;
   match: SkirmishView;
   seats: readonly Seat[];
   viewer: string | null;
@@ -342,8 +342,8 @@ export function MatchResultOverlay({
           ))}
         </ol>
         <footer className="match-result-footer">
-          <button className="match-result-exit" type="button" onClick={exit.onExit}>
-            {exit.label}
+          <button className="match-result-leave" type="button" onClick={leave.onLeave}>
+            {leave.label}
           </button>
         </footer>
       </section>

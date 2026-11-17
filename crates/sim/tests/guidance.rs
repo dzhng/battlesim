@@ -597,8 +597,7 @@ fn a_survivor_keeps_guiding_when_the_original_gunner_falls() {
 
 #[test]
 fn a_survivor_keeps_a_top_attack_missile_climbing_and_diving_onto_the_tank() {
-    // The handoff passes the launcher, not a fresh shot: the survivor's
-    // missile still flies the row's loft and comes down on the tank.
+    // A handed-off missile keeps its loft and still strikes the tank.
     let mut struck = 0;
     for (mut b, mut path) in survivor_takeovers(top_attack) {
         while let Some(m) = missile(&b) {
@@ -606,7 +605,7 @@ fn a_survivor_keeps_a_top_attack_missile_climbing_and_diving_onto_the_tank() {
             b.step();
         }
         assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
-        if own(&b, Side::Red, 1).unwrap().hp < c::hull("test_tank").hp {
+        if own(&b, Side::Red, 1).map_or(0.0, |u| u.hp) < c::hull("test_tank").hp {
             struck += 1;
         }
     }
@@ -771,8 +770,7 @@ fn a_special_weapon_leaves_from_its_carrier_in_whatever_slot_he_stands() {
 
 #[test]
 fn a_fallen_gunners_launcher_fires_from_the_soldier_who_took_it_up() {
-    // A fragile gunner with two riflemen; a red scout team shoots him. The
-    // next missile leaves from the first living soldier's own muzzle.
+    // A scout kills the gunner; his survivor fires at a nonlethal target.
     let mut b = quick(
         json!([]),
         json!([
@@ -782,6 +780,7 @@ fn a_fallen_gunners_launcher_fires_from_the_soldier_who_took_it_up() {
         ]),
         2,
         |r| {
+            r["weapons"]["atgm"]["damage"] = json!(0);
             let hp = |hp| json!({ "hp": hp });
             sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", hp(100_000));
             sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", hp(1));
@@ -1022,7 +1021,7 @@ fn a_top_attack_launcher_under_tree_crowns_climbs_out_through_them_and_dives_ont
     let (b, path) = first_missile(b);
     assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
     assert!(
-        own(&b, Side::Red, 1).unwrap().hp < c::hull("test_tank").hp,
+        own(&b, Side::Red, 1).map_or(0.0, |u| u.hp) < c::hull("test_tank").hp,
         "it struck the tank, {} ticks after launch",
         b.tick() - launched
     );
