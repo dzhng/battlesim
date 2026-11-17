@@ -69,9 +69,14 @@ export async function run(ctx) {
   );
   await frame(ctx, page, "setting-up", [205, 210]);
 
-  // Set up, then serve long enough to restore the recipients.
+  // Set up, then serve until the squad is whole: replacement takes the
+  // rules' time per soldier, so the wait follows the rules, within a minute.
   await advance(page, 90 + 600);
   o = await obs(page);
+  for (let more = 0; more < 60 * 30 && unit(o, 3).members.length < 8; more += 30) {
+    await advance(page, 30);
+    o = await obs(page);
+  }
   const truck = unit(o, 0);
   const readyText = await page.getByTestId("service-ready").first().textContent();
   ctx.check(
