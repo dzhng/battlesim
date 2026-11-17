@@ -14,6 +14,7 @@
 // rules want fewer triangles than tier 3), and an appearance has one in every
 // state or in none.
 
+import { vec3, type Vec3 } from "math";
 import { triangleCount } from "./build.ts";
 import { FAR_TIER, TIER_COUNT, type Material, type MeshData } from "./schema.ts";
 
@@ -43,10 +44,9 @@ export function farBoxesWhole(states: { tiers: MeshData[] }[]): void {
     if (s.tiers.length > FAR_TIER && generated.has(s.tiers[FAR_TIER])) s.tiers.length = FAR_TIER;
 }
 
-type V3 = [number, number, number];
 type Rgba = [number, number, number, number];
 interface Tri {
-  p: [V3, V3, V3];
+  p: [Vec3, Vec3, Vec3];
   material: number;
   colour: Rgba;
 }
@@ -61,7 +61,7 @@ function triangles(mesh: MeshData): Tri[] {
       const v = [I[i], I[i + 1], I[i + 2]];
       const colour: Rgba = [0, 0, 0, 0];
       for (const k of v) for (let c = 0; c < 4; c++) colour[c] += C[k * 4 + c] / 3;
-      const p = v.map((k): V3 => [P[k * 3], P[k * 3 + 1], P[k * 3 + 2]]);
+      const p = v.map((k): Vec3 => [P[k * 3], P[k * 3 + 1], P[k * 3 + 2]]);
       out.push({ p: [p[0], p[1], p[2]], material: d.material, colour });
     }
   return out;
@@ -76,7 +76,7 @@ interface View {
 
 /** The nearest triangle in each cell of `view` over the box `lo`–`hi` (−1
  *  where none is), and the view's extents. */
-function rasterise(tris: Tri[], view: View, lo: V3, hi: V3) {
+function rasterise(tris: Tri[], view: View, lo: Vec3, hi: Vec3) {
   const [ua, va] = [0, 1, 2].filter((a) => a !== view.axis);
   const u = Math.max(hi[ua] - lo[ua], 1e-6),
     v = Math.max(hi[va] - lo[va], 1e-6);
@@ -129,17 +129,11 @@ function dominant(tris: Tri[], hit: Int32Array, materials: readonly Material[]) 
   return { material, colour: sum.map((s) => Math.round(s / n)) as Rgba };
 }
 
-const cross = (a: V3, b: V3): V3 => [
-  a[1] * b[2] - a[2] * b[1],
-  a[2] * b[0] - a[0] * b[2],
-  a[0] * b[1] - a[1] * b[0],
-];
-
 /** The far box of `tier3`, or null when tier 3 shows nothing from above. */
 export function farBox(tier3: MeshData, materials: readonly Material[]): MeshData | null {
   const tris = triangles(tier3);
-  const lo: V3 = [Infinity, Infinity, Infinity],
-    hi: V3 = [-Infinity, -Infinity, -Infinity];
+  const lo: Vec3 = [Infinity, Infinity, Infinity],
+    hi: Vec3 = [-Infinity, -Infinity, -Infinity];
   for (const t of tris)
     for (const p of t.p)
       for (let a = 0; a < 3; a++) [lo[a], hi[a]] = [Math.min(lo[a], p[a]), Math.max(hi[a], p[a])];
@@ -162,7 +156,7 @@ export function farBox(tier3: MeshData, materials: readonly Material[]): MeshDat
   const [x0, x1, y0, y1, z0, z1] = [mx - hx, mx + hx, my - hy, my + hy, Math.max(lo[2], 0), hi[2]];
   // Each face: its outward normal, its corners counter-clockwise from
   // outside, the view its look comes from, and its UV axes.
-  const faces: { normal: V3; corners: V3[]; view: View; uv: [number, number] }[] = [
+  const faces: { normal: Vec3; corners: Vec3[]; view: View; uv: [number, number] }[] = [
     {
       normal: [0, 0, 1],
       view: { axis: 2, from: 1 },
@@ -239,9 +233,9 @@ export function farBox(tier3: MeshData, materials: readonly Material[]): MeshDat
     // UVs in metres across the face, as the scripts' box projection lays
     // them; the tangent is +u, its sign the bitangent's against +v.
     const [ua, va] = f.uv;
-    const t: V3 = [0, 0, 0];
+    const t: Vec3 = [0, 0, 0];
     t[ua] = 1;
-    const sign = cross(f.normal, t)[va] < 0 ? -1 : 1;
+    const sign = vec3.cross([0, 0, 0], f.normal, t)[va] < 0 ? -1 : 1;
     for (let c = 0; c < 4; c++) {
       const o = k * 4 + c;
       mesh.positions.set(f.corners[c], o * 3);

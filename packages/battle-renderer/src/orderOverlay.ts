@@ -29,6 +29,7 @@
 // marching along them. Colour carries meaning only where a player needs it:
 // the cover tiers, a blocked route, an attack (its line and reticle in the
 // style's attack red), and the selection.
+import { lerp } from "math";
 import {
   concatMeshes,
   fadeAlpha,
@@ -274,7 +275,6 @@ function airDots(
   const [r, g, b] = fullBright(color);
   // The end dots sit just inside the ends, a half dot in.
   const [t0, t1] = [dot / 2 / span, 1 - dot / 2 / span];
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
   for (let i = 0; i < dots; i++) {
     const t = lerp(t0, t1, i / (dots - 1));
     const at = [lerp(from[0], to[0], t), lerp(from[1], to[1], t), lerp(from[2], to[2], t)] as const;

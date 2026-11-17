@@ -190,7 +190,7 @@ interface StepIdentity {
 
 /** A contact names no lasting target: identified mid-attack, the sim turns
  *  the attack onto the unit, so any attack at the front is still it. */
-const identity = (kind: string, target?: Aimed): StepIdentity => ({
+const stepIdentity = (kind: string, target?: Aimed): StepIdentity => ({
   kind,
   id: target?.id === undefined || target.kind === "contact" ? null : `${target.kind}/${target.id}`,
 });
@@ -199,7 +199,7 @@ const identity = (kind: string, target?: Aimed): StepIdentity => ({
  *  while the side names one (a lost target's attack publishes none). */
 function still(errand: StepIdentity, front: FrontStep | null | undefined): boolean {
   if (!front || front.kind !== errand.kind) return false;
-  const id = identity(front.kind, front.target).id;
+  const id = stepIdentity(front.kind, front.target).id;
   return errand.id === null || id === null || id === errand.id;
 }
 
@@ -244,7 +244,7 @@ export class Arrivals {
     const entry: Entry | null = JOURNEYS.has(order.kind)
       ? { group, errand: null, from, since: null }
       : errand
-        ? { group: null, errand: identity(errand, order.target), from, since: null }
+        ? { group: null, errand: stepIdentity(errand, order.target), from, since: null }
         : null;
     for (const id of order.units ?? []) {
       const current = this.orders.get(id);
