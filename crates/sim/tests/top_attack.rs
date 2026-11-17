@@ -14,11 +14,8 @@ use sim::flight::{
 };
 use sim::math::{v3, V3};
 
-/// The generic missile row tuned for top attack: an agile seeker that pulls
-/// up off the launcher, holds a loft a viewer reads at play camera and
-/// pitches over steeply. At the generic row's 60°/s the pitch-over comes too
-/// close for its turn radius and the missile loops or overshoots
-/// (`specs/done/ground-admission/assets/top-attack/`).
+/// A missile agile enough to climb and pitch over within its turn radius
+/// before passing the target.
 fn top_attack_row() -> WeaponBallistics {
     WeaponBallistics {
         turn_deg_s: Some(360.0),
@@ -31,39 +28,34 @@ fn top_attack_row() -> WeaponBallistics {
 }
 
 #[test]
-fn the_aim_climbs_to_the_loft_holds_it_until_the_dive_cone_and_never_once_released() {
+fn top_attack_aim_climbs_holds_and_dives_with_or_without_launcher_support() {
     let point = v3(500.0, 200.0, 1.0);
-    let guidance = Guidance {
-        point,
-        turn_rad_s: 1.0,
-        supported: true,
-        loft: Some(Loft {
-            height_m: 60.0,
-            slope: 1.0,
-        }),
-    };
-    let lofted = point + v3(0.0, 0.0, 60.0);
-    // Far out and low: the loft height one climb's run (60 m at 45°) ahead.
-    assert_eq!(guidance.aim(v3(100.0, 200.0, 2.0)), v3(160.0, 200.0, 61.0));
-    // At the loft, far out: still level, a run ahead.
-    assert_eq!(guidance.aim(v3(300.0, 200.0, 61.0)), v3(360.0, 200.0, 61.0));
-    // Nearer than one run, 30 m above: shallower than 45°, so the lofted
-    // point itself, never past it.
-    assert_eq!(guidance.aim(v3(460.0, 200.0, 31.0)), lofted);
-    // 40 m out and 41 m above: inside the cone, dive onto the point.
-    assert_eq!(guidance.aim(v3(460.0, 200.0, 42.0)), point);
-    // Released, it flies at its fixed point wherever it is.
-    let released = Guidance {
-        supported: false,
-        ..guidance
-    };
-    assert_eq!(released.aim(v3(100.0, 200.0, 2.0)), point);
-    // Without a loft, it always flies at its point.
-    let direct = Guidance {
-        loft: None,
-        ..guidance
-    };
-    assert_eq!(direct.aim(v3(100.0, 200.0, 2.0)), point);
+    for supported in [true, false] {
+        let guidance = Guidance {
+            point,
+            turn_rad_s: 1.0,
+            supported,
+            loft: Some(Loft {
+                height_m: 60.0,
+                slope: 1.0,
+            }),
+        };
+        let lofted = point + v3(0.0, 0.0, 60.0);
+        // Far out and low: the loft height one climb's run (60 m at 45°) ahead.
+        assert_eq!(guidance.aim(v3(100.0, 200.0, 2.0)), v3(160.0, 200.0, 61.0));
+        // At the loft, far out: still level, a run ahead.
+        assert_eq!(guidance.aim(v3(300.0, 200.0, 61.0)), v3(360.0, 200.0, 61.0));
+        // Nearer than one run, 30 m above: shallower than 45°, so the lofted
+        // point itself, never past it.
+        assert_eq!(guidance.aim(v3(460.0, 200.0, 31.0)), lofted);
+        // 40 m out and 41 m above: inside the cone, dive onto the point.
+        assert_eq!(guidance.aim(v3(460.0, 200.0, 42.0)), point);
+        let direct = Guidance {
+            loft: None,
+            ..guidance
+        };
+        assert_eq!(direct.aim(v3(100.0, 200.0, 2.0)), point);
+    }
 }
 
 #[test]
