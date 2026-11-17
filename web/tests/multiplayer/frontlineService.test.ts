@@ -637,6 +637,7 @@ test("presence uses one grace before AI takes a dropped army and a returning str
   expect(JSON.parse(await s.b.host.replay()).seat_events).toEqual(events);
 }, 120_000);
 
+// The hang watchdog its neighbours have: this prepares the same large battle.
 test("map preparation longer than the presence grace retains the admitting commander's callsign", async () => {
   const { PRESENCE_GRACE_MS } = await import("../../../apps/game-server/src/presence");
   const s = await service(1, PRESENCE_GRACE_MS + 1);
@@ -644,7 +645,7 @@ test("map preparation longer than the presence grace retains the admitting comma
     "SCOUT",
   );
   expect(s.ticket.callsigns[s.ticket.player]).toBe("SCOUT");
-});
+}, 120_000);
 
 test("a preview the battle cannot read is dropped, quotes nothing back, and leaves the battle running", async () => {
   const s = await service();
