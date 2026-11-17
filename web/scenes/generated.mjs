@@ -12,7 +12,7 @@ import { replayTour } from "./_replayTour.mjs";
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, buildingsSettled, hideHud, lab, menuShown, obs, openMenu } from "./_lab.mjs";
+import { advance, buildingsSettled, hideHud, lab, menuShown, obs } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { cameraKeepsOut } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
