@@ -158,6 +158,9 @@ pub struct PendingPurchase {
     /// The tick a bought aircraft reaches the map, once its wait off the
     /// map has begun (D41); None for anything that enters through the queue.
     pub arrival_tick: Option<Tick>,
+    /// Optional authored wear carried by an opening purchase.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<crate::scenario::UnitCondition>,
 }
 
 impl PendingPurchase {

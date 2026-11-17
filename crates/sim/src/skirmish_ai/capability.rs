@@ -73,6 +73,12 @@ pub(super) fn engages_aircraft(weapon: &WeaponDefinition, layer: AltitudeLayer) 
 pub fn unit_engages_aircraft_in(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
     unit_weapons(rules, kind).any(|weapon| engages_aircraft(weapon, layer))
 }
+
+/// Whether `kind` flies on wings (its flight model), whatever its layer.
+pub fn is_jet(rules: &Rules, kind: TypeIndex) -> bool {
+    rules.catalog.get(kind).mobility.flight() == Some(contract::catalog::FlightModel::FixedWing)
+}
+
 pub(super) fn frame_has_layer_threat(
     frame: &ObservationFrame,
     rules: &Rules,

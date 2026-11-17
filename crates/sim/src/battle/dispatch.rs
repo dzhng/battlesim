@@ -197,7 +197,12 @@ impl Battle {
                     position: [at.x, at.y],
                     yaw,
                     engagement: None,
-                    condition: None,
+                    condition: reservation
+                        .data
+                        .carrier
+                        .is_none()
+                        .then(|| reservation.data.condition.clone())
+                        .flatten(),
                     stock: None,
                 };
                 let mut unit = spawn_unit(
@@ -209,6 +214,9 @@ impl Battle {
                     &mut self.last_soldier,
                     self.seed,
                 );
+                if let Some(condition) = &setup.condition {
+                    spawn::wear(&mut unit, condition, &self.arsenal, &self.rules);
+                }
                 if let (units::Motion::Air(flight), Some(air)) = (unit.motion, unit.air.as_mut()) {
                     let speed = flight.cruise_mps;
                     air.velocity = v3(libm::cos(yaw) * speed, libm::sin(yaw) * speed, 0.0);
@@ -243,6 +251,7 @@ impl Battle {
                 // it there, and its player unloads it (M13).
                 let setup = contract::scenario::UnitSetup {
                     kind: self.rules.catalog.id(reservation.data.kind).to_string(),
+                    condition: reservation.data.condition.clone(),
                     ..setup
                 };
                 let mut squad = spawn_unit(
@@ -254,6 +263,9 @@ impl Battle {
                     &mut self.last_soldier,
                     self.seed,
                 );
+                if let Some(condition) = &setup.condition {
+                    spawn::wear(&mut squad, condition, &self.arsenal, &self.rules);
+                }
                 super::controllers::put_under(&mut squad, &controller);
                 squad.settle();
                 squad.hold = Some(crate::hold::Hold {

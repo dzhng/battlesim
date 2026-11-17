@@ -79,47 +79,58 @@ impl Battle {
             }
             let assignment =
                 plans[side.index()].assignment_for(contract::players::PlayerIndex(index as u16));
-            let orders = if self.tick == 0
+            let opening = self.tick == 0
                 && frame.own.is_empty()
                 && frame
                     .skirmish
                     .as_ref()
                     .is_some_and(|view| view.players.first().is_none_or(|p| p.pending.is_empty()))
                 && !ai.has_purchase_plan()
-                && openings.get(&id).is_some_and(|opening| !opening.is_empty())
-            {
-                openings
-                    .get(&id)
-                    .into_iter()
-                    .flatten()
+                && openings.get(&id).is_some_and(|opening| !opening.is_empty());
+            let (orders, opening_conditions) = if opening {
+                let opening = openings.get(&id).expect("opening was checked");
+                let conditions = opening
+                    .iter()
+                    .map(|purchase| purchase.condition.clone())
+                    .collect();
+                let mut orders: Vec<_> = opening
+                    .iter()
                     .cloned()
                     .map(|purchase| Order::ConfirmPurchase {
                         variant: purchase.variant,
                         carrier: purchase.carrier,
                         destination: purchase.destination,
                     })
-                    .collect()
+                    .collect();
+                // An authored opening is the AI's preparation batch; once it
+                // has been issued, the seat readies like any other.
+                orders.push(Order::Ready);
+                (orders, conditions)
             } else {
-                ai.decide(
-                    crate::skirmish_ai::DecisionInput {
-                        side,
-                        faction,
-                        entry,
-                        assignment: assignment.as_ref(),
-                    },
-                    &frame,
-                    &self.rules,
-                    |unit, destination| self.route_time(side, unit, destination),
+                (
+                    ai.decide(
+                        crate::skirmish_ai::DecisionInput {
+                            side,
+                            faction,
+                            entry,
+                            assignment: assignment.as_ref(),
+                        },
+                        &frame,
+                        &self.rules,
+                        |unit, destination| self.route_time(side, unit, destination),
+                    ),
+                    Vec::new(),
                 )
             };
             self.skirmish_ai.insert(id.clone(), ai);
-            commands.push((index, id, side, orders));
+            commands.push((index, id, side, orders, opening_conditions));
         }
-        for (index, player, side, orders) in commands {
+        for (index, player, side, orders, opening_conditions) in commands {
             // A refused purchase stops the turn's later purchases, so a
             // purchase plan never buys out of order. The turn's other orders,
             // readiness and movement, are still issued (I10).
             let mut purchase_refused = false;
+            let mut opening_index = 0;
             for order in orders {
                 // The cards a purchase names: two for a squad with its ride.
                 let cards = match &order {
@@ -140,6 +151,22 @@ impl Battle {
                     queued: false,
                 });
                 let accepted = ack.error.is_none();
+                if purchase {
+                    if accepted {
+                        if let Some(condition) =
+                            opening_conditions.get(opening_index).and_then(Clone::clone)
+                        {
+                            if let Some(reservation) = self
+                                .skirmish
+                                .as_mut()
+                                .and_then(|s| s.players[index].reservations.back_mut())
+                            {
+                                reservation.data.condition = Some(condition);
+                            }
+                        }
+                    }
+                    opening_index += 1;
+                }
                 // A purchase may be refused: a purchase plan names cards the
                 // battle may not sell, and tries them again. Any other order
                 // comes from the AI's own view, so it is never malformed; the

@@ -19,24 +19,7 @@ pub(super) fn support_orders(
     route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     orders: &mut Vec<Order>,
 ) {
-    let combat: Vec<_> = own
-        .iter()
-        .filter(|u| !rules.catalog.get(u.kind).has_role("logistics"))
-        .collect();
-    let support = if combat.is_empty() {
-        entry
-    } else {
-        let mut center = [0.0; 2];
-        for u in &combat {
-            center[0] += u.position[0];
-            center[1] += u.position[1];
-        }
-        let share = tuning.supply_share;
-        [
-            entry[0] + share * (center[0] / combat.len() as f64 - entry[0]),
-            entry[1] + share * (center[1] / combat.len() as f64 - entry[1]),
-        ]
-    };
+    let support = support_point(own, rules, entry, tuning);
     // Only a supplier that drives stands at the post.
     for truck in own
         .iter()
@@ -81,4 +64,31 @@ pub(super) fn support_orders(
             });
         }
     }
+}
+
+/// The standing supplier's post, shared by trucks and an airlift returning
+/// to reserve.
+pub(super) fn support_point(
+    own: &[&OwnUnit],
+    rules: &Rules,
+    entry: [f64; 2],
+    tuning: &Tuning,
+) -> [f64; 2] {
+    let combat: Vec<_> = own
+        .iter()
+        .filter(|u| !rules.catalog.get(u.kind).has_role("logistics"))
+        .collect();
+    if combat.is_empty() {
+        return entry;
+    }
+    let center = combat.iter().fold([0.0; 2], |mut center, unit| {
+        center[0] += unit.position[0];
+        center[1] += unit.position[1];
+        center
+    });
+    let share = tuning.supply_share;
+    [
+        entry[0] + share * (center[0] / combat.len() as f64 - entry[0]),
+        entry[1] + share * (center[1] / combat.len() as f64 - entry[1]),
+    ]
 }

@@ -5,8 +5,7 @@ use serde_json::{json, Value};
 mod observed;
 use observed::identified;
 
-/// Test units as a U.S. deck: a card for each, in its category.
-/// The frame's one player row, the deciding player's (`own_player`).
+/// Test units as a U.S. deck, one card per category.
 fn me(frame: &mut ObservationFrame) -> &mut contract::skirmish::PlayerView {
     &mut frame.skirmish.as_mut().unwrap().players[0]
 }
@@ -1365,5 +1364,6 @@ fn pending(
         confirmed_tick: tick,
         blocked: false,
         arrival_tick: None,
+        condition: None,
     }
 }

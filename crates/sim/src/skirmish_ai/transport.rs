@@ -313,6 +313,20 @@ pub(super) fn party_aboard<'a>(
 
 /// When a squad rides, and where its carrier lets it out.
 impl super::BalancedDoctrine {
+    /// Where a carrier at `from` lets a squad out for `goal`, short of the
+    /// enemy's observed reach.
+    fn drop_point(
+        &self,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        entry: &EntrySite,
+        goal: [f64; 2],
+        from: [f64; 2],
+    ) -> [f64; 2] {
+        let standoff = self.tuning.unload_share * distance(entry.center, goal);
+        unload_point(frame, rules, goal, from, standoff)
+    }
+
     /// Whether `unit`, a squad on foot, rides for `goal`: a ride from where
     /// it stands would set it down `ride_min_m` nearer or more.
     pub(super) fn worth_riding(

@@ -386,6 +386,7 @@ impl Skirmish {
                 confirmed_tick: tick,
                 blocked: false,
                 arrival_tick: None,
+                condition: None,
             },
         });
         Ok(id)

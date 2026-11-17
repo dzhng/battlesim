@@ -1,6 +1,6 @@
 # Supply helicopter
 
-**Status:** slices 01–08 done; slice 09 next. **Updated:** 2026-11-17.
+**Status:** slices 01–09 done; slice 10 next. **Updated:** 2026-11-17.
 
 One supply helicopter per faction. It lands to resupply the units around it and
 takes off again when it packs. It costs the same as the supply truck, carries
@@ -10,7 +10,7 @@ is running dry far from its truck.
 
 ## Next Agent Prompt
 
-Pick up at **slice 09**. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
+Pick up at **slice 10**. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
 2026-11-17, so check `df` first. Read
 [`decisions.md`](decisions.md) before any slice; every row there is a given.
 Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
@@ -47,7 +47,7 @@ the TODO below.
 - [x] [06](slices/06-rotor-winds-down.md) The rotor winds down and up (visual: rotor)
 - [x] [07](slices/07-ground-mark.md) Landed, it wears the ground mark (visual: marker)
 - [x] [08](slices/08-rotor-sound.md) The rotor sound fades with the rotor (audio)
-- [ ] [09](slices/09-ai-emergency-airlift.md) The AI flies one in for an emergency
+- [x] [09](slices/09-ai-emergency-airlift.md) The AI flies one in for an emergency
 - [ ] [10](slices/10-roster-cards.md) Three roster cards, shop order, voices, tutorial
 - [ ] [11](slices/11-closeout.md) Closeout: full run, review, close-spec
 
@@ -67,6 +67,7 @@ the TODO below.
 | `fixtures/audio.json` | `air_light_logistics` row | 08 |
 | Shop order (`purchaseFilter.ts::shopOrder`) | ground movers before aircraft within a tab (P13) | 10 |
 | Roster rows | abstract `<id>_airframe` parents, three supply rows (P14) | 10 |
+| Skirmish `OpeningPurchase` / `PendingPurchase` | optional `condition` (authored starting wear) | 09 |
 | Model exporter (`catalog_frames.py::_variant`) | several types may draw one appearance if hull and mounts agree (P15) | 10 |
 
 No compatibility shims and no migrations (P21).

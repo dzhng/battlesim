@@ -86,3 +86,15 @@ against the shipped code at closeout (slice 11).
 | The engine loop's gain and playback rate scale by rotor speed: silent when stopped, unchanged at full speed. Jets and ground vehicles are untouched. | Sound. |
 | `air_light_logistics` copies `air_light`. The vehicle-class test now requires a row for every class any catalog derives, and drops the old list pinning rows by weight. That was configuration, and the generated guard covers what is fielded. | Sound; tests mechanics, not data. |
 | Motion records and emitter decoding moved together into `sound/frame/motion.rs` for the ratchet. | Sound; a concept move. |
+
+## Slice 09
+
+| Choice | Verdict |
+|---|---|
+| `skirmish_ai/airlift.rs` owns the emergency: combat groups (the team planner's detached parties plus the main group), the trigger, `far_side`, and the mission (idle, inbound, serving, returning). Purchase calls it before the role loop; its orders come after the support post's. | Sound; one owner (P17). |
+| Tuning keys `emergency_ammo_share` 0.5, `emergency_health_share` 0.5 and `emergency_reach_s` 30 live in `fixtures/skirmish-ai.json`. | Sound; data. |
+| **Contract addition:** a skirmish `OpeningPurchase`, and the `PendingPurchase` it becomes, may carry a `condition` (authored starting wear), applied when the unit enters. Skirmish units arrive only through purchases, so a lab can start a damaged group only this way, as encounters already can with `UnitSetup.condition`. | Sound; small and general. Not in the plan; named here. |
+| **Behaviour change:** an AI seat with an authored opening now sends `Ready` with its opening batch, as any seat readies. Without it the supply-ai lab never left preparation in time. The game skirmish corpus (`mapgen --test skirmish`) and every skirmish test are unchanged. | Sound; affects labs with authored openings only. |
+| The end-to-end battle test (`battle/airlift_tests.rs`, under `battle/tests.rs`) stages the damaged group by placing units inside the battle. It asserts the bought card doesn't drive, the far-side bearing, the group recovering, and the return to the post. | Acceptable; a crate-internal test. |
+| `skirmish_ai/mod.rs` gave up its doctrine and recon concepts to `doctrine.rs` and `recon.rs` for room. Codex had also shortened `battle.rs`'s module doc to pass the ratchet; the doc is restored and the test moved instead. | Sound. |
+| A card icon for `test_supply_heli` lets the lab's deck draw it. | Sound; test art. |

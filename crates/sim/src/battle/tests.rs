@@ -652,3 +652,6 @@ fn a_track_files_what_it_sees_now() {
     battle.step();
     assert_eq!(filed(&battle), Some(flying));
 }
+
+#[path = "airlift_tests.rs"]
+mod airlift;

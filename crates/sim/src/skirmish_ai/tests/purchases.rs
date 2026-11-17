@@ -245,6 +245,181 @@ fn the_support_loop_never_moves_a_flyer() {
     }
 }
 
+fn emergency_match(units: Value) -> (Rules, ObservationFrame, EntrySite) {
+    transport_tests::transport_match_on(supply_flyer_deck(), units)
+}
+
+fn active_credits(frame: &mut ObservationFrame, credits: f64) {
+    me(frame).credits = credits;
+    me(frame).cap = 100;
+    me(frame).unit_count = frame.own.len() as u32;
+}
+
+#[test]
+fn a_crippled_group_out_of_supplier_reach_buys_the_flyer() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]}
+    ]));
+    let share = Tuning::shipped().emergency_health_share;
+    frame.own[0].hp = rules.catalog.by_id("test_tank").hull().unwrap().hp * (share - 0.01);
+    active_credits(&mut frame, 1_000.0);
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(60.0),
+    );
+    assert!(orders.iter().any(|order| matches!(order,
+        Order::ConfirmPurchase { variant, .. } if rules.catalog.get(rules.catalog.index(variant).unwrap()).mobility.flight().is_some()
+    )), "emergency buys a flying supplier: {orders:?}");
+}
+
+#[test]
+fn a_crippled_group_a_truck_can_reach_buys_nothing() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]},
+        {"side":"red","kind":"test_supply","position":[500,100]}
+    ]));
+    frame.own[0].hp = rules.catalog.by_id("test_tank").hull().unwrap().hp * 0.4;
+    active_credits(&mut frame, 0.0);
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(10.0),
+    );
+    assert!(
+        !orders
+            .iter()
+            .any(|order| matches!(order, Order::ConfirmPurchase { .. })),
+        "reachable truck suppresses emergency: {orders:?}"
+    );
+}
+
+#[test]
+fn a_healthy_group_buys_nothing() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]}
+    ]));
+    active_credits(&mut frame, 0.0);
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(60.0),
+    );
+    assert!(
+        !orders
+            .iter()
+            .any(|order| matches!(order, Order::ConfirmPurchase { .. })),
+        "healthy group has no airlift: {orders:?}"
+    );
+}
+
+#[test]
+fn unlimited_ammo_never_counts_as_running_low() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_jeep","position":[500,700]}
+    ]));
+    active_credits(&mut frame, 0.0);
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(60.0),
+    );
+    assert!(
+        !orders
+            .iter()
+            .any(|order| matches!(order, Order::ConfirmPurchase { .. })),
+        "unlimited HMG does not trigger: {orders:?}"
+    );
+}
+
+#[test]
+fn a_finite_weapon_below_its_tuning_share_triggers_the_airlift() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]}
+    ]));
+    let tank = rules.catalog.index("test_tank").unwrap();
+    let ammo_cap = match rules.weapons.get("tank_ap").unwrap().ammo {
+        contract::weapons::AmmoCapacity::Rounds(cap) => cap,
+        contract::weapons::AmmoCapacity::Unlimited(_) => unreachable!(),
+    };
+    let share = Tuning::shipped().emergency_ammo_share;
+    frame.own[0].mounts[0].ammo[0] = Some((ammo_cap as f64 * (share - 0.01)) as u32);
+    assert_eq!(frame.own[0].kind, tank);
+    active_credits(&mut frame, 1_000.0);
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(60.0),
+    );
+    assert!(orders.iter().any(
+        |order| matches!(order, Order::ConfirmPurchase { variant, .. } if variant == "test_heli")
+    ));
+}
+
+#[test]
+fn a_reserve_flyer_is_sent_rather_than_a_second_bought() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]},
+        {"side":"red","kind":"test_heli","position":[500,100]}
+    ]));
+    frame.own[0].hp = rules.catalog.by_id("test_tank").hull().unwrap().hp * 0.4;
+    active_credits(&mut frame, 1_000.0);
+    let flyer = frame.own[1].id;
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(60.0),
+    );
+    assert!(
+        !orders
+            .iter()
+            .any(|order| matches!(order, Order::ConfirmPurchase { .. })),
+        "reserve flyer avoids a second purchase: {orders:?}"
+    );
+    assert!(
+        orders
+            .iter()
+            .any(|order| matches!(order, Order::Move { units, .. } if units.contains(&flyer))),
+        "reserve flyer is sent: {orders:?}"
+    );
+}
+
 #[test]
 fn within_a_role_a_card_that_can_engage_the_enemy_seen_beats_a_cheaper_one_that_cannot() {
     let mut authored = deck();
@@ -406,6 +581,7 @@ fn seeded_reinforcements_keep_the_wasm_choice_on_native() {
             confirmed_tick: 0,
             blocked: false,
             arrival_tick: None,
+            condition: None,
         });
     // These policy streams start with armour on wasm32. Casting the full
     // hash to a platform-sized index changes them to infantry or AT on 64-bit hosts.

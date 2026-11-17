@@ -157,7 +157,7 @@ pub(super) struct Buy {
 }
 
 impl Buy {
-    fn alone(kind: TypeIndex) -> Self {
+    pub(super) fn alone(kind: TypeIndex) -> Self {
         Self {
             kind,
             carrier: None,
