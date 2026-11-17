@@ -63,10 +63,13 @@ Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled
 map so the simulation's planner can place forces on it. Skirmish generation reserves
 bounded alternative clearings through every furnishing stage. An objective is
-fought over buildings: the main junction stands in its town's square, and every
-other reserved site gets its own homestead in the open country. The finished plan
-keeps only the reserved sites with a building inside their capture circle, and
-refuses a seed left without its centres or pairs. The simulation
+fought over buildings: a building stands in its capture circle, or buildings
+surround it on three sides, as round a town square. Placement comes before the
+buildings, so it plans for that: an objective in a town (the main junction always
+is) keeps only a small square clear for the town to build round, and one in the
+open country gets its own homestead. The finished plan keeps only the reserved
+sites its buildings meet that rule for, and refuses a seed left without its
+centres or pairs. The simulation
 selects the final sites from actual navigation on the completed physical map;
 mapgen's geometric placement cannot certify counterpart travel fairness. [Saved-map policy](../../fixtures/README.md#saved-maps)
 explains the retained documents.

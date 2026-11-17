@@ -496,11 +496,59 @@ fn nearest_building(map: &contract::map::MapDefinition, p: [f64; 2]) -> f64 {
         .fold(f64::INFINITY, f64::min)
 }
 
+/// Whether the objective at `center` is fought over buildings of `map`: one
+/// stands in its capture circle, or buildings stand round it on three sides
+/// within 25 m past its edge, as round a town square: three quarters of the
+/// way round, turned however fits best, each built up over at least a third
+/// of its arc. Read by casting a ray every degree.
+fn fought_over(map: &contract::map::MapDefinition, center: [f64; 2], radius: f64) -> bool {
+    if nearest_building(map, center) < radius {
+        return true;
+    }
+    let reach = radius + 25.0;
+    let parts: Vec<_> = map
+        .buildings
+        .iter()
+        .flat_map(|building| &building.geometry.parts)
+        .filter(|part| {
+            libm::hypot(part.center[0] - center[0], part.center[1] - center[1])
+                < reach + libm::hypot(part.half_extents[0], part.half_extents[1])
+        })
+        .collect();
+    let walled: Vec<bool> = (0..360)
+        .map(|degree| {
+            let (sin, cos) = libm::sincos(f64::from(degree).to_radians());
+            (0..=((reach - radius) * 2.0) as usize).any(|step| {
+                let d = radius + step as f64 / 2.0;
+                let p = [center[0] + cos * d, center[1] + sin * d];
+                parts.iter().any(|part| {
+                    let (sin, cos) = libm::sincos(part.yaw);
+                    let [dx, dy] = [p[0] - part.center[0], p[1] - part.center[1]];
+                    (cos * dx + sin * dy).abs() <= part.half_extents[0]
+                        && (-sin * dx + cos * dy).abs() <= part.half_extents[1]
+                })
+            })
+        })
+        .collect();
+    (0..90).any(|turn| {
+        (0..4)
+            .filter(|side| {
+                (0..90)
+                    .filter(|k| walled[(turn + side * 90 + k) % 360])
+                    .count()
+                    >= 30
+            })
+            .count()
+            >= 3
+    })
+}
+
 /// A skirmish is fought over places, not empty fields: every objective the
-/// simulation admits has at least one building standing in its capture
-/// circle, whether a town's, a hamlet's or a lone farm's.
+/// simulation admits has a building in its capture circle (a town's, a
+/// hamlet's or a lone farm's) or stands in a square with buildings on three
+/// sides of it.
 #[test]
-fn every_admitted_objective_holds_a_building() {
+fn every_admitted_objective_is_fought_over_buildings() {
     let catalogue =
         contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
             .unwrap();
@@ -546,7 +594,7 @@ fn every_admitted_objective_holds_a_building() {
         for (seed, (map, sites)) in generated {
             for objective in &sites.objectives {
                 let nearest = nearest_building(&map, objective.center);
-                if nearest >= objective.radius_m {
+                if !fought_over(&map, objective.center, objective.radius_m) {
                     missing.push(format!(
                         "{map_type} {size} seed {seed}: {} (nearest building {nearest:.0} m)",
                         objective.id
@@ -557,7 +605,7 @@ fn every_admitted_objective_holds_a_building() {
     }
     assert!(
         missing.is_empty(),
-        "objectives without a building: {missing:#?}"
+        "objectives not fought over buildings: {missing:#?}"
     );
 }
 
@@ -633,4 +681,59 @@ fn every_entry_road_runs_straight_in_along_its_entry() {
             }
         }
     }
+}
+
+/// A centre that falls in a town is fought over the town's own buildings
+/// round its square, as the main junction is, not refused for want of a
+/// homestead the town has no room for. A large mixed map's town spreads
+/// across most of the middle, where the centres stand.
+#[test]
+fn a_centre_in_a_town_is_fought_over_its_buildings() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let maps = admitted::admitted(1.., 4, |seed| {
+        let mut request = request_with_entries("mixed", seed, catalogue.hash(), 3);
+        request["size"] = serde_json::json!("large");
+        match mapgen::generate_map(
+            &request.to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        ) {
+            mapgen::CompileOutcome::Ok { result } => Ok(*result),
+            mapgen::CompileOutcome::Error { diagnostics } => Err(diagnostics),
+        }
+    });
+    let mut in_town = 0;
+    for (seed, result) in &maps {
+        let skirmish = result.sites.skirmish.as_ref().unwrap();
+        for centre in skirmish
+            .objectives
+            .iter()
+            .filter(|o| o.counterpart.is_none())
+        {
+            if !result
+                .sites
+                .settlements
+                .iter()
+                .any(|town| contract::ground::polygon_contains(&town.outline, centre.center))
+            {
+                continue;
+            }
+            in_town += 1;
+            assert!(
+                fought_over(&result.map, centre.center, centre.radius_m),
+                "seed {seed}: {} stands in a town but not among its buildings",
+                centre.id
+            );
+        }
+    }
+    // The main junction always stands in its town; the others say whether
+    // the rule reaches past it.
+    assert!(
+        in_town > maps.len(),
+        "only {in_town} centres of {} maps stood in a town",
+        maps.len()
+    );
 }
