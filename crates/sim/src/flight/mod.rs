@@ -515,10 +515,9 @@ impl Projectiles {
     }
 
     /// End tracking. The caller drops target ownership; flight retains only
-    /// a fixed descent point. The missile flies straight on:
-    /// its point is fixed where it would be `coast_s` from now, dropped to the
-    /// ground beneath, so it runs on its line and then goes to ground within
-    /// its turn limit. Beyond the map the point keeps the missile's height.
+    /// a fixed descent point: its projected position `coast_s` ahead, dropped
+    /// to the ground beneath. It steers there within its turn limit. Beyond
+    /// the map the point keeps the missile's projected height.
     pub fn release(&mut self, id: ProjectileId, coast_s: f64, world: &WorldGeometry) {
         let Some(p) = self.active.iter_mut().find(|p| p.id == id) else {
             return;

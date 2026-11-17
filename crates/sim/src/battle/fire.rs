@@ -66,8 +66,8 @@ impl Battle {
     /// flies and one of the side's units sees it), and its operator has physical line of sight independent of
     /// spotting range. It steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
-    /// the missile coasts straight on for `guided.release_coast_s`, then goes
-    /// to ground, so a far one misses a target it can no longer see.
+    /// the missile takes a fixed descent aim projected by
+    /// `guided.release_coast_s`, so a far one misses a target it no longer sees.
     /// Flares are dispensed first, so a spoofed round is steered no more.
     pub(super) fn guide(&mut self, moved: &weapons::tick::Moved) {
         // A physical miss may have ended steering last tick. Drop its
