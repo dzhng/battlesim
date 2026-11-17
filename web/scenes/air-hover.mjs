@@ -400,43 +400,54 @@ async function apache(ctx, page, css, surface) {
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction(() => window.__lab?.route?.tick() > 0);
   await lab(page, () => window.__lab.route.pause());
-  // Tick by tick to the chin gun's second round, at the tick its flash is
-  // drawn: a drawn gun is level until its first round and eases down to it
-  // after, so by the second it is drawn down where it fires (the next tank
-  // is a few degrees off the first).
+  // Tick by tick to a tick the chin gun fires, its second round or later:
+  // a drawn gun is level until its first round and eases down to it after,
+  // so by the second it is drawn down where it fires (the next tank is a few
+  // degrees off the first). A shot shows twice: its flash from the tick it
+  // fires, gone two ticks on, and its round's first stretch, out of the
+  // muzzle, a tick after it fires. Each is judged on its own tick, wherever
+  // the pause landed.
   const CHIN = 0;
-  const chinRound = (o) => {
-    const shots = o.own.find((u) => u.kind === "ah_64e_guardian")?.weaponPoses[CHIN].shots ?? 0;
-    return shots > 1
-      ? o.projectiles.find((p) => p.own && p.kind === "autocannon" && p.shooterMember === null)
-      : undefined;
-  };
+  const apacheOf = (o) => o.own.find((u) => u.kind === "ah_64e_guardian");
+  const chinShots = (o) => apacheOf(o)?.weaponPoses[CHIN].shots ?? 0;
   let o = await obs(page);
-  for (let t = 0; t < 30 * rules.tick_hz && !chinRound(o); t++) {
+  let fired = false;
+  for (let t = 0; t < 30 * rules.tick_hz && !fired; t++) {
+    const before = chinShots(o);
     await advance(page, 1);
     o = await obs(page);
+    fired = chinShots(o) > Math.max(1, before);
   }
-  const heli = o.own.find((u) => u.kind === "ah_64e_guardian");
-  const round = chinRound(o);
+  const heli = apacheOf(o);
   ctx.check(
     "the Apache's chin gun fires within 30 s",
-    !!round,
+    fired,
     JSON.stringify({ heli, identified: o.identified, tick: o.tick }),
   );
-  if (!round) return;
+  if (!fired) return;
   const ground = await surface(heli.position);
   ctx.check(
     "the Apache hovers at cruise height",
     Math.abs(heli.position[2] - ground - rules.air.low_air.cruise_agl_m) < 1,
     JSON.stringify({ at: heli.position, ground }),
   );
-  const pose = heli.weaponPoses.find((w) => w.mount === CHIN);
   const deg = (r) => (r * 180) / Math.PI;
+  const firing = heli.weaponPoses.find((w) => w.mount === CHIN);
   ctx.check(
     "its chin gun fires down at the tank, past a tank gun's -10°",
-    deg(pose.elevation) < -15,
-    JSON.stringify({ elevation_deg: deg(pose.elevation) }),
+    deg(firing.elevation) < -15,
+    JSON.stringify({ elevation_deg: deg(firing.elevation) }),
   );
+  /** The chin gun's bore along `pose`, and its level bearing. */
+  const boreOf = ({ bearing: b, elevation: e }) => ({
+    level: [Math.cos(b), Math.sin(b), 0],
+    bore: [Math.cos(e) * Math.cos(b), Math.cos(e) * Math.sin(b), Math.sin(e)],
+  });
+  const drawnMuzzle = async () => {
+    await presented(page);
+    await page.evaluate(() => window.__lab.frame());
+    return lab(page, (id) => window.__lab.route.drawnMuzzle(id, 0), heli.id);
+  };
 
   // From low off its right bow, under the chin: the gun and the barrel's tip
   // clear of the nose and the stores.
@@ -446,34 +457,9 @@ async function apache(ctx, page, css, surface) {
     heli.position[2] + 0.8,
   ];
   await aim(page, chinAt, { distance: 16, pitch: 0.34, yaw: heli.yaw - 0.9 }, { onGround: false });
-  await presented(page);
-  await page.evaluate(() => window.__lab.frame());
-  const muzzle = await lab(page, (id) => window.__lab.route.drawnMuzzle(id, 0), heli.id);
+  const muzzle = await drawnMuzzle();
   ctx.check("the chin gun's muzzle is drawn", !!muzzle, JSON.stringify({ muzzle }));
   if (!muzzle) return;
-  // The simulation launches the round level with the bore at the muzzle's
-  // reach along its bearing. The drawn barrel pivots on the same bore, pitched
-  // down along the shot, so its tip is that reach along the shot's direction,
-  // run back along it by at most the drawn recoil.
-  const reach = unitType("ah_64e_guardian").mounts[CHIN].muzzle_m[0];
-  const launch = round.path[0];
-  const [b, e] = [pose.bearing, pose.elevation];
-  const level = [Math.cos(b), Math.sin(b), 0];
-  const bore = [Math.cos(e) * Math.cos(b), Math.cos(e) * Math.sin(b), Math.sin(e)];
-  const tip = [0, 1, 2].map((k) => launch[k] - reach * level[k] + reach * bore[k]);
-  const back = Math.min(
-    visuals.pose.mount.recoil_m,
-    Math.max(
-      0,
-      [0, 1, 2].reduce((s, k) => s + (tip[k] - muzzle[k]) * bore[k], 0),
-    ),
-  );
-  const off = Math.hypot(...[0, 1, 2].map((k) => tip[k] - back * bore[k] - muzzle[k]));
-  ctx.check(
-    "the drawn muzzle is at the barrel's tip, pitched down along the shot from where the round leaves",
-    off < 0.1,
-    JSON.stringify({ muzzle, launch, tip, recoiled_m: back, off }),
-  );
   const shot = await page.screenshot();
   await writeFile(ctx.evidencePath("frame-apache-firing-1280x800.png"), shot);
   const png = decode(shot);
@@ -499,13 +485,51 @@ async function apache(ctx, page, css, surface) {
   );
   // The flash's bright core: within half a metre of the barrel's tip, out
   // along the bore where the round leaves.
-  const out = await css([0, 1, 2].map((k) => muzzle[k] + 0.5 * bore[k]));
+  const { bore: firingBore } = boreOf(firing);
+  const out = await css([0, 1, 2].map((k) => muzzle[k] + 0.5 * firingBore[k]));
   const halfMetre = Math.hypot(out[0] - onScreen[0], out[1] - onScreen[1]);
   const fire = ([R, , B]) => R > 200 && R - B > 60;
   ctx.check(
     "the muzzle flash is drawn at the barrel's tip",
     anyNear(png, out, Math.max(4, halfMetre), fire),
-    JSON.stringify({ onScreen, out, halfMetre }),
+    JSON.stringify({ onScreen, out, halfMetre, tick: o.tick }),
+  );
+
+  // A tick on, the round's first stretch, out of the muzzle: nearer the
+  // airframe than any earlier round's.
+  await advance(page, 1);
+  o = await obs(page);
+  const from = (p) => Math.hypot(...[0, 1, 2].map((k) => p.path[0][k] - heli.position[k]));
+  const round = o.projectiles
+    .filter((p) => p.own && p.kind === "autocannon" && p.shooterMember === null)
+    .sort((a, b) => from(a) - from(b))[0];
+  ctx.check(
+    "the chin gun's round leaves a tick after it fires",
+    !!round,
+    JSON.stringify({ tick: o.tick, projectiles: o.projectiles }),
+  );
+  if (!round) return;
+  const leaving = await drawnMuzzle();
+  // The simulation launches the round level with the bore at the muzzle's
+  // reach along its bearing. The drawn barrel pivots on the same bore, pitched
+  // down along the shot, so its tip is that reach along the shot's direction,
+  // run back along it by at most the drawn recoil.
+  const reach = unitType("ah_64e_guardian").mounts[CHIN].muzzle_m[0];
+  const launch = round.path[0];
+  const { level, bore } = boreOf(apacheOf(o).weaponPoses.find((w) => w.mount === CHIN));
+  const tip = [0, 1, 2].map((k) => launch[k] - reach * level[k] + reach * bore[k]);
+  const back = Math.min(
+    visuals.pose.mount.recoil_m,
+    Math.max(
+      0,
+      [0, 1, 2].reduce((s, k) => s + (tip[k] - leaving[k]) * bore[k], 0),
+    ),
+  );
+  const off = Math.hypot(...[0, 1, 2].map((k) => tip[k] - back * bore[k] - leaving[k]));
+  ctx.check(
+    "the drawn muzzle is at the barrel's tip, pitched down along the shot from where the round leaves",
+    off < 0.1,
+    JSON.stringify({ muzzle: leaving, launch, tip, recoiled_m: back, off }),
   );
   // The whole scene, from the battle's camera: the airframe over the verge,
   // its drop line, the tank under fire on the road.

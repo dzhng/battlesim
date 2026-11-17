@@ -221,7 +221,11 @@ test("idle ends only that player's stream with a reason, its AI commands the arm
   await s.run(1);
   // The stream's last record crosses the control stream before it reaches a reader.
   await vi.waitFor(() => expect(s.seen.end).toBe("idle"));
-  expect((await s.alpha.order({ kind: "ready" })).error?.reason).toBe("ai_controlled");
+  // Withdrawn, the idle player is unseated: until the seating that drops him
+  // reaches the battle his AI refuses his orders, and from then on the door does.
+  await vi.waitFor(() => expect(s.alpha.order({ kind: "ready" })).rejects.toThrow("not_seated"), {
+    timeout: 10_000,
+  });
   const ordersArmy = async () =>
     (
       JSON.parse(await s.b.host.replay()).accepted as [
