@@ -432,20 +432,18 @@ impl Battle {
                     edge_tick: self.tick,
                     dir: AirTransitDirection::Out,
                 });
-            } else if unit.movement_goal().is_some() {
-                continue;
             }
-            // Rotor retirement follows completed ordinary movement at any side entry.
-            let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
-            if !unit.fixed_wing()
-                && !crate::entries::retire_at(
+            // Proximity lets ground and rotor units leave before the exact edge point.
+            if !unit.fixed_wing() {
+                let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
+                if !crate::entries::retire_at(
                     &skirmish.setup.sites,
                     unit.side,
                     [unit.position.x, unit.position.y],
                     half,
-                )
-            {
-                continue;
+                ) {
+                    continue;
+                }
             }
             retiring.push(index);
         }
