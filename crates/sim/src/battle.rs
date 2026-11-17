@@ -29,6 +29,7 @@ mod apply_command;
 mod attack_order;
 mod controllers;
 mod dispatch;
+mod entry_routes;
 mod fire;
 mod flown;
 mod move_placement;
@@ -374,15 +375,8 @@ impl Battle {
                 let edge = crate::air::edge::back_edge(unit.side, &sites, &self.world);
                 crate::air::edge::entry(&edge, unit.position.xy()).0
             } else {
-                let selected = crate::entries::select(
-                    &sites,
-                    unit.side,
-                    unit.kind,
-                    [unit.position.x, unit.position.y],
-                    |entry, kind, point| {
-                        self.entry_route_time(unit.side, kind, entry.center, point)
-                    },
-                );
+                let selected =
+                    self.select_entry(unit.side, unit.kind, [unit.position.x, unit.position.y]);
                 let entry = crate::entries::site(&sites, selected);
                 v2(entry.center[0], entry.center[1])
             };
@@ -836,65 +830,6 @@ impl Battle {
         let own = frame.own.iter().find(|unit| unit.id == id)?;
         let (kind, from) = (own.kind, [own.position[0], own.position[1]]);
         self.entry_route_time(side, kind, from, destination)
-    }
-
-    /// Travel time for a catalog unit from an entry site to a point, using the
-    /// side's planning geometry. Entry selection uses the same route owner as
-    /// ordinary movement admission.
-    fn entry_route_time(
-        &self,
-        side: Side,
-        kind: TypeIndex,
-        from: [f64; 2],
-        destination: [f64; 2],
-    ) -> Option<f64> {
-        // Movement admission refuses a goal off the map; so does the route
-        // estimate, or a planner would pick a goal its order cannot reach.
-        self.world.height_at(destination[0], destination[1])?;
-        let t = self.rules.catalog.get(kind);
-        let from = v2(from[0], from[1]);
-        let goal = v2(destination[0], destination[1]);
-        let mobility = match units::motion(t, &self.rules) {
-            units::Motion::Ground(m) => m,
-            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
-        };
-        let mut known = self.sides[side.index()].clone();
-        let grid = known.grid(&self.world, self.authored_props);
-        let (plan, _) = crate::navigation::plan(
-            grid,
-            &self.roads,
-            crate::navigation::Leg {
-                from,
-                goal,
-                m: &mobility,
-                policy: RoutePolicy::Fastest,
-                avoid: &[],
-            },
-            &self.rules.navigation,
-        );
-        let crate::navigation::Plan::Route(route) = plan else {
-            return None;
-        };
-        let time = grid.route_time(from, &route, &mobility);
-        time.is_finite().then_some(time)
-    }
-
-    fn select_entry(
-        &self,
-        side: Side,
-        kind: TypeIndex,
-        point: [f64; 2],
-    ) -> crate::entries::EntryIndex {
-        let sites = self
-            .skirmish
-            .as_ref()
-            .expect("skirmish entry selection")
-            .setup
-            .sites
-            .clone();
-        crate::entries::select(&sites, side, kind, point, |entry, kind, destination| {
-            self.entry_route_time(side, kind, entry.center, destination)
-        })
     }
 
     /// Validate and schedule a client's command for the next step. Every

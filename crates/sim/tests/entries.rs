@@ -39,22 +39,60 @@ fn sites() -> SkirmishSites {
     }
 }
 
+fn distance(entry: &EntrySite, point: [f64; 2]) -> f64 {
+    let dx = entry.center[0] - point[0];
+    let dy = entry.center[1] - point[1];
+    (dx * dx + dy * dy).sqrt()
+}
+
 #[test]
 fn select_uses_the_shortest_route_and_centre_wins_a_tie() {
     let sites = sites();
     let kind = TypeIndex(7);
-    let selected = entries::select(&sites, Side::Blue, kind, [90.0, 0.0], |entry, _, point| {
-        let dx = entry.center[0] - point[0];
-        let dy = entry.center[1] - point[1];
-        Some((dx * dx + dy * dy).sqrt())
-    });
+    let route = |entry: &EntrySite, _, point| Some(distance(entry, point));
+    let selected = entries::select(&sites, Side::Blue, kind, [90.0, 0.0], route, |_| 0.0);
     assert_eq!(selected, EntryIndex(1));
 
-    let tie = entries::select(&sites, Side::Blue, kind, [50.0, 0.0], |entry, _, point| {
-        let dx = entry.center[0] - point[0];
-        let dy = entry.center[1] - point[1];
-        Some((dx * dx + dy * dy).sqrt())
-    });
+    let tie = entries::select(&sites, Side::Blue, kind, [50.0, 0.0], route, |_| 0.0);
+    assert_eq!(tie, EntryIndex(0));
+}
+
+/// The bound saves route searches without changing the choice: an entry
+/// that cannot beat the best route found is not routed, and a tie still
+/// goes to the centre entry when its bound is the larger.
+#[test]
+fn select_skips_entries_that_cannot_beat_the_best_route() {
+    let sites = sites();
+    let kind = TypeIndex(7);
+    let point = [90.0, 0.0];
+    let mut routed = Vec::new();
+    let selected = entries::select(
+        &sites,
+        Side::Blue,
+        kind,
+        point,
+        |entry, _, point| {
+            routed.push(entry.center[0]);
+            Some(distance(entry, point))
+        },
+        |entry| distance(entry, point),
+    );
+    assert_eq!(selected, EntryIndex(1));
+    assert_eq!(
+        routed,
+        vec![100.0],
+        "the centre entry, 90 m away, is never routed"
+    );
+
+    // Both routes take 10 s; the centre's bound says so, the flank's less.
+    let tie = entries::select(
+        &sites,
+        Side::Blue,
+        kind,
+        point,
+        |_, _, _| Some(10.0),
+        |entry| if entry.center[0] == 0.0 { 10.0 } else { 1.0 },
+    );
     assert_eq!(tie, EntryIndex(0));
 }
 

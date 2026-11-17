@@ -19,6 +19,10 @@ use super::{
 use crate::digest::Digest;
 use crate::math::{Obb2, V2};
 
+/// A route ends at the cell nearest its goal within this reach that the
+/// mover fits.
+pub(super) const GOAL_REACH_M: f64 = NAV_CELL_M * 3.0;
+
 /// A step through a tight cell is checked at this spacing.
 const STEP_CHECK_M: f64 = 0.4;
 
@@ -432,7 +436,7 @@ impl RouteSearch {
         let Some(start) = endpoint(grid, self.from, who, START_REACH_M) else {
             return Stage::Done(Plan::Blocked(BlockReason::StartEnclosed));
         };
-        let Some(target) = endpoint(grid, self.goal, who, NAV_CELL_M * 3.0) else {
+        let Some(target) = endpoint(grid, self.goal, who, GOAL_REACH_M) else {
             return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
         };
         if !grid.base.terrain.connected(start, target, grid.nx) {
@@ -478,7 +482,7 @@ impl RouteSearch {
                 m: leg.m,
                 avoid: leg.avoid,
             },
-            NAV_CELL_M * 3.0,
+            GOAL_REACH_M,
         )?;
         let reverse = Leg {
             from: grid.waypoint(

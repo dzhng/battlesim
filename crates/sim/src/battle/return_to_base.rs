@@ -26,10 +26,7 @@ impl Battle {
             let (point, heading) = crate::air::edge::entry(&edge, v2(origin[0], origin[1]));
             return ([point.x, point.y], heading);
         }
-        let selected =
-            crate::entries::select(sites, side, current.kind, origin, |entry, kind, point| {
-                self.entry_route_time(side, kind, entry.center, point)
-            });
+        let selected = self.select_entry(side, current.kind, origin);
         let entry = crate::entries::site(sites, selected);
         (entry.center, entry.yaw)
     }

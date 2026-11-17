@@ -98,4 +98,14 @@ impl Mobility {
     pub fn max_speed(&self) -> f64 {
         self.road_mps.max(self.off_road_mps)
     }
+
+    /// A time no planned route from `from` to `goal` can beat: the straight
+    /// way at its best speed, which no factor exceeds (the rules check it),
+    /// short by how far from the goal a route may end: at a cell the goal
+    /// snaps to within the goal reach, anywhere in that cell.
+    pub fn least_route_time(&self, from: V2, goal: V2) -> f64 {
+        let slack =
+            super::search::GOAL_REACH_M + super::NAV_CELL_M * std::f64::consts::FRAC_1_SQRT_2;
+        ((goal - from).length() - slack).max(0.0) / self.max_speed()
+    }
 }

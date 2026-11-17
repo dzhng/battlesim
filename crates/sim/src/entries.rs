@@ -19,33 +19,41 @@ pub struct EntryIndex(pub usize);
 
 /// Pick the entry whose route to `point` is shortest. The route callback owns
 /// the side's planning geometry; an unavailable route is treated as infinite.
-/// Equal routes retain the ordered centre entry because the comparison only
-/// replaces a candidate when it is strictly shorter.
-pub fn select<F>(
+/// Equal routes go to the entry listed first, so the centre wins a tie.
+///
+/// `least_time` is a time no route from the entry can beat. Entries are
+/// asked nearest bound first, and one whose bound is already slower than
+/// the best route found is never routed: it could not be chosen.
+pub fn select<F, L>(
     sites: &SkirmishSites,
     side: Side,
     kind: TypeIndex,
     point: [f64; 2],
     mut route_time: F,
+    least_time: L,
 ) -> EntryIndex
 where
     F: FnMut(&EntrySite, TypeIndex, [f64; 2]) -> Option<f64>,
+    L: Fn(&EntrySite) -> f64,
 {
-    let mut selected = None;
-    let mut best = f64::INFINITY;
-    for (index, entry) in sites.entries.iter().enumerate() {
-        if entry.side != side {
+    let mut candidates: Vec<(f64, usize)> = (sites.entries.iter().enumerate())
+        .filter(|(_, entry)| entry.side == side)
+        .map(|(index, entry)| (least_time(entry), index))
+        .collect();
+    candidates.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+    let mut selected: Option<(f64, usize)> = None;
+    for (least, index) in candidates {
+        if selected.is_some_and(|(best, _)| least > best) {
             continue;
         }
-        let time = route_time(entry, kind, point)
+        let time = route_time(&sites.entries[index], kind, point)
             .filter(|time| time.is_finite() && *time >= 0.0)
             .unwrap_or(f64::INFINITY);
-        if selected.is_none() || time < best {
-            selected = Some(EntryIndex(index));
-            best = time;
+        if selected.is_none_or(|best| (time, index) < best) {
+            selected = Some((time, index));
         }
     }
-    selected.expect("combatant entry site")
+    EntryIndex(selected.expect("combatant entry site").1)
 }
 
 /// Return the centre entry for aircraft that must cross the back edge there.
