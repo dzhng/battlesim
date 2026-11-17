@@ -2760,11 +2760,13 @@ fn hits_on_a_tank_front(round: impl Fn(&mut WeaponDefinition)) -> Vec<(f64, bool
 
 #[test]
 fn a_round_just_short_of_the_armour_does_its_share_of_damage() {
-    // The test tank's front is 140 and the AP round does 40. Penetration 126
-    // reaches 0.9 of the armour: three quarters of the way from the 0.6 where
-    // damage starts to the full armour, so three quarters of its damage,
-    // whether it stops in the plate or glances off it.
-    let hits = hits_on_a_tank_front(|ap| ap.penetration = 126.0);
+    // At 90% penetration and a 60% cutoff, hits deliver 75% damage,
+    // whether they stop or glance off.
+    let hits = hits_on_a_tank_front(|ap| {
+        ap.damage = 40.0;
+        ap.penetration = 126.0;
+        ap.partial_from = 0.6;
+    });
     for glanced in [false, true] {
         let lost: Vec<f64> = hits
             .iter()
@@ -2784,9 +2786,8 @@ fn a_round_just_short_of_the_armour_does_its_share_of_damage() {
 
 #[test]
 fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
-    // A gun jeep's autocannon (65) against a tank broadside (side 100) gets
-    // an eighth of its damage through; against a jeep, all of it. Both can
-    // shoot back, and the tank costs more: the gunner still rakes the jeep.
+    // Both targets threaten it, but the gunner rakes the jeep: its rounds
+    // get fully through the jeep and only partly through the tank's side.
     let mut b = battle(
         json!([]),
         json!([
@@ -2813,8 +2814,7 @@ fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
 
 #[test]
 fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
-    // At half the test tank's front, default 0.6 gives no AP damage; 0.2
-    // puts half the armour 3/8 of the way to piercing: 15 a hit.
+    // At half the armour, a 0.2 cutoff delivers 3/8 damage: 15 a hit.
     let hits = hits_on_a_tank_front(|ap| {
         ap.penetration = 70.0;
         ap.partial_from = 0.2;

@@ -355,8 +355,8 @@ fn handles_along(
     path: &[[f64; 2]],
 ) -> Vec<Option<contract::observation::ObservedTargetId>> {
     let units = json!([
-        { "side": "blue", "kind": "test_recon", "position": scout },
-        { "side": "red", "kind": "test_tank", "position": start },
+        { "side": "blue", "kind": "test_recon", "position": scout, "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": start, "engagement": "return_fire_only" },
     ]);
     let scripts: Vec<_> = path
         .iter()

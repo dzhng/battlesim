@@ -1,4 +1,8 @@
 {
+  "overrides": {
+    "weapons": { "autocannon": { "damage": 100, "penetration": 65 } },
+    "units": { "ah_64e_guardian": { "body": { "hull": { "hp": 120 } } } }
+  },
   "units": [
     {"side":"blue","kind":"ah_64e_guardian","position":[10,470]},
     {"side":"red","kind":"eastern_t_72_t_72b3_2016","position":[300,470],"yaw":3.14159,"engagement":"return_fire_only"},

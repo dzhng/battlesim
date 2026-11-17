@@ -9,7 +9,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 270,
+      "cost": 290,
       "roster": {
         "factions": [
           "eastern"
@@ -92,7 +92,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 360,
+      "cost": 380,
       "roster": {
         "factions": [
           "eastern"
@@ -175,7 +175,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 100,
+      "cost": 90,
       "roster": {
         "factions": [
           "eastern"
@@ -203,7 +203,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 100,
+      "cost": 90,
       "roster": {
         "factions": [
           "eastern"
@@ -266,7 +266,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 220,
+      "cost": 240,
       "roster": {
         "factions": [
           "eastern"
@@ -351,7 +351,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 190,
+      "cost": 180,
       "roster": {
         "factions": [
           "eastern"
@@ -454,7 +454,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 210,
+      "cost": 200,
       "roster": {
         "factions": [
           "eastern"
@@ -558,7 +558,7 @@
       "roles": [
         "recon"
       ],
-      "cost": 180,
+      "cost": 170,
       "roster": {
         "factions": [
           "eastern"
@@ -636,7 +636,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 140,
+      "cost": 130,
       "roster": {
         "factions": [
           "eastern"
@@ -720,7 +720,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 300,
+      "cost": 260,
       "roster": {
         "factions": [
           "eastern"
@@ -797,7 +797,7 @@
       "description": "J-10C",
       "faction": "eastern",
       "family": "j_10_vigorous_dragon",
-      "cost": 340,
+      "cost": 350,
       "roster": {
         "factions": [
           "eastern"
@@ -862,7 +862,7 @@
       "description": "Stealth fighter",
       "faction": "eastern",
       "family": "j_20_mighty_dragon",
-      "cost": 490,
+      "cost": 500,
       "roster": {
         "factions": [
           "eastern"
@@ -912,7 +912,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 360,
+      "cost": 410,
       "roster": {
         "factions": [
           "eastern"
@@ -924,6 +924,7 @@
       "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
+          "hp": 200,
           "half_extents_m": [
             6.825,
             3.65,
@@ -1032,7 +1033,7 @@
       "roles": [
         "infantry"
       ],
-      "cost": 110,
+      "cost": 120,
       "roster": {
         "factions": [
           "eastern"
@@ -1064,7 +1065,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 270,
+      "cost": 300,
       "roster": {
         "factions": [
           "eastern"
@@ -1132,7 +1133,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 330,
+      "cost": 390,
       "roster": {
         "factions": [
           "eastern"
@@ -1144,6 +1145,7 @@
       "extends": "roster_profile_armoured_helicopter",
       "body": {
         "hull": {
+          "hp": 200,
           "half_extents_m": [
             8.536,
             2.495,
@@ -1201,7 +1203,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 170,
+      "cost": 180,
       "roster": {
         "factions": [
           "eastern"
@@ -1274,7 +1276,7 @@
       "description": "MiG-29SMT",
       "faction": "eastern",
       "family": "mig_29_fulcrum",
-      "cost": 280,
+      "cost": 300,
       "roster": {
         "factions": [
           "eastern"
@@ -1357,7 +1359,7 @@
       "description": "MiG-31BM",
       "faction": "eastern",
       "family": "mig_31_foxhound",
-      "cost": 350,
+      "cost": 360,
       "roster": {
         "factions": [
           "eastern"
@@ -1447,7 +1449,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 250,
+      "cost": 230,
       "roster": {
         "factions": [
           "eastern"
@@ -1529,7 +1531,7 @@
       "roles": [
         "artillery"
       ],
-      "cost": 280,
+      "cost": 300,
       "roster": {
         "factions": [
           "eastern"
@@ -1716,7 +1718,7 @@
       "roles": [
         "recon"
       ],
-      "cost": 100,
+      "cost": 110,
       "roster": {
         "factions": [
           "eastern"
@@ -1740,7 +1742,7 @@
       "description": "Su-25SM3",
       "faction": "eastern",
       "family": "su_25_frogfoot",
-      "cost": 270,
+      "cost": 290,
       "roster": {
         "factions": [
           "eastern"
@@ -1805,7 +1807,7 @@
       "description": "Stealth multirole fighter",
       "faction": "eastern",
       "family": "su_57_felon",
-      "cost": 480,
+      "cost": 500,
       "roster": {
         "factions": [
           "eastern"
@@ -1888,7 +1890,7 @@
       "description": "Su-27SM3",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "cost": 310,
+      "cost": 320,
       "roster": {
         "factions": [
           "eastern"
@@ -2023,7 +2025,7 @@
       "description": "Su-34",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "cost": 390,
+      "cost": 410,
       "roster": {
         "factions": [
           "eastern"
@@ -2106,7 +2108,7 @@
       "description": "Su-35S",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "cost": 410,
+      "cost": 420,
       "roster": {
         "factions": [
           "eastern"
@@ -2175,7 +2177,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 440,
+      "cost": 480,
       "roster": {
         "factions": [
           "eastern"
@@ -2192,9 +2194,9 @@
             1.75,
             1.4
           ],
-          "hp": 135,
+          "hp": 200,
           "armor": {
-            "front": 260,
+            "front": 400,
             "side": 130,
             "rear": 70,
             "roof": 45,
@@ -2295,7 +2297,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 300,
+      "cost": 250,
       "roster": {
         "factions": [
           "eastern"
@@ -2391,7 +2393,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 280,
+      "cost": 260,
       "roster": {
         "factions": [
           "eastern"
@@ -2408,9 +2410,9 @@
             1.795,
             1.115
           ],
-          "hp": 100,
+          "hp": 150,
           "armor": {
-            "front": 160,
+            "front": 340,
             "side": 90,
             "rear": 55,
             "roof": 30,
@@ -2505,7 +2507,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 310,
+      "cost": 300,
       "roster": {
         "factions": [
           "eastern"
@@ -2522,9 +2524,9 @@
             1.8015,
             1.101
           ],
-          "hp": 110,
+          "hp": 150,
           "armor": {
-            "front": 190,
+            "front": 340,
             "side": 100,
             "rear": 60,
             "roof": 35,
@@ -2619,7 +2621,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 360,
+      "cost": 350,
       "roster": {
         "factions": [
           "eastern"
@@ -2636,9 +2638,9 @@
             1.89,
             1.11
           ],
-          "hp": 120,
+          "hp": 160,
           "armor": {
-            "front": 220,
+            "front": 350,
             "side": 115,
             "rear": 65,
             "roof": 40,
@@ -2818,7 +2820,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 230,
+      "cost": 200,
       "roster": {
         "factions": [
           "eastern"
@@ -2837,7 +2839,7 @@
           ],
           "hp": 100,
           "armor": {
-            "front": 110,
+            "front": 200,
             "side": 60,
             "rear": 35,
             "roof": 25,
@@ -2927,7 +2929,7 @@
       "roles": [
         "mbt"
       ],
-      "cost": 360,
+      "cost": 350,
       "roster": {
         "factions": [
           "eastern"
@@ -2944,9 +2946,9 @@
             1.85,
             1.25
           ],
-          "hp": 120,
+          "hp": 160,
           "armor": {
-            "front": 220,
+            "front": 350,
             "side": 115,
             "rear": 65,
             "roof": 40,
@@ -3105,7 +3107,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 300,
+      "cost": 330,
       "roster": {
         "factions": [
           "eastern"
@@ -3174,7 +3176,7 @@
       "roles": [
         "helicopter"
       ],
-      "cost": 180,
+      "cost": 190,
       "roster": {
         "factions": [
           "eastern"
@@ -3252,7 +3254,7 @@
       "roles": [
         "light_vehicle"
       ],
-      "cost": 190,
+      "cost": 180,
       "roster": {
         "factions": [
           "eastern"
@@ -3336,7 +3338,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 360,
+      "cost": 330,
       "roster": {
         "factions": [
           "eastern"
@@ -3418,7 +3420,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 360,
+      "cost": 330,
       "roster": {
         "factions": [
           "eastern"
