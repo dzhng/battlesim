@@ -1,12 +1,28 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { BrowserRouter, Link, Route, Routes } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
-import { ReplayImport, type ReplayFile } from "@apps/battle-lab/src/replayFile";
+import { ReplayImport, parseReplayFile, type ReplayFile } from "@apps/battle-lab/src/replayFile";
 
 /** A saved battle as the viewer reads it: its prepared battle and commands. */
 const SAVED = JSON.stringify({
   battle: { scenario: "{}", report: { request: {} } },
   replay: "{}",
+});
+
+test("a human's camera survives loading a replay of a seat that began under AI", () => {
+  const file = JSON.parse(SAVED);
+  file.battle.report.request.players = [{ id: "red-2", side: "red", controller: "active_ai" }];
+  file.camera = {
+    player: "red-2",
+    side: "red",
+    samples: [
+      {
+        time: 10,
+        camera: { target: [30, 40, 0], distance: 100, pitch: 0.7, yaw: 1, fovY: 0.8, near: 1 },
+      },
+    ],
+  };
+  expect(parseReplayFile(JSON.stringify(file)).camera).toEqual(file.camera);
 });
 import { PageVisit } from "@apps/battle-lab/src/navigation";
 

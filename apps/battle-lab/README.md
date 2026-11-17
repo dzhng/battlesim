@@ -100,6 +100,16 @@ check its hash before opening any server stream. Their session takes only seat
 actions; local authority controls stay with offline battles. The
 [game server](../game-server/README.md) owns local startup, room seating and battle transport.
 
+[Saved replays](src/replayFile.tsx) retain the exact prepared battle and accepted
+commands, so playback depends on the simulation build that recorded them. Human
+camera history is separate presentation data on the battle's clock: following it
+cannot change a command or digest, and a viewer can release it to look around.
+Only the recording browser's human view is captured; AI and spectator views are
+not player camera history. Online exports fetch both sides' full command history
+from the running server and add the recording browser's camera locally. A live
+export includes orders outside the caller's fog; it does not affect the side's
+ordinary observation stream.
+
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. A session also owns its unit catalog: [the router](src/router.tsx)

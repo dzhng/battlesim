@@ -347,6 +347,23 @@ html {
   gap: 14px;
   align-items: center;
 }
+.hud-replay-camera {
+  position: absolute;
+  top: 12px;
+  right: 64px;
+  pointer-events: auto;
+  padding: 7px 12px;
+  color: rgb(var(--hud-text));
+  font: 10.5px/1.45 var(--hud-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(var(--hud-glass) / 0.92);
+  border: 1px solid rgb(var(--hud-accent) / 0.32);
+  cursor: pointer;
+}
+.hud-replay-camera:hover {
+  border-color: rgb(var(--hud-accent));
+}
 /* Master, music and voices: a name column and a slider column, so the
    sliders start and end together. */
 .sound-levels {
@@ -1047,6 +1064,12 @@ html {
 }
 .hud-panel.hud-settings-modal {
   width: min(560px, 100%);
+}
+.hud-settings-modal .hud-menu-section {
+  padding-block: 12px;
+}
+.hud-settings-modal .hud-menu-section:last-child {
+  padding-bottom: 0;
 }
 .hud-tutorial-head {
   display: grid;

@@ -29,6 +29,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameCamera } from "../gameCamera";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
+import type { ReplayCameraTrack } from "../replayCamera";
 import { battleRequestForAsked } from "../skirmishData";
 
 /** The generated map a request asks for. */
@@ -257,11 +258,12 @@ function PreparedBattleView({
   );
   if (!prepared || !view) return cover;
 
-  const exportReplay = async ({ sim }: BattleSession) => {
+  const exportReplay = async ({ sim }: BattleSession, camera: ReplayCameraTrack | undefined) => {
     if (!sim.local) return null;
     const file: ReplayFile = {
       battle: { scenario: prepared.scenario, report: prepared.report },
       replay: await sim.local.replay(),
+      camera,
       light_preset: resolvedMatchLighting(replay, window.location.search, request),
     };
     const name = subject.toLowerCase().replaceAll(" · ", "-").replaceAll(" ", "");
@@ -275,6 +277,10 @@ function PreparedBattleView({
       scenario={prepared.scenario}
       seed={activeRequest.battle_seed}
       replay={replay?.replay}
+      replayCamera={replay?.camera}
+      side={replay?.camera?.side}
+      player={replay?.camera?.player}
+      onSaveReplay={exportReplay}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
       cover={cover}
@@ -298,13 +304,12 @@ function PreparedBattleView({
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
       menu={() => replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
-      diagnostics={(session) => ({
+      diagnostics={() => ({
         /** What the preparation worker made: the request, the map's identity
          *  and counts, where blue starts and what each stage cost. */
         prepared: () => prepared.report,
         /** When each loading stage finished, ms since navigation started. */
         startup: () => ({ ...marks.current }),
-        exportReplay: () => exportReplay(session),
       })}
     />
   );

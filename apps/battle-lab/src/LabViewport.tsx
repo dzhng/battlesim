@@ -1,18 +1,8 @@
 export type { ViewportGpu } from "./viewportRender";
-import type {
-  CameraFocusRequest,
-  FrameCounts,
-  FramePlate,
-  ViewportGpu,
-  ViewportPilot,
-} from "./viewportRender";
-import {
-  ViewportGestureOwner,
-  type ViewportPointer,
-  type LabPick,
-  type LabBox,
-} from "./viewportInput";
+import type { LabViewportProps, FrameCounts, FramePlate } from "./viewportRender";
+import { ViewportGestureOwner, type ViewportPointer } from "./viewportInput";
 export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
+export type { ViewportCursor } from "./viewportRender";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
@@ -24,7 +14,7 @@ import {
   NO_PROP_STATS,
   type PresentedUi,
 } from "@web/battle/sim/presentation";
-import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
+import { useCursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { appResources, gpuFailureMessage } from "./appResources";
 import { BrowserScene, pixelsPng } from "@web/battle/render/scene";
@@ -40,7 +30,6 @@ import {
   CameraController,
   type CameraIntent,
   type CameraPose,
-  type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
 import { createClearanceState } from "@packages/renderer-core/src/cameraClearance";
 import {
@@ -60,18 +49,12 @@ import { applyShadowQuality } from "@packages/renderer-core/src/lightQuality";
 import { gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
 import { gameBuildingStyle, gameModelDetail } from "./gameModels";
-import type { FogStyle } from "@packages/battle-renderer/src/fog";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import type { SceneInstance, WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
-import type {
-  BuildingStyle,
-  SceneBuildings,
-} from "@packages/battle-renderer/src/models/buildingReferences";
+import type { SceneInstance, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 import { PassInspector } from "./PassInspector";
 import { ViewportFrames } from "./viewportFrames";
 import { viewportProjector } from "./viewportProjection";
-import type { FeedSource } from "@web/feed";
 import {
   emptyEffectCounts,
   emptyModelCounts,
@@ -80,8 +63,6 @@ import {
   type ModelCounts,
   type ViewportFrame,
 } from "./presentedFrame";
-import { type FogRequest } from "@web/battle/sim/presentation";
-import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { detailScales, testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
@@ -91,108 +72,6 @@ const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
-
-interface LabViewportProps {
-  /** Resolved graphics profile; omitted keeps the authored High profile. */
-  quality?: GraphicsQualityProfile;
-  fixture: string;
-  /** A loading cover or menu owns player input while false. */
-  inputEnabled?: boolean;
-  /** Canonical world inputs, published through the stable feed. */
-  world: FeedSource<WorldLayers | null>;
-  /** The map's buildings, fed like the overlay; omitted or null draws none.
-   *  They are drawn by the scene's one presentation: the battle's
-   *  (`presentation`), else one the viewport makes with no layout, whose
-   *  side knows what the buildings' `known` says. */
-  buildings?: FeedSource<SceneBuildings | null>;
-  /** The battle's presentation (its sim client's), read each frame: null
-   *  until the battle has one. Omitted for a scene with no battle. */
-  presentation?: { readonly current: ScenePresentation | null };
-  /** How those buildings are tiered, chunked and pooled; the fixture's when
-   *  omitted. The frame takes it when it is built: a change draws at the next
-   *  `rebuild`. */
-  buildingStyle?: BuildingStyle;
-  /** What the camera keeps clear of (the buildings the side knows stand, on
-   *  the ground), fed like the overlay; the ground alone when omitted or null. */
-  obstacles?: FeedSource<CameraObstacles | null>;
-  /** Display-space marks drawn over the finished frame, fed through one
-   *  stable object (`useFeed`): never a prop that changes with them. */
-  overlay?: FeedSource<WorldMeshes | undefined>;
-  /** Ground paint that follows the pointer (the range ruler), fed like the
-   *  overlay and uploaded apart from it. */
-  pointerMarks?: FeedSource<Mesh>;
-  /** The side's fog of war, which its presentation decides (its sensor
-   *  rules, foliage, and a lab's stand-ins), fed like the overlay; omitted
-   *  or null draws no fog. */
-  fog?: FeedSource<FogRequest | null>;
-  /** How unseen looks; the fixture's selected style when omitted. Live. */
-  fogStyle?: FogStyle;
-  /** The light, fixed for the viewport's life; the fixture's when omitted. */
-  light?: LightPresentation;
-  /** The proxy instances (none by default: a battle draws posed models). */
-  instances?: readonly SceneInstance[];
-  initialCamera: Camera3DParams;
-  /** Contacts the camera steps through, newest first; empty leaves N inert. */
-  focusTargets?: readonly FocusTarget[];
-  /** A one-shot move to a ground point, keeping the current angle and zoom. */
-  cameraFocus?: CameraFocusRequest | null;
-  /** Ground height under a world point: the camera target rides it. */
-  groundAt?: (x: number, y: number) => number;
-  /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
-  onPick?: (pick: LabPick) => void;
-  /** Treat a left drag as a placement gesture instead of box selection. */
-  leftDragAction?: boolean;
-  /** Capture the semantic target once; null cancels a press. */
-  onRightPress?: (pick: LabPick | null) => void;
-  /** Per-frame action for the app cursor; null shows the plain arrow. */
-  onCursor?: (
-    pointer: ViewportPointer,
-    camera: Camera3DParams,
-    project: Project,
-    renderScale: number,
-  ) => CursorAction | null;
-  /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
-  onBox?: (box: LabBox) => void;
-  /** Called every animation frame; what it returns redraws the frame with it
-   *  (presentation interpolation between completed ticks). `generation` is
-   *  the GPU frame's static generation, for the presentation's frame. */
-  frame?: (now: number, camera: ViewportCamera, generation: number) => ViewportFrame | null;
-  /** The first frame is on screen (the loading cover can lift), with the
-   *  device's live GPU allocation counts. */
-  onReady?: (gpu: ViewportGpu) => void;
-  /** Release borrowed GPU callbacks before the viewport frees its renderer. */
-  onDispose?: () => void;
-  /** Called every animation frame with the live world → page projection and
-   *  camera, for DOM readouts anchored to world points and panned sound, and
-   *  a shared pointer snapshot: position, camera ray (null over UI), and the
-   *  captured world ray of a held right press. The final argument is the actual
-   *  canvas render-pixel/CSS-pixel ratio, for minimum stroke coverage. */
-  onFrame?: (
-    project: Project,
-    camera: Camera3DParams,
-    pointer: ViewportPointer,
-    renderScale: number,
-  ) => void;
-  /** Route-specific diagnostics published on `window.__lab.route`. */
-  diagnostics?: Record<string, unknown>;
-  /** A scripted driver (the benchmark, a lab's trajectory), fixed for the
-   *  viewport's life: while it gives a framing it owns the camera, input no
-   *  longer steers it, and every frame is drawn and reported with its cost. */
-  pilot?: ViewportPilot;
-  /** Appearance bundles from `AppearanceLibrary` for the models layer, fed
-   *  like the overlay: the bundles and the template library's bytes are
-   *  megabytes a changing prop would copy into React's measures. */
-  appearances?: FeedSource<InstalledAppearances | null>;
-  /** Posed models to draw. */
-  models?: readonly ModelInstance[];
-  /** What a click can pick when no frame hands picks over (the units'
-   *  simulation boxes); each drawn proxy by its own box without it. */
-  picks?: readonly PickBox[];
-  /** The camera rig's numbers; the game's by default. */
-  cameraConfig?: CameraPresentation;
-}
-
-export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
 /** Screen-edge band that pans the camera like a held key. */
 const EDGE_PAN_PX = 14;
@@ -787,7 +666,10 @@ export function LabViewport({
           steer({ held: keys.held, edge }, dt);
           const started = performance.now();
           if (framing) {
-            place(controller.place(asked, framing));
+            if ("fovY" in framing) {
+              asked = camera = framing;
+              framedRaw = true;
+            } else place(controller.place(asked, framing));
             dirty = true; // a piloted frame is always drawn: it is measured
           }
           see(dt);
@@ -922,7 +804,7 @@ export function LabViewport({
           const project = projector();
           const renderScale = canvas.height / Math.max(1, canvas.clientHeight);
           const shownCamera = interactionView().camera3d;
-          onFrameRef.current?.(project, shownCamera, pointerState, renderScale);
+          onFrameRef.current?.(project, shownCamera, pointerState, renderScale, clock);
           const action =
             onCursorRef.current?.(pointerState, shownCamera, project, renderScale) ?? null;
           // The app cursor always shows; the battle only chooses its action.

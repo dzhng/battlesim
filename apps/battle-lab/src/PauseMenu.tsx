@@ -13,6 +13,7 @@ import { DiagnosticsControls } from "./DiagnosticsControls";
 import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
 import { Tutorial } from "./Tutorial";
+import { SaveReplayButton } from "./replayFile";
 
 /** The menu's open state over `client`: opening pauses an unpaused battle and
  *  closing resumes only a pause it owns. */
@@ -76,6 +77,7 @@ export function PauseMenu({
   onRestart,
   onLeave,
   onSettingsApply,
+  onSaveReplay,
   children,
 }: {
   onClose: () => void;
@@ -84,6 +86,7 @@ export function PauseMenu({
   onRestart?: () => void;
   onLeave?: () => void;
   onSettingsApply?: () => void | Promise<void>;
+  onSaveReplay?: () => Promise<unknown>;
   /** The route's own items. */
   children?: ReactNode;
 }) {
@@ -222,7 +225,9 @@ export function PauseMenu({
               <SoundControls />
             </section>
             <section className="hud-menu-section" aria-label="Diagnostics">
-              <DiagnosticsControls />
+              <DiagnosticsControls>
+                {onSaveReplay && <SaveReplayButton save={onSaveReplay} />}
+              </DiagnosticsControls>
             </section>
           </div>
         </div>
