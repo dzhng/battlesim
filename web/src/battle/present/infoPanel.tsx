@@ -11,6 +11,7 @@ import { glyphIcon, hudIcon, stateIcon } from "@packages/scene-assets/src/icons"
 import type { ReactNode, Ref } from "react";
 import { Icon } from "./icons";
 import {
+  outOfAmmo,
   PIPS,
   pipsLit,
   weaponCounts,
@@ -207,7 +208,8 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   // Every unit-wide state (`byName`), in its rows' order and tone, stands by
   // the name, after any weapon run dry.
   const statusIcons = [
-    ...(panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
+    // The same empty kind the army card's reserve mark crosses at zero.
+    ...(outOfAmmo(panel.weapons)
       ? [{ path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }]
       : []),
     ...panel.states.flatMap((r) =>

@@ -255,8 +255,9 @@ export function ArmyDeck({
               const host = carrierOf(unit);
               const carrier = host === null ? undefined : own.find((u) => u.id === host);
               // One state mark per card: a riding squad's seats and a unit on
-              // its way home already own the corner, so a low reserve waits
-              // for a plain card.
+              // its way home already own the corner, so a reserve waits for a
+              // plain card. The mark is the same amber warning the unit's own
+              // panel draws, from the same empty or near-empty rounds.
               const reserve =
                 !lost && !carrier && !unit.withdrawing ? unitReserve(units, unit, rules) : null;
               const low = reserve && reserve.fill <= LOW_AMMO ? reserve : null;
@@ -268,7 +269,6 @@ export function ArmyDeck({
                           ? stateIcon("supply_blocked")
                           : stateIcon("stock")
                         : hudIcon(low.out ? "no_ammo" : "low_ammo"),
-                    tone: low.out && !low.stillArmed ? "bad" : "warn",
                     title: `${low.out ? "Out of" : "Low on"} ${
                       low.resource === "stock" ? "supplies" : "ammo"
                     }`,
@@ -358,13 +358,7 @@ export function ArmyDeck({
                   {unit.withdrawing && (
                     <Icon path={stateIcon("withdrawing")} className="hud-army-withdrawing" />
                   )}
-                  {mark && (
-                    <Icon
-                      path={mark.path}
-                      className={`hud-army-ammo hud-army-ammo-${mark.tone}`}
-                      title={mark.title}
-                    />
-                  )}
+                  {mark && <Icon path={mark.path} className="hud-army-ammo" title={mark.title} />}
                 </button>,
                 blinks.get(unit.id),
               );

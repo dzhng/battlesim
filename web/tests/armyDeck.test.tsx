@@ -704,3 +704,26 @@ test("right-click asks the store for the exact unit, without selecting or centri
   expect(onCenter).not.toHaveBeenCalled();
   expect(card.getAttribute("aria-pressed")).toBe("false");
 });
+
+test("a card's reserve mark follows the unit panel's empty kind", () => {
+  const own = [
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 1 }),
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 2 }, [{ ammo: [1, 1] }]),
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 3 }, [{ ammo: [0, 10] }]),
+  ];
+  const view = render(
+    <ArmyDeck
+      state={new Feed({ own })}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={shippedRules as unknown as PanelRules}
+      contactLines={null}
+    />,
+  );
+  const mark = (name: string) =>
+    view.getByRole("button", { name }).querySelector<HTMLElement>(".hud-army-ammo");
+  expect(mark("Tank #1")).toBeNull();
+  expect(mark("Tank #2, low on ammo")?.title).toBe("Low on ammo");
+  // HE still has rounds, but the empty AP kind is what the panel marks out.
+  expect(mark("Tank #3, out of ammo")?.title).toBe("Out of ammo");
+});

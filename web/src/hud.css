@@ -1327,16 +1327,12 @@ html {
 .hud-army-card :is(.hud-army-aboard, .hud-army-withdrawing, .hud-army-ammo) svg {
   height: 1.1em;
 }
-/* The warm marks are the only ones on a dark card, but they are small: a
-   dark edge keeps the thin strokes from dissolving into the glass. */
+/* The same warning tone the unit's panel uses, and the only warm mark on a
+   dark card. It is small, so a dark edge keeps the thin strokes from
+   dissolving into the glass. */
 .hud-army-card .hud-army-ammo {
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95));
-}
-.hud-army-card .hud-army-ammo-warn {
   color: rgb(var(--hud-warn));
-}
-.hud-army-card .hud-army-ammo-bad {
-  color: rgb(var(--hud-bad));
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95));
 }
 .hud-unit-role svg {
   width: 25px;

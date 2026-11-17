@@ -527,55 +527,54 @@ export function unitStrength(
   return Math.min(1, u.memberHp.reduce((a, b) => a + b, 0) / (full || 1));
 }
 
+/** Whether a panel's weapons include an empty ammunition kind: the state its
+ *  out-of-ammo mark by the name reports, and the state an army card's reserve
+ *  crosses at zero. */
+export function outOfAmmo(weapons: readonly Pick<WeaponRow, "kinds">[]): boolean {
+  return weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0));
+}
+
 /** What an army card warns is running out. */
 export interface Reserve {
   /** Its finite rounds, or a supply vehicle's finite stock. */
   resource: "ammo" | "stock";
-  /** Left against full, in [0, 1]. */
+  /** The emptiest finite kind's share against its full load, in [0, 1]: the
+   *  row the unit's panel shows nearest empty. */
   fill: number;
-  /** Nothing left. */
+  /** Some finite kind (or the stock) is empty, so the panel's out-of-ammo
+   *  mark stands by the unit's name. */
   out: boolean;
-  /** An unlimited ammunition kind remains, so the unit still has a weapon
-   *  to fight with: its warning stays a warning. */
-  stillArmed: boolean;
 }
 
-/** The finite ammunition a unit has left, or a supply vehicle's stock.
- *  Unlimited kinds are skipped: they can't run out. Each finite kind counts
- *  once whatever its magazine size, so a tank's AP and HE weigh the same and
- *  a helicopter's autocannon doesn't drown its missiles. Null for a unit
- *  with neither rounds nor stock. */
+/** The emptiest finite ammunition kind a unit has left, or a supply vehicle's
+ *  stock. Unlimited kinds are skipped: they can't run out. Each finite kind
+ *  counts whatever its magazine size, so a tank with full HE and no AP still
+ *  warns about the AP the panel marks spent. Null for a unit with neither
+ *  rounds nor stock. */
 export function unitReserve(
   units: UnitCatalog,
   u: Pick<OwnUnitView, "kind" | "mounts" | "stock">,
   rules: Pick<PanelRules, "weapons">,
 ): Reserve | null {
   const mounts = units.type(u.kind).mounts;
-  let sum = 0;
+  let fill = 1;
   let kinds = 0;
-  let stillArmed = false;
   for (const mount of u.mounts) {
     const rows = mounts[mount.mount]?.weapons ?? [];
     rows.forEach((row, k) => {
       const full = rules.weapons[row]?.ammo;
       const left = mount.ammo[k];
-      if (typeof full !== "number") {
-        if (left === null) stillArmed = true;
-        return;
-      }
+      if (typeof full !== "number") return;
       if (full <= 0 || typeof left !== "number") return;
       kinds += 1;
-      sum += Math.min(1, Math.max(0, left / full));
+      fill = Math.min(fill, Math.min(1, Math.max(0, left / full)));
     });
   }
-  if (kinds > 0) {
-    const fill = sum / kinds;
-    return { resource: "ammo", fill, out: fill === 0, stillArmed };
-  }
+  if (kinds > 0) return { resource: "ammo", fill, out: fill === 0 };
   const stock = units.type(u.kind).capabilities?.supply?.stock;
   if (typeof u.stock === "number" && typeof stock === "number" && stock > 0) {
     const fill = Math.min(1, Math.max(0, u.stock / stock));
-    return { resource: "stock", fill, out: fill === 0, stillArmed: false };
+    return { resource: "stock", fill, out: fill === 0 };
   }
   return null;
 }
