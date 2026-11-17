@@ -193,6 +193,8 @@ const HUD_ICONS = {
     '<circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M18 2v5h-5"/>',
   must_stop: '<path d="M8.5 3h7L21 8.5v7L15.5 21h-7L3 15.5v-7z"/><path d="M8 12h8"/>',
   no_ammo: '<rect x="8" y="3" width="8" height="18"/><path d="M4 20L20 4"/>',
+  // The same magazine with two rounds left at its foot: low, not spent.
+  low_ammo: '<rect x="8" y="3" width="8" height="18"/><path d="M10 14h4M10 17h4"/>',
   no_sight: CLOSED_EYE,
   // A weapon that fires at whatever it sees, even what it can't hurt: a
   // gunsight's ring and ticks round a round, unlike fire at will's bare

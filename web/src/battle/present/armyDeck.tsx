@@ -5,7 +5,7 @@ import { StrengthMeter, UnitFace } from "./unitFace";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
-import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
+import { ownPanel, reserveRow, unitStrength, type PanelRules } from "./panelRows";
 import { unitName } from "./readouts";
 import { CommandBar, type ArmyCommandState } from "./commandBar";
 import { Feed, useFeedValue, type FeedSource } from "@web/feed";
@@ -254,6 +254,11 @@ export function ArmyDeck({
               // rides in, and picks its carrier.
               const host = carrierOf(unit);
               const carrier = host === null ? undefined : own.find((u) => u.id === host);
+              // One state mark per card: a riding squad's seats and a unit on
+              // its way home already own the corner, so a reserve waits for a
+              // plain card. The mark is the unit panel's own reserve row.
+              const mark =
+                !lost && !carrier && !unit.withdrawing ? reserveRow(units, unit, rules) : null;
               const picks = pickOf(unit, own);
               const selectedHere = selected.includes(picks);
               const group = groupOf.get(unit.id);
@@ -274,7 +279,9 @@ export function ArmyDeck({
                         ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}`
                         : unit.withdrawing
                           ? `${name}, returning to base`
-                          : name) + (group ? `, group ${group}` : "")
+                          : name) +
+                    (mark ? `, ${mark.word.toLowerCase()}` : "") +
+                    (group ? `, group ${group}` : "")
                   }
                   aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
@@ -336,6 +343,7 @@ export function ArmyDeck({
                   {unit.withdrawing && (
                     <Icon path={stateIcon("withdrawing")} className="hud-army-withdrawing" />
                   )}
+                  {mark && <Icon path={mark.icon} className="hud-army-reserve" title={mark.word} />}
                 </button>,
                 blinks.get(unit.id),
               );

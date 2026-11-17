@@ -6,7 +6,8 @@ import { TEST_CATALOG } from "./catalog";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 import { useLayoutEffect, useState } from "react";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
-import type { PanelRules } from "../src/battle/present/panelRows";
+import { ownPanel, reserveRow, type PanelRules } from "../src/battle/present/panelRows";
+import { iconSvg } from "../src/battle/present/icons";
 import type { CommandControl } from "../src/battle/present/commandBar";
 import { ArmyDeck } from "../src/battle/present/armyDeck";
 import type { CardBlink } from "../src/battle/present/fireBlink";
@@ -703,4 +704,38 @@ test("right-click asks the store for the exact unit, without selecting or centri
   expect(onSelect).not.toHaveBeenCalled();
   expect(onCenter).not.toHaveBeenCalled();
   expect(card.getAttribute("aria-pressed")).toBe("false");
+});
+
+test("a card's reserve mark is its unit panel's reserve row", () => {
+  const own = [
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 1 }),
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 2 }, [{ ammo: [1, 1] }]),
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 3 }, [{ ammo: [0, 10] }]),
+  ];
+  const view = render(
+    <ArmyDeck
+      state={new Feed({ own })}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={shippedRules as unknown as PanelRules}
+      contactLines={null}
+    />,
+  );
+  const rules = shippedRules as unknown as PanelRules;
+  for (const unit of own) {
+    const row = reserveRow(TEST_CATALOG.units, unit, rules);
+    const panel = ownPanel(TEST_CATALOG.units, unit, own, rules);
+    expect(panel.states.filter((r) => r.state === row?.state)).toHaveLength(row ? 1 : 0);
+    const name = `Tank #${unit.id}${row ? `, ${row.word.toLowerCase()}` : ""}`;
+    const mark = view.getByRole("button", { name }).querySelector<HTMLElement>(".hud-army-reserve");
+    const drawn = document.createElement("span");
+    drawn.innerHTML = row ? (iconSvg(row.icon) ?? "") : "";
+    expect(mark?.innerHTML ?? null, name).toBe(row ? drawn.innerHTML : null);
+  }
+  // Tank #2 runs low; tank #3's empty AP is out though its HE has rounds.
+  expect(own.map((u) => reserveRow(TEST_CATALOG.units, u, rules)?.state ?? null)).toEqual([
+    null,
+    "low_ammo",
+    "no_ammo",
+  ]);
 });

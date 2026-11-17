@@ -38,6 +38,7 @@ test("every published action reason has player words and a mark, and every garri
       suppression: "none",
       service: "",
       stock: null,
+      mounts: [],
     };
     expect(ownStateRows(UNITS, u as unknown as OwnUnitView, [], rules), phase).toHaveLength(1);
   }

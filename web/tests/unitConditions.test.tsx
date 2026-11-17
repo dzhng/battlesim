@@ -1,5 +1,5 @@
 // A condition on the whole unit (its fire order, suppression, entering a
-// building) is said once, as the unit's own row and as an icon by its name
+// building, a reserve running out) is said once, as the unit's own row and as an icon by its name
 // that every card keeps, compact too; never repeated on each weapon's row.
 import { shippedRules } from "@web/shippedRules";
 import { cleanup, render } from "@testing-library/react";
@@ -8,7 +8,7 @@ import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { InfoPanel } from "../src/battle/present/infoPanel";
 import { iconSvg } from "../src/battle/present/icons";
-import { ownPanel, type PanelRules } from "../src/battle/present/panelRows";
+import { LOW_RESERVE, ownPanel, type PanelRules } from "../src/battle/present/panelRows";
 import type { OwnUnitView } from "../src/battle/sim/observationView";
 import { TEST_CATALOG } from "./catalog";
 
@@ -76,4 +76,58 @@ test("returning to base is the unit's row and stands by its name on every card",
   expect(shows(".ro-state", mark)).toBe(1);
   expect(shows(".ro-name .ro-status-icon", mark)).toBe(1);
   expect(card({ withdrawing: false }, "no_compatible_target").shows(".ro-body", mark)).toBe(0);
+});
+
+test("a reserve running out is the unit's row and stands by its compact card's name", () => {
+  const compact = (unit: OwnUnitView) => {
+    const { container } = render(
+      <InfoPanel panel={ownPanel(TEST_CATALOG.units, unit, [unit], RULES)} zoom="compressed" />,
+    );
+    const states = [...container.querySelectorAll<HTMLElement>(".ro-state")];
+    const byName = [...container.querySelectorAll(".ro-name .ro-status-icon")];
+    cleanup();
+    return { states, byName };
+  };
+  const rows = TEST_CATALOG.units.type("test_tank").mounts[0].weapons;
+  const full = rows.map((r) => RULES.weapons[r].ammo as number);
+  const tank = (ammo: number[]) =>
+    specimenUnit(TEST_CATALOG, "test_tank", {}, [{ ammo, loaded: null }]);
+  const truckFull = TEST_CATALOG.units.type("test_supply").capabilities.supply!.stock;
+  const truck = (stock: number) => specimenUnit(TEST_CATALOG, "test_supply", { stock });
+  const cases: [string, OwnUnitView, string | null][] = [
+    ["full tank", tank(full), null],
+    ["low tank", tank(full.map((n) => Math.floor(n * LOW_RESERVE))), hudIcon("low_ammo")],
+    // Full HE does not hide the empty AP rack.
+    ["out tank", tank([0, full[1]]), hudIcon("no_ammo")],
+    ["full truck", truck(truckFull), null],
+    ["low truck", truck(Math.floor(truckFull * LOW_RESERVE)), stateIcon("stock")],
+    ["out truck", truck(0), stateIcon("supply_blocked")],
+  ];
+  for (const [label, unit, icon] of cases) {
+    const { states, byName } = compact(unit);
+    const warnings = states.filter((el) => el.dataset.tone === "warn");
+    if (!icon) {
+      expect(byName, label).toHaveLength(0);
+      expect(warnings, label).toHaveLength(0);
+      continue;
+    }
+    const drawn = (els: Element[]) => els.filter((el) => el.innerHTML.includes(markup(icon)));
+    expect(drawn(byName), `${label} by the name`).toHaveLength(1);
+    expect(drawn(warnings), `${label} row`).toHaveLength(1);
+  }
+});
+
+test("spent countermeasures are not a reserve running out", () => {
+  // Full rounds, but its Trophy, flares and smoke all spent: the tank still
+  // fights, so no warning stands by its name. Each spent charge says so on
+  // its own row.
+  const unit = specimenUnit(TEST_CATALOG, "test_tank", {
+    protection: { charges: 0, cooldown: null },
+    flares: { charges: 0, cooldown: null },
+    smoke: 0,
+  });
+  const { container } = render(
+    <InfoPanel panel={ownPanel(TEST_CATALOG.units, unit, [unit], RULES)} zoom="compressed" />,
+  );
+  expect(container.querySelectorAll(".ro-name .ro-status-icon")).toHaveLength(0);
 });

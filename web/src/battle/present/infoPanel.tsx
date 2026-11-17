@@ -204,16 +204,11 @@ function StateRowView({ row }: { row: StateRow }) {
  *  `zoom` is the workbench's; the battle sets it on the layer round it. */
 export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   const loading = zoom === "compressed" ? loadingProgress(panel) : null;
-  // Every unit-wide state (`byName`), in its rows' order and tone, stands by
-  // the name, after any weapon run dry.
-  const statusIcons = [
-    ...(panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
-      ? [{ path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }]
-      : []),
-    ...panel.states.flatMap((r) =>
-      r.byName ? [{ path: r.icon, title: r.word, negative: r.tone === "warn" }] : [],
-    ),
-  ];
+  // Every unit-wide state (`byName`), a reserve running out among them,
+  // stands by the name in its row's order and tone.
+  const statusIcons = panel.states.flatMap((r) =>
+    r.byName ? [{ path: r.icon, title: r.word, negative: r.tone === "warn" }] : [],
+  );
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">
