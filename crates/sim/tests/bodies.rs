@@ -53,33 +53,12 @@ fn vehicle(side: &str, kind: &str, at: [f64; 2]) -> Value {
 fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
     let r = rules();
     for mover in ["test_jeep", "test_supply", "test_tank"] {
-        for body in [
-            "crate",
-            "fence",
-            "sandbags",
-            "tooth",
-            "light_wreck",
-            "heavy_wreck",
-            "lamp",
-            "bench",
-            "bollard",
-            "bins",
-            "hydrant",
-            "utility_box",
-            "scooter",
-            "planter",
-            "parked_car",
-            "car_wreck",
-            "jersey_barrier",
-            "bus_shelter",
-            "scaffold",
-            "heras_fence",
-            "skip_bin",
-            "pallet_stack",
-            "site_cabin",
-            "road_barrier",
-            "log",
-            "boulder",
+        for weight in [
+            WeightClass::Trivial,
+            WeightClass::Light,
+            WeightClass::Medium,
+            WeightClass::Heavy,
+            WeightClass::Immovable,
         ] {
             // A wall across the map with a 9.6 m gate; the body fills most of it.
             let at = [55.0, 30.0];
@@ -88,18 +67,26 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 "props": [
                     { "kind": "wall", "center": [55, 12.6], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
                     { "kind": "wall", "center": [55, 47.4], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
-                    // A wreck names the unit it was; any test tank's will do.
-                    { "kind": body, "center": at, "yaw": 0, "half_extents": [0.8, 3.5, 0.6],
-                      "wreck_of": (["light_wreck", "heavy_wreck"].contains(&body)).then_some("test_tank") },
+                    { "kind": "crate", "center": at, "yaw": 0, "half_extents": [0.8, 3.5, 0.6] },
                 ],
             })
             .to_string();
-            let setup = common::scenario_with(
+            let mut setup = common::scenario_with(
                 &map,
                 json!([vehicle("blue", mover, [15.0, 30.0])]),
                 json!([]),
                 json!([drive("blue", 0, [125.0, 30.0])]),
             );
+            setup.rules = setup
+                .rules
+                .overridden(
+                    json!({ "props": {
+                "crate": { "body": { "weight_class": weight, "topples": false } }
+            } })
+                    .as_object()
+                    .unwrap(),
+                )
+                .unwrap();
             let mut b = Battle::new(&setup, 1);
             let mut entered = false;
             for _ in 0..(30.0 * r.tick_hz as f64) as u64 {
@@ -108,19 +95,25 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 let prop = b.world().prop(BODY).unwrap().footprint();
                 entered |= hull.separation(&prop).is_some_and(|v| v.length() > 0.05);
             }
-            let weight = r.catalog.props().by_id(body).body.weight_class;
             let shoves = match common::hull(mover).push_class {
-                PushClass::None | PushClass::Light => false,
-                PushClass::Medium => matches!(weight, WeightClass::Light),
-                PushClass::Heavy => matches!(weight, WeightClass::Light | WeightClass::Medium),
+                PushClass::None => false,
+                PushClass::Light => matches!(weight, WeightClass::Trivial),
+                PushClass::Medium => matches!(weight, WeightClass::Trivial | WeightClass::Light),
+                PushClass::Heavy => matches!(
+                    weight,
+                    WeightClass::Trivial | WeightClass::Light | WeightClass::Medium
+                ),
                 PushClass::SuperHeavy => matches!(
                     weight,
-                    WeightClass::Light | WeightClass::Medium | WeightClass::Heavy
+                    WeightClass::Trivial
+                        | WeightClass::Light
+                        | WeightClass::Medium
+                        | WeightClass::Heavy
                 ),
             };
             let moved = (b.world().prop(BODY).unwrap().center - v2(at[0], at[1])).length();
             let passed = b.unit(UnitId(0)).unwrap().position.x > at[0] + 5.0;
-            let case = format!("{mover} against {body}");
+            let case = format!("{mover} against {weight:?}");
             if shoves {
                 assert!(moved > 2.0, "{case}: shoved {moved:.2} m");
                 assert!(passed, "{case}: got through");
@@ -152,7 +145,7 @@ fn a_vehicle_shoves_a_panel_that_only_touches_its_neighbour() {
         &mut rules,
         "props",
         "fence",
-        json!({ "body": { "weight_class": "light" } }),
+        json!({ "body": { "weight_class": "light", "topples": false } }),
     );
     // The line closes a gate in a thin wall, a few degrees off square to the
     // truck, so the slide that clears the hull edges each panel along the
@@ -204,7 +197,7 @@ fn shove_setup(red_at: [f64; 2]) -> ScenarioDefinition {
     .unwrap();
     map["relief"] =
         json!([{ "kind": "ridge", "center": [100, 100], "peak_m": 12, "radius_m": 200 }]);
-    common::scenario_with(
+    let mut setup = common::scenario_with(
         &map.to_string(),
         json!([
             vehicle("blue", "test_supply", [15.0, 30.0]),
@@ -212,7 +205,18 @@ fn shove_setup(red_at: [f64; 2]) -> ScenarioDefinition {
         ]),
         json!([]),
         json!([drive("blue", 0, [110.0, 30.0])]),
-    )
+    );
+    setup.rules = setup
+        .rules
+        .overridden(
+            json!({ "props": {
+        "crate": { "body": { "weight_class": "light", "topples": false } }
+    } })
+            .as_object()
+            .unwrap(),
+        )
+        .unwrap();
+    setup
 }
 
 fn watched_shove(red_at: [f64; 2]) -> (Battle, V2) {
