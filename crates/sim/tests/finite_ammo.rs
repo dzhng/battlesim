@@ -11,6 +11,7 @@ fn a_supply_truck_rearms_a_finite_launcher_until_its_stock_runs_out() {
     // A missile costs the whole of the truck's stock.
     fixture["weapons"]["atgm"]["ammo"] = json!(4);
     fixture["weapons"]["atgm"]["round_cost"] = json!(20);
+    fixture["weapons"]["atgm"]["resupply_rounds_per_s"] = json!(1.0);
     let setup = serde_json::from_value(json!({
         "map": { "size": [500, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture,

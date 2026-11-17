@@ -13,6 +13,14 @@ fn battle(units: Value, seed: u64) -> Battle {
         json!({ "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
     let mut setup = common::scenario_with(&map, units, json!([]), json!([]));
+    // These scenarios test service mechanics independently of balance tuning.
+    for weapon in setup.rules.weapons.values_mut() {
+        if matches!(weapon.ammo, contract::weapons::AmmoCapacity::Rounds(_)) {
+            weapon.resupply_rounds_per_s = Some(1.0);
+        }
+    }
+    setup.rules.service.vehicle_hp_per_s = 2.0;
+    setup.rules.service.soldier_replacement_s = 5.0;
     // Service tests exercise a sustained fight, independently of range tuning.
     common::ground_reach(setup.rules.weapons.get_mut("rifle").unwrap(), 450.0);
     Battle::new(&setup, seed)
@@ -61,6 +69,30 @@ fn stock(b: &Battle) -> u32 {
     own(b, Side::Blue, 0).unwrap().stock.unwrap()
 }
 
+#[test]
+fn finite_ammunition_requires_a_positive_authored_resupply_rate() {
+    let mut rules = common::rules();
+    for rate in [
+        None,
+        Some(0.0),
+        Some(-1.0),
+        Some(f64::NAN),
+        Some(f64::INFINITY),
+    ] {
+        rules.weapons.get_mut("atgm").unwrap().resupply_rounds_per_s = rate;
+        let error = sim::admit(&rules).expect_err("invalid delivery rates must be refused");
+        assert_eq!(error.path, "weapons.atgm.resupply_rounds_per_s");
+    }
+    rules.weapons.get_mut("atgm").unwrap().resupply_rounds_per_s = Some(0.25);
+    sim::admit(&rules).expect("a positive delivery rate is admitted");
+    rules
+        .weapons
+        .get_mut("rifle")
+        .unwrap()
+        .resupply_rounds_per_s = None;
+    sim::admit(&rules).expect("unlimited weapons need no supply rate");
+}
+
 fn holding(kind: &str, x: f64, condition: Value) -> Value {
     json!({ "side": "blue", "kind": kind, "position": [x, 200], "engagement": "return_fire_only", "condition": condition })
 }
@@ -106,7 +138,7 @@ fn rounds_refill_to_capacity_at_their_price_and_rate() {
     );
     let full = stock(&b);
     let cost = crate::common::rules().weapons["atgm"].round_cost.unwrap();
-    let period = (30.0 / service()["ammo_rounds_per_s"].as_f64().unwrap()) as u64;
+    let period = b.rules().tick_hz as u64;
     run(&mut b, deploy_ticks() + period + 2);
     assert_eq!(
         own(&b, Side::Blue, 1).unwrap().mounts[1].ammo,
@@ -125,13 +157,16 @@ fn rounds_refill_to_capacity_at_their_price_and_rate() {
     assert_eq!(at.service, ServiceStatus::Full);
 }
 
-fn concurrent_setup(stock: u32) -> contract::scenario::ScenarioDefinition {
+fn concurrent_setup(stock: u32, rates: [f64; 3]) -> contract::scenario::ScenarioDefinition {
     let mut rules = sim::fixtures::test_rules();
-    rules["service"]["ammo_rounds_per_s"] = json!(2.0);
     rules["service"]["radius_m"] = json!(80.0);
-    for (weapon, cost) in [("tank_ap", 2), ("tank_he", 3), ("hmg", 1)] {
+    for ((weapon, cost), rate) in [("tank_ap", 2), ("tank_he", 3), ("hmg", 1)]
+        .into_iter()
+        .zip(rates)
+    {
         rules["weapons"][weapon]["ammo"] = json!(4);
         rules["weapons"][weapon]["round_cost"] = json!(cost);
+        rules["weapons"][weapon]["resupply_rounds_per_s"] = json!(rate);
     }
     serde_json::from_value(json!({
         "rules": rules,
@@ -156,7 +191,14 @@ fn tank_ammo(b: &Battle) -> Vec<Vec<Option<u32>>> {
 
 #[test]
 fn all_mounts_and_ammunition_kinds_refill_together_at_their_rate_and_price() {
-    let setup = concurrent_setup(100);
+    let mut setup = concurrent_setup(100, [2.0, 1.0, 0.5]);
+    // A second deployed source adds reserves, never another delivery clock.
+    setup.units.push(
+        serde_json::from_value(json!({
+            "side": "blue", "kind": "test_supply", "position": [100, 240], "stock": 100
+        }))
+        .unwrap(),
+    );
     let mut b = Battle::new(&setup, 2);
     let mut digests = Vec::new();
     // Include deployment and partial service progress in replay evidence.
@@ -174,15 +216,28 @@ fn all_mounts_and_ammunition_kinds_refill_together_at_their_rate_and_price() {
         if served_ticks == b.rules().tick_hz / 2 {
             assert_eq!(
                 tank_ammo(&b),
-                vec![vec![Some(2), Some(2)], vec![Some(2)]],
-                "both cannon rounds and the separate HMG replenish together"
+                vec![vec![Some(2), Some(1)], vec![Some(1)]],
+                "the fastest ammunition kind arrives first"
             );
-            assert_eq!(stock(&b), 94, "each delivered round pays its own price");
+            assert_eq!(stock(&b), 98, "only delivered rounds are paid for");
+        }
+        if served_ticks == b.rules().tick_hz {
+            assert_eq!(tank_ammo(&b), vec![vec![Some(3), Some(2)], vec![Some(1)]]);
+            assert_eq!(stock(&b), 93);
+        }
+        if served_ticks == 2 * b.rules().tick_hz {
+            assert_eq!(tank_ammo(&b), vec![vec![Some(4), Some(3)], vec![Some(2)]]);
+            assert_eq!(
+                stock(&b),
+                87,
+                "each kind replenishes concurrently at its own rate"
+            );
         }
     }
     assert!(served_ticks >= b.rules().tick_hz / 2, "service started");
     assert_eq!(tank_ammo(&b), vec![vec![Some(4), Some(4)], vec![Some(4)]]);
     assert_eq!(stock(&b), 82, "only missing rounds are paid for");
+    assert_eq!(b.unit(UnitId(2)).unwrap().stock, Some(100));
     assert_eq!(b.unit(UnitId(1)).unwrap().service, ServiceStatus::Full);
     let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
     for expected in digests {
@@ -193,7 +248,7 @@ fn all_mounts_and_ammunition_kinds_refill_together_at_their_rate_and_price() {
 
 #[test]
 fn scarce_stock_is_paid_in_mount_order_and_each_kind_keeps_its_partial_progress() {
-    let mut setup = concurrent_setup(3);
+    let mut setup = concurrent_setup(3, [2.0; 3]);
     let reserve = serde_json::from_value(json!({
         "side": "blue", "kind": "test_supply", "position": [220, 240], "stock": 100
     }))
@@ -202,12 +257,12 @@ fn scarce_stock_is_paid_in_mount_order_and_each_kind_keeps_its_partial_progress(
     let mut b = Battle::new(&setup, 3);
     let hz = u64::from(b.rules().tick_hz);
     run(&mut b, 6 * hz);
-    // AP pays first. HE cannot pay on that tick, but the cheaper HMG can.
-    assert_eq!(tank_ammo(&b), vec![vec![Some(2), Some(1)], vec![Some(2)]]);
+    // AP pays first, then HE consumes the remainder; the HMG waits.
+    assert_eq!(tank_ammo(&b), vec![vec![Some(2), Some(2)], vec![Some(1)]]);
     assert_eq!(
         stock(&b),
         0,
-        "deliveries are paid whole, without overdrawing"
+        "the final delivery consumes the remainder without overdrawing"
     );
     assert_eq!(b.unit(UnitId(1)).unwrap().service, ServiceStatus::NoStock);
     assert_eq!(
@@ -246,7 +301,7 @@ fn scarce_stock_is_paid_in_mount_order_and_each_kind_keeps_its_partial_progress(
     assert_eq!(
         tank_ammo(&b),
         vec![vec![Some(2), Some(2)], vec![Some(2)]],
-        "HE completes its paused delivery; the other kinds start new ones"
+        "the HMG completes its paused delivery; the other kinds start new ones"
     );
     let period = b.rules().tick_hz / 2;
     run(&mut b, u64::from(period - 2));
@@ -254,9 +309,38 @@ fn scarce_stock_is_paid_in_mount_order_and_each_kind_keeps_its_partial_progress(
     b.step();
     assert_eq!(
         tank_ammo(&b),
-        vec![vec![Some(3), Some(2)], vec![Some(3)]],
-        "AP and HMG keep their own clocks independently of HE"
+        vec![vec![Some(3), Some(3)], vec![Some(2)]],
+        "AP and HE keep their own clocks independently of the HMG"
     );
+}
+
+#[test]
+fn one_supply_point_finishes_one_normal_delivery_and_replays_exactly() {
+    let setup = concurrent_setup(1, [2.0; 3]);
+    let mut b = Battle::new(&setup, 3);
+    let period = b.rules().tick_hz / 2;
+    let mut serving_ticks = 0;
+    let mut digests = Vec::new();
+    for _ in 0..5 * b.rules().tick_hz {
+        b.step();
+        digests.push(b.digest());
+        if b.unit(UnitId(1)).unwrap().service == ServiceStatus::Serving {
+            serving_ticks += 1;
+        }
+        if serving_ticks == period - 1 {
+            assert_eq!(stock(&b), 1, "the remainder waits for normal delivery");
+            assert_eq!(tank_ammo(&b), vec![vec![Some(1), Some(1)], vec![Some(1)]]);
+        }
+    }
+    assert_eq!(serving_ticks, period, "no instant or extra delivery");
+    assert_eq!(tank_ammo(&b), vec![vec![Some(2), Some(1)], vec![Some(1)]]);
+    assert_eq!(stock(&b), 0);
+    assert_eq!(b.unit(UnitId(1)).unwrap().service, ServiceStatus::NoStock);
+    let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
+    for expected in digests {
+        replay.step();
+        assert_eq!(replay.digest(), expected);
+    }
 }
 
 #[test]
@@ -288,7 +372,7 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
     let area = own(&b, Side::Blue, 1).unwrap().area;
     let corpses: Vec<_> = b.observe(Side::Blue).corpses.clone();
     assert_eq!(corpses.len(), 2);
-    let every = service()["soldier_replacement_s"].as_f64().unwrap();
+    let every = b.rules().service.soldier_replacement_s;
     run(&mut b, deploy_ticks() + (every * 30.0) as u64 * 2 + 4);
     let squad = own(&b, Side::Blue, 1).unwrap();
     assert_eq!(squad.members.len(), 8, "back to authored strength");
@@ -330,7 +414,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     ]);
     let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "occupy_building", "units": [1], "building": 0, "gesture": 0 } }]);
     let mut b = Battle::new(&common::scenario_with(&map, units, json!([]), scripts), 4);
-    let every = service()["soldier_replacement_s"].as_f64().unwrap();
+    let every = b.rules().service.soldier_replacement_s;
     let enter = common::game()["garrison"]["enter_exit_s"].as_f64().unwrap();
     run(
         &mut b,
@@ -450,14 +534,15 @@ fn incoming_fire_does_not_stop_service() {
 }
 
 #[test]
-fn shared_stock_is_paid_whole_in_unit_order_and_never_regrows() {
-    // Stock for one ATGM round (20) only; two AT teams both need one.
+fn shared_stock_buys_a_final_round_with_the_remainder_then_stays_empty() {
+    // Enough for one full-price round and a remainder toward the next.
     let cost = crate::common::rules().weapons["atgm"].round_cost.unwrap();
     let mut b = battle(
         json!([
             truck(Some(cost + 3)),
             holding("test_at", 130.0, json!({ "spent": { "atgm": 1 } })),
             holding("test_at", 140.0, json!({ "spent": { "atgm": 1 } })),
+            holding("test_at", 150.0, json!({ "spent": { "atgm": 1 } })),
         ]),
         7,
     );
@@ -467,12 +552,21 @@ fn shared_stock_is_paid_whole_in_unit_order_and_never_regrows() {
         vec![Some(4)],
         "the lower id pays first"
     );
-    let second = own(&b, Side::Blue, 2).unwrap();
-    assert_eq!(second.mounts[1].ammo, vec![Some(3)]);
-    assert_eq!(second.service, ServiceStatus::NoStock);
-    assert_eq!(stock(&b), 3, "never partly paid, never below zero");
+    assert_eq!(
+        own(&b, Side::Blue, 2).unwrap().mounts[1].ammo,
+        vec![Some(4)],
+        "the remainder buys one final complete round"
+    );
+    let third = own(&b, Side::Blue, 3).unwrap();
+    assert_eq!(third.mounts[1].ammo, vec![Some(3)]);
+    assert_eq!(third.service, ServiceStatus::NoStock);
+    assert_eq!(stock(&b), 0, "the final round consumes the remainder");
     run(&mut b, 30 * 30);
-    assert_eq!(stock(&b), 3, "no regeneration");
+    assert_eq!(stock(&b), 0, "no regeneration");
+    assert_eq!(
+        own(&b, Side::Blue, 3).unwrap().mounts[1].ammo,
+        vec![Some(3)]
+    );
 }
 
 #[test]

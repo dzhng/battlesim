@@ -294,7 +294,8 @@ fn test_interceptor(mut targets: serde_json::Value) -> serde_json::Value {
     serde_json::json!({
         "name": "Test AA", "description": "A test row.", "icon": "autocannon", "appearance": "aa_cannon",
         "stationary": false, "speed_mps": 600, "gravity_scale": 0.5,
-        "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
+        "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "resupply_rounds_per_s": 1,
+        "penetration": 65, "partial_from": 0.08,
         "damage": 100, "near_miss_suppression": 0.1,
         "suppression_radius_m": 6, "blast_radius_m": 2, "proximity_fuse_m": 5,
         "structural_damage": 8, "targets": targets
@@ -417,7 +418,8 @@ fn test_guided_interceptor(seeker: bool) -> serde_json::Value {
         "name": "Test SAM", "description": "A test row.", "icon": "aa_missile", "appearance": "sam",
         "stationary": true, "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
-        "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
+        "aim_s": 0.5, "reload_s": 4, "ammo": 6, "resupply_rounds_per_s": 1,
+        "penetration": 300, "partial_from": 0.08,
         "damage": 100, "turn_deg_s": 180, "guidance": "stationary",
         "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
         "blast_radius_m": 3, "proximity_fuse_m": 5, "structural_damage": 20,

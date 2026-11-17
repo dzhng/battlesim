@@ -40,6 +40,7 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     let mut rules = rules();
     rules["weapons"]["test_counted_rifle"] = json!({ "extends": "rifle", "ammo": 200 });
     rules["weapons"]["test_counted_rifle"]["round_cost"] = json!(1);
+    rules["weapons"]["test_counted_rifle"]["resupply_rounds_per_s"] = json!(1.0);
     sim::fixtures::patch_catalog(
         &mut rules,
         "soldiers",

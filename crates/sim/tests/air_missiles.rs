@@ -370,6 +370,8 @@ fn covered_tank_battle(
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
     rules["weapons"]["test_agm"]["round_cost"] = json!(1);
     rules["weapons"]["test_interceptor"]["round_cost"] = json!(1);
+    rules["weapons"]["test_agm"]["resupply_rounds_per_s"] = json!(1.0);
+    rules["weapons"]["test_interceptor"]["resupply_rounds_per_s"] = json!(1.0);
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

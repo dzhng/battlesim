@@ -132,6 +132,7 @@ fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
         def.reload_s = 1.0;
         def.ammo = contract::weapons::AmmoCapacity::Rounds(5);
         def.round_cost = Some(1);
+        def.resupply_rounds_per_s = Some(1.0);
         let mut b = Battle::new(&setup, 5);
         let attack = || Order::Attack {
             units: vec![UnitId(0)],
@@ -264,6 +265,7 @@ fn an_idle_gun_tops_up_its_partial_magazine_without_spending_ammunition() {
     gun.aim_s = 0.1;
     gun.ammo = contract::weapons::AmmoCapacity::Rounds(12);
     gun.round_cost = Some(1);
+    gun.resupply_rounds_per_s = Some(1.0);
     let mut b = Battle::new(&setup, 5);
     let mut commander = Commander::new();
     let attack = || Order::Attack {

@@ -644,7 +644,7 @@ pub enum ServiceStatus {
     Moving,
     /// Being replenished, repaired or reinforced.
     Serving,
-    /// In range and deployed, but no outstanding item can be paid from stock.
+    /// In range and deployed, but every ready supply source is empty.
     NoStock,
     /// Nothing missing.
     Full,

@@ -58,6 +58,10 @@ pub struct WeaponDefinition {
     /// Supply stock consumed to restore one finite round. Children inherit it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub round_cost: Option<u32>,
+    /// Rounds restored per second by supply, independently on each mount.
+    /// Required for finite ammunition; children inherit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resupply_rounds_per_s: Option<f64>,
     pub penetration: f64,
     /// How gently its damage fades as its penetration falls short of the
     /// armour: the share of the armour it must reach to do any damage.
