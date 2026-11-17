@@ -17,8 +17,18 @@ Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
 before slices 06–08. Write each slice's test first. Each slice's "Digest" line
 says which pinned bytes it may move. A slice that moves any other pinned bytes
 has a bug, not a re-bless. Ground battles must stay byte-identical through
-slices 01–04 and 06–09. Before you end a pass, update this section: status,
-the next pickup point, and the TODO below.
+slices 01–04 and 06–09. Two traps from slices 01–03:
+- **The file-size ratchet never lets an over-budget source file grow in any
+  commit.** A split committed first doesn't create room. The commit that
+  needs bytes must also move an equal concept out of that file.
+  `crates/sim/src/battle.rs`, `crates/contract/src/catalog.rs`,
+  `crates/sim/src/skirmish_ai/mod.rs` and `crates/contract/tests/catalog.rs` are
+  all over budget.
+- **After any catalog rule change, run the sim lib tests** (`cargo test -p sim --lib`).
+  Test decks patched in-test are validated too.
+
+Before you end a pass, update this section: status, the next pickup point, and
+the TODO below.
 
 ### TODO
 
