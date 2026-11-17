@@ -147,7 +147,7 @@ export function useBattleSession({
   const commanding = commandingPlayer(players, side, player);
   /** The human the client plays as; null when it watches a battle it has no
    *  seat in (AI against AI), and the result reads neutral. */
-  const viewer = players.find((p) => p.id === commanding && p.controller === "human") ?? null;
+  const viewer = players.find((p) => p.id === commanding) ?? null;
   const sim = useSimSession({
     scenario,
     seed,

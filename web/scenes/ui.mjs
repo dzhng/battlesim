@@ -452,6 +452,25 @@ export async function run(ctx) {
     await contained(ctx, page, shot);
     if (shot.startsWith("report")) await report(ctx, page, shot);
     await ctx.matchBaseline(page, shot);
+    if (shot === "pause-menu") {
+      await page.getByRole("button", { name: "Settings", exact: true }).click();
+      const save = page.getByRole("button", { name: "Save replay", exact: true });
+      const copy = page.getByRole("button", { name: "Copy diagnostics", exact: true });
+      const s = await save.boundingBox();
+      const c = await copy.boundingBox();
+      ctx.check(
+        "battle settings: replay export sits beside diagnostics without overlap",
+        s && c && Math.abs(s.y - c.y) < 1 && s.x >= c.x + c.width,
+        JSON.stringify({ save: s, copy: c }),
+      );
+      await contained(ctx, page, "battle settings");
+      await pointerAway(page);
+      await ctx.matchBaseline(page, "battle-settings");
+      await save.click();
+      await page.getByRole("button", { name: "Replay saved", exact: true }).waitFor();
+      await pointerAway(page);
+      await ctx.matchBaseline(page, "battle-settings-saved");
+    }
   }
 
   // The Armory on its fixed content at full HD: a hull's sheet, its sibling

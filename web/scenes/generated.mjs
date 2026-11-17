@@ -8,6 +8,7 @@
 // `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
 // instead, and reports what clearance costs there. `STARTUP_MAP=mixed:large:1`
 // only starts that map from the menu and reports how long it took.
+import { replayTour } from "./_replayTour.mjs";
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
@@ -608,51 +609,7 @@ export async function run(ctx) {
     JSON.stringify({ stillAfter, rebuilt: rebuiltTown }),
   );
 
-  // The battle saved and watched: exact compiled scenario bytes restore the
-  // map, encounter and rules without regenerating from the request.
-  const saved = await lab(page, () => ({
-    tick: window.__lab.route.tick(),
-    digest: window.__lab.route.digest(),
-  }));
-  const file = await lab(page, () => window.__lab.route.exportReplay());
-  await page.goto(ctx.urlFor({ replay: "saved" }));
-  await playable(page);
-  await lab(page, () => window.__lab.route.pause());
-  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
-  await advance(page, saved.tick - (await lab(page, () => window.__lab.route.tick())));
-  const replayed = await lab(page, () => ({
-    tick: window.__lab.route.tick(),
-    digest: window.__lab.route.digest(),
-  }));
-  const watched = await preparedBattle(page);
-  ctx.check(
-    "a saved battle retains its compiled scenario and reaches the same replay digest",
-    JSON.stringify(file.battle.report.request) === JSON.stringify(generated.request) &&
-      typeof file.battle.scenario === "string" &&
-      watched.generation.map_hash === generated.generation.map_hash &&
-      !!saved.digest &&
-      replayed.tick === saved.tick &&
-      replayed.digest === saved.digest,
-    JSON.stringify({ saved, replayed }),
-  );
-  // The same captured scenario and commands on another engine build are refused.
-  const stale = structuredClone(file);
-  const commands = JSON.parse(stale.replay);
-  commands.engine_build = "another-build";
-  stale.replay = JSON.stringify(commands);
-  await openMenu(page);
-  await page.getByTestId("replay-file").setInputFiles({
-    name: "stale.json",
-    mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(stale)),
-  });
-  await page.getByTestId("error").waitFor();
-  const staleMessage = await page.getByTestId("error").textContent();
-  ctx.check(
-    "a replay saved by another engine build is refused, saying so",
-    /build/.test(staleMessage),
-    staleMessage,
-  );
+  await replayTour(ctx, page, generated, playable);
 
   // A request for no such map says so, and starts no battle. It names both
   // sides' players and factions (a link without them is refused for that

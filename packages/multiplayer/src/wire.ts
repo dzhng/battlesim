@@ -46,6 +46,9 @@ export type PreviewAnswer =
   | { building: BuildingPlacement | null }
   | { dropped: true };
 
+/** Both sides' accepted commands so far, including orders outside the caller's fog. */
+export type ReplayAnswer = { replay: string };
+
 export type BuildIdentity = { sim: string; data: string; wire: string };
 
 export type BattleSetup = {

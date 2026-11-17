@@ -30,6 +30,9 @@ import { FireBlinks } from "@web/battle/present/fireBlink";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
+import { useReplayCamera } from "./useReplayCamera";
+import type { ReplayCameraTrack } from "./replayCamera";
+import { ReplayCameraButton } from "./replayFile";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./viewportRender";
 import { useFeed } from "@web/feed";
@@ -61,6 +64,8 @@ export function BattleView({
   inCommand = true,
   side,
   replay,
+  replayCamera,
+  onSaveReplay,
   scripted,
   camera,
   cameraConfig,
@@ -91,6 +96,11 @@ export function BattleView({
   side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
   replay?: string;
+  replayCamera?: ReplayCameraTrack;
+  onSaveReplay?: (
+    session: BattleSession,
+    camera: ReplayCameraTrack | undefined,
+  ) => Promise<unknown>;
   /** A scripted run: a comparison commander or scenario orders play it, with input off. The benchmark's
    *  pilot also flies the camera and measures every frame; without one the
    *  camera is the player's (watching the script play). */
@@ -152,6 +162,15 @@ export function BattleView({
   });
   const input = !replay && !scripted;
   const { meshes, sim, control, surfaceZ } = session;
+  const cameraReplay = useReplayCamera(
+    session,
+    camera,
+    replayCamera,
+    input && !!onSaveReplay,
+    inCommand,
+  );
+  const exportReplay =
+    sim.client && onSaveReplay ? () => onSaveReplay(session, cameraReplay.track) : undefined;
   const blinks = useMemo(() => new FireBlinks(session.rules.tick_hz), [session.rules.tick_hz]);
   blinksRef.current = blinks;
   const worldFeed = useFeed(meshes);
@@ -248,14 +267,15 @@ export function BattleView({
             session.viewport.onReady(gpu);
             setViewportReady(true);
           }}
-          pilot={scripted?.pilot}
-          onFrame={(project, view, pointer, scale) => {
+          pilot={scripted?.pilot ?? cameraReplay.pilot}
+          onFrame={(project, view, pointer, scale, time) => {
+            cameraReplay.record(time, view);
             session.hear();
             overlay.follow(view, scale);
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
           }}
-          diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
+          diagnostics={{ ...session.probes, ...diagnostics?.(session), exportReplay }}
           quality={quality}
         />
       )}
@@ -298,6 +318,12 @@ export function BattleView({
           </div>
         )}
         <MenuButton onOpen={() => pause.show(true)} />
+        {cameraReplay.pilot && (
+          <ReplayCameraButton
+            following={cameraReplay.following}
+            onToggle={() => cameraReplay.setFollowing(!cameraReplay.following)}
+          />
+        )}
         <ArmyDeck
           state={armyState}
           selected={control.selected}
@@ -347,6 +373,7 @@ export function BattleView({
                 }
           }
           onSettingsApply={() => window.__lab?.rebuild?.()}
+          onSaveReplay={exportReplay}
         >
           {menu?.(session)}
         </PauseMenu>

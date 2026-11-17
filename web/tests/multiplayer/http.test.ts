@@ -163,6 +163,39 @@ test("every response forbids caching and the cross-origin preflight permits the 
   await stream.body!.cancel();
 });
 
+test("a seated browser can export both sides' accepted orders while the battle runs", async () => {
+  const b = await serving();
+  const denied = await b.request("/battles/duel/replay", {}, "f".repeat(32));
+  expect(denied.status).toBe(403);
+  expect(await denied.json()).toEqual({ refused: "not_seated" });
+  for (const who of [blueId, redId]) {
+    const reply = await b.request(
+      "/battles/duel/up",
+      {
+        seq: 1,
+        items: [{ id: 1, order: { kind: "ready" }, queued: false }],
+      },
+      who,
+    );
+    expect(await reply.json()).toMatchObject({ results: [{ ack: { error: null } }] });
+  }
+  const exported = await b.request("/battles/duel/replay", {});
+  expect(exported.status).toBe(200);
+  expect(exported.headers.get("cache-control")).toBe("no-store, no-transform");
+  const { replay } = (await exported.json()) as { replay: string };
+  const accepted = JSON.parse(replay).accepted as [
+    number,
+    { player: string; order: { kind: string } },
+  ][];
+  expect(accepted.map(([, command]) => [command.player, command.order.kind])).toEqual([
+    ["blue-1", "ready"],
+    ["red-1", "ready"],
+  ]);
+  expect(replay).toBe(await b.host.replay());
+  expect(replay).not.toContain(blueId);
+  expect(replay).not.toContain(redId);
+});
+
 test("a retried purchase batch is applied once, and a forged seat cannot buy for the opponent", async () => {
   const b = await serving();
   const { nodeCatalogSet } = await import("../../src/battle/catalog/node");

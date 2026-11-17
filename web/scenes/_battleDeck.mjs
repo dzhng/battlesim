@@ -9,6 +9,7 @@ import { spills } from "./_spills.mjs";
 export async function checkBattleDeck(ctx, page) {
   await ctx.openLab(page, ctx.url);
   await page.getByRole("button", { name: "Review battle deck" }).click();
+  await checkDeckWrapping(ctx, page);
   for (const width of [1600, 1024]) {
     await page.setViewportSize({ width, height: 900 });
     for (const name of [
@@ -210,5 +211,60 @@ export async function checkBattleDeck(ctx, page) {
       heard.y + heard.height < tip.y && tip.x >= 0 && tip.x + tip.width <= width,
     );
     await ctx.matchBaseline(page, `army-${width}-command-tooltip`);
+  }
+}
+
+/** Probe the single-row boundary with both fielded units and queued purchases.
+ *  A second row must appear before any card crosses its panel's inner edges. */
+export async function checkDeckWrapping(ctx, page) {
+  await page.getByRole("button", { name: "Rifle squad", exact: true }).click();
+  const minimumWidth = (await page.locator(".hud-army-deck").boundingBox()).width;
+  await page.getByRole("button", { name: "Queued force", exact: true }).click();
+  for (const width of [1280, 1600, 2048, 2077, 2078, 2160]) {
+    await page.setViewportSize({ width, height: 900 });
+    await pointerAway(page);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    const layout = await page.locator(".hud-army-deck").evaluate((deck) => {
+      const panel = deck.getBoundingClientRect();
+      const style = getComputedStyle(deck);
+      const left = panel.left + parseFloat(style.paddingLeft);
+      const right = panel.right - parseFloat(style.paddingRight);
+      const cards = [...deck.querySelectorAll(".hud-army-card")].map((card) =>
+        card.getBoundingClientRect(),
+      );
+      const count = deck.querySelector('[aria-label="Total units"]');
+      const counter = count.getBoundingClientRect();
+      const controls = deck.querySelector(".hud-purchase-controls").getBoundingClientRect();
+      return {
+        panel: { left: panel.left, right: panel.right, width: panel.width },
+        cards: {
+          left: Math.min(...cards.map((r) => r.left)),
+          right: Math.max(...cards.map((r) => r.right)),
+        },
+        contained: cards.every((card) => card.left >= left && card.right <= right),
+        contentWidth:
+          Math.max(...cards.map((r) => r.right)) -
+          Math.min(...cards.map((r) => r.left)) +
+          parseFloat(style.paddingLeft) +
+          parseFloat(style.paddingRight),
+        countCorrect: Number.parseInt(count.textContent, 10) === cards.length,
+        counterFits:
+          counter.left >= controls.right && counter.right <= right && counter.top >= panel.top,
+        rows: new Set(cards.map((card) => card.top)).size,
+      };
+    });
+    ctx.check(
+      `${width}px queued force: every card stays inside the panel's padding`,
+      layout.contained && layout.panel.left >= 0 && layout.panel.right <= width,
+      JSON.stringify(layout),
+    );
+    ctx.check(
+      `${width}px queued force: panel fits its content and the total clears the purchase controls`,
+      layout.panel.width <= Math.max(minimumWidth, layout.contentWidth) + 1 &&
+        layout.countCorrect &&
+        layout.counterFits,
+      JSON.stringify(layout),
+    );
+    await ctx.matchBaseline(page, `army-${width}-queued-force`);
   }
 }

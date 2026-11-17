@@ -25,6 +25,9 @@ import { gameCamera } from "../gameCamera";
 import { resolveLighting } from "../lobby/lighting";
 import { setMatchLighting } from "../gameLight";
 import { usePageVisitActive } from "../navigation";
+import { onlineRequest } from "../online/requests";
+import type { ReplayAnswer } from "@packages/multiplayer/src/wire";
+import { saveReplay } from "../replayFile";
 
 function Cover({
   stage,
@@ -162,6 +165,27 @@ function PreparedOnlineBattle({
       prepared={world.session}
       side={ticket.side}
       player={ticket.player}
+      onSaveReplay={async ({ sim }, camera) => {
+        const { replay } = await onlineRequest<ReplayAnswer>(
+          ticket.address,
+          `/battles/${encodeURIComponent(ticket.battle)}/replay`,
+          {},
+          AbortSignal.timeout(10_000),
+        );
+        if (!active()) return;
+        await saveReplay(
+          {
+            battle: world.battle,
+            replay,
+            camera,
+            light_preset: resolveLighting(
+              ticket.setup.lighting,
+              String(request.map_source.request.seed),
+            ),
+          },
+          `battle-online-${ticket.battle}-tick${sim.latest.current?.tick ?? 0}.json`,
+        );
+      }}
       camera={view.camera}
       cameraConfig={view.config}
       cover={cover}

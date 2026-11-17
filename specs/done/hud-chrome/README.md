@@ -20,8 +20,11 @@ applies to capable units and remains visible but disabled when none can deploy.
 Capability fractions add arithmetic where familiar behavior already explains the
 action, so the controls omit them.
 
-Large armies keep their vertical card size and wrap into balanced rows that use
-the full viewport; the deck never becomes a horizontal scroller. Pending
+Large armies keep their vertical card size and wrap into balanced rows within
+the viewport; the deck never becomes a horizontal scroller. Its frame fits the
+cards, with enough minimum width for the controls when the army is small, so
+unused chrome does not take battlefield space. The total includes queued
+reinforcements as well as fielded units. Pending
 reinforcements reuse the same cards in a dimmed, non-interactive state, with
 their deployment state available on hover. The battle HUD is pointer-driven:
 card details and command names show on hover, and nothing in it is built

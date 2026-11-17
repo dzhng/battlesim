@@ -1,7 +1,7 @@
 // The diagnostics setting and the report a player copies to report a
 // problem: shown in the main menu's settings and the battle's pause menu alike,
 // and the copy on every failure's plate.
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { diagnostics, diagnosticsReport } from "@web/diagnostics";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 
@@ -25,7 +25,7 @@ export function CopyDiagnostics({ className }: { className: string }) {
   );
 }
 
-export function DiagnosticsControls() {
+export function DiagnosticsControls({ children }: { children?: ReactNode }) {
   const enabled = useSyncExternalStore(diagnostics.subscribe, diagnostics.enabled);
   return (
     <div className="sound-controls diagnostics-controls" data-testid="diagnostics-controls">
@@ -38,6 +38,7 @@ export function DiagnosticsControls() {
         Diagnostics
       </label>
       <CopyDiagnostics className="hud-menu-item" />
+      {children}
     </div>
   );
 }

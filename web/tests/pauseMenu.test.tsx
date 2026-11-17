@@ -10,6 +10,36 @@ import type { Order } from "../src/battle/sim/protocol";
 import type { SimClient } from "../src/battle/sim/client";
 import { WithTestCatalog } from "./catalog";
 
+test("settings saves the battle once while pending and reports a failed export", async () => {
+  let finish!: () => void;
+  let saves = 0;
+  const view = render(
+    <PauseMenu
+      onClose={() => {}}
+      onSaveReplay={() => {
+        saves++;
+        if (saves === 1)
+          return new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+        return Promise.reject(new Error("worker stopped"));
+      }}
+    />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Settings" }));
+  fireEvent.click(view.getByRole("button", { name: "Save replay" }));
+  const pending = view.getByRole("button", { name: "Saving replay…" }) as HTMLButtonElement;
+  expect(pending.disabled).toBe(true);
+  fireEvent.click(pending);
+  expect(saves).toBe(1);
+  await act(async () => finish());
+  fireEvent.click(view.getByRole("button", { name: "Replay saved" }));
+  await act(async () => {});
+  expect(view.getByRole("button", { name: "Save failed — retry" })).toBeTruthy();
+  expect(saves).toBe(2);
+  view.unmount();
+});
+
 test("leaving for the main menu asks first, and staying keeps the battle", async () => {
   const view = render(<PauseMenu onClose={() => {}} />);
   // The first press only asks; the menu's other items step aside.

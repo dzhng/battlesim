@@ -106,6 +106,11 @@ Disconnects use presence's one grace; Deploy starts that grace again for a page
 about to open its first battle stream. The last active human or reservation out
 ends the game, even if an AI still holds an absent commander's seat.
 
+[Replay exports](../../packages/multiplayer/wire.md#a-battle-servers-endpoints)
+give a seated browser the full command history while its battle server is live.
+They include both sides' orders; the ordinary battle stream still carries only
+the caller's side's knowledge. Camera history stays with the recording browser.
+
 The referee view is server accounting, read directly from battle state. It is
 separate from either side's fog-limited publication. Administrative seat events
 and this view are available only to the lobby on the authenticated control
