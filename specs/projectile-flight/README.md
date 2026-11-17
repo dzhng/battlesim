@@ -61,3 +61,10 @@ removal and incoming warnings. All 201 sim unit tests and 41 shout tests pass;
 independent review found no actionable defects. Integrate the delegated flight
 pass next, then complete combined checks and visual evidence. The source exploration map
 is in throwaway/projectile-flight-map.md in the initiating checkout.
+
+Matched baseline captures are ready in throwaway/projectile-visual/before at
+1920×1080, low graphics, ticks 90/300/600, with wide and strategic reference
+framings. The frozen pre-change game WebAssembly is retained separately. The
+existing air-survivability scene passes; its baseline loses the helicopter at
+tick 845 and spends the first flare at tick 61. Rebuild WebAssembly only after
+preserving these inputs, then run the same scene for the candidate.

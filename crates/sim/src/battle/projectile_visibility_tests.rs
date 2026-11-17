@@ -36,7 +36,7 @@ fn airborne_round(
     let id = battle.projectiles.launch(flight::Launch {
         origin: v3(500.0, 200.0, height),
         carrier: V3::default(),
-        velocity: v3(60.0, 0.0, -20.0),
+        velocity: v3(if point.is_some() { -60.0 } else { 60.0 }, 0.0, -20.0),
         gravity_scale: 0.0,
         lifetime_s: 10.0,
         suppression_radius_m: 0.0,
