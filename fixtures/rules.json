@@ -312,7 +312,7 @@
       "extends": "tank_ap",
       "name": "AP Shell",
       "damage": 45,
-      "penetration": 250,
+      "penetration": 300,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 700, "scatter_mrad": 3.43 } }
     },
     "ground_tank_he": {
@@ -327,7 +327,7 @@
       "extends": "tank_ap",
       "name": "AP Shell",
       "damage": 50,
-      "penetration": 300,
+      "penetration": 325,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 750, "scatter_mrad": 3.43 } }
     },
     "advanced_tank_he": {
