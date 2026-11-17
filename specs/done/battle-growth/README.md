@@ -130,10 +130,13 @@ the next: a known gap.
 - The [`battle-growth`](../../../web/scenes/battle-growth.mjs) scene plays a
   real skirmish to first contact and asserts the same counts against the art
   it saw arrive. Its long-frame check is a loose tripwire, not the gate: a
-  timer moves with the machine, a count does not.
-- The [`stand-in`](../../../web/scenes/stand-in.mjs) scene holds the art's
-  network responses, checks the blocks and attacks them, then releases the
-  responses and checks the models take their places.
+  timer moves with the machine, a count does not. It holds that art's network
+  responses first, checks the new enemy's blocks and attacks them, then
+  releases the responses and checks the models take their places. (A separate
+  `stand-in` scene did this until it was folded in: it needed a vehicle and a
+  late-bought squad in sight at once, which every battle retune reshuffled,
+  and [`stand_in.rs`](../../../crates/presentation/tests/stand_in.rs) already
+  covers every body type's blocks.)
 
 ## What it measured
 
@@ -263,8 +266,8 @@ with four ways to draw a unit whose art is still loading, and picked the
 stand-in that swaps to the model. The block itself has no reference: it is
 the least a unit can be and still be there.
 
-[assets/stand-in](assets/stand-in/) holds the final look from the `stand-in`
-scene: a vehicle and a squad as blocks (`*-before.png`) and as their models
+[assets/stand-in](assets/stand-in/) holds the final look from the former
+`stand-in` scene: a vehicle and a squad as blocks (`*-before.png`) and as their models
 once the art commits (`*-after.png`). The player saw the grey blocks on
 2026-11-15 and said they looked good (in conversation; the slice log does not
 record it). No scene baseline was blessed for the block.
