@@ -100,7 +100,13 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
   },
   "air-survivability": {
     title: "Survivability",
-    variants: { flares: { label: "Flares or none", source: { encounter: "survivability" } } },
+    variants: {
+      flares: { label: "Flares or none", source: { encounter: "survivability" } },
+      visibility: {
+        label: "Air fire over unseen ground",
+        source: { encounter: "projectile-visibility" },
+      },
+    },
   },
   "air-roster": {
     title: "Air roster",

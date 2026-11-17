@@ -11,8 +11,8 @@
 // moment happens (the F-16 spends a flare, the Apache is shot down) and the
 // shot shows the missile and flare tracks together.
 import { advance, gpuWarnings, lab, obs, openBattle } from "./_lab.mjs";
-import { own, shoot } from "./_air.mjs";
-import { unitType } from "./_units.mjs";
+import { own, shoot, visibleCells } from "./_air.mjs";
+import { rules, unitType } from "./_units.mjs";
 
 const HELI = "ah_64e_guardian";
 const JET = "f_16c_block_50";
@@ -66,4 +66,64 @@ export async function run(ctx) {
   );
   await shoot(ctx, page, "survivability");
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
+  await page.close();
+  await unseenGroundBurst(ctx);
+}
+
+async function unseenGroundBurst(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "visibility");
+  const page = await openBattle(ctx, { url: url.href, viewport: { width: 1920, height: 1080 } });
+  const warnings = gpuWarnings(page);
+  const bombs = new Set(
+    Object.entries(rules.weapons)
+      .filter(([, w]) => w.delivery === "unpowered")
+      .map(([id]) => id),
+  );
+  let flightSeen = false;
+  let fog = 0;
+  let impact = null;
+  for (let t = 0; t < 2400; t++) {
+    await advance(page, 1);
+    const o = await obs(page);
+    fog = Math.max(fog, visibleCells(o));
+    flightSeen ||= o.projectiles.some((p) => !p.own && bombs.has(p.kind));
+    const burst = o.blasts.find((b) => bombs.has(b.kind));
+    if (burst) {
+      impact = { tick: o.tick, burst };
+      break;
+    }
+  }
+  ctx.check(
+    "air sight sees an enemy bomb and its ground burst",
+    flightSeen && impact !== null,
+    JSON.stringify({ flightSeen, impact }),
+  );
+  ctx.check("seeing the bomb and burst grants no ground vision", fog === 0, `${fog} cells`);
+  await ctx.writeEvidence("air-ground-burst.json", { flightSeen, impact, fog });
+  if (impact) {
+    await advance(page, 4);
+    await shoot(ctx, page, "air-ground-burst-wide");
+    await lab(
+      page,
+      (point) =>
+        window.__lab.setCamera({
+          ...window.__lab.camera(),
+          target: point,
+          distance: 1300,
+          pitch: 0.9076,
+          yaw: 3.752,
+        }),
+      impact.burst.point,
+    );
+    await shoot(ctx, page, "air-ground-burst-reference-zoom");
+    await lab(page, () => window.__lab.setCamera({ ...window.__lab.camera(), distance: 350 }));
+    await shoot(ctx, page, "air-ground-burst-close");
+  }
+  ctx.check(
+    "air-ground burst has no GPU validation warnings",
+    warnings.length === 0,
+    warnings.join("\n"),
+  );
+  await page.close();
 }

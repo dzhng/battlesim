@@ -210,7 +210,7 @@ impl Projectile {
     /// Whether this attempt can still track its commanded path from the
     /// missile's own velocity. A loft follows its planned climb/dive aim.
     /// No round turns back; a seeker may author a narrower full-angle cone.
-    pub fn tracks(&self, point: V3, fov_deg: Option<f64>) -> bool {
+    pub(crate) fn tracks(&self, point: V3, fov_deg: Option<f64>) -> bool {
         let Some(guidance) = self.guidance else {
             return false;
         };
