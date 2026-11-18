@@ -62,8 +62,8 @@ def spec(variant):
         stab=[(tail + 1.0, 0.25, 1.72, 1.1, 0.12), (tail + 0.8, 2.19, 1.72, 0.9, 0.08)],
         fins=[dict(root_x=tail + 1.3, root_z=1.95, height=1.7 if not z20 else 1.8, root_chord=1.6, tip_chord=1.05,
                    sweep_m=0.8, thick=0.16)],
-        gear=[dict(name="main_L", x=nose - 4.1, y=1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17, strut_material="steel"),
-              dict(name="main_R", x=nose - 4.1, y=-1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17, strut_material="steel"),
+        gear=[dict(name="main_L", x=nose - 4.1, y=1.38, top=0.95, radius=0.46, width=0.24, load_arm=True, strut_radius=0.18, strut_material="paint"),
+              dict(name="main_R", x=nose - 4.1, y=-1.38, top=0.95, radius=0.46, width=0.24, load_arm=True, strut_radius=0.18, strut_material="paint"),
               dict(name="tail", x=tail + 1.5, y=0.0, top=1.5, radius=0.2, width=0.12)],
     )
 
