@@ -7,6 +7,7 @@ import { catalogSet } from "@web/battle/catalog/sets";
 import {
   cardPurchasable,
   filterCards,
+  shopOrder,
   UNIT_GROUPS,
   unitGroup,
   type BuyFacts,
@@ -123,4 +124,48 @@ test("a type lands in the group that claims its role, and the rest in its catego
       inCategory(group.category).find((g) => g.roles === null) ?? inCategory(group.category)[0];
     expect(unitGroup(card, { roles: ["unclaimed"] })).toBe(rest.id);
   }
+});
+
+test("ground movers precede aircraft in the same shop tab regardless of family or price", () => {
+  const flying = card("first", "first-family", "Air supplier", "Base", 50);
+  const driving = card("second", "second-family", "Ground supplier", "Base", 150);
+  for (const c of [flying, driving]) c.roster.category = "sup";
+  const typeOf = (c: UnitCard) =>
+    c === flying
+      ? {
+          roles: ["logistics"],
+          mobility: {
+            air: { cruise_kmh: 200, turn_deg_s: 60, climb_mps: 10, flight: "rotor" as const },
+          },
+        }
+      : {
+          roles: ["logistics"],
+          mobility: {
+            wheeled: {
+              offroad_kmh: 40,
+              road_kmh: 70,
+              turn_deg_s: 60,
+              turning_radius_m: 8,
+              reverse_speed_factor: 0.5,
+            },
+          },
+        };
+  expect(shopOrder([flying, driving], typeOf)).toEqual([driving, flying]);
+  expect(shopOrder([driving, flying], typeOf)).toEqual([driving, flying]);
+});
+
+test("planned cards keep their position when a tab has only aircraft", () => {
+  const flying = card("enabled", "first-family", "Airframe", "A", 150);
+  const planned = card("planned", "second-family", "Airframe", "B", 50, "Planned");
+  for (const c of [flying, planned]) c.roster.category = "air";
+  expect(
+    shopOrder([flying, planned], (c) =>
+      c === planned
+        ? null
+        : {
+            roles: [],
+            mobility: { air: { cruise_kmh: 200, turn_deg_s: 60, climb_mps: 10, flight: "rotor" } },
+          },
+    ),
+  ).toEqual([flying, planned]);
 });

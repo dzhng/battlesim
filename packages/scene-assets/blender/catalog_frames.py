@@ -27,12 +27,18 @@ def _catalogs(repo):
 
 def _variant(appearance_id, appearance, units):
     drawn_by = [u for u in units if u.get("appearance") == appearance_id]
-    if len(drawn_by) != 1:
-        raise LookupError(
-            f"{appearance_id}: drawn by {len(drawn_by)} unit types in fixtures/catalog.json, "
-            "need exactly one to take its frame from"
-        )
-    unit = drawn_by[0]
+    if not drawn_by:
+        raise LookupError(f"{appearance_id}: no unit type draws it in fixtures/catalog.json")
+    # Keep the appearance's original export identity (paint schemes use it),
+    # independent of the order in which its new gameplay variants resolve.
+    unit = next((u for u in drawn_by if u["id"] == appearance_id), drawn_by[0])
+    for other in drawn_by:
+        for field, value in (("hull", lambda u: u["body"]["hull"]),
+                             ("mounts", lambda u: u["mounts"])):
+            if value(other) != value(unit):
+                raise LookupError(
+                    f"{appearance_id}: {unit['id']} and {other['id']} disagree on {field}"
+                )
     hull = unit["body"]["hull"]
     roles = appearance.get("mounts", {})
     mounts = [

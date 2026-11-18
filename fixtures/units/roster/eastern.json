@@ -1192,10 +1192,9 @@
       "concealment": 2.8,
       "appearance": "eastern_mi_28_havoc_mi_28nm"
     },
-    "eastern_mi_8_hip_mi_8amtsh": {
+    "eastern_mi_8_hip_mi_8amtsh_airframe": {
       "name": "Mi-8AMTSh",
       "description": "Mi-8AMTSh",
-      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "eastern",
       "family": "mi_8_hip",
       "roles": [
@@ -1267,7 +1266,48 @@
         }
       ],
       "concealment": 2.8,
-      "appearance": "eastern_mi_8_hip_mi_8amtsh"
+      "appearance": "eastern_mi_8_hip_mi_8amtsh",
+      "abstract": true
+    },
+    "eastern_mi_8_hip_mi_8amtsh": {
+      "extends": "eastern_mi_8_hip_mi_8amtsh_airframe",
+      "capabilities": {
+        "carriage": {
+          "seats": 16
+        }
+      }
+    },
+    "eastern_mi_8_hip_supply": {
+      "extends": "eastern_mi_8_hip_mi_8amtsh_airframe",
+      "name": "Mi-8AMTSh Supply",
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "cost": 150,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Mi-8AMTSh Supply",
+        "family_name": "Mi-8 Hip"
+      },
+      "roles": [
+        "logistics"
+      ],
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 1,
+          "drop_seconds": 2
+        },
+        "supply": {
+          "stock": 500
+        }
+      },
+      "mobility": {
+        "air": {
+          "rotor_radius_m": 10.997
+        }
+      }
     },
     "eastern_mig_29_fulcrum_mig_29smt": {
       "name": "MiG-29SMT",

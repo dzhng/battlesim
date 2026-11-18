@@ -98,3 +98,15 @@ against the shipped code at closeout (slice 11).
 | The end-to-end battle test (`battle/airlift_tests.rs`, under `battle/tests.rs`) stages the damaged group by placing units inside the battle. It asserts the bought card doesn't drive, the far-side bearing, the group recovering, and the return to the post. | Acceptable; a crate-internal test. |
 | `skirmish_ai/mod.rs` gave up its doctrine and recon concepts to `doctrine.rs` and `recon.rs` for room. Codex had also shortened `battle.rs`'s module doc to pass the ratchet; the doc is restored and the test moved instead. | Sound. |
 | A card icon for `test_supply_heli` lets the lab's deck draw it. | Sound; test art. |
+
+## Slice 10
+
+| Choice | Verdict |
+|---|---|
+| Ids: `us_ch_47_chinook_supply`, `europe_ch_47_chinook_supply`, `eastern_mi_8_hip_supply`. Each extends `<transport id>_airframe`, an abstract parent that holds everything but carriage; the transports extend the same parent. All 139 existing resolved unit rows are byte-identical in `fixtures/catalog.json`. | Sound (P14). |
+| Rotor radii come from the model build scripts' rotor parameters plus hull-centring offsets: 14.947 m for the Chinooks (the whole tandem) and 10.997 m for the Mi-8. | Sound; authored data, re-measure if the models change. |
+| Voice admission (validator, sound workbench, generator CLI) reads the resolved `fixtures/catalog.json`, not raw roster rows, so abstract parents are skipped and inherited membership counts. | Sound; one owner of resolution. |
+| `shopOrder(cards, typeOf)`: within a tab, ground movers sort before aircraft. Only LOG mixes the two; the truck stays first. | Sound (P13). |
+| The model exporter accepts several unit types drawing one appearance when hull and mounts agree; a Python test covers it. Card icons are rendered by the asset CLI from the baked models. | Sound (P15). |
+| Re-recorded: the catalog; five publication records and `scenario-overrides` (layouts and type indices); both capture recordings and the Paris manifest (layouts list three more ids; samples unchanged). Removing only the supply rows restored the old records. No corpus fixture changed: the low hover rise doesn't move any recorded skirmish. | Sound; named. |
+| New baselines: the LOG picker, the supply hover card, and the Armory sheet for each faction. Old baselines were restored byte for byte. | Sound. |

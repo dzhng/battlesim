@@ -1,4 +1,5 @@
 """Roster exporters take each variant's physical frame from the resolved catalogs."""
+import copy
 import json
 import tempfile
 import unittest
@@ -65,6 +66,33 @@ class CatalogFramesTest(unittest.TestCase):
             dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.5], muzzle_m=[5.0, 0.0, 0.4]),
             dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.2, 0.5, 2.3], muzzle_m=[1.4, 0.0, 0.3]),
         ])
+
+    def test_equal_airframes_share_an_appearance_and_keep_its_export_identity(self):
+        self.units[0]["appearance"] = "tank_2"
+        self.appearances["tank_2"] = self.appearances.pop("look_2")
+        shared = copy.deepcopy(self.units[0])
+        shared.update(id="supply", name="Supply", roster=dict(variant="Supply"))
+        self.units.insert(0, shared)
+        self.write()
+        variant = roster_variant("tank_2", repo=self.repo)
+        self.assertEqual(variant["id"], "tank_2")
+        self.assertEqual(variant["frame"]["half_extents_m"], [4.0, 1.8, 1.2])
+        self.assertEqual([m["name"] for m in variant["frame"]["mounts"]], ["cannon", "HMG"])
+
+    def test_shared_appearance_refuses_disagreeing_hulls_and_mounts(self):
+        for field in ("hull", "mounts"):
+            with self.subTest(field=field):
+                shared = copy.deepcopy(self.units[0])
+                shared["id"] = "supply"
+                if field == "hull":
+                    shared["body"]["hull"]["half_extents_m"][0] += 1
+                else:
+                    shared["mounts"][0]["pivot_m"][0] += 1
+                self.units.append(shared)
+                self.write()
+                with self.assertRaisesRegex(LookupError, f"look_2:.*tank_2.*supply.*{field}"):
+                    roster_variant("look_2", repo=self.repo)
+                self.units.pop()
 
     def test_a_family_is_every_appearance_in_its_source_folder(self):
         del self.appearances["unbound"]

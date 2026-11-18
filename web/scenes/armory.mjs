@@ -16,6 +16,7 @@
 // garbage collector to find.
 import { mkdir, writeFile } from "node:fs/promises";
 import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
+import roster from "../../fixtures/catalog.json" with { type: "json" };
 import presentation from "../../fixtures/presentation.json" with { type: "json" };
 import { decode, writeCrop } from "./_png.mjs";
 
@@ -189,6 +190,18 @@ export async function run(ctx) {
     });
     await page.waitForTimeout(500);
     await page.screenshot({ path: ctx.evidencePath(`armory-1920-${group.toLowerCase()}.png`) });
+  }
+
+  // Each landing supplier's actual card and reused airframe, through the
+  // player's address. The sheet is static; the full stage stays review evidence.
+  for (const kind of roster.units.filter((u) => u.mobility.air && u.capabilities.deploy)) {
+    await openMenu(page, `${origin}${armory}?unit=${kind.id}`);
+    await page.waitForFunction((k) => window.__armory?.shown()?.kind === k, kind.id, {
+      timeout: 120_000,
+    });
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: ctx.evidencePath(`supply-${kind.faction}.png`) });
+    await ctx.matchBaseline(page.locator(".armory-sheet"), `supply-${kind.faction}`);
   }
 
   // Escape leaves for the menu, on the Armory's tile, and the stage's loops

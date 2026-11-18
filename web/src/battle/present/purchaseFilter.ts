@@ -2,7 +2,12 @@
  *  by and the order cards stand in, matching and the Enter choice, what can
  *  be bought (a card, or a squad with its carrier, and what the pair costs),
  *  and the carriers that can take a squad. */
-import type { UnitCard, UnitCategory, UnitType } from "@packages/scene-assets/src/units";
+import {
+  airborne,
+  type UnitCard,
+  type UnitCategory,
+  type UnitType,
+} from "@packages/scene-assets/src/units";
 
 /** A browsing group: one category's cards, narrowed by role. */
 export type UnitGroup = "rec" | "inf" | "mbt" | "ifv_apc" | "arty" | "aa" | "log" | "hel" | "air";
@@ -38,20 +43,40 @@ export function unitGroup(card: UnitCard, unit: Pick<UnitType, "roles"> | null):
   return (held || own[0]).id;
 }
 
-/** `cards` in shop order: siblings together, each family where its first
- *  card stands, then cheapest first within it (catalog order breaks ties). */
-export function shopOrder(cards: readonly UnitCard[]): UnitCard[] {
+/** Siblings together, each family where its first card stands, cheapest
+ *  first within it (catalog order breaks ties). Within each tab, ground
+ *  movers precede aircraft. Planned cards retain their positions. */
+export function shopOrder(
+  cards: readonly UnitCard[],
+  typeOf: (card: UnitCard) => Pick<UnitType, "mobility" | "roles"> | null,
+): UnitCard[] {
   const family = new Map<string, number>();
   for (const card of cards) if (!family.has(card.family)) family.set(card.family, family.size);
-  return cards
-    .map((card, at) => ({ card, at }))
+  const ordered = cards
+    .map((card, at) => ({ card, at, type: typeOf(card) }))
     .sort(
       (a, b) =>
         family.get(a.card.family)! - family.get(b.card.family)! ||
         a.card.cost - b.card.cost ||
         a.at - b.at,
-    )
-    .map(({ card }) => card);
+    );
+  const tabs = new Map<UnitGroup, number[]>();
+  ordered.forEach(({ card, type }, at) => {
+    if (type === null) return;
+    const group = unitGroup(card, type);
+    const positions = tabs.get(group) ?? [];
+    positions.push(at);
+    tabs.set(group, positions);
+  });
+  for (const positions of tabs.values()) {
+    const movers = positions
+      .map((at) => ordered[at])
+      .sort((a, b) => Number(airborne(a.type!)) - Number(airborne(b.type!)));
+    positions.forEach((at, i) => {
+      ordered[at] = movers[i];
+    });
+  }
+  return ordered.map(({ card }) => card);
 }
 
 /** What the battle observes about buying right now. */

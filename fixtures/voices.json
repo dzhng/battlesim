@@ -6472,7 +6472,10 @@
     "us_f_a_18_super_hornet_f_a_18e": "us_fighter_pilot",
     "us_nasams_medium": "us_air_defense_crew",
     "us_patriot_long": "us_air_defense_crew",
-    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": "us_air_defense_crew"
+    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": "us_air_defense_crew",
+    "us_ch_47_chinook_supply": "us_transport_helicopter_pilot",
+    "europe_ch_47_chinook_supply": "de_transport_helicopter_pilot",
+    "eastern_mi_8_hip_supply": "ru_transport_helicopter_pilot"
   },
   "retakes": {
     "us_tank_crew/lead/selected/steady/1": 1,

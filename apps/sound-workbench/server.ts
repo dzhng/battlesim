@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
-import { validateVoiceCatalog } from "../../packages/battle-audio/src/voices/voiceCatalog";
+import {
+  validateVoiceCatalog,
+  type VoiceUnit,
+} from "../../packages/battle-audio/src/voices/voiceCatalog";
 import type { AudioMix } from "../../packages/battle-audio/src/audioMix";
 import type { Draft, Review, Save, Snapshot } from "./src/protocol";
 import { WorkbenchError, equal, hash, jsonRoutes, object } from "./http";
@@ -304,11 +307,8 @@ export function soundWorkbenchPlugin(root: string): Plugin {
   };
 }
 
-/** Every roster row, so a voice edit is refused when a playable unit loses its set. */
-async function rosterRows(root: string): Promise<Record<string, unknown>> {
-  const folder = join(root, "fixtures/units/roster");
-  const rows = {};
-  for (const name of (await readdir(folder)).filter((file) => file.endsWith(".json")).sort())
-    Object.assign(rows, JSON.parse(await readFile(join(folder, name), "utf8")).units);
-  return rows;
+/** Resolved playable types: inherited memberships count, abstract parents do not. */
+async function rosterRows(root: string): Promise<VoiceUnit[]> {
+  return JSON.parse(await readFile(join(root, "fixtures/catalog.json"), "utf8"))
+    .units as VoiceUnit[];
 }

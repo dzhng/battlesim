@@ -693,10 +693,9 @@
         "on": "cannon"
       }
     },
-    "europe_ch_47_chinook_hc6": {
+    "europe_ch_47_chinook_hc6_airframe": {
       "name": "Chinook HC6",
       "description": "HC6",
-      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "europe",
       "family": "ch_47_chinook",
       "roles": [
@@ -768,7 +767,48 @@
         }
       ],
       "concealment": 2.8,
-      "appearance": "europe_ch_47_chinook_hc6"
+      "appearance": "europe_ch_47_chinook_hc6",
+      "abstract": true
+    },
+    "europe_ch_47_chinook_hc6": {
+      "extends": "europe_ch_47_chinook_hc6_airframe",
+      "capabilities": {
+        "carriage": {
+          "seats": 16
+        }
+      }
+    },
+    "europe_ch_47_chinook_supply": {
+      "extends": "europe_ch_47_chinook_hc6_airframe",
+      "name": "Chinook HC6 Supply",
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "cost": 150,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "HC6 Supply",
+        "family_name": "CH-47 Chinook"
+      },
+      "roles": [
+        "logistics"
+      ],
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 1,
+          "drop_seconds": 2
+        },
+        "supply": {
+          "stock": 500
+        }
+      },
+      "mobility": {
+        "air": {
+          "rotor_radius_m": 14.947
+        }
+      }
     },
     "europe_challenger_challenger_2_tes": {
       "concealment": 2.8,

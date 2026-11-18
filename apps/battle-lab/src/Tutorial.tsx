@@ -22,7 +22,7 @@ const GROUP_WORDS: Record<UnitGroup, string | null> = {
   ifv_apc: "fighting vehicles and carriers",
   arty: "artillery",
   aa: "air defence",
-  log: "supply trucks",
+  log: "supply trucks and helicopters",
   hel: "helicopters",
   air: null,
 };
@@ -150,7 +150,8 @@ export function Tutorial() {
             refunding units brings it back up.
           </li>
           <li>
-            Destroying an enemy unit pays you a share of what it cost (more for a supply truck).
+            Destroying an enemy unit pays you a share of what it cost (more for a supply truck or
+            helicopter).
           </li>
           <li>
             A unit you no longer need can be sent home with <strong>Refund · Return to base</strong>{" "}
@@ -416,9 +417,10 @@ export function Tutorial() {
             few seconds after the fire stops. Suppress a position before you assault it.
           </li>
           <li>
-            <strong>Supply:</strong> a deployed supply truck refills ammunition and smoke, repairs
-            vehicles and replaces fallen soldiers for friendly units that stop nearby, even while
-            fighting. Its stock does not refill, so a truck that runs dry is best refunded.
+            <strong>Supply:</strong> a deployed supply truck or helicopter refills ammunition and
+            smoke, repairs vehicles and replaces fallen soldiers for friendly units that stop
+            nearby, even while fighting. Its stock does not refill, so a supplier that runs dry is
+            best refunded.
           </li>
           <li>
             Turn your tanks&apos; fronts to the threat: reverse out of trouble rather than turning
@@ -512,7 +514,7 @@ export function Tutorial() {
             <strong>Capturing:</strong> move reconnaissance, infantry or fighting vehicles into an
             objective&apos;s ring (a squad counts once any soldier is inside). With only your side
             there, it is yours after 20 seconds; leave early and the count starts again. Supply
-            trucks cannot capture.
+            trucks and helicopters cannot capture.
           </li>
           <li>
             <strong>Contesting:</strong> with both sides inside a ring it is{" "}

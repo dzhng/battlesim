@@ -38,7 +38,10 @@ export interface ArmoryRoster {
  *  shop places it. */
 export function armoryRoster(catalog: SessionCatalog, cards: readonly UnitCard[]): ArmoryRoster {
   const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
-  return { cards: shopOrder(cards), groupOf: (card) => unitGroup(card, typeOf(card.id)) };
+  return {
+    cards: shopOrder(cards, (card) => typeOf(card.id)),
+    groupOf: (card) => unitGroup(card, typeOf(card.id)),
+  };
 }
 
 /** The cards one faction fields under one group, in the shop's order. */

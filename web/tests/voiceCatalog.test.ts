@@ -5,20 +5,14 @@ import {
   barkTrigger,
   lineText,
   validateVoiceCatalog,
+  type VoiceUnit,
 } from "@packages/battle-audio/src/voices/voiceCatalog";
 import voiceJson from "@fixtures/voices.json";
+import gameCatalog from "@fixtures/catalog.json";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const roster = Object.assign(
-  {},
-  ...["eastern", "europe", "shared", "us"].map(
-    (name) =>
-      JSON.parse(
-        readFileSync(resolve(process.cwd(), `../fixtures/units/roster/${name}.json`), "utf8"),
-      ).units,
-  ),
-);
+const roster = gameCatalog.units as unknown as VoiceUnit[];
 
 // The simulation's layout, as the encoder's codec test holds it
 // (`crates/sim/tests/publication.rs`): its bark tags are the contract's names.
@@ -152,11 +146,17 @@ describe("voice catalog", () => {
     expect(catalog.sets.cn_manpads_team.country).toBe("cn");
   });
 
+  it("requires a voice for a resolved playable unit without role tags", () => {
+    expect(() =>
+      validateVoiceCatalog(voiceJson, [{ id: "unvoiced", roster: { factions: ["us"] } }]),
+    ).toThrow("playable unit unvoiced: no voice assignment");
+  });
+
   it("does not resolve test or capture units", () => {
-    const catalog = validateVoiceCatalog(voiceJson, {
-      test_tank: { roles: ["mbt"], roster: { factions: ["us"] } },
-      capture_us_tank: { roles: ["mbt"], roster: { factions: ["us"] } },
-    });
+    const catalog = validateVoiceCatalog(voiceJson, [
+      { id: "test_tank", roster: { factions: ["us"] } },
+      { id: "capture_us_tank", roster: { factions: ["us"] } },
+    ]);
     expect(catalog.assignments.test_tank).toBeUndefined();
     expect(catalog.assignments.capture_us_tank).toBeUndefined();
   });
