@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::observation::SoundCategory;
-use crate::scenario::{Armor, Blocks, CoverTier, PushClass, WeightClass};
+use crate::scenario::{Blocks, CoverTier, WeightClass};
 use crate::weapons::MountDefinition;
 
 pub mod inheritance;
@@ -45,7 +45,9 @@ pub use capabilities::{
 };
 
 mod checks;
+mod hull;
 use checks::{check, check_card_labels, check_prop, check_roster, check_soldier, mount_labels};
+pub use hull::Hull;
 mod props;
 pub use props::{
     BuildingRemains, Destroyed, HpScale, PropAppearance, PropAppearanceStatus, PropBody,
@@ -178,21 +180,6 @@ pub enum Body {
         slots: Vec<String>,
     },
     Hull(Hull),
-}
-
-/// A vehicle's body (Q3, Q14, Q19): a box like any prop, whose weight class
-/// is also its cover tier's source (Q24), live or wrecked.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Hull {
-    /// Half length (along heading), half width, half height.
-    pub half_extents_m: [f64; 3],
-    pub hp: f64,
-    pub armor: Armor,
-    pub weight_class: WeightClass,
-    pub push_class: PushClass,
-    /// The prop type it leaves when destroyed (a `props` id).
-    pub wreck: String,
 }
 
 /// The height band a unit occupies, which decides what can engage it.
