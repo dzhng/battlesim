@@ -207,27 +207,13 @@ export function typeFindings(
   const drawn: (MountNodes | null)[] = roles.map((role) =>
     role === "hand" ? null : MOUNT_NODES[role],
   );
-  for (const [i, role] of roles.entries()) {
+  for (const role of roles) {
     if (role === "hand") continue;
     const n = MOUNT_NODES[role];
     for (const name of [n.yaw, n.pitch, n.muzzle]) if (!index.has(name)) missing(name);
     chain(n.yaw, n.pitch);
     chain(n.pitch, n.muzzle);
     up(n.yaw);
-    if (role === "gun") {
-      const muzzle = index.get(n.muzzle);
-      const muzzleX = muzzle === undefined ? 1 : pointAt(worlds[muzzle], [0, 0, 0])[0];
-      const yaw = index.get(n.yaw);
-      const pivotX = yaw === undefined ? 0 : pointAt(worlds[yaw], [0, 0, 0])[0];
-      if (muzzleX <= pivotX)
-        out.push(
-          finding(
-            "basis.forward",
-            `${label}: ${type.mounts[i].name}'s muzzle at x ${fmt(muzzleX)} m, behind its mount pivot at x ${fmt(pivotX)} m`,
-            "face the hull along +X after the catalog's basis_yaw_deg",
-          ),
-        );
-    }
   }
   out.push(
     ...muzzleFindings(label, nodes, worlds, index, drawn, tolerances, {
