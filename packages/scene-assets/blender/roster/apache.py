@@ -50,8 +50,8 @@ SPEC = dict(
     wing=[(1.62, 0.65, 1.95, 1.29, 0.18), (1.34, 2.42, 1.86, 1.02, 0.12)],
     stab=[(-6.1, 0.2, 1.95, 0.92, 0.1), (-6.24, 1.7, 1.95, 0.74, 0.06)],
     fins=[dict(root_x=-5.82, root_z=2.15, height=1.8, root_chord=1.48, tip_chord=1.02, sweep_m=0.83, thick=0.16)],
-    gear=[dict(name="main_L", x=3.1, y=1.0, top=1.1, radius=0.4, width=0.22),
-          dict(name="main_R", x=3.1, y=-1.0, top=1.1, radius=0.4, width=0.22),
+    gear=[dict(name="main_L", x=3.1, y=1.0, top=1.1, radius=0.4, width=0.22, strut_radius=0.18),
+          dict(name="main_R", x=3.1, y=-1.0, top=1.1, radius=0.4, width=0.22, strut_radius=0.18),
           dict(name="tail", x=-5.64, y=0.0, top=1.7, radius=0.2, width=0.12)],
     pylons=[((1.29, 1.35, 1.86), 0.83, 0.3), ((1.2, 2.15, 1.82), 0.83, 0.3)],
     stores=[("pod", (1.2, 1.35, 1.32), 1.57, 0.27)],
@@ -61,6 +61,14 @@ SPEC = dict(
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
+    # Apache main gear is carried in compact cheek fairings.  Showing the
+    # fairings gives the struts a visible structural seat from front-quarter
+    # views, where a bare wheel can otherwise look detached.
+    for side, k in ((1, "L"), (-1, "R")):
+        A.body(f"main_gear_fairing_{k}",
+               [(0.62, 0.18, 0.26, 0.28), (0.25, 0.28, 0.32, 0.38),
+                (-0.38, 0.25, 0.30, 0.34), (-0.56, 0.15, 0.22, 0.24)],
+               m["paint"], hull, seg=14, loc=(3.1, side * 0.92, 1.06))
     # The side photo: the gunner's glass from 1.3 m behind the sensor
     # turret, the pilot's stepped up behind it, the mains under the gunner.
     # The Apache's tandem cockpit is stepped and flat-paned. Keep the forward

@@ -62,8 +62,8 @@ def spec(variant):
         stab=[(tail + 1.0, 0.25, 1.72, 1.1, 0.12), (tail + 0.8, 2.19, 1.72, 0.9, 0.08)],
         fins=[dict(root_x=tail + 1.3, root_z=1.95, height=1.7 if not z20 else 1.8, root_chord=1.6, tip_chord=1.05,
                    sweep_m=0.8, thick=0.16)],
-        gear=[dict(name="main_L", x=nose - 3.3, y=1.38, top=0.95, radius=0.38, width=0.22),
-              dict(name="main_R", x=nose - 3.3, y=-1.38, top=0.95, radius=0.38, width=0.22),
+        gear=[dict(name="main_L", x=nose - 3.3, y=1.38, top=0.95, radius=0.38, width=0.22, load_arm=True),
+              dict(name="main_R", x=nose - 3.3, y=-1.38, top=0.95, radius=0.38, width=0.22, load_arm=True),
               dict(name="tail", x=tail + 1.5, y=0.0, top=1.5, radius=0.2, width=0.12)],
     )
 
@@ -75,6 +75,14 @@ def build(variant, v):
     hull = v.hull
     length, _, height = PUBLISHED_M[variant["id"]]
     tail = -length / 2
+    # The UH-60's main legs grow out of broad cheek sponsons.  Without these
+    # housings the dark strut disappears in a three-quarter view and the wheel
+    # reads as a loose prop below the cabin.
+    for side, k in ((1, "L"), (-1, "R")):
+        A.body(f"main_gear_sponson_{k}",
+               [(0.82, 0.22, 0.30, 0.30), (0.35, 0.34, 0.38, 0.44),
+                (-0.42, 0.32, 0.36, 0.42), (-0.70, 0.20, 0.28, 0.28)],
+               m["paint"], hull, seg=16, loc=(length / 2 - 3.3, side * 1.06, 0.95))
     # The engines either side of the transmission, their exhausts turned out.
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(2.8, 0.0, 2.6, 2.6), (2.5, 0.34, 2.3, 2.92, 2.6), (0.0, 0.34, 2.28, 2.9, 2.58),
@@ -89,14 +97,14 @@ def build(variant, v):
         # donor-free windows in the workbench.
         box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["black"], hull, lods=MID)
         for edge, z in (("top", 1.79), ("bottom", 1.31)):
-            box(f"cabin_window_{edge}_frame_{k}", (0.62, 0.055, 0.055), (1.6, side * 1.105, z), m["dark"], hull,
+            box(f"cabin_window_{edge}_frame_{k}", (0.62, 0.055, 0.055), (1.6, side * 1.105, z), m["steel"], hull,
                 lods=NEAR)
         for edge, x in (("front", 1.31),):
-            box(f"cabin_window_{edge}_frame_{k}", (0.055, 0.055, 0.52), (x, side * 1.105, 1.55), m["dark"], hull,
+            box(f"cabin_window_{edge}_frame_{k}", (0.055, 0.055, 0.52), (x, side * 1.105, 1.55), m["steel"], hull,
                 lods=NEAR)
         box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["black"], hull,
             lods=MID)
-        box(f"cockpit_window_top_frame_{k}", (0.98, 0.055, 0.06), (length / 2 - 2.3, side * 1.01, 1.86), m["dark"], hull,
+        box(f"cockpit_window_top_frame_{k}", (0.98, 0.055, 0.06), (length / 2 - 2.3, side * 1.01, 1.86), m["steel"], hull,
             lods=NEAR)
     A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
     cyl("mast", 0.2, 0.75, (0.3, 0, 2.95), "Z", m["dark"], hull, seg=12)

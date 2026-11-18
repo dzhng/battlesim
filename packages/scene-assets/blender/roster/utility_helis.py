@@ -128,7 +128,7 @@ def build(variant, v):
     if vid == WILDCAT:
         A.sensor_ball("roof_sight", (5.55, 0, 2.05), 0.22, m, hull)
         A.surface("tail_stab", [(-5.95, 0.1, 3.05, 0.6, 0.06), (-6.05, 1.0, 3.05, 0.45, 0.05)], m["paint"], hull)
-        A.mirrored(lambda side, k: box(f"main_leg_{k}", (0.12, 0.8, 0.08), (-0.4, side * 1.0, 0.75), m["gear"], hull,
+        A.mirrored(lambda side, k: box(f"main_leg_{k}", (0.12, 0.5, 0.08), (-0.4, side * 0.85, 0.75), m["gear"], hull,
                                        rot=(side * -0.3, 0, 0), lods=MID))
     radius, blades, chord, hub_z = ROTOR[vid]
     cyl("mast", 0.18, 0.8, (0.3, 0, hub_z - 0.45), "Z", m["dark"], hull, seg=12)
