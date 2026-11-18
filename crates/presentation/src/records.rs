@@ -188,6 +188,13 @@ crate::records! {
         trampled: [f32; 4],
         relief: [f32; 4],
         grass: [f32; 4],
+        /// Ruts' second soil (linear) and its share in patches.
+        tracks_mottle: [f32; 4],
+        /// Tread: pad pitch (m), pad darkening, grass between pads, edge
+        /// feather (m).
+        tread: [f32; 4],
+        /// Ruts: 1 / mottle patch size (m), unused.
+        rut_shape: [f32; 4],
     }
 
     /// Where a frame's sets lie, as pointers into the module's memory and

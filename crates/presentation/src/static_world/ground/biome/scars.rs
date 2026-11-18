@@ -11,6 +11,23 @@ pub struct Scars {
     pub tracks: ScarMark,
     pub trampled: ScarMark,
     pub grass: ScarGrass,
+    pub ruts: ScarRuts,
+}
+
+/// How tracks' ruts read up close: soft edges `feather_m` wide, the track
+/// palette's first soil broken by patches `patch_m` across of its last by
+/// `mottle`, and the tread pressed in, pads every `tread_pitch_m` across
+/// the track darkening it by `tread_dark`, with `tread_grass` of the
+/// field's own ground showing between them. The tread fades out before a
+/// pad is a few pixels deep.
+#[derive(Clone, Deserialize)]
+pub struct ScarRuts {
+    pub feather_m: f64,
+    pub mottle: f64,
+    pub patch_m: f64,
+    pub tread_pitch_m: f64,
+    pub tread_dark: f64,
+    pub tread_grass: f64,
 }
 
 /// How one channel marks the ground: toward a palette colour, whole at the
@@ -62,6 +79,13 @@ impl Biome {
         within("scars.crater.ejecta", sc.crater.ejecta, 0.0, 1.0)?;
         within("scars.grass.thin", sc.grass.thin, 0.0, 1.0)?;
         within("scars.grass.tracks_thin", sc.grass.tracks_thin, 0.0, 1.0)?;
-        within("scars.grass.flatten", sc.grass.flatten, 0.0, 1.0)
+        within("scars.grass.flatten", sc.grass.flatten, 0.0, 1.0)?;
+        let r = &sc.ruts;
+        within("scars.ruts.feather_m", r.feather_m, 0.0, 2.0)?;
+        within("scars.ruts.mottle", r.mottle, 0.0, 1.0)?;
+        within("scars.ruts.patch_m", r.patch_m, 0.01, 10.0)?;
+        within("scars.ruts.tread_pitch_m", r.tread_pitch_m, 0.05, 1.0)?;
+        within("scars.ruts.tread_dark", r.tread_dark, 0.0, 1.0)?;
+        within("scars.ruts.tread_grass", r.tread_grass, 0.0, 1.0)
     }
 }

@@ -263,6 +263,17 @@ impl Ground {
             trampled: mark(&sc.trampled.palette, sc.trampled.strength),
             relief: f4([sc.crater.relief_m, sc.crater.rim, 0.0, 0.0]),
             grass: f4([sc.grass.thin, sc.grass.tracks_thin, sc.grass.flatten, 0.0]),
+            tracks_mottle: {
+                let soil = b.palette(&sc.tracks.palette);
+                f4(rgb(linear(soil[soil.len() - 1]), sc.ruts.mottle))
+            },
+            tread: f4([
+                sc.ruts.tread_pitch_m,
+                sc.ruts.tread_dark,
+                sc.ruts.tread_grass,
+                sc.ruts.feather_m,
+            ]),
+            rut_shape: f4([1.0 / sc.ruts.patch_m, 0.0, 0.0, 0.0]),
         };
         TerrainTables {
             nodes: bytemuck::cast_slice(&nodes).to_vec(),

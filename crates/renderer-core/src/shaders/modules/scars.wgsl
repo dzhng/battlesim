@@ -34,6 +34,9 @@ struct ScarLook {
   trampled: vec4f,
   relief: vec4f,
   grass: vec4f,
+  tracksMottle: vec4f,
+  tread: vec4f,
+  rutShape: vec4f,
 }
 struct ScarParams {
   cache: ScarCacheParams,
@@ -55,6 +58,8 @@ const GROUND_SCAR_SURFACE_ASH_FINE_WEIGHT = 0.4;
 const GROUND_SCAR_SURFACE_SOIL_FROM = 0.8;
 const GROUND_SCAR_SURFACE_SOIL_TO = 1.15;
 const GROUND_SCAR_SURFACE_CAVITY = 0.7;
+const GROUND_SCAR_SURFACE_RUT_PATCH_FROM = 0.3;
+const GROUND_SCAR_SURFACE_RUT_PATCH_TO = 0.7;
 fn scarredSurface(surface: vec4f, scar: ScarSample) -> vec4f {
   let P = scarParams;
   let w = scar.weights;
@@ -64,7 +69,11 @@ fn scarredSurface(surface: vec4f, scar: ScarSample) -> vec4f {
   let grain = valueNoise(xy * GROUND_SCAR_SURFACE_GRAIN_SCALE);
   let fleck = valueNoise(xy * GROUND_SCAR_SURFACE_FLECK_SCALE + vec2f(2.2, 9.1));
   albedo = mix(albedo, P.look.trampled.xyz * mix(GROUND_SCAR_SURFACE_TRAMPLED_FROM, GROUND_SCAR_SURFACE_TRAMPLED_TO, grain), w.w * P.look.trampled.w);
-  albedo = mix(albedo, P.look.tracks.xyz * mix(GROUND_SCAR_SURFACE_TRACKS_FROM, GROUND_SCAR_SURFACE_TRACKS_TO, grain), w.z * P.look.tracks.w);
+  // Ruts: dusty soil in patches of its second colour, the tread's pads
+  // pressed darker and the field's own ground coming back between them.
+  let patchy = smoothstep(GROUND_SCAR_SURFACE_RUT_PATCH_FROM, GROUND_SCAR_SURFACE_RUT_PATCH_TO, valueNoise(xy * P.look.rutShape.x + vec2f(13.1, 7.7)));
+  let soil = mix(P.look.tracks.xyz, P.look.tracksMottle.xyz, P.look.tracksMottle.w * patchy) * mix(GROUND_SCAR_SURFACE_TRACKS_FROM, GROUND_SCAR_SURFACE_TRACKS_TO, grain) * (1.0 - scar.tread.x);
+  albedo = mix(albedo, soil, w.z * P.look.tracks.w * (1.0 - scar.tread.y));
   // Soot is uneven: ash grey and char black in flecks and drifts.
   let ash = mix(GROUND_SCAR_SURFACE_ASH_FROM, GROUND_SCAR_SURFACE_ASH_TO, fleck * GROUND_SCAR_SURFACE_ASH_BROAD_WEIGHT + valueNoise(xy * GROUND_SCAR_SURFACE_ASH_DRIFT_SCALE + vec2f(4.4, 0.3)) * GROUND_SCAR_SURFACE_ASH_FINE_WEIGHT);
   albedo = mix(albedo, P.look.scorch.xyz * ash, w.y * P.look.scorch.w);
@@ -84,6 +93,8 @@ struct ScarSample {
   weights: vec4f,
   relief: vec4f,
   at: vec4f,
+  /// A rut's tread: how far a pad darkens it, how much field shows between.
+  tread: vec2f,
 }
 
 // @block scars_ScarTiles
@@ -121,6 +132,13 @@ const GROUND_SCARS_ASH_EDGE_TO = 0.72;
 const GROUND_SCARS_ASH_LEAST = 0.45;
 const GROUND_SCARS_RUT_DEPTH = 0.35;
 const GROUND_SCARS_RUT_GRAIN = 0.2;
+const GROUND_SCARS_TREAD_PAD = 0.45;
+const GROUND_SCARS_TREAD_CHEVRON = 0.55;
+const GROUND_SCARS_TREAD_WIDTH_M = 0.6;
+const GROUND_SCARS_TREAD_JITTER = 0.3;
+const GROUND_SCARS_TREAD_SHOWN_FROM = 0.35;
+const GROUND_SCARS_TREAD_SHOWN_TO = 0.8;
+const GROUND_SCARS_TREAD_AXIS_STEP = 0.09817477042468103;
 fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   var out: ScarSample;
   out.at = vec4f(xy, 0.0, 0.0);
@@ -208,8 +226,32 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   let wear = 1.0 - (1.0 - saturate(s.zw * k.zw)) * (1.0 - saturate(s.zw * k.zw));
   // Ruts have edges: tracks cross their iso-line within a pixel, ragged.
   let trackSlope = vec2f(xp.z - xm.z, yp.z - ym.z) * k.z / (2.0 * h * cell);
-  let rut = crossing(wear.x, GROUND_SCARS_RUT_DEPTH + GROUND_SCARS_RUT_GRAIN * grain, length(trackSlope) * footprint);
+  // Feathered over the biome's width where that is wider than a pixel.
+  let steep = length(trackSlope);
+  let rut = crossing(wear.x, GROUND_SCARS_RUT_DEPTH + GROUND_SCARS_RUT_GRAIN * grain, steep * max(footprint, P.look.tread.w));
   out.weights = vec4f(bowl, soot, rut * wear.x, wear.y);
+  // The tread: pads across the track's axis every pitch, angled back from
+  // the middle of each track (chevrons), wandering in phase and some barely
+  // pressed. The axis is the wear's slope turned square, taken without its
+  // sign (it flips across a band's middle) and in steps of 1/32 turn so the
+  // prints stay straight. Gone before a pad is a few pixels deep.
+  let T = P.look.tread;
+  let shown = (1.0 - smoothstep(GROUND_SCARS_TREAD_SHOWN_FROM, GROUND_SCARS_TREAD_SHOWN_TO, footprint / T.x)) * detail;
+  if (shown > 0.0 && out.weights.z > 0.0 && steep > 1e-3) {
+    var axis = atan2(trackSlope.y, trackSlope.x);
+    if (axis < 0.0) { axis += 3.141592653589793; }
+    axis = round(axis / GROUND_SCARS_TREAD_AXIS_STEP) * GROUND_SCARS_TREAD_AXIS_STEP;
+    let across = vec2f(cos(axis), sin(axis));
+    let along = dot(xy, vec2f(-across.y, across.x));
+    let band = abs(fract(dot(xy, across) / GROUND_SCARS_TREAD_WIDTH_M) - 0.5) * GROUND_SCARS_TREAD_WIDTH_M;
+    let jitter = (valueNoise(xy * 3.7 + vec2f(19.3, 5.1)) - 0.5) * GROUND_SCARS_TREAD_JITTER;
+    let ph = fract((along + band * GROUND_SCARS_TREAD_CHEVRON) / T.x + jitter);
+    let aa = clamp(footprint / T.x, 0.03, 0.5);
+    let pad = smoothstep(0.0, aa, ph) * (1.0 - smoothstep(GROUND_SCARS_TREAD_PAD, GROUND_SCARS_TREAD_PAD + aa, ph));
+    let pressed = smoothstep(0.25, 0.65, valueNoise(xy * 1.3 + vec2f(71.9, 33.1)));
+    let gap = (1.0 - pad) * (1.0 - 0.3 * pressed) * smoothstep(0.05, 0.45, valueNoise(xy * 2.3 + vec2f(3.3, 88.7)));
+    out.tread = vec2f(T.y * pad * pressed, T.z * gap) * shown;
+  }
   out.relief = vec4f(slope, ring, depth);
   return out;
 }
