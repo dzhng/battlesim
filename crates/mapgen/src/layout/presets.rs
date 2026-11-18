@@ -9,7 +9,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 
 mod definitions;
-pub use definitions::PresetDefinitions;
+pub use definitions::*;
 
 /// An inclusive `[low, high]` range a seed draws from.
 pub type Range = [f64; 2];

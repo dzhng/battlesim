@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-22",
+  "revision": "layout-presets-23",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -153,6 +153,24 @@
       "reuse_m": { "country_road": 600, "dirt_track": 1200 },
       "worth_m": 800
     }
+  },
+  "hills": {
+    "types": {
+      "open": { "chance": 1.0, "pairs_per_km2": 0.6 },
+      "mixed": { "chance": 0.6, "pairs_per_km2": 0.2 }
+    },
+    "group_radius_m": [300, 600],
+    "rises": [10, 18],
+    "radius_m": [110, 230],
+    "peak_m": [3.5, 5.5],
+    "max_height_m": 8.0,
+    "settlement_gap_m": 140,
+    "river_gap_m": 120,
+    "swamp_gap_m": 80,
+    "bridge_gap_m": 160,
+    "objective_gap_m": 100,
+    "corridor_gap_m": 40,
+    "attempts": 60
   },
   "swamps": {
     "chance": { "open": 0.45, "mixed": 0.35, "metro": 0.2 },
@@ -903,7 +921,7 @@
       ],
       "objective_yard_m": 14,
       "objective_lane_m": 300,
-      "attempts": 40
+      "attempts": 60
     },
     "depots": {
       "per_road_km": 0.3,
@@ -942,9 +960,9 @@
       "roadside_chance": 0.6,
       "road_gap_m": 8,
       "align_m": 300,
-      "attempts": 40
+      "attempts": 60
     },
-    "copses": { "per_km2": 0.1, "area_m2": [300, 1200], "aspect": [0.5, 1], "outline_points": 12, "attempts": 40 },
+    "copses": { "per_km2": 0.1, "area_m2": [300, 1200], "aspect": [0.5, 1], "outline_points": 12, "attempts": 60 },
     "lone_trees": { "per_km2": 1.2, "plot_m": 9, "attempts": 30 },
     "field_cover": {
       "per_km2": 1.2,

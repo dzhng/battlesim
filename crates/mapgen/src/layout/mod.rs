@@ -5,6 +5,7 @@
 mod crossings;
 mod forests;
 pub(crate) mod geometry;
+mod hills;
 mod measure;
 mod presets;
 mod rivers;
@@ -224,9 +225,25 @@ pub fn generate_layout(
         lots: Vec::new(),
         regional_family: None,
         courts: Vec::new(),
+        relief: Vec::new(),
         unsupported_fields: BTreeMap::new(),
     };
     plan.approaches = measure::approaches(&plan, presets);
+    // Hills last: they keep clear of everything above and the approaches
+    // just measured, so nothing drawn on flat ground moves.
+    let relief = hills::place(
+        &context,
+        &hills::Clear {
+            towns: &towns,
+            reserved: &placed.reserved,
+            water: &water::Water::new(&plan.rivers, plan.size),
+            bridges: &plan.bridges,
+            swamps: &plan.swamps,
+            skirmish: plan.skirmish.as_ref(),
+            corridors: &measure::approach_corridors(&plan),
+        },
+    );
+    plan.relief = relief;
     verify(&context, &plan)?;
     Ok(plan)
 }

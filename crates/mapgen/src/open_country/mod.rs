@@ -172,6 +172,8 @@ struct Country<'a> {
     buildings: Vec<BuildingPlacement>,
     forests: Vec<Forest>,
     props: Vec<AuthoredPropDefinition>,
+    /// The hills, and the height grid's diagonal: only trees stand there.
+    relief: Option<(crate::relief::ReliefBound, f64)>,
 }
 
 /// What a place is asked for.
@@ -289,6 +291,11 @@ impl<'a> Country<'a> {
                     self.charge(1)
                         && ((self.main_only && !main)
                             || beyond(rect_gap(corridor, p), r + c.approach_m))
+                }))
+            && (ask.blocks_sight
+                || self.relief.as_ref().is_none_or(|(hills, pad)| {
+                    let reach = r + pad;
+                    hills.span([p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach])[1] <= 0.0
                 }))
     }
 

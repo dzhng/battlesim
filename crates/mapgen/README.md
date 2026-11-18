@@ -22,7 +22,7 @@ a smaller playable rectangle cannot stand in for the complete rendered workload.
 
 ## Layout generation (`layout`)
 
-[Layout](src/layout/) places settlements, rivers, roads, bridges, forests and swamps.
+[Layout](src/layout/) places settlements, rivers, roads, bridges, forests, swamps and hills.
 [Presets](../../fixtures/map-presets.json) own construction choices and finite-work
 policy; [preset validation](src/layout/presets.rs) protects the physical and numeric
 constraints. The size profile owns its central settlement class and surrounding settlement
@@ -58,6 +58,13 @@ so generator legality cannot differ from world admission.
 Swamps come last, from their own stream, in pairs of one size across the
 halves, beside the river where there is one; the [swamp contract](../contract/src/swamp.rs)
 admits them, and the compiler refuses a seed whose swamp it would not.
+Hills come after them, from their own stream: groups of low rounded rises
+(`Relief::Ridge`) mirrored through the centre, in large sections on plains maps,
+a few on mixed maps and none on a city ([hills](src/layout/hills.rs)). They keep
+clear of everything built or measured on flat ground, and the presets refuse a
+height cap or radius whose sides a vehicle could not climb. Only trees stand on
+them, so the open country's steads stay on level ground, and the ground-sight
+certificate bounds their height witness by witness ([relief](src/relief.rs)).
 
 Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled

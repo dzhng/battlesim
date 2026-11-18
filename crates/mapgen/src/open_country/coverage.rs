@@ -226,6 +226,8 @@ pub(super) struct Coverage<'a> {
     /// Physical witness reach reserves following fog steps. Every corner
     /// of the complete clipped rectangle must fit inside it.
     pub reach: f64,
+    /// Relief's own witness-by-witness margin; none on flat land.
+    relief: Option<relief::Sight>,
 }
 
 impl<'a> Coverage<'a> {
@@ -270,19 +272,17 @@ impl<'a> Coverage<'a> {
             .map(|u| u.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m))
             .fold(physics.fog_target_height_m, f64::max);
         let high = map.bridges.iter().map(|b| b.deck_z).fold(0., f64::max);
-        // Generated land has no relief. Each river and swamp can only lower
-        // it; summing each possible fall is conservative even for overlap.
-        if !map.relief.is_empty() {
-            return Err("ground-sight coverage does not support relief yet".into());
-        }
-        let low = map
+        // Each river and swamp can only lower the land; summing each
+        // possible fall is conservative even for overlap. Relief is held
+        // witness by witness (`relief.rs`).
+        let river_low = map
             .rivers
             .iter()
             .map(|r| {
                 r.surface_z().min(0.) - r.samples().iter().map(|p| p.depth_m).fold(0., f64::max)
             })
-            .sum::<f64>()
-            - map.swamps.iter().map(|s| s.depth_m).fold(0., f64::max);
+            .sum::<f64>();
+        let low = river_low - map.swamps.iter().map(|s| s.depth_m).fold(0., f64::max);
         let tree = physics.catalog.props().by_id(&physics.forests.tree).body;
         let rule = physics.forests.rule;
         if low + rule.canopy_height_m <= high + eye {
@@ -348,6 +348,16 @@ impl<'a> Coverage<'a> {
             index: Grid::new(map.size, cell),
             far_samples,
             reach,
+            relief: (!map.relief.is_empty()).then(|| {
+                relief::Sight::new(
+                    map,
+                    river_low,
+                    bank_margin,
+                    eye,
+                    rule.canopy_height_m,
+                    count,
+                )
+            }),
         };
         c.queries.work.spend(count as u64 * 3);
         // Tall physical parts on flat supporting ground also contribute to
@@ -390,6 +400,9 @@ impl<'a> Coverage<'a> {
                         0.,
                     ) {
                         c.occupied[y * nx + x] = true;
+                        if let Some(r) = c.relief.as_mut() {
+                            r.note_body(y * nx + x, bottom + 2. * b.half_extents[2]);
+                        }
                         // Keep a metre inside the real body so the continuous
                         // physical sight claim does not rest on a raster edge.
                         c.physical[y * nx + x] = body_contains(
@@ -624,7 +637,7 @@ impl<'a> Coverage<'a> {
                     && low[i] + distance * direction[i][0] >= *margin
                     && high[i] + distance * direction[i][1] <= self.queries.size[i] - margin
             })
-        })
+        }) && self.relief_admits(witness, low, high, &direction)
     }
 
     pub fn covered(&self, low: Point, high: Point) -> bool {
@@ -695,5 +708,6 @@ pub(crate) fn admit_coverage(
     })
 }
 
+mod relief;
 #[cfg(test)]
 mod tests;

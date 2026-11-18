@@ -136,11 +136,14 @@ fn drawing_swamps_leaves_every_other_feature_of_a_seed_unchanged() {
                 swamped += usize::from(!with.swamps.is_empty());
                 // The open approaches are measured on the finished plan, so
                 // a swamp may narrow one (`no_open_approach_runs_through_a_swamp`);
-                // nothing a swamp is drawn after moves.
+                // nothing a swamp is drawn after moves. Hills are drawn
+                // after swamps and keep clear of them, so they may move.
                 let (mut with, mut without) = (with, without);
                 with.swamps.clear();
                 with.approaches.clear();
                 without.approaches.clear();
+                with.relief.clear();
+                without.relief.clear();
                 assert_eq!(
                     json(&with),
                     json(&without),
