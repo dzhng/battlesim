@@ -69,6 +69,9 @@ Sight into ground, low air and high air is authored independently on each unit.
 [Sensors](../contract/src/catalog/sensors.rs) owns the band lookup; zero air reach
 means blind. Radar emission is an independent signature read by receivers and
 anti-radiation weapons, with no sight override or body-based range table.
+Radar refreshes renew one opaque area per emitter. They update the bearing,
+range and evidence lifetime while retaining the sampled area centre until the
+emitter leaves that area, so a stationary report does not jump on each tick.
 
 A projectile keeps its engagement and visibility band through its flight and
 burst. The band is the higher of its launch and target bands, with indirect and
