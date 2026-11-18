@@ -396,6 +396,11 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
         # strut is hidden by the fuselage cheek.
         tube_part(f"gear_{name}_load_arm", lambda lod: [(0, 0, -drop * 0.30), (0.22, 0, -drop * 0.98)],
                   r_strut * 0.55, mats["gear"], node, NEAR)
+        if load_arm and abs(y) >= 1.1:
+            outside = 1 if y >= 0 else -1
+            tube_part(f"gear_{name}_sponson_arm",
+                      lambda lod: [(0, 0, -drop * 0.24), (0, outside * 0.30, -drop * 0.96)],
+                      r_strut * 0.48, mats["gear"], node, NEAR)
     # The torque links' scissor ahead of the oleo.
     for k, (z0, z1) in enumerate(((-drop * 0.58, -drop * 0.72), (-drop * 0.72, -drop * 0.86))):
         line(f"gear_{name}_link_{k}", (r_strut + 0.03, 0, z0), (r_strut + 0.07 - 0.04 * k, 0, z1), mats["gear"], node,
