@@ -217,7 +217,8 @@ function benchOf(catalog: SessionCatalog): Bench {
       kind: "grenade",
       from: [92, 118],
       muzzle: P.infantry_muzzle_m,
-      aim: { ground: [92, 292] },
+      // Half its minimum range away, read from the row, so a retune keeps it inside.
+      aim: { ground: [92, 118 + Number(LAB_MORTAR.min_range_m) / 2] },
     },
     {
       label: "grenade across crossing bodies",
