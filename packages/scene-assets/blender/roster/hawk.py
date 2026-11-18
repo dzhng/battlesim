@@ -62,8 +62,8 @@ def spec(variant):
         stab=[(tail + 1.0, 0.25, 1.72, 1.1, 0.12), (tail + 0.8, 2.19, 1.72, 0.9, 0.08)],
         fins=[dict(root_x=tail + 1.3, root_z=1.95, height=1.7 if not z20 else 1.8, root_chord=1.6, tip_chord=1.05,
                    sweep_m=0.8, thick=0.16)],
-        gear=[dict(name="main_L", x=nose - 3.3, y=1.38, top=0.95, radius=0.38, width=0.22, load_arm=True),
-              dict(name="main_R", x=nose - 3.3, y=-1.38, top=0.95, radius=0.38, width=0.22, load_arm=True),
+        gear=[dict(name="main_L", x=nose - 4.1, y=1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17),
+              dict(name="main_R", x=nose - 4.1, y=-1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17),
               dict(name="tail", x=tail + 1.5, y=0.0, top=1.5, radius=0.2, width=0.12)],
     )
 
@@ -82,7 +82,7 @@ def build(variant, v):
         A.body(f"main_gear_sponson_{k}",
                [(0.82, 0.22, 0.30, 0.30), (0.35, 0.34, 0.38, 0.44),
                 (-0.42, 0.32, 0.36, 0.42), (-0.70, 0.20, 0.28, 0.28)],
-               m["paint"], hull, seg=16, loc=(length / 2 - 3.3, side * 1.06, 0.95))
+               m["paint"], hull, seg=16, loc=(length / 2 - 4.1, side * 1.06, 0.95))
     # The engines either side of the transmission, their exhausts turned out.
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(2.8, 0.0, 2.6, 2.6), (2.5, 0.34, 2.3, 2.92, 2.6), (0.0, 0.34, 2.28, 2.9, 2.58),
