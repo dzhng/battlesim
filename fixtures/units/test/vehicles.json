@@ -19,7 +19,6 @@
             "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.05, "roof": 0.15 }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -51,7 +50,6 @@
             "ricochet": { "front": 0.05, "side": 0.05, "rear": 0.05, "roof": 0.1 }
           },
           "weight_class": "light",
-          "push_class": "light",
           "wreck": "light_wreck"
         }
       },

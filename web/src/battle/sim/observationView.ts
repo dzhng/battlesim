@@ -413,7 +413,7 @@ export interface GuidedView {
   /** Its commanded point; a top-attack missile climbs above it before
    *  diving onto it, so this is not where it is heading now. */
   point: Point3;
-  /** Its launcher still guides it; once false, the point is fixed for good. */
+  /** Its launcher still guides it. A diverted missile follows its moving flare. */
   supported: boolean;
 }
 
@@ -662,6 +662,8 @@ export interface ObservationView {
   /** Barks spoken this tick that this side hears. */
   shouts: ShoutView[];
   guided: GuidedView[];
+  /** Visible physical flare travel over this tick, without source identity. */
+  flares: { from: Point3; to: Point3 }[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
   skirmish: SkirmishView | null;

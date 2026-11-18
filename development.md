@@ -57,13 +57,13 @@ The physical properties that rules read:
 
 - Obstacles are bodies with shape, weight class, mover blocking, cover tier, and
   integrity.
-- Movers have a footprint and push class.
+- Movers have a footprint and weight.
 - Weapons own their engagement classes, layers, ranges, guidance, fuses, and
   interceptability.
 - Units own their hull, senses, movement, flight model, and carried capabilities.
 
 Rules follow from those properties alone. A mover can go where its footprint
-fits and can clear a body its push class exceeds. A body is cover when it stands
+fits and can shove aside a body lighter than itself. A body is cover when it stands
 between a soldier and the threat, breaks when its integrity runs out, and stops a
 round only if it is authored to. A gun holds fire only for what its rounds can't
 break or can't see past. So there is no "wall" or "tank trap" in the code:

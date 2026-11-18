@@ -18,7 +18,7 @@ pub fn base_tank() -> Value {
             "half_extents_m": [3.5, 1.8, 1.2], "hp": 100,
             "armor": { "front": 140, "side": 100, "rear": 60, "roof": 40,
                 "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
-            "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
+            "weight_class": "heavy", "wreck": "heavy_wreck"
         } },
         "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_speed_factor": 0.4 } },
         "sensors": { "ground_m": 350, "low_air_m": 350, "high_air_m": 300, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },

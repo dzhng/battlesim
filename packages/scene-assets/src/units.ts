@@ -21,7 +21,6 @@ export interface Hull {
   hp: number;
   armor: FaceValues & { ricochet: FaceValues };
   weight_class: WeightClass;
-  push_class: string;
   wreck: string;
 }
 

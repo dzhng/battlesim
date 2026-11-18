@@ -432,6 +432,18 @@ impl EffectFrame {
                 }
             }
         }
+        if let Some(style) = &p.flare {
+            for flare in &publication.flares {
+                self.pool.tracer_style(
+                    style.clone(),
+                    "flare".into(),
+                    t0,
+                    &[flare.from, flare.to],
+                    &mut rng,
+                    true,
+                );
+            }
+        }
         for (index, s) in publication.segments.iter().enumerate() {
             if s.path.len() < 2 {
                 continue;

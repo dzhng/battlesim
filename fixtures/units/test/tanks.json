@@ -19,7 +19,6 @@
             "ricochet": { "front": 0.5, "side": 0.35, "rear": 0.2, "roof": 0.6 }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },

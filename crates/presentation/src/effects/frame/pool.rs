@@ -46,6 +46,26 @@ impl Pool {
             .tracer
             .as_ref()
             .expect("fielded tracer");
+        self.tracer_style(
+            style.clone(),
+            format!("round:{}", p.looks.name(&s.kind)).into(),
+            t0,
+            &s.path,
+            rng,
+            visible,
+        )
+    }
+
+    /// A physical luminous trail: weapon round or countermeasure flare.
+    pub(super) fn tracer_style(
+        &mut self,
+        style: Arc<TracerStyle>,
+        cause: Arc<str>,
+        t0: f64,
+        path: &[Vec3],
+        rng: &mut Mulberry32,
+        visible: bool,
+    ) -> usize {
         let dt = self.dt;
         let e = self.push(
             Look::Tracer {
@@ -55,11 +75,11 @@ impl Pool {
             t0,
             t0,
         );
-        e.cause = format!("round:{}", p.looks.name(&s.kind)).into();
+        e.cause = cause;
         let mut total = 0.0;
-        for (i, q) in s.path.iter().enumerate() {
+        for (i, q) in path.iter().enumerate() {
             if i > 0 {
-                let r = s.path[i - 1];
+                let r = path[i - 1];
                 total += crate::world::length([q[0] - r[0], q[1] - r[1], q[2] - r[2]]);
             }
             e.path.extend_from_slice(q);

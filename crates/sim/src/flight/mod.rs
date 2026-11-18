@@ -201,9 +201,8 @@ pub struct Projectile {
     pub fall: Option<MissFall>,
     /// Ricochets so far; the resolver bounds them.
     pub bounces: u8,
-    /// The seeker was diverted to a flare; its point is a physical burst aim
-    /// point and no longer follows the aircraft target.
-    pub decoy: Option<Decoy>,
+    /// The physical flare this missile follows instead of its original target.
+    pub decoy: Option<ProjectileId>,
 }
 
 impl Projectile {
@@ -437,10 +436,18 @@ impl FlightEvent {
     }
 }
 
+/// One physical flare, retained independently of the missile it diverted.
+struct Flare {
+    from: V3,
+    decoy: Decoy,
+    layer: contract::catalog::AltitudeLayer,
+}
+
 /// The one store of rounds in flight, in launch order.
 pub struct Projectiles {
     config: FlightConfig,
     active: Vec<Projectile>,
+    flares: std::collections::BTreeMap<ProjectileId, Flare>,
     next_id: u64,
     grid: BodyGrid,
 }
@@ -450,6 +457,7 @@ impl Projectiles {
         Projectiles {
             config,
             active: Vec::new(),
+            flares: std::collections::BTreeMap::new(),
             next_id: 0,
             grid: BodyGrid::default(),
         }
@@ -501,11 +509,24 @@ impl Projectiles {
         }
     }
 
-    /// Divert this seeker to one physical flare. The flare keeps its release
+    /// Divert this missile to one physical flare. The flare keeps its release
     /// velocity and falls under gravity; no unit pose is followed afterwards.
-    pub fn decoy_seeker(&mut self, id: ProjectileId, decoy: Decoy) {
+    pub fn divert(
+        &mut self,
+        id: ProjectileId,
+        decoy: Decoy,
+        layer: contract::catalog::AltitudeLayer,
+    ) {
         if let Some(p) = self.active.iter_mut().find(|p| p.id == id) {
-            p.decoy = Some(decoy);
+            p.decoy = Some(id);
+            self.flares.insert(
+                id,
+                Flare {
+                    from: decoy.position,
+                    decoy,
+                    layer,
+                },
+            );
             if let Some(g) = p.guidance.as_mut() {
                 g.point = decoy.position;
                 g.supported = false;
@@ -541,6 +562,13 @@ impl Projectiles {
 
     pub fn get(&self, id: ProjectileId) -> Option<&Projectile> {
         self.active.iter().find(|p| p.id == id)
+    }
+
+    /// Physical flare paths over this tick, until they reach the ground or leave the world.
+    pub fn flares(&self) -> impl Iterator<Item = (V3, V3, contract::catalog::AltitudeLayer)> + '_ {
+        self.flares
+            .values()
+            .map(|f| (f.from, f.decoy.position, f.layer))
     }
 
     pub fn active(&self) -> &[Projectile] {
@@ -594,13 +622,7 @@ impl Projectiles {
                 }
             }
             if let Some(decoy) = p.decoy {
-                d.u64(0x464c415245)
-                    .f64(decoy.position.x)
-                    .f64(decoy.position.y)
-                    .f64(decoy.position.z)
-                    .f64(decoy.velocity.x)
-                    .f64(decoy.velocity.y)
-                    .f64(decoy.velocity.z);
+                d.u64(0x464c415245).u64(decoy.0);
             }
             if let Some(fall) = p.fall {
                 d.u64(0x4c414e44).f64(fall.gravity_scale).f64(fall.after_s);
@@ -608,6 +630,21 @@ impl Projectiles {
             d.u64(p.motor.is_some() as u64);
             if let Some(m) = p.motor {
                 d.f64(m.accel_mps2).f64(m.top_speed_mps);
+            }
+        }
+        if !self.flares.is_empty() {
+            d.u64(0x464c41524553).u64(self.flares.len() as u64);
+            for (id, flare) in &self.flares {
+                let f = flare.decoy;
+                d.u64(id.0)
+                    .u64(flare.layer as u64)
+                    .f64(f.position.x)
+                    .f64(f.position.y)
+                    .f64(f.position.z)
+                    .f64(f.velocity.x)
+                    .f64(f.velocity.y)
+                    .f64(f.velocity.z)
+                    .f64(f.meet_m);
             }
         }
     }

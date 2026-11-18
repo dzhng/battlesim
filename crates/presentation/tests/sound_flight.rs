@@ -68,6 +68,7 @@ fn a_falling_bomb_whistles_where_it_is_its_pitch_falling_until_it_lands() {
             smokes: Vec::new(),
             cook_offs: Vec::new(),
             flare_deploys: Vec::new(),
+            flares: Vec::new(),
             grinds: Vec::new(),
             strikes: Vec::new(),
             smoke_clouds: Vec::new(),

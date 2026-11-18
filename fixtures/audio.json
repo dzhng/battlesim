@@ -44,17 +44,17 @@
       "cull": 0.004
     },
     "ground_engines": {
-      "ref_m": 45,
-      "rolloff": 2,
-      "max_m": 2500,
-      "floor": 0.01,
+      "ref_m": 100,
+      "rolloff": 1.5,
+      "max_m": 2750,
+      "floor": 0.08,
       "cull": 0.004
     },
     "aircraft_engines": {
-      "ref_m": 60,
-      "rolloff": 1.8,
+      "ref_m": 150,
+      "rolloff": 1.2,
       "max_m": 3000,
-      "floor": 0.02,
+      "floor": 0.15,
       "cull": 0.004
     }
   },

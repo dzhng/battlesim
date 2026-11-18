@@ -24,7 +24,8 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose>, grinds: Vec<Grind>,
-    smoke_clouds: Vec<SmokeCloud> });
+    smoke_clouds: Vec<SmokeCloud>, flares: Vec<Flare> });
+pub use contract::observation::Flare;
 view!(PropDisplayPose {
     prop_id: f64,
     center: Point2,

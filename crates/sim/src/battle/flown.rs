@@ -140,6 +140,30 @@ pub(super) fn clip_to_seen(
     out
 }
 
+/// The visible runs of a straight physical path, sampled by the same law as rounds.
+pub(super) fn visible_line(from: V3, to: V3, mut visible: impl FnMut(V3) -> bool) -> Vec<(V3, V3)> {
+    let mut spans = Vec::new();
+    let mut start = None;
+    let mut last = from;
+    for k in 0..=SEGMENT_SAMPLES {
+        let p = from + (to - from) * (k as f64 / SEGMENT_SAMPLES as f64);
+        if visible(p) {
+            start.get_or_insert(p);
+        } else if let Some(a) = start.take() {
+            if a != last {
+                spans.push((a, last));
+            }
+        }
+        last = p;
+    }
+    if let Some(a) = start {
+        if a != last {
+            spans.push((a, last));
+        }
+    }
+    spans
+}
+
 impl Battle {
     /// Fly every round one tick against the world and this tick's bodies,
     /// keeping each round's flown segment for visibility.
@@ -264,5 +288,25 @@ impl Battle {
         let live: BTreeSet<ProjectileId> = self.projectiles.active().iter().map(|p| p.id).collect();
         self.rounds.retain(|id, _| live.contains(id));
         self.suppressed.retain(|(id, _), _| live.contains(id));
+    }
+}
+
+#[cfg(test)]
+mod flare_visibility_tests {
+    use super::*;
+
+    #[test]
+    fn a_flare_path_never_bridges_an_unseen_interval() {
+        let from = v3(0.0, 0.0, 20.0);
+        let to = v3(8.0, 0.0, 12.0);
+        let spans = visible_line(from, to, |p| p.x <= 2.0 || p.x >= 6.0);
+        assert_eq!(
+            spans,
+            vec![(from, v3(2.0, 0.0, 18.0)), (v3(6.0, 0.0, 14.0), to)]
+        );
+        assert!(
+            visible_line(from, to, |p| p.x == 4.0).is_empty(),
+            "one visible point cannot disclose a surrounding segment"
+        );
     }
 }

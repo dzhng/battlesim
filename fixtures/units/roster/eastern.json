@@ -40,7 +40,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -123,7 +122,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -297,7 +295,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -382,7 +379,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -485,7 +481,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -589,7 +584,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -667,7 +661,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -751,7 +744,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -1520,7 +1512,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -1602,7 +1593,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -2248,7 +2238,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -2377,7 +2366,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -2473,7 +2461,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -2587,7 +2574,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -2701,7 +2687,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -2816,7 +2801,6 @@
             }
           },
           "weight_class": "light",
-          "push_class": "light",
           "wreck": "light_wreck"
         }
       },
@@ -2900,7 +2884,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -3009,7 +2992,6 @@
             }
           },
           "weight_class": "heavy",
-          "push_class": "heavy",
           "wreck": "heavy_wreck"
         }
       },
@@ -3123,7 +3105,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -3334,7 +3315,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -3446,7 +3426,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },
@@ -3528,7 +3507,6 @@
             }
           },
           "weight_class": "medium",
-          "push_class": "medium",
           "wreck": "medium_wreck"
         }
       },

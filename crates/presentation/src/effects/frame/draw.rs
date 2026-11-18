@@ -51,11 +51,24 @@ pub(super) fn draw_tracer(
     }
     // The round is on this stretch from its tick's start to its end (a
     // clock at the tick's end lands a rounding off it).
-    if (style.body.is_none() && style.cast.is_none()) || age <= 0.0 || head > length * (1.0 + 1e-6)
+    if (style.body.is_none() && style.cast.is_none() && style.head_glow.is_none())
+        || age <= 0.0
+        || head > length * (1.0 + 1e-6)
     {
         return;
     }
     let a = point_along(e, head.min(length));
+    if let Some(glow) = &style.head_glow {
+        batch.glow(
+            a,
+            glow.width_m,
+            glow.min_px,
+            glow.color,
+            glow.intensity,
+            0.0,
+            5.0,
+        );
+    }
     if let Some(body) = &style.body {
         batch.disc(a, body.size_m, p.min_px * 2.0, body.color, 1.0);
     }

@@ -25,7 +25,6 @@ export const hullType = (
       hp: 1,
       armor: { ...armor, ricochet: armor },
       weight_class: "heavy",
-      push_class: "heavy",
       wreck: "heavy_wreck",
     },
   },

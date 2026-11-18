@@ -410,6 +410,15 @@ impl Battle {
                         supported: g.supported,
                     })
                 }));
+            frame.flares.clear();
+            for (from, to, layer) in self.projectiles.flares() {
+                for (from, to) in flown::visible_line(from, to, |point| sees_round(layer, point)) {
+                    frame.flares.push(contract::observation::Flare {
+                        from: xyz(from),
+                        to: xyz(to),
+                    });
+                }
+            }
             frame.air_transits.clear();
             frame
                 .air_transits

@@ -68,7 +68,8 @@ impl Battle {
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile takes a fixed descent aim projected by
     /// `guided.release_coast_s`, so a far one misses a target it no longer sees.
-    /// Flares are dispensed first, so a spoofed round is steered no more.
+    /// Flares are dispensed first, so a spoofed round follows its flare instead
+    /// of another launcher or seeker command.
     pub(super) fn guide(&mut self, moved: &weapons::tick::Moved) {
         // A physical miss may have ended steering last tick. Drop its
         // ownership before countermeasures consult the remaining tracks.

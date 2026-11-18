@@ -106,10 +106,12 @@ fn scattered_fixed_row_insertions_do_not_resend_the_retained_tail() {
     let (logical, ends) = record(&rows);
     let mut encoded = Vec::new();
     encode_delivery(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
+    // This contract bounds changed row payload, independently of the
+    // observation schema's shared header and per-group delivery metadata.
+    let payload_bytes = (encoded.len() - HEADER.len() - GROUPS * DELIVERY_FIELDS.len()) * 4;
     assert!(
-        encoded.len() * 4 < 512,
-        "three new rows must not resend 100 retained rows: {} B",
-        encoded.len() * 4
+        payload_bytes < 512,
+        "three new rows must not resend 100 retained rows: {payload_bytes} B"
     );
     assert_eq!(
         decode_group(&encoded, &old),

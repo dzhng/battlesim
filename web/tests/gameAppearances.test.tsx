@@ -93,6 +93,7 @@ test("learned and fallen unit art stays until the battle or observing side chang
     crashes: [],
     shouts: [],
     guided: [],
+    flares: [],
     encounter: null,
     skirmish: null,
     fog: { cellM: 1, nx: 1, ny: 1, bits: new Uint32Array(1) },

@@ -50,9 +50,9 @@ impl WeightClass {
     }
 }
 
-/// What a vehicle can shove aside (Q3): every body strictly lighter than its
-/// class. Room is left for obstacle clearers (`super_heavy` clears tank
-/// wrecks and dragon's teeth).
+/// What a mover can shove aside (Q3): every body strictly lighter than its
+/// class. A vehicle's is its hull's weight (`Hull::push_class`); a soldier
+/// shoves nothing.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PushClass {

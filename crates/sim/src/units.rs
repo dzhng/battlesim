@@ -542,7 +542,7 @@ impl Unit {
     pub fn push_class(&self, rules: &Rules) -> PushClass {
         self.unit_type(rules)
             .hull()
-            .map_or(PushClass::None, |h| h.push_class)
+            .map_or(PushClass::None, |h| h.push_class())
     }
 
     /// The class this unit presents to weapons now. A landed aircraft is a

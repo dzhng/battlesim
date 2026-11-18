@@ -300,7 +300,7 @@ fn left_open(catalog: &Catalog, presets: &PresetDefinitions, kind: &str) -> [f64
     let [wide, long] = catalog
         .indices()
         .filter_map(|unit| catalog.get(unit).ground_hull())
-        .filter(|hull| !hull.push_class.pushes(weight))
+        .filter(|hull| !hull.shoves(weight))
         .fold([0.0_f64, 0.0_f64], |[w, l], hull| {
             [
                 w.max(2.0 * hull.half_extents_m[1]),

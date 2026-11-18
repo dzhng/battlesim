@@ -2691,7 +2691,6 @@
                 0.95
               ],
               "hp": 40,
-              "push_class": "light",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -2864,7 +2863,6 @@
                 1.8
               ],
               "hp": 60,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -2933,7 +2931,6 @@
                 1.2
               ],
               "hp": 100,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }

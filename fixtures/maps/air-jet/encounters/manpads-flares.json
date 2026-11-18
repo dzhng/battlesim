@@ -1,0 +1,51 @@
+{
+  "units": [
+    {
+      "side": "blue",
+      "kind": "test_at",
+      "position": [
+        1400,
+        1500
+      ]
+    },
+    {
+      "side": "red",
+      "kind": "test_heli",
+      "position": [
+        1800,
+        1500
+      ],
+      "engagement": "return_fire_only"
+    }
+  ],
+  "overrides": {
+    "weapons": {
+      "atgm": {
+        "targets": {
+          "low_air": {
+            "classes": [
+              "air_rotor"
+            ],
+            "range_m": 650,
+            "scatter_mrad": 0.5
+          }
+        },
+        "ammo": 1,
+        "decoyable": true
+      },
+      "hmg": {
+        "damage": 0
+      }
+    },
+    "units": {
+      "test_heli": {
+        "capabilities": {
+          "flares": {
+            "capacity": 2,
+            "reload_s": 30
+          }
+        }
+      }
+    }
+  }
+}

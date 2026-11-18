@@ -482,7 +482,7 @@ fn a_tank_with_a_trunk_beside_it_rolls_clear_to_turn_and_faces_as_ordered() {
         "test_tank",
         json!({
             "body": { "hull": { "half_extents_m": [3.5, 1.7, 1.3],
-                                "weight_class": "medium", "push_class": "medium",
+                                "weight_class": "medium",
                                 "wreck": "medium_wreck" } },
             "mobility": { "tracked": { "offroad_kmh": 30, "road_kmh": 64, "turn_deg_s": 50,
                                        "reverse_speed_factor": 0.4 } }

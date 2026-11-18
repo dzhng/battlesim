@@ -160,7 +160,11 @@ The [game rules](../../development.md#game-rules) define how a truck spends its
 final remainder.
 A jet never stands still in reach, so it rearms flares only by withdrawing.
 Protection state is part of the battle digest and never becomes an offensive
-weapon row.
+weapon row. A flare diverts a decoyable missile onto the physical decoy ejected
+beside the aircraft. The missile lets go of its original target and launcher,
+follows the falling flare, and still collides with anything in its path; a
+nearby burst can still hurt the aircraft. Observations carry only the flare
+paths each side can see, without the protected unit’s identity.
 
 [Kill settlement](src/settlement.rs) consumes causal full-unit deaths and immutable
 purchase receipts. Both sides settle against the same pre-tick bounty pools, so
