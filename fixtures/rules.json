@@ -836,7 +836,7 @@
       "blast_radius_m": 36,
       "structural_damage": 180,
       "trajectory": "indirect",
-      "arc_height_m": 65
+      "arc_height_m": 80
     },
     "artillery_mortar": {
       "resupply_rounds_per_s": 0.1,
@@ -863,7 +863,7 @@
       "blast_radius_m": 30,
       "structural_damage": 110,
       "trajectory": "indirect",
-      "arc_height_m": 65
+      "arc_height_m": 80
     },
     "artillery_rocket_light": {
       "resupply_rounds_per_s": 0.25,
@@ -891,7 +891,7 @@
       "blast_radius_m": 32,
       "structural_damage": 150,
       "trajectory": "indirect",
-      "arc_height_m": 65
+      "arc_height_m": 80
     },
     "artillery_rocket_heavy": {
       "resupply_rounds_per_s": 0.2,
@@ -919,7 +919,7 @@
       "blast_radius_m": 40,
       "structural_damage": 220,
       "trajectory": "indirect",
-      "arc_height_m": 65
+      "arc_height_m": 80
     },
     "artillery_strike_missile": {
       "resupply_rounds_per_s": 0.025,
@@ -946,7 +946,7 @@
       "blast_radius_m": 48,
       "structural_damage": 300,
       "trajectory": "indirect",
-      "arc_height_m": 65
+      "arc_height_m": 80
     }
   },
   "suppression": {
