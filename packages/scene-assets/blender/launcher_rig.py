@@ -27,3 +27,4 @@ def launcher(v, pivot, elevation, pack, base=(), mount="launcher", vertical=Fals
         world = part.matrix_world.copy()
         part.parent = owner
         part.matrix_world = world
+    return hinge

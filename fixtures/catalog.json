@@ -20584,9 +20584,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                -2.5,
+                1.39,
                 0.0,
-                0.0
+                -0.2
               ],
               "name": "Rockets",
               "on": null,
@@ -20680,9 +20680,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                -2.5,
+                1.39,
                 0.0,
-                0.0
+                -0.2
               ],
               "name": "Strike Missile",
               "on": null,
@@ -42363,9 +42363,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            -2.5,
+            1.39,
             0.0,
-            0.0
+            -0.2
           ],
           "name": "Rockets",
           "on": null,
@@ -42462,9 +42462,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            -2.5,
+            1.39,
             0.0,
-            0.0
+            -0.2
           ],
           "name": "Strike Missile",
           "on": null,

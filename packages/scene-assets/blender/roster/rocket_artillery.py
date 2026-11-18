@@ -11,7 +11,7 @@ What the photos settle:
   rear of the hull, the pods' aft caps in its rear face.
 - HIMARS: the FMTV 6x6, its flat-fronted armoured cab, the launcher module
   on a turntable behind: a ribbed box filling the rear deck, one pod in it
-  whose capped face shows at the rear: six GMLRS rounds, or (PrSM) two
+  whose capped face points forward in the game: six GMLRS rounds, or (PrSM) two
   missiles behind two large caps.
 - BM-21: the Ural-375D 6x6 (the roster Ural's chassis and cab), a spare
   wheel behind the cab, flat fenders over the rear bogie, the forty 122 mm
@@ -35,7 +35,7 @@ import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, prism  # noqa: E402
+from parts import box, cyl, empty, prism  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
 from launcher_rig import launcher as articulate_launcher  # noqa: E402
@@ -56,28 +56,28 @@ CARDS = {
 # ---------------------------------------------------------------- pods
 def pod(v, name, loc, size, cells, parent, caps=None):
     """A launch pod `size` (x along the rounds, y, z) stowed as the photos
-    show it, its face at its rear (-X) end: `cells` (columns, rows) of rounds
+    show it, its face at its forward (+X) end: `cells` (columns, rows) of rounds
     behind frangible caps in their steel rims, or `caps` large caps (PrSM),
     in a recessed face; stiffening ribs round its body and lifting eyes on
     its top corners."""
     m = v.mats
     sx, sy, sz = size
     x, y, z = loc
-    face = x - sx / 2
+    face = x + sx / 2
     box(f"{name}_body", size, loc, m["paint"], parent, bevel=0.03)
     for k in range(4):
         box(f"{name}_rib_{k}", (0.06, sy + 0.03, sz + 0.03), (x - sx / 2 + 0.25 + k * (sx - 0.4) / 3, y, z),
             m["paint"], parent, bevel=0.01, lods=NEAR)
-    box(f"{name}_face", (0.02, sy - 0.08, sz - 0.08), (face - 0.005, y, z), m["black"], parent, lods=MID)
+    box(f"{name}_face", (0.02, sy - 0.08, sz - 0.08), (face + 0.005, y, z), m["black"], parent, lods=MID)
     cols, rows = cells if caps is None else (caps, 1)
     cell = min(sy / cols, sz / rows) * 0.82
     for i in range(cols):
         for j in range(rows):
             cy = y - sy / 2 + sy * (i + 0.5) / cols
             cz = z - sz / 2 + sz * (j + 0.5) / rows
-            cyl(f"{name}_rim_{i}_{j}", cell / 2 + 0.02, 0.04, (face - 0.02, cy, cz), "X", m["steel"], parent, seg=16,
+            cyl(f"{name}_rim_{i}_{j}", cell / 2 + 0.02, 0.04, (face + 0.02, cy, cz), "X", m["steel"], parent, seg=16,
                 lods=NEAR)
-            cyl(f"{name}_cap_{i}_{j}", cell / 2, 0.03, (face - 0.03, cy, cz), "X", m["dark"], parent, seg=16,
+            cyl(f"{name}_cap_{i}_{j}", cell / 2, 0.03, (face + 0.03, cy, cz), "X", m["dark"], parent, seg=16,
                 bevel=0.008, lods=MID)
     for i, dy in enumerate((-1, 1)):
         for j, dx in enumerate((-1, 1)):
@@ -85,18 +85,17 @@ def pod(v, name, loc, size, cells, parent, caps=None):
                 "Z", m["steel"], parent, seg=8, lods=FINE)
 
 
-REAR_LIP = 0.12
+FRONT_LIP = 0.12
 
 
 def launcher_box(v, name, x0, x1, z0, z1, width, parent):
     """The armoured launcher box a pod rides in (the HIMARS's launcher-loader
     module): upright ribbed sides, its top chamfered down at
-    the front, the loader boom's rail along its top and the cable run down
-    its right side. Open at the rear (-X): its shell starts `REAR_LIP` ahead
-    of `x0`, where the pod's face shows."""
+    the rear, the loader boom's rail along its top and the cable run down
+    its right side. Open at the front (+X), where the capped pod projects past the shell."""
     m = v.mats
-    x0 += REAR_LIP
-    prism(f"{name}_shell", [(x0, z0), (x1, z0), (x1, z1 - 0.30), (x1 - 0.30, z1), (x0, z1)], width, mat=m["paint"],
+    x1 -= FRONT_LIP
+    prism(f"{name}_shell", [(x0, z0), (x1, z0), (x1, z1), (x0 + 0.30, z1), (x0, z1 - 0.30)], width, mat=m["paint"],
           parent=parent, bevel=0.04)
     ribs = max(3, round((x1 - x0) / 0.75))
     for k in range(ribs):
@@ -104,8 +103,8 @@ def launcher_box(v, name, x0, x1, z0, z1, width, parent):
         for side in (-1, 1):
             box(f"{name}_rib_{side}_{k}", (0.07, 0.04, z1 - z0 - 0.10), (x, side * (width / 2 + 0.02), (z0 + z1) / 2 - 0.05),
                 m["paint"], parent, bevel=0.01, lods=NEAR)
-    box(f"{name}_rear_frame", (0.08, width + 0.04, 0.10), (x0 + 0.04, 0, z1 - 0.05), m["paint"], parent, bevel=0.015)
-    box(f"{name}_rear_sill", (0.08, width + 0.04, 0.10), (x0 + 0.04, 0, z0 + 0.05), m["paint"], parent, bevel=0.015)
+    box(f"{name}_front_frame", (0.08, width + 0.04, 0.10), (x1 - 0.04, 0, z1 - 0.05), m["paint"], parent, bevel=0.015)
+    box(f"{name}_front_sill", (0.08, width + 0.04, 0.10), (x1 - 0.04, 0, z0 + 0.05), m["paint"], parent, bevel=0.015)
     # The loader boom stowed along the top's left edge, its hoist at the rear.
     box(f"{name}_boom", (x1 - x0 - 0.50, 0.14, 0.14), ((x0 + x1) / 2 - 0.20, width / 2 - 0.18, z1 + 0.07),
         m["paint"], parent, bevel=0.02, lods=MID)
@@ -125,8 +124,15 @@ def himars(v, prsm):
     cyl("launcher_turntable", 0.75, 0.12, (-0.60, 0, deck + 0.36), "Z", m["dark"], h, seg=28)
     # The launcher-loader module over the rear deck, one pod in its box.
     x0, x1 = -half + 0.08, 0.76
+    hinge_x = x0 + 0.16
+    cyl("cradle_axle", 0.14, 2.24, (hinge_x, 0, deck + 0.54), "Y", m["steel"], h, seg=16)
+    for side in (-1, 1):
+        box(f"cradle_rail_{side}", (-0.6 - hinge_x + 0.4, 0.16, 0.16),
+            ((hinge_x - 0.6) / 2, side * 0.57, deck + 0.46), m["dark"], h)
+        cyl(f"cradle_pin_{side}", 0.17, 0.18, (hinge_x, side * 1.10, deck + 0.54),
+            "Y", m["steel"], h, seg=16)
     launcher_box(v, "launcher", x0, x1, deck + 0.42, 3.06, 2.28, h)
-    pod(v, "pod", (x0 + (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
+    pod(v, "pod", (x1 - (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
         caps=2 if prsm else None)
     for side, s in ((1, "L"), (-1, "R")):
         SW.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
@@ -136,6 +142,27 @@ def himars(v, prsm):
     cyl("air_intake", 0.16, 0.90, (1.05, 0.90, deck + 1.05), "Z", m["paint"], h, seg=16, bevel=0.02)
     cyl("air_intake_cap", 0.20, 0.12, (1.05, 0.90, deck + 1.55), "Z", m["dark"], h, seg=16, lods=MID)
     cyl("exhaust_stack", 0.07, 1.30, (1.08, -0.98, deck + 0.95), "Z", m["dark"], h, seg=12)
+
+    elevation = 32
+    hinge = articulate_launcher(v, (hinge_x, 0, deck + 0.54), elevation,
+                                ("launcher_shell", "launcher_rib", "launcher_front", "launcher_hoist",
+                                 "launcher_boom", "launcher_cable", "pod_"),
+                                ("launcher_turntable", "cradle_"), mount="gun")
+    if hinge is not None:
+        # Equal arm lengths keep the sliding feet on their horizontal cradle rails.
+        arm = 1.3
+        rocker = empty("deploy_lift_arms", (arm, 0, 0), hinge,
+                       props={"deploy_start": 0.0, "deploy_end": 1.0, "deploy_turn_y": 2 * elevation})
+        for side in (-1, 1):
+            y = side * 0.57
+            box(f"lift_arm_{side}", (arm, 0.16, 0.18), (arm / 2, y, 0), m["dark"], rocker, bevel=0.025)
+            cyl(f"lift_roller_{side}", 0.12, 0.22, (arm, y, 0), "Y", m["steel"], rocker, seg=16)
+        # Deployment pitches the pod. Its flash and exhaust follow the same hinge.
+        gun = next(child for child in hinge.parent.children if child.name == "gun")
+        gun["pitch_min_deg"] = gun["pitch_max_deg"] = 0.0
+        world = gun.matrix_world.copy()
+        gun.parent = hinge
+        gun.matrix_world = world
 
 
 def bm21(v):
@@ -272,12 +299,10 @@ def build(variant, v):
 
     if ident in M270:
         articulate_launcher(v, (-3.21, 0, 1.38), 35, ("gun_body_",), ("turret_body_",), mount="gun")
-    elif ident.startswith("us_m142"):
-        articulate_launcher(v, (0.55, 0, 1.85), -32, ("launcher_shell", "launcher_rib", "launcher_rear", "launcher_hoist", "launcher_boom", "launcher_cable", "pod_"), ("launcher_turntable",), mount="gun")
     elif ident.startswith("eastern_bm_21"):
         articulate_launcher(v, (-1.45, 0, 2.22), -24, ("grad_", "tube_"),
                             ("cradle_plate_", "sector_gear_", "launcher_turntable", "elevating_ram"), mount="gun")
-    else:
+    elif ident.startswith("eastern_9k515"):
         articulate_launcher(v, (-3.4, 0, 2.25), 30, ("smerch_", "tube_band_"), (), mount="gun")
 
 
