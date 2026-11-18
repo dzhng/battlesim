@@ -58,9 +58,11 @@ both clients: firing has an explicit recording, while other parts may use the
 mix's defaults. Changing look values never changes battle rules or outcomes.
 A hull's launch follows the mount's last-fired weapon row (the published
 `WeaponPose.round`), so a mount carrying several weapons plays the one it fired.
-Vehicle loops are keyed by vehicle class
-(the catalog view's `vehicle_class`, which `contract::catalog::UnitType::vehicle_class`
-derives from mobility, hull weight and the logistics role).
+Vehicle loops use the catalog's physical vehicle class by default. The audio
+mix can assign a different sound class by unit kind. Armored gunships and large
+transports use the Super Huey for its heavier blade beat. Other helicopters use
+the Black Hawk. Both play at recorded pitch at flight rotor speed and follow the
+blades down in pitch and level as they stop.
 
 The [sound workbench](../../apps/sound-workbench/README.md) auditions the complete
 library, including unused reloads and mechanical actions. Storing a clip does not
@@ -168,7 +170,7 @@ about 40 kbps. `assets.py voice-profiles` prints the definitions the tool hashes
 
 A bed is the game's own sound for that machine, so a sound has one owner: the
 profile names a clip in [`sounds.json`](../../fixtures/sounds.json) (the intercom's
-rotor is `rotor-uh60`, the loop every helicopter plays) and a filter that places it,
+rotor is the Black Hawk loop) and a filter that places it,
 such as the cockpit's muffling. Only a machine the game has no recording of gets a
 generated bed, a raw master the tool's `beds` command buys once and the lock records;
 the tank's engine is one, since the game synthesises engines. Either way the bed's

@@ -161,8 +161,8 @@ impl Detail {
 #[serde(rename_all = "camelCase")]
 pub struct UnitType {
     pub hull: bool,
-    /// Its vehicle class (`vehicleClass`): the sound row its engine, running
-    /// gear and turret take; none for a squad.
+    /// Its catalog vehicle class (`vehicleClass`), which supplies the default
+    /// movement sound row. None for a squad.
     #[serde(default)]
     pub vehicle_class: Option<String>,
     /// Its mobility is flight, even when observed standing on the ground.

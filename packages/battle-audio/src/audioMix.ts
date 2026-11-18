@@ -129,6 +129,8 @@ export interface AudioMix {
     impacts: Record<string, string>;
   };
   vehicles: Record<string, VehicleSound>;
+  /** Movement sound row by unit kind where it differs from the physical class. */
+  vehicle_class_overrides?: Record<string, string>;
   footsteps: OneShot & { stride_m: number; max_step_m: number };
   /** Fire loops by smoke-source kind. */
   fires: Record<string, FireSound>;

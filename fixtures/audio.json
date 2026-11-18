@@ -227,9 +227,9 @@
     },
     "air_light": {
       "engine_distance": "aircraft_engines",
-      "engine": "rotor",
-      "idle_rate": 1.1,
-      "load_rate": 1.1,
+      "engine": "recorded-rotor-uh60",
+      "idle_rate": 1,
+      "load_rate": 1,
       "idle_gain": 4,
       "load_gain": 8,
       "running": null,
@@ -243,9 +243,9 @@
     },
     "air_light_logistics": {
       "engine_distance": "aircraft_engines",
-      "engine": "rotor",
-      "idle_rate": 1.1,
-      "load_rate": 1.1,
+      "engine": "recorded-rotor-uh60",
+      "idle_rate": 1,
+      "load_rate": 1,
       "idle_gain": 4,
       "load_gain": 8,
       "running": null,
@@ -259,7 +259,7 @@
     },
     "air_medium": {
       "engine_distance": "aircraft_engines",
-      "engine": "rotor",
+      "engine": "recorded-rotor-uh60",
       "idle_rate": 1,
       "load_rate": 1,
       "idle_gain": 5,
@@ -275,9 +275,9 @@
     },
     "air_heavy": {
       "engine_distance": "aircraft_engines",
-      "engine": "rotor",
-      "idle_rate": 0.9,
-      "load_rate": 0.9,
+      "engine": "recorded-rotor-huey",
+      "idle_rate": 1,
+      "load_rate": 1,
       "idle_gain": 6,
       "load_gain": 12,
       "running": null,
@@ -337,6 +337,23 @@
       "reverse": null,
       "reverse_gain": 0
     }
+  },
+  "vehicle_class_overrides": {
+    "ah_64e_guardian": "air_heavy",
+    "eastern_ka_52_alligator_ka_52m": "air_heavy",
+    "eastern_mi_24_mi_35_hind_mi_35m": "air_heavy",
+    "eastern_mi_28_havoc_mi_28nm": "air_heavy",
+    "eastern_mi_8_hip_mi_8amtsh": "air_heavy",
+    "eastern_mi_8_hip_supply": "air_heavy",
+    "eastern_z_10_attack_helicopter": "air_heavy",
+    "europe_aw101_merlin_hc4": "air_heavy",
+    "europe_ch_47_chinook_hc6": "air_heavy",
+    "europe_ch_47_chinook_supply": "air_heavy",
+    "europe_ec665_tiger_had": "air_heavy",
+    "europe_ec665_tiger_uht": "air_heavy",
+    "us_ah_1z_viper_attack_helicopter": "air_heavy",
+    "us_ch_47_chinook_ch_47f": "air_heavy",
+    "us_ch_47_chinook_supply": "air_heavy"
   },
   "footsteps": {
     "sound": "footstep",
@@ -416,8 +433,7 @@
     "explosion_far": "recorded-explosion",
     "motor": "recorded-motor",
     "footstep": "recorded-footstep-boots-gravel-fission9",
-    "tracks": "recorded-tracks-craigsmith-tanks-close",
-    "rotor": "recorded-rotor-uh60"
+    "tracks": "recorded-tracks-craigsmith-tanks-close"
   },
   "weapon_defaults": {
     "blast": {

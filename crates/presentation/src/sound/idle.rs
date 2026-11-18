@@ -48,7 +48,10 @@ pub fn idle_loops_of(setup: &str, kind: &str) -> Result<Vec<IdleLoop>, String> {
         .ok_or_else(|| format!("sound: {kind} is not in the unit catalog"))?;
     Ok(idle_loops(
         &admitted.tables,
-        unit["vehicle_class"].as_str(),
+        admitted
+            .tables
+            .audio
+            .vehicle_class_for(kind, unit["vehicle_class"].as_str()),
         fielded::flies(unit),
     ))
 }
