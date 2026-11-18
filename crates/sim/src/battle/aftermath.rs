@@ -201,7 +201,7 @@ impl Battle {
             let (Some(hull), Some(h)) = (u.ground_footprint(), u.hull) else {
                 continue;
             };
-            let knocks = tree.topples && u.ground().push.pushes(tree.weight_class);
+            let knocks = tree.topples && u.push_class(&self.rules).pushes(tree.weight_class);
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }

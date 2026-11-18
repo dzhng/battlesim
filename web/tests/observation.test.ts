@@ -248,6 +248,7 @@ test("deployment progress, its target and the packing state decode", () => {
   const scenario = labScenario(deploymentMap, [
     { side: "blue", kind: "test_supply", position: [100, 100] },
     { side: "blue", kind: "test_tank", position: [100, 60] },
+    { side: "red", kind: "test_rifle", position: [100, 140] },
   ]);
   const battle = new Battle(scenario, 3);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
@@ -262,6 +263,12 @@ test("deployment progress, its target and the packing state decode", () => {
   // A stopped supply unit sets up where it stands; a tank never deploys.
   expect(supply.deployment).toEqual({ progress: 0.5, target: "deployed" });
   expect(tank.deployment).toBeNull();
+  expect(supply.grounded).toBe(false);
+  const enemySupply = published(battle, layout, "red").identified.find(
+    (u) => u.kind === "test_supply",
+  );
+  expect(enemySupply?.deployment).toEqual({ progress: 0.5, target: "deployed" });
+  expect(enemySupply?.grounded).toBe(false);
   expect(send({ kind: "set_deployment", units: [0], deployed: false }).error).toBeNull();
   battle.step();
   [supply] = decode().own;

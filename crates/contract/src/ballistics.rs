@@ -59,7 +59,7 @@ pub enum Trajectory {
     /// Normal low arc only; gravity alone does not make ground fire airborne.
     #[default]
     Direct,
-    /// A dedicated indirect-fire weapon: prefers the high arc. Its
+    /// A dedicated indirect-fire weapon: prefers a lob. Its
     /// ground-to-ground projectiles use LowAir for their entire flight.
     Indirect,
 }
@@ -81,6 +81,7 @@ pub struct WeaponBallistics {
     #[serde(default, skip_serializing_if = "Delivery::is_powered")]
     pub delivery: Delivery,
     /// Launch speed: a gun's muzzle speed, a missile's speed off the rail.
+    /// A weapon with an authored arc height uses this as a ceiling.
     /// An unpowered air bomb omits this and resolves to zero.
     #[serde(default)]
     pub speed_mps: f64,
@@ -108,6 +109,10 @@ pub struct WeaponBallistics {
     pub lifetime_s: Option<f64>,
     #[serde(default)]
     pub trajectory: Trajectory,
+    /// Indirect fire climbs this far above the higher of muzzle and aim point.
+    /// Absent, the weapon uses its fixed launch speed to find a ballistic arc.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc_height_m: Option<f64>,
     /// A guided round: it flies without gravity, steering toward its
     /// commanded point no faster than this (P05, P06).
     #[serde(default)]

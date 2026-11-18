@@ -36,31 +36,49 @@ fn rank(rules: &Rules, cards: &mut [TypeIndex], threat: Option<&Threat>) {
     });
 }
 
+/// Whether the type moves on the ground, for the standing supplier's job.
+pub(super) fn drives(rules: &Rules, kind: TypeIndex) -> bool {
+    rules.catalog.get(kind).mobility.locomotion().is_some()
+}
+
+/// A supplier that drives to the standing support post.
+pub(super) fn standing_supplier(rules: &Rules, kind: TypeIndex) -> bool {
+    let t = rules.catalog.get(kind);
+    t.has_role("logistics") && t.capabilities.supply.is_some() && drives(rules, kind)
+}
+
+/// A supplier that can land beside a group for emergency service.
+pub(super) fn flying_supplier(rules: &Rules, kind: TypeIndex) -> bool {
+    let t = rules.catalog.get(kind);
+    t.has_role("logistics") && t.capabilities.supply.is_some() && t.landing().is_some()
+}
+
 /// The `ordinal`-th best card of `role` against `threat`, the enemies the
 /// side has identified, if any (of `category`
 /// when no role is named, or the deck has no card of it). An unarmed
-/// carrier only carries: pairing alone buys it.
+/// carrier only carries: pairing alone buys it. Standing logistics drives.
 pub(super) fn pick(
     rules: &Rules,
     eligible: &[TypeIndex],
     threat: Option<&Threat>,
     (role, category, ordinal): (Option<&str>, Category, usize),
 ) -> Option<TypeIndex> {
+    let eligible = eligible
+        .iter()
+        .copied()
+        .filter(|&k| role != Some("logistics") || standing_supplier(rules, k));
     let unarmed_carrier =
         |k: TypeIndex| crate::carriage::seats(rules, k) > 0 && rules.catalog.mounts(k).is_empty();
     let mut matching: Vec<_> = role
         .map(|role| {
             eligible
-                .iter()
-                .copied()
+                .clone()
                 .filter(|&k| rules.catalog.get(k).has_role(role) && !unarmed_carrier(k))
                 .collect()
         })
         .unwrap_or_default();
     if matching.is_empty() && role != Some("artillery") {
         matching = eligible
-            .iter()
-            .copied()
             .filter(|&k| !unarmed_carrier(k))
             .filter(|&k| {
                 let unit = rules.catalog.get(k);
@@ -157,7 +175,7 @@ pub(super) struct Buy {
 }
 
 impl Buy {
-    fn alone(kind: TypeIndex) -> Self {
+    pub(super) fn alone(kind: TypeIndex) -> Self {
         Self {
             kind,
             carrier: None,
@@ -407,12 +425,8 @@ impl BalancedDoctrine {
         };
         let truck = pick(Some("logistics"), Category::Sup, 0);
         if truck.is_some()
-            && !frame
-                .own
-                .iter()
-                .any(|u| rules.catalog.get(u.kind).has_role("logistics"))
-            && !(me.pending.iter().flat_map(|p| p.kinds()))
-                .any(|k| rules.catalog.get(k).has_role("logistics"))
+            && !frame.own.iter().any(|u| standing_supplier(rules, u.kind))
+            && !(me.pending.iter().flat_map(|p| p.kinds())).any(|k| standing_supplier(rules, k))
         {
             return truck.map(Buy::alone).and_then(affordable);
         }

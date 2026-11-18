@@ -50,6 +50,8 @@ impl Battle {
     }
 
     pub(super) fn sweep_fog_profiled(&mut self, side: Side, completed: &mut impl FnMut(TickPhase)) {
+        self.occlusion
+            .retain_observers(|id| self.units[id.0 as usize].on_field());
         let mut field = self.occlusion.field();
         let mut candidates = Vec::new();
         let mut remembered = Vec::new();

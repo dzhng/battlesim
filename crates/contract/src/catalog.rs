@@ -29,7 +29,7 @@ use crate::scenario::{Blocks, CoverTier, WeightClass};
 use crate::weapons::MountDefinition;
 
 pub mod inheritance;
-pub use inheritance::inherit;
+pub use inheritance::{inherit, merge, merge_entry};
 
 mod mobility;
 use mobility::air_problem;
@@ -427,84 +427,8 @@ impl Catalog {
     }
 }
 
-impl UnitType {
-    /// What it is to a weapon choosing its targets: an aircraft by how it
-    /// flies, else a hull on the ground, else soldiers.
-    pub fn target_class(&self) -> crate::weapons::TargetClass {
-        use crate::weapons::TargetClass;
-        match (self.mobility.flight(), &self.body) {
-            (Some(FlightModel::Rotor), _) => TargetClass::AirRotor,
-            (Some(FlightModel::FixedWing), _) => TargetClass::AirFixedWing,
-            (None, Body::Hull(_)) => TargetClass::Vehicle,
-            (None, Body::Squad { .. }) => TargetClass::Infantry,
-        }
-    }
-
-    /// A vehicle: it has a hull.
-    pub fn hull(&self) -> Option<&Hull> {
-        match &self.body {
-            Body::Hull(h) => Some(h),
-            Body::Squad { .. } => None,
-        }
-    }
-
-    /// A vehicle that drives on the ground: its hull. None for a squad and
-    /// for an aircraft, which has a hull but never drives a road.
-    pub fn ground_hull(&self) -> Option<&Hull> {
-        match self.mobility {
-            Mobility::Air { .. } => None,
-            _ => self.hull(),
-        }
-    }
-
-    /// Infantry: it has soldier slots.
-    pub fn slots(&self) -> Option<&[String]> {
-        match &self.body {
-            Body::Squad { slots } => Some(slots),
-            Body::Hull(_) => None,
-        }
-    }
-
-    /// Soldiers at full strength (0 for a hull).
-    pub fn squad_size(&self) -> usize {
-        self.slots().map_or(0, <[String]>::len)
-    }
-
-    pub fn has_role(&self, role: &str) -> bool {
-        self.roles.iter().any(|r| r == role)
-    }
-
-    /// A vehicle's presentation class, from its physics: how it moves
-    /// (tracked, wheeled, `air`, or `high_air` for an aircraft in high air),
-    /// its hull's weight class, plus `_logistics` for a supply carrier.
-    /// None for a squad.
-    pub fn vehicle_class(&self) -> Option<String> {
-        let hull = self.hull()?;
-        let moves = match self.mobility {
-            Mobility::Foot { .. } => return None,
-            Mobility::Tracked { .. } => "tracked",
-            Mobility::Wheeled { .. } => "wheeled",
-            Mobility::Air {
-                layer: AltitudeLayer::HighAir,
-                ..
-            } => "high_air",
-            Mobility::Air { .. } => "air",
-        };
-        let weight = match hull.weight_class {
-            WeightClass::Trivial => "trivial",
-            WeightClass::Light => "light",
-            WeightClass::Medium => "medium",
-            WeightClass::Heavy => "heavy",
-            WeightClass::Immovable => "immovable",
-        };
-        let hauls = if self.capabilities.supply.is_some() {
-            "_logistics"
-        } else {
-            ""
-        };
-        Some(format!("{moves}_{weight}{hauls}"))
-    }
-}
+mod unit_type;
+pub use unit_type::Landing;
 
 /// Why a catalog failed to load: every error names the entry at fault.
 #[derive(Clone, Debug, PartialEq)]
@@ -830,87 +754,6 @@ fn parse<T: serde::de::DeserializeOwned>(
             Ok((id, record))
         })
         .collect()
-}
-
-/// A unit type's components written as a one-key variant object
-/// (`{ "hull": … }`, `{ "tracked": … }`).
-const VARIANTS: [&str; 2] = ["body", "mobility"];
-
-/// Merge an `extends` child (or a part's patch) into an entry of `section`,
-/// as [`merge`] does, with two rules for unit types: a component the child
-/// writes as another variant (`mobility: { wheeled }` over `tracked`)
-/// replaces the parent's rather than merging both, and `parts` gather along
-/// the chain, the parent's first. Idempotent.
-pub fn merge_entry(section: &str, base: &mut Value, over: &Value) {
-    let parts = match (section, base.as_object_mut(), over.as_object()) {
-        ("units", Some(b), Some(o)) => {
-            for key in VARIANTS {
-                let swapped = match (b.get(key).and_then(variant), o.get(key).and_then(variant)) {
-                    (Some(was), Some(now)) => was != now,
-                    _ => false,
-                };
-                if swapped {
-                    b.remove(key);
-                }
-            }
-            let listed = |v: Option<&Value>| -> Vec<Value> {
-                v.and_then(Value::as_array).cloned().unwrap_or_default()
-            };
-            let mut parts = listed(b.get("parts"));
-            for p in listed(o.get("parts")) {
-                if !parts.contains(&p) {
-                    parts.push(p);
-                }
-            }
-            Some(parts).filter(|p| !p.is_empty())
-        }
-        _ => None,
-    };
-    merge(base, over);
-    if let Some(parts) = parts {
-        base["parts"] = Value::Array(parts);
-    }
-}
-
-/// The variant a one-key object names.
-fn variant(v: &Value) -> Option<&str> {
-    let o = v.as_object()?;
-    (o.len() == 1).then(|| o.keys().next().map(String::as_str))?
-}
-
-/// Merge `over` into `base`: objects key by key, lists of objects with ids
-/// by id (a new id is appended), anything else replaced. Idempotent.
-pub fn merge(base: &mut Value, over: &Value) {
-    match (base, over) {
-        (Value::Object(b), Value::Object(o)) => {
-            for (k, v) in o {
-                match b.get_mut(k) {
-                    Some(slot) => merge(slot, v),
-                    None => {
-                        b.insert(k.clone(), v.clone());
-                    }
-                }
-            }
-        }
-        (Value::Array(b), Value::Array(o)) if keyed(b) && keyed(o) => {
-            for item in o {
-                let id = &item["id"];
-                match b.iter_mut().find(|x| &x["id"] == id) {
-                    Some(slot) => merge(slot, item),
-                    None => b.push(item.clone()),
-                }
-            }
-        }
-        (b, o) => *b = o.clone(),
-    }
-}
-
-/// A non-empty list whose every item is an object with a string `id`.
-fn keyed(list: &[Value]) -> bool {
-    !list.is_empty()
-        && list
-            .iter()
-            .all(|x| x.get("id").is_some_and(Value::is_string))
 }
 
 /// Finite and positive.

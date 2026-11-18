@@ -49,7 +49,13 @@ function mortarReach() {
 test("a cluster-bomb jet's circle spans its whole salvo, far wider than an iron bomb's", () => {
   const cluster = circle(carrying("air_bomb_cluster"), [3000, 0, 250]);
   const iron = circle(carrying("air_bomb", ["air_bomb_cluster"]), [3000, 0, 250]);
-  expect(cluster).toBeGreaterThan(iron! * 2);
+  // The whole salvo: every bomblet's spread, and the blast round the last.
+  const row = set.rules.weapons.air_bomb_cluster as unknown as {
+    submunitions: { spread_m: number };
+    blast_radius_m: number;
+  };
+  expect(cluster).toBeGreaterThanOrEqual(row.submunitions.spread_m + row.blast_radius_m);
+  expect(cluster).toBeGreaterThan(iron!);
   // Where the jet is now does not matter: it bombs from its run.
   expect(circle(carrying("air_bomb_cluster"), [400, 0, 250])).toBe(cluster);
 });

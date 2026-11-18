@@ -102,9 +102,12 @@ impl CookOffWatch {
             self.last_tick = -1.0;
         }
         let first = self.last_tick < 0.0;
-        let hull = |own: bool, id: f64, kind: &Arc<str>, at: Vec3| {
+        let hull = |own: bool, id: f64, kind: &Arc<str>, at: Vec3, grounded: bool| {
             // An airframe's death is its fall: it never brews up.
-            let airborne = units.types.get(&**kind).is_some_and(|t| t.airborne);
+            let airborne = units
+                .types
+                .get(&**kind)
+                .is_some_and(|t| t.in_the_air(grounded));
             let half = units
                 .body_half
                 .get(&**kind)
@@ -123,11 +126,11 @@ impl CookOffWatch {
         let seen: Vec<_> = (o
             .own
             .iter()
-            .filter_map(|u| hull(true, u.id, &u.kind, u.position)))
+            .filter_map(|u| hull(true, u.id, &u.kind, u.position, u.grounded)))
         .chain(
             o.identified
                 .iter()
-                .filter_map(|u| hull(false, u.id, &u.kind, u.position)),
+                .filter_map(|u| hull(false, u.id, &u.kind, u.position, u.grounded)),
         )
         .collect();
         // Lost from sight within the window: those it could have watched die.

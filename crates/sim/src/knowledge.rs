@@ -26,11 +26,11 @@ pub struct Track {
     pub velocity: V2,
     /// Members seen at the last sighting (infantry).
     pub members: Vec<usize>,
-    /// The height band of the unit seen, from its type: never guessed from
-    /// where it stands.
+    /// The height band of the unit as last seen: a helicopter seen landed is
+    /// on the ground. Never guessed from where a hidden unit might be.
     pub layer: AltitudeLayer,
-    /// What it is to a weapon, from its type and body, as a viewer tells a
-    /// jet from a helicopter and a tank from a squad.
+    /// What it is to a weapon as last seen, as a viewer tells a jet from a
+    /// helicopter, a tank from a squad, and a landed helicopter from one aloft.
     pub class: contract::weapons::TargetClass,
 }
 
@@ -212,18 +212,18 @@ impl SideKnowledge {
         };
         // Losing identification leaves a fixed area around the last
         // sighting, which remembers the type the side identified there.
-        let lost: Vec<(UnitId, V3)> = self
+        let lost: Vec<(UnitId, V3, AltitudeLayer)> = self
             .tracks
             .iter()
             .filter(|(_, t)| t.last_seen + 1 == tick)
-            .map(|(u, t)| (*u, t.position))
+            .map(|(u, t)| (*u, t.position, t.layer))
             .collect();
-        for (unit, at) in lost {
+        for (unit, at, layer) in lost {
             let u = &units[unit.0 as usize];
             self.new_contact(area(
                 ContactSource::LastSeen,
                 at,
-                u.layer(),
+                layer,
                 unit,
                 Some(u.kind),
                 0,
@@ -476,6 +476,8 @@ impl SideKnowledge {
                     track.position = observed;
                     track.yaw = unit.yaw;
                     track.members = members;
+                    track.layer = unit.layer();
+                    track.class = unit.target_class(rules);
                 }
                 _ => {
                     self.next_id += 1;
@@ -489,7 +491,7 @@ impl SideKnowledge {
                             velocity: v2(0.0, 0.0),
                             members,
                             layer: unit.layer(),
-                            class: unit.unit_type(rules).target_class(),
+                            class: unit.target_class(rules),
                         },
                     );
                 }
@@ -557,6 +559,8 @@ impl SideKnowledge {
                         })
                         .collect(),
                     reversing: unit.reversing,
+                    deployment: crate::deployment::state(unit),
+                    grounded: unit.landed(),
                     smoking: unit.smoking(rules),
                     building: crate::garrison::garrisoned_in(unit),
                 }
@@ -644,7 +648,8 @@ impl SideKnowledge {
             d.u64(target.0 as u64).u64(t.id.0 as u64).u64(t.last_seen);
             d.f64(t.velocity.x).f64(t.velocity.y);
             d.f64(t.position.x).f64(t.position.y).f64(t.position.z);
-            d.f64(t.yaw).u64(t.members.len() as u64);
+            d.f64(t.yaw).u64(t.layer as u64).u64(t.class as u64);
+            d.u64(t.members.len() as u64);
             for k in &t.members {
                 d.u64(*k as u64);
             }

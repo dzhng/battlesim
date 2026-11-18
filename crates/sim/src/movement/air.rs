@@ -11,16 +11,19 @@
 //! low hover (D10), as does a carrier hold; an unrelated order lifts it back.
 
 use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
+use crate::deployment;
 use crate::math::{v2, V2};
 use crate::units::{Flight, Motion, Settle, Unit};
+use crate::world::WorldGeometry;
 use contract::catalog::AltitudeLayer;
+use contract::map::MoverClass;
 use contract::observation::{MoveState, ServiceStatus};
 use contract::scenario::Rules;
 
 /// Within this of a waypoint on the way it counts as passed.
 const WAYPOINT_M: f64 = 1.0;
 /// Within this of its destination it has arrived.
-const ARRIVAL_M: f64 = 0.05;
+pub(crate) const ARRIVAL_M: f64 = 0.05;
 /// Climb lookahead samples are this far apart along the flight.
 const LOOKAHEAD_STEP_M: f64 = 8.0;
 /// How fast two overlapping aircraft drift apart at full overlap.
@@ -34,7 +37,6 @@ const HOVER_MPS: f64 = 1.0;
 /// How far the low hover clears the tallest ground hull, and anything else
 /// under the airframe while it holds there (D27).
 const LOW_HOVER_CLEARANCE_M: f64 = 2.0;
-
 /// Fly unit `i` one tick.
 pub(super) fn step_aircraft(
     ctx: &MovementContext,
@@ -47,15 +49,58 @@ pub(super) fn step_aircraft(
         unreachable!("only aircraft fly");
     };
     let side = units[i].side.index();
+    let no_landing_spot = prepare_landing(ctx.world, ctx.rules, units, i);
     plan(ctx, &mut units[i], &mut sides[side]);
-    let drift = separation(ctx, units, i);
+    if no_landing_spot {
+        units[i].state = MoveState::NoLandingSpot;
+    }
+    let exempt = deployment::separation_exempt(&units[i]);
+    let drift = if exempt {
+        v2(0.0, 0.0)
+    } else {
+        separation(ctx, units, i)
+    };
     let low = sinks(units, i);
     let unit = &mut units[i];
+    let ground = ctx
+        .world
+        .height_at(unit.position.x, unit.position.y)
+        .unwrap_or(0.0);
+    if unit.landed() {
+        let air = unit.air.as_mut().expect("a landed aircraft's flight state");
+        air.velocity = crate::math::v3(0.0, 0.0, 0.0);
+        unit.position = crate::math::v3(unit.position.x, unit.position.y, ground);
+        unit.drive_speed_mps = 0.0;
+        return;
+    }
+    let landing = deployment::drop_progress(unit);
+    let packed_deployer = packed_deployer(unit);
+    let low_target = packed_deployer.then(|| {
+        height_target(
+            ctx.world,
+            ctx.rules,
+            unit.position.xy(),
+            v2(0.0, 0.0),
+            flight,
+            unit.hull.map_or(0.0, |h| h.x),
+            true,
+        )
+    });
+    let hold_for_low_hover = low_target.is_some_and(|height| unit.position.z < height - 1e-6);
     let here = unit.position.xy();
     let cruise_mps = flight.cruise_mps;
     let accel = cruise_mps / ctx.rules.air.rotor.acceleration_s;
     let air_rules = &ctx.rules.air;
-    let wanted = if may_advance(ctx, unit) {
+    let wanted = if no_landing_spot || landing.is_some() || hold_for_low_hover {
+        v2(0.0, 0.0)
+    } else if let Some(goal) = unit.landing_goal.filter(|_| unit.movement_goal().is_none()) {
+        let leg = goal - here;
+        if leg.inside_radius(ARRIVAL_M) {
+            v2(0.0, 0.0)
+        } else {
+            leg.normalized() * cruise_mps.min((2.0 * BRAKING_SHARE * accel * leg.length()).sqrt())
+        }
+    } else if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
         let state = unit.air.as_mut().expect("an aircraft's flight state");
         // On the leg that ends at its goal it aims past the goal by its
@@ -104,6 +149,13 @@ pub(super) fn step_aircraft(
     } else {
         v2(0.0, 0.0)
     };
+    let landing_start_z = landing.map(|_| {
+        unit.deployment
+            .as_ref()
+            .unwrap()
+            .landing_start_z
+            .expect("descent captures its start height")
+    });
     let air = unit.air.as_mut().expect("an aircraft's flight state");
     let change = wanted - air.velocity.xy();
     let most = accel * dt;
@@ -115,10 +167,27 @@ pub(super) fn step_aircraft(
     air.fuel_s = (air.fuel_s - dt).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
-    let target = height_target(ctx.world, ctx.rules, next, velocity, flight, reach, low);
-    // It sinks as fast as it climbs.
-    let climb = (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt);
-    unit.position = next.with_z(unit.position.z + climb);
+    let target = landing
+        .map(|progress| landing_height(landing_start_z.unwrap(), ground, progress))
+        .unwrap_or_else(|| {
+            height_target(
+                ctx.world,
+                ctx.rules,
+                next,
+                velocity,
+                flight,
+                reach,
+                low || hold_for_low_hover,
+            )
+        });
+    // Landing bypasses the normal climb clamp so shots lead with its exact
+    // forced sink.
+    let climb = if landing.is_some() {
+        target - unit.position.z
+    } else {
+        (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt)
+    };
+    unit.position = crate::math::v3(next.x, next.y, unit.position.z + climb);
     air.velocity = crate::math::v3(velocity.x, velocity.y, climb / dt);
     unit.drive_speed_mps = velocity.length();
     let back = unit.air.and_then(|a| a.settle).is_some_and(|s| s.back);
@@ -140,12 +209,98 @@ pub(super) fn step_aircraft(
             unit.route_from = route.remove(0);
         }
         if route.is_empty() {
-            arrive(unit);
+            arrive(ctx.rules, unit);
             let air = unit.air.as_mut().expect("an aircraft's flight state");
             air.velocity = crate::math::v3(0.0, 0.0, 0.0);
             air.settle = None;
         }
     }
+}
+
+fn packed_deployer(unit: &Unit) -> bool {
+    unit.deployment.as_ref().is_some_and(|d| {
+        d.lands()
+            && d.current == 0
+            && (unit.movement_goal().is_some() || unit.landing_goal.is_some())
+    })
+}
+
+/// Pick or refresh the internal landing point for a deployable rotor aircraft.
+/// Returns true while no point is available, so the aircraft holds packed aloft.
+fn prepare_landing(world: &WorldGeometry, rules: &Rules, units: &mut [Unit], index: usize) -> bool {
+    let Some(d) = units[index].deployment.as_ref() else {
+        return false;
+    };
+    let Some(landing) = units[index].unit_type(rules).landing() else {
+        return false;
+    };
+    let landed = d.landed;
+    let stationary = d.stationary;
+    let current = d.current;
+    // The spot is chosen where it comes to rest (D2): while it still glides,
+    // it only brakes.
+    let gliding = units[index].gliding();
+    if landed
+        || gliding
+        || !units[index].orders.is_empty()
+        || stationary != contract::observation::Posture::Deployed
+    {
+        return false;
+    }
+    if let Some(goal) = units[index].landing_goal {
+        if spot_blocked(world, rules, units, index, goal, landing.rotor_radius_m) {
+            units[index].landing_goal = None;
+        }
+    }
+    if units[index].landing_goal.is_none() && current == 0 {
+        let at = units[index].position.xy();
+        let found = crate::crash::nearest_clear_spot(
+            world,
+            at,
+            rules.air.rotor.landing_reach_m,
+            landing.rotor_radius_m,
+            |p| {
+                spot_blocked(world, rules, units, index, p, landing.rotor_radius_m)
+                    || !crate::navigation::air::clear_direct_leg(world, rules, at, p)
+            },
+        );
+        units[index].landing_goal = found;
+    }
+    units[index].landing_goal.is_none() && current == 0
+}
+
+fn spot_blocked(
+    world: &WorldGeometry,
+    rules: &Rules,
+    units: &[Unit],
+    index: usize,
+    at: V2,
+    radius: f64,
+) -> bool {
+    let disc = |hull: &crate::math::Obb2| hull.distance(at) <= radius;
+    if world.forest_near(at, radius)
+        || world.surface_at(at.x, at.y).is_none_or(|s| !s.traversable)
+        || world.any_prop_near(at, radius, |p| {
+            p.blocks(MoverClass::Vehicle) && disc(&p.footprint())
+        })
+    {
+        return true;
+    }
+    for (j, other) in units.iter().enumerate() {
+        if j == index || !other.on_field() {
+            continue;
+        }
+        if let Some(hull) = other.ground_footprint() {
+            if disc(&hull) {
+                return true;
+            }
+        } else if other.members.iter().any(|s| {
+            s.alive() && (s.position.xy() - at).length() <= radius + rules.physics.soldier_radius_m
+        }) {
+            return true;
+        }
+    }
+    false
 }
 
 /// The low hover (D10, transport D6) requires no orders or engagement when
@@ -193,11 +348,17 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
     let tallest = catalog
         .indices()
         .map(|i| catalog.get(i))
-        .filter(|t| t.mobility.layer() == AltitudeLayer::Ground)
+        .filter(|t| t.mobility.layer() == AltitudeLayer::Ground || t.landing().is_some())
         .filter_map(|t| t.hull())
         .map(|h| 2.0 * h.half_extents_m[2])
         .fold(0.0, f64::max);
     tallest + LOW_HOVER_CLEARANCE_M
+}
+
+/// Landing's one height law: a fast initial drop easing into touchdown.
+fn landing_height(start: f64, ground: f64, progress: f64) -> f64 {
+    let eased = 1.0 - (1.0 - progress).powi(2);
+    (start + (ground - start) * eased).max(ground)
 }
 
 /// Plan a route when the goal is new or moved, or the side's knowledge changed.
@@ -230,7 +391,8 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
     let here = units[i].position.xy();
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i || !other.on_field() || !other.airborne() {
+        if j == i || !other.on_field() || !other.airborne() || deployment::separation_exempt(other)
+        {
             continue;
         }
         let away = here - other.position.xy();

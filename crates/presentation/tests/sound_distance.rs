@@ -159,6 +159,7 @@ fn each_source_uses_its_profiles_for_playback_and_voice_placement() {
                 travel_r: 0.0,
                 turret: 0.0,
                 reverse: true,
+                rotor_speed: None,
             })
             .collect(),
         soldiers: vec![SoundSoldier {

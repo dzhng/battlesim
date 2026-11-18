@@ -27,6 +27,19 @@ pub fn walls_aircraft(world: &WorldGeometry, rules: &Rules, prop: &Prop) -> bool
     prop.top_z() - ground > rules.air.rotor.obstacle_m
 }
 
+/// A direct flight leg clears the physical footprints of air-blocking bodies.
+/// Like a routed flight, it may leave an obstructed start. Routing padding
+/// is clearance, not a physical wall.
+pub(crate) fn clear_direct_leg(world: &WorldGeometry, rules: &Rules, from: V2, to: V2) -> bool {
+    !world.any_prop_near((from + to) * 0.5, (to - from).length() * 0.5, |prop| {
+        walls_aircraft(world, rules, prop)
+            && prop
+                .footprint()
+                .clip_segment(from, to, 0.0)
+                .is_some_and(|(enter, _)| enter > 0.0)
+    })
+}
+
 /// Fixed clearance keeps a helicopter's route independent of the catalog a
 /// client loads. Deriving it from that catalog made native and browser routes
 /// diverge (1f521bb78 and 70b6de62b).

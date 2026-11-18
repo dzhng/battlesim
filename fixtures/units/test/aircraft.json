@@ -74,6 +74,18 @@
       "capabilities": { "carriage": { "seats": 16 } },
       "concealment": 2.8,
       "roster": null
+    },
+    "test_supply_heli": {
+      "extends": "test_heli",
+      "mobility": { "air": { "rotor_radius_m": 6.0 } },
+      "name": "Supply Helicopter",
+      "description": "A test supply helicopter that lands to serve nearby units.",
+      "roles": ["logistics"],
+      "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1, "drop_seconds": 2 },
+        "supply": { "stock": 125 }
+      },
+      "roster": null
     }
   }
 }

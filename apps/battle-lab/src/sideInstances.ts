@@ -1,3 +1,4 @@
+import { inTheAir } from "@packages/scene-assets/src/units";
 import { vec2, type Vec2, type Vec3 } from "math";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
 import { NONE, PICK_WORDS, Pick } from "@packages/battle-renderer/src/records.gen";
@@ -7,7 +8,7 @@ import {
   unitCircle,
   type UnitCircle,
 } from "@packages/battle-renderer/src/unitCircle";
-import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/pointerIntent";
 import type { PresentedFrame } from "@web/battle/sim/presentation";
 import { contactUnder } from "@web/battle/input/contactPick";
@@ -121,7 +122,7 @@ export function sideInstances(
   }
   for (const e of observation.identified) {
     const pose = drawnEnemies.get(e.id);
-    if (!pose || !airborne(units.type(e.kind))) continue;
+    if (!pose || !inTheAir(units.type(e.kind), e.grounded)) continue;
     const circle = aircraftCircle(aircraftView(units, { ...e, ...pose }), gameOrderStyle);
     drawn.rings.push({ circle, unit: null, enemy: e.id });
   }

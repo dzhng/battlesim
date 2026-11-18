@@ -80,6 +80,9 @@ pub enum Mobility {
         /// (D40). Read through `AirRules::cruise_agl_m`, never directly.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cruise_agl_m: Option<f64>,
+        /// Rotor clearance disc radius for aircraft that can deploy.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rotor_radius_m: Option<f64>,
     },
 }
 
@@ -182,6 +185,7 @@ pub(super) fn air_problem(mobility: &Mobility) -> Option<&'static str> {
         flight,
         arrival,
         cruise_agl_m,
+        ..
     } = *mobility
     else {
         return None;

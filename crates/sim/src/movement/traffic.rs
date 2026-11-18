@@ -40,7 +40,15 @@ pub(super) fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
         ..hull
     };
     let depth = |hull: Obb2| hull.separation(&other).map_or(0.0, |v| v.length());
-    depth(padded(after)) > depth(padded(before)) + 1e-9 || depth(after) > depth(before) + 1e-9
+    let padded_after = depth(padded(after));
+    if padded_after == 0.0 {
+        return false;
+    }
+    if padded_after > depth(padded(before)) + 1e-9 {
+        return true;
+    }
+    let after_depth = depth(after);
+    after_depth > 1e-9 && after_depth > depth(before) + 1e-9
 }
 
 /// Whether wheeled vehicle `i`, held by the vehicle `b`, now works its way
@@ -55,7 +63,7 @@ pub(super) fn gives_way(ctx: &super::MovementContext, units: &[Unit], i: usize, 
     let (unit, other) = (&units[i], &units[b.0 as usize]);
     let patience = (super::STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
     let waited = |since: u64| ctx.tick.saturating_sub(since) > patience;
-    let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
+    let wheeled = unit.ground(ctx.rules).drive.is_some_and(|d| !d.tracked);
     let standing = other.drive_speed_mps.abs() <= super::ROLLING_MPS;
     let parked = other.movement_goal().is_none();
     let mutual = other.blocker == Some(unit.id);

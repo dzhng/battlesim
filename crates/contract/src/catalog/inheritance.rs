@@ -1,5 +1,6 @@
-//! Authored parent resolution, shared by every catalog section.
-use super::{merge_entry, CatalogError};
+//! Authored parent resolution and the merge rules it applies, shared by
+//! every catalog section.
+use super::CatalogError;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
@@ -110,4 +111,85 @@ pub fn inherit(
             (id, resolved.row)
         })
         .collect())
+}
+
+/// A unit type's components written as a one-key variant object
+/// (`{ "hull": … }`, `{ "tracked": … }`).
+const VARIANTS: [&str; 2] = ["body", "mobility"];
+
+/// Merge an `extends` child (or a part's patch) into an entry of `section`,
+/// as [`merge`] does, with two rules for unit types: a component the child
+/// writes as another variant (`mobility: { wheeled }` over `tracked`)
+/// replaces the parent's rather than merging both, and `parts` gather along
+/// the chain, the parent's first. Idempotent.
+pub fn merge_entry(section: &str, base: &mut Value, over: &Value) {
+    let parts = match (section, base.as_object_mut(), over.as_object()) {
+        ("units", Some(b), Some(o)) => {
+            for key in VARIANTS {
+                let swapped = match (b.get(key).and_then(variant), o.get(key).and_then(variant)) {
+                    (Some(was), Some(now)) => was != now,
+                    _ => false,
+                };
+                if swapped {
+                    b.remove(key);
+                }
+            }
+            let listed = |v: Option<&Value>| -> Vec<Value> {
+                v.and_then(Value::as_array).cloned().unwrap_or_default()
+            };
+            let mut parts = listed(b.get("parts"));
+            for p in listed(o.get("parts")) {
+                if !parts.contains(&p) {
+                    parts.push(p);
+                }
+            }
+            Some(parts).filter(|p| !p.is_empty())
+        }
+        _ => None,
+    };
+    merge(base, over);
+    if let Some(parts) = parts {
+        base["parts"] = Value::Array(parts);
+    }
+}
+
+/// The variant a one-key object names.
+fn variant(v: &Value) -> Option<&str> {
+    let o = v.as_object()?;
+    (o.len() == 1).then(|| o.keys().next().map(String::as_str))?
+}
+
+/// Merge `over` into `base`: objects key by key, lists of objects with ids
+/// by id (a new id is appended), anything else replaced. Idempotent.
+pub fn merge(base: &mut Value, over: &Value) {
+    match (base, over) {
+        (Value::Object(b), Value::Object(o)) => {
+            for (k, v) in o {
+                match b.get_mut(k) {
+                    Some(slot) => merge(slot, v),
+                    None => {
+                        b.insert(k.clone(), v.clone());
+                    }
+                }
+            }
+        }
+        (Value::Array(b), Value::Array(o)) if keyed(b) && keyed(o) => {
+            for item in o {
+                let id = &item["id"];
+                match b.iter_mut().find(|x| &x["id"] == id) {
+                    Some(slot) => merge(slot, item),
+                    None => b.push(item.clone()),
+                }
+            }
+        }
+        (b, o) => *b = o.clone(),
+    }
+}
+
+/// A non-empty list whose every item is an object with a string `id`.
+fn keyed(list: &[Value]) -> bool {
+    !list.is_empty()
+        && list
+            .iter()
+            .all(|x| x.get("id").is_some_and(Value::is_string))
 }

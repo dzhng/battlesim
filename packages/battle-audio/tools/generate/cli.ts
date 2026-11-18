@@ -6,6 +6,7 @@ import {
   ALL_TRIGGERS,
   voiceTriggers,
   type VoiceCatalog,
+  type VoiceUnit,
   type Trigger,
   type Intensity,
 } from "../../src/voices/voiceCatalog";
@@ -25,14 +26,9 @@ import {
   type VoiceSelection,
 } from "./voices";
 
-type Unit = { roles?: string[]; roster?: { factions?: string[] } };
 const root = resolve(import.meta.dir, "../../../..");
-const roster: Record<string, Unit> = {};
-for (const name of ["eastern", "europe", "shared", "us"]) {
-  const rows = JSON.parse(readFileSync(resolve(root, `fixtures/units/roster/${name}.json`), "utf8"))
-    .units as Record<string, Unit>;
-  Object.assign(roster, rows);
-}
+const roster = JSON.parse(readFileSync(resolve(root, "fixtures/catalog.json"), "utf8"))
+  .units as VoiceUnit[];
 const catalog = validateVoiceCatalog(voiceJson, roster);
 function assignment(unit: string, faction: string) {
   return assignedSet(catalog.assignments, unit, faction) ?? "(missing)";
@@ -77,9 +73,10 @@ function report() {
       `SET ${setId}\tvoices=${catalog.sets[setId].voices.length}\tclips=${totals.clips}\tcharacters=${totals.characters}`,
     );
   }
-  for (const [unit, row] of Object.entries(roster)) {
-    if (!row.roles?.length) continue;
-    for (const faction of row.roster?.factions ?? []) {
+  for (const row of roster) {
+    const unit = row.id;
+    if (!row.roster) continue;
+    for (const faction of row.roster.factions) {
       const set = assignment(unit, faction);
       const spec = catalog.sets[set];
       console.log(
@@ -91,17 +88,17 @@ function report() {
   return { clips: totalClips, characters: totalCharacters };
 }
 function html(path: string) {
-  const rows = Object.entries(roster)
-    .filter(([, row]) => row.roles?.length)
-    .map(([unit, row]) =>
-      (row.roster?.factions ?? [])
+  const rows = roster
+    .flatMap((row) => {
+      if (!row.roster) return [];
+      return row.roster.factions
         .map((faction) => {
-          const set = assignment(unit, faction);
+          const set = assignment(row.id, faction);
           const spec = catalog.sets[set];
-          return `<tr><td>${unit}</td><td>${faction}</td><td>${set}</td><td>${spec?.country ?? ""}</td><td>${spec?.role ?? ""}</td><td>${spec?.voices.some((voice) => voice.gender === "female" && (voice.speaks === "responses" || voice.speaks === "all")) ? "yes" : "no"}</td></tr>`;
+          return `<tr><td>${row.id}</td><td>${faction}</td><td>${set}</td><td>${spec?.country ?? ""}</td><td>${spec?.role ?? ""}</td><td>${spec?.voices.some((voice) => voice.gender === "female" && (voice.speaks === "responses" || voice.speaks === "all")) ? "yes" : "no"}</td></tr>`;
         })
-        .join(""),
-    )
+        .join("");
+    })
     .join("");
   const subtotals = Object.keys(catalog.sets)
     .sort()

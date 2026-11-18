@@ -141,6 +141,31 @@ fn shift_queues_and_plain_orders_replace_and_stop_clears() {
 }
 
 #[test]
+fn stopping_a_marching_squad_places_its_holding_area_where_it_stops() {
+    let mut battle = Battle::new(&scenario(), 7);
+    let order = mv(Side::Blue, 1, 1, [180.0, 170.0], false);
+    assert!(battle.accept(order).error.is_none());
+    for _ in 0..30 {
+        battle.step();
+    }
+    let squad = &battle.observe(Side::Blue).own[1];
+    assert!(squad.goal.is_some());
+    let [x, y, _] = squad.position;
+    battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 2,
+        order: Order::Stop {
+            units: vec![UnitId(1)],
+        },
+        queued: false,
+    });
+    battle.step();
+    let squad = &battle.observe(Side::Blue).own[1];
+    assert_eq!(squad.area.as_ref().unwrap().anchor, [x, y]);
+}
+
+#[test]
 fn sides_observe_only_their_own_units() {
     let b = Battle::new(&scenario(), 7);
     assert_eq!(b.observe(Side::Blue).own.len(), 2);

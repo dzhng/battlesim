@@ -9,7 +9,7 @@ use contract::observation::{
 };
 use contract::scenario::CoverTier;
 
-pub(super) const MOVE_STATES: [MoveState; 7] = [
+pub(super) const MOVE_STATES: [MoveState; 8] = [
     MoveState::Idle,
     MoveState::Moving,
     MoveState::Waiting,
@@ -17,6 +17,7 @@ pub(super) const MOVE_STATES: [MoveState; 7] = [
     MoveState::Halted,
     MoveState::Packing,
     MoveState::Planning,
+    MoveState::NoLandingSpot,
 ];
 pub(super) const COVER_TIERS: [CoverTier; 3] =
     [CoverTier::Light, CoverTier::Medium, CoverTier::Heavy];

@@ -169,6 +169,10 @@ impl Unit {
             d.u64(p.searching as u64);
         }
         d.opt_v2(self.planned_goal);
+        // Folded only while set, so units that never land keep their digests.
+        if let Some(goal) = self.landing_goal {
+            d.f64(goal.x).f64(goal.y);
+        }
         d.u64(self.route.is_some() as u64);
         for p in self.route.iter().flatten() {
             d.f64(p.x).f64(p.y);
@@ -272,6 +276,12 @@ impl Unit {
                 .u64(dep.stationary as u64);
             if dep.deploy_step != dep.pack_step {
                 d.u64(dep.deploy_step as u64).u64(dep.pack_step as u64);
+            }
+            if dep.landed {
+                d.u64(u64::MAX);
+            }
+            if let Some(z) = dep.landing_start_z {
+                d.f64(z);
             }
         }
         d.u64(self.mounts.len() as u64);

@@ -124,7 +124,9 @@ is the only authority on what is said, by which voice and through which profile;
 writing `fixtures/voices.lock.json` and every voice audio file, belong to
 [the generation tool](tools/generate/cli.ts) alone, run as `bun run generate`; its
 bare usage lists the commands. It reaches ElevenLabs only through Duet's proxy with
-this machine's Duet login.
+this machine's Duet login. Unit membership comes from the
+resolved [unit catalog](../../fixtures/catalog.json), so inherited roster
+membership counts and abstract airframes never become speakers.
 
 Audio has two provenance kinds, both owned by [the catalog](src/catalog.ts): a
 recording names its licence, author and pinned bytes; a generated sound (`Generated`)

@@ -32,6 +32,8 @@ fn seen(rules: &Rules, kind: &str, at: [f64; 2], index: u32) -> IdentifiedUnit {
         member_active_mounts: vec![],
         weapon_poses: vec![],
         reversing: false,
+        deployment: None,
+        grounded: false,
         smoking: false,
         member_leans: vec![],
         building: None,

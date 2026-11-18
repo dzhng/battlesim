@@ -1,0 +1,198 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Supply Heli Landing</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one stage (side view + tactical readouts) above a stack of taste questions; the reply assembles at the bottom. */
+:root{
+  --bg:var(--background); --panel:var(--card); --fg:var(--foreground); --muted:var(--muted-foreground); --line:var(--border);
+  --sky:var(--secondary); --ground:color-mix(in srgb,var(--success) 35%,var(--secondary)); --accent:var(--primary); --warn:var(--warning); --air:var(--info);
+  --display:"Chakra Petch", var(--font-sans); --body:var(--font-sans); --mono:var(--font-mono);
+}
+body{line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding-block:4px 8px;display:grid;gap:20px}
+h1{font-family:var(--display);font-weight:600;font-size:1.6rem;margin:0;letter-spacing:.02em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:1.05rem;margin:0;letter-spacing:.03em;text-wrap:balance}
+.lede{color:var(--muted);margin:4px 0 0;max-width:65ch}
+.tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;max-width:100%;aspect-ratio:16/7;background:var(--sky)}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+button{font:500 .85rem var(--body);color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:4px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{flex:1;min-width:160px;accent-color:var(--accent)}
+.time{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.85rem;min-width:9ch}
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.ro{background:var(--panel);padding:10px 14px;min-width:0}
+.ro b{display:block;font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:1rem;margin-top:2px}
+.pill{display:inline-block;font-family:var(--mono);font-size:.78rem;padding:1px 8px;border-radius:3px;border:1px solid currentColor}
+.pill.air{color:var(--air)} .pill.gnd{color:var(--warn)}
+.qs{display:grid;gap:12px}
+.q{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:8px}
+.q p{margin:0;color:var(--muted);max-width:70ch;font-size:.92rem}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:.88rem;display:flex;gap:6px;align-items:baseline}
+.opt input{accent-color:var(--accent)}
+.opt:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.opt small{color:var(--muted);font-family:var(--mono);font-size:.72rem}
+textarea{width:100%;box-sizing:border-box;font:400 .88rem var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px;min-height:3.4em;resize:vertical}
+.reply{background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:14px 16px;display:grid;gap:10px}
+pre{margin:0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px;min-width:0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.note{font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <div class="tag">Quadrant 3 · unknown knowns · mock, not the game</div>
+    <h1>Supply heli landing</h1>
+    <p class="lede">Side view of the settled sequence: deploy 3 s (drop, touchdown, rotor spin-down), serve, pack 1 s (spin-up), then climb at 6 m/s. Change the options below and watch the stage. Heights and timings are the decided ones; the drawing is a stand-in.</p>
+  </header>
+
+  <section class="stage" aria-label="Landing sequence">
+    <canvas id="cv" width="1280" height="560"></canvas>
+    <div class="controls">
+      <button id="play" type="button">Pause</button>
+      <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Sequence time">
+      <span class="time" id="clock">0.0 s</span>
+    </div>
+    <div class="readouts">
+      <div class="ro"><span class="tag">Phase</span><b id="rPhase">—</b></div>
+      <div class="ro"><span class="tag">Height AGL</span><b id="rAlt">—</b></div>
+      <div class="ro"><span class="tag">Rotor</span><b id="rRotor">—</b></div>
+      <div class="ro"><span class="tag">Counts as</span><b id="rClass">—</b></div>
+      <div class="ro"><span class="tag">Panel row</span><b id="rPanel">—</b></div>
+      <div class="ro"><span class="tag">Rotor sound</span><b id="rSound">—</b></div>
+    </div>
+  </section>
+
+  <section class="qs" id="qs"></section>
+
+  <section class="probe q">
+    <h2>Context nobody has written down</h2>
+    <p>Who will mostly use this heli: you in multiplayer, players vs the skirmish AI, or the AI itself? And what would make you say "done" when you first see it in a battle?</p>
+    <textarea id="ctx" placeholder="e.g. mostly multiplayer; done = I can drop it behind a hill next to my pinned tanks and watch it refill them"></textarea>
+  </section>
+
+  <section class="reply">
+    <h2>Your reply</h2>
+    <pre id="out"></pre>
+    <div class="row"><button id="copy" type="button">Copy reply</button><span class="note" id="copied"></span></div>
+  </section>
+</div>
+
+<script>
+const Q = [
+  {id:"curve", h:"How does it come down?", p:"The drop takes the first 2 of the 3 deploy seconds (30 m in 2 s).",
+   o:[["flare","Fast drop, flare at the bottom","ease-out"],["even","Even drop","linear"],["hover","Drop, short hover, set down","2-stage"]]},
+  {id:"spin", h:"When does the rotor start slowing?", p:"It must be stopped by 3 s, when service starts.",
+   o:[["touch","At touchdown","2 → 3 s"],["early","Already during the drop","1 → 3 s"]]},
+  {id:"look", h:"How does a supply heli look different from the troop version?", p:"Today it would reuse the transport model. The enemy is told the unit type either way; this is about reading it at a glance.",
+   o:[["same","Same model, no change","cheapest"],["ramp","Ramp drops open when landed, pallets inside","model work"],["sling","Cargo net slung under it in flight, set down on landing","model + rig work"]]},
+  {id:"words", h:"What does the panel say while it deploys?", p:"The truck says DEPLOYING / DEPLOYED / PACKING today.",
+   o:[["same","Same words as the truck","DEPLOYING"],["land","Heli words","LANDING / LANDED / LIFTING"]]},
+  {id:"marker", h:"Tactical marker once landed", p:"Today every heli keeps a raised marker with a dotted drop line to the ground.",
+   o:[["ground","Switch to the ground-vehicle marker","no drop line"],["keep","Keep the heli marker","line shrinks to 0"]]},
+];
+const qs = document.getElementById("qs");
+Q.forEach((q,i)=>{
+  const el = document.createElement("div"); el.className="q";
+  el.innerHTML = `<h2>${i+1}. ${q.h}</h2><p>${q.p}</p><div class="opts">${q.o.map(([v,l,s],j)=>
+    `<label class="opt"><input type="radio" name="${q.id}" id="${q.id}-${v}" value="${v}" ${j===0?"checked":""}>${l} <small>${s}</small></label>`).join("")}</div>`;
+  qs.appendChild(el);
+});
+const val = id => document.querySelector(`input[name=${id}]:checked`).value;
+
+// Timeline (s): 0–3 deploy, 3–5 serving, 5–6 pack, 6–11 climb, 11–12 cruise.
+const T = 12, CRUISE = 30;
+function state(t){
+  const curve=val("curve"), spin=val("spin");
+  let alt=CRUISE, rotor=1, phase, cls="air", panel;
+  const words = val("words")==="land";
+  if (t<3){
+    const d=Math.min(t/2,1);
+    let k;
+    if(curve==="even") k=d;
+    else if(curve==="flare") k=1-Math.pow(1-d,2.4);
+    else k = d<0.7 ? (d/0.7)*0.9 : d<0.85 ? 0.9 : 0.9+0.1*((d-0.85)/0.15);
+    alt = CRUISE*(1-k);
+    const s0 = spin==="early"?1:2;
+    rotor = t<s0 ? 1 : 1-(t-s0)/(3-s0);
+    phase = t<2 ? "deploying · drop" : "deploying · spin-down";
+    cls = t<2 ? "air" : "gnd";
+    panel = words ? (t<2?"LANDING":"LANDED") : "DEPLOYING "+Math.round(t/3*100)+"%";
+  } else if (t<5){ alt=0; rotor=0; phase="deployed · serving"; cls="gnd"; panel= words?"LANDED · SUPPLYING":"SUPPLYING"; }
+  else if (t<6){ alt=0; rotor=t-5; phase="packing · spin-up"; cls="gnd"; panel= words?"LIFTING":"PACKING "+Math.round((t-5)*100)+"%"; }
+  else if (t<11){ alt=Math.min(CRUISE,(t-6)*6); rotor=1; phase="climbing"; cls="air"; panel="MOVING"; }
+  else { alt=CRUISE; rotor=1; phase="cruise"; cls="air"; panel="MOVING"; }
+  return {alt,rotor:Math.max(0,Math.min(1,rotor)),phase,cls,panel};
+}
+
+const cv=document.getElementById("cv"), cx=cv.getContext("2d");
+const probe=document.createElement("i"); probe.style.display="none"; document.body.appendChild(probe);
+const css = n => { probe.style.color=`var(${n})`; return getComputedStyle(probe).color; };
+let t=0, playing=true, last=performance.now(), blade=0;
+function draw(s,dt){
+  const W=cv.width,H=cv.height, gy=H-90, mpp=(gy-70)/36;
+  cx.fillStyle=css("--sky"); cx.fillRect(0,0,W,H);
+  cx.fillStyle=css("--ground"); cx.fillRect(0,gy,W,H-gy);
+  // height scale
+  cx.strokeStyle=css("--line"); cx.fillStyle=css("--muted"); cx.font="22px IBM Plex Mono, monospace"; cx.lineWidth=2;
+  for(let m=0;m<=30;m+=10){const y=gy-m*mpp; cx.beginPath(); cx.moveTo(60,y); cx.lineTo(90,y); cx.stroke(); cx.fillText(m+" m",4,y+7);}
+  // truck for scale
+  const tx=W*0.18; cx.fillStyle=css("--muted"); cx.fillRect(tx,gy-3.4*mpp,10*mpp,3*mpp); cx.fillRect(tx+10*mpp,gy-3.8*mpp,2.6*mpp,3.4*mpp);
+  cx.fillText("truck, for scale",tx,gy+40);
+  // heli
+  const hx=W*0.58, y=gy-s.alt*mpp, L=30*mpp*0.55, look=val("look");
+  cx.fillStyle=css("--fg");
+  cx.beginPath(); cx.roundRect(hx-L/2,y-4.2*mpp,L,3.4*mpp,1.4*mpp); cx.fill();
+  cx.fillRect(hx-L*0.42,y-0.8*mpp,1.2*mpp,0.8*mpp); cx.fillRect(hx+L*0.3,y-0.8*mpp,1.2*mpp,0.8*mpp); // wheels
+  cx.fillRect(hx-L*0.36,y-5.6*mpp,0.6*mpp,1.4*mpp); cx.fillRect(hx+L*0.3,y-6*mpp,0.6*mpp,1.8*mpp); // masts
+  if(look==="ramp" && s.alt===0 && s.rotor<0.5){ cx.save(); cx.translate(hx+L/2,y-0.8*mpp); cx.rotate(0.45); cx.fillRect(0,0,3.5*mpp,0.5*mpp); cx.restore();
+    cx.fillStyle=css("--accent"); cx.fillRect(hx+L*0.28,y-2.6*mpp,1.6*mpp,1.6*mpp); cx.fillStyle=css("--fg"); }
+  if(look==="sling"){ const netY = s.alt>3 ? y+3.5*mpp : gy; cx.strokeStyle=css("--fg"); cx.lineWidth=2;
+    if(s.alt>3){ cx.beginPath(); cx.moveTo(hx,y-0.8*mpp); cx.lineTo(hx-1.2*mpp,netY-1.6*mpp); cx.moveTo(hx,y-0.8*mpp); cx.lineTo(hx+1.2*mpp,netY-1.6*mpp); cx.stroke(); }
+    cx.fillStyle=css("--accent"); cx.fillRect(s.alt>3?hx-1.4*mpp:hx-L*0.75,netY-1.6*mpp,2.8*mpp,1.6*mpp); cx.fillStyle=css("--fg"); }
+  // rotors: blur disc when fast, blades when slow
+  blade += s.rotor*dt*18;
+  for(const [rx,ry] of [[hx-L*0.33,y-5.6*mpp],[hx+L*0.33,y-6*mpp]]){
+    const R=9*mpp;
+    if(s.rotor>0.35){ cx.globalAlpha=0.18+0.25*s.rotor; cx.fillStyle=css("--fg"); cx.beginPath(); cx.ellipse(rx,ry,R,0.35*mpp,0,0,7); cx.fill(); cx.globalAlpha=1; }
+    if(s.rotor<0.7){ cx.globalAlpha=1-Math.max(0,(s.rotor-0.35)/0.35); cx.strokeStyle=css("--fg"); cx.lineWidth=3;
+      for(let b=0;b<3;b++){const a=blade+b*2.094; cx.beginPath(); cx.moveTo(rx,ry); cx.lineTo(rx+Math.cos(a)*R,ry+Math.sin(a)*0.3*mpp); cx.stroke();} cx.globalAlpha=1; }
+  }
+  // marker
+  const mk=val("marker"); const my=70;
+  cx.strokeStyle=s.cls==="air"?css("--air"):css("--warn"); cx.lineWidth=3;
+  if(s.cls==="air" || mk==="keep"){
+    cx.beginPath(); cx.moveTo(hx-16,my); cx.lineTo(hx,my-16); cx.lineTo(hx+16,my); cx.stroke();
+    cx.setLineDash([6,8]); cx.beginPath(); cx.moveTo(hx,my+6); cx.lineTo(hx,Math.max(my+6,y-7*mpp)); cx.stroke(); cx.setLineDash([]);
+  } else { cx.strokeRect(hx-16,gy-L*0-7.5*mpp-32,32,22); }
+  // supply ring hint
+  if(s.phase.startsWith("deployed")){ cx.strokeStyle=css("--accent"); cx.setLineDash([10,10]); cx.beginPath(); cx.ellipse(hx,gy+10,W*0.4,26,0,0,7); cx.stroke(); cx.setLineDash([]); }
+}
+function render(dt=0){
+  const s=state(t); draw(s,dt);
+  document.getElementById("clock").textContent=t.toFixed(1)+" s";
+  rPhase.textContent=s.phase; rAlt.textContent=s.alt.toFixed(1)+" m"; rRotor.textContent=Math.round(s.rotor*100)+" %";
+  rClass.innerHTML = s.cls==="air" ? '<span class="pill air">aircraft · AA, MGs</span>' : '<span class="pill gnd">ground vehicle · tanks, ATGMs</span>';
+  rPanel.textContent=s.panel; rSound.textContent = s.rotor===0 ? "silent" : "▮".repeat(Math.max(1,Math.round(s.rotor*8)))+" "+Math.round(s.rotor*100)+"%";
+  scrub.value=Math.round(t/T*1000);
+}
+function loop(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; if(playing){ t=(t+dt)%T; } render(dt); requestAnimationFrame(loop); }
+play.onclick=()=>{playing=!playing; play.textContent=playing?"Pause":"Play";};
+scrub.oninput=()=>{playing=false; play.textContent="Play"; t=scrub.value/1000*T;};
+if(matchMedia("(prefers-reduced-motion: reduce)").matches){playing=false; play.textContent="Play"; t=4;}
+
+function reply(){
+  const lines = Q.map((q,i)=>{const v=val(q.id); const o=q.o.find(x=>x[0]===v); return `Q3.${i+1} ${q.h} → ${o[1]}`;});
+  const c=ctx.value.trim(); if(c) lines.push("Context: "+c);
+  out.textContent=lines.join("\n");
+}
+document.addEventListener("input",reply); reply();
+copy.onclick=()=>{ navigator.clipboard.writeText(out.textContent).then(()=>copied.textContent="Copied").catch(()=>{const r=document.createRange(); r.selectNodeContents(out); getSelection().removeAllRanges(); getSelection().addRange(r); copied.textContent="Selected; press Cmd+C";}); };
+requestAnimationFrame(loop);
+</script>
+</body></html>

@@ -15,6 +15,7 @@ use contract::scenario::PushClass;
 use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
+use contract::scenario::Rules;
 
 /// Bodies within this much of each other touch without pressing: a shove
 /// clears the hull by it, and may leave the body up to it inside another,
@@ -78,8 +79,8 @@ pub fn meet<'a>(world: &'a WorldGeometry, next: &Obb2, here: &Obb2, push: PushCl
 
 /// The bodies `unit`'s hull is pressed against and shoves: those its last
 /// shove left `CLEAR_M` ahead of it.
-pub fn pressed(world: &WorldGeometry, unit: &Unit) -> Vec<PropId> {
-    let (Some(hull), push) = (unit.ground_footprint(), unit.ground().push) else {
+pub fn pressed(world: &WorldGeometry, rules: &Rules, unit: &Unit) -> Vec<PropId> {
+    let (Some(hull), push) = (unit.ground_footprint(), unit.push_class(rules)) else {
         return Vec::new();
     };
     world

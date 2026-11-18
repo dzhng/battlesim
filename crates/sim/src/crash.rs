@@ -317,6 +317,37 @@ fn struck(velocity: V3, face: V3, closing: f64) -> V3 {
     along * kept + face * (RESTITUTION * closing)
 }
 
+/// The nearest point to `at`, ring by ring within `reach`, that keeps
+/// `clearance` from the map's edge and that `blocks` leaves free; the one
+/// search a wreck's resting place and a helicopter's landing spot share.
+pub fn nearest_clear_spot(
+    world: &WorldGeometry,
+    at: V2,
+    reach: f64,
+    clearance: f64,
+    blocks: impl Fn(V2) -> bool,
+) -> Option<V2> {
+    let on_map = |p: V2| {
+        p.x >= clearance
+            && p.y >= clearance
+            && p.x <= world.width() - clearance
+            && p.y <= world.depth() - clearance
+    };
+    let rings = (reach / CLEAR_STEP_M) as i32;
+    for ring in 0..=rings {
+        let r = ring as f64 * CLEAR_STEP_M;
+        let points = if ring == 0 { 1 } else { 8 * ring };
+        for k in 0..points {
+            let angle = std::f64::consts::TAU * k as f64 / points as f64;
+            let p = at + v2(libm::cos(angle), libm::sin(angle)) * r;
+            if on_map(p) && !blocks(p) {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
 /// Where a wreck of footprint `half` at `yaw` comes to rest near `at`: the
 /// nearest point, ring by ring, where it lies clear of `hulls` and of every
 /// immovable body; `at` itself when there is none in reach.
@@ -334,23 +365,7 @@ pub fn resting_place(world: &WorldGeometry, at: V2, yaw: f64, half: V2, hulls: &
                     || deck_z.is_some_and(|z| p.base_z < z && p.top_z() <= z + 1e-9)
             })
     };
-    let reach = half.length();
-    let on_map = |p: V2| {
-        p.x >= reach && p.y >= reach && p.x <= world.width() - reach && p.y <= world.depth() - reach
-    };
-    let rings = (CLEAR_REACH_M / CLEAR_STEP_M) as i32;
-    for ring in 0..=rings {
-        let r = ring as f64 * CLEAR_STEP_M;
-        let points = if ring == 0 { 1 } else { 8 * ring };
-        for k in 0..points {
-            let angle = std::f64::consts::TAU * k as f64 / points as f64;
-            let p = at + v2(libm::cos(angle), libm::sin(angle)) * r;
-            if on_map(p) && clear(p) {
-                return p;
-            }
-        }
-    }
-    at
+    nearest_clear_spot(world, at, CLEAR_REACH_M, half.length(), |p| !clear(p)).unwrap_or(at)
 }
 
 /// The point a crash bursts at: just off the ground it struck.

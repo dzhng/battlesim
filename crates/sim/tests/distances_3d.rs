@@ -19,10 +19,16 @@ fn map(size: [f64; 2]) -> String {
 
 fn high_air_fixture() -> Value {
     let mut fixture = common::game();
+    fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"units":{
+            "test_slant_aircraft":{"extends":"test_heli"}
+        }}));
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "test_heli",
+        "test_slant_aircraft",
         json!({
             "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "sensors": { "ground_m": 700, "high_air_m": 3000 }
@@ -107,7 +113,7 @@ fn reach_and_fire_gate_agree_so_nothing_freezes() {
         json!([
             { "side": "blue", "kind": "test_jeep", "position": [100, 300] },
             // Flying away: where a shot would meet it lies past reach too.
-            { "side": "red", "kind": "test_heli", "position": [1590, 300], "yaw": 0.0 }
+            { "side": "red", "kind": "test_slant_aircraft", "position": [1590, 300], "yaw": 0.0 }
         ]),
         &map([2200.0, 600.0]),
     );
@@ -159,7 +165,7 @@ fn interceptor_case(high: bool) -> Battle {
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "test_heli",
+        "test_slant_aircraft",
         json!({
             "capabilities": { "air": {
                 "fuel_capacity_s": 180,
@@ -184,13 +190,13 @@ fn interceptor_case(high: bool) -> Battle {
         sim::fixtures::patch_catalog(
             &mut fixture,
             "units",
-            "test_heli",
+            "test_slant_aircraft",
             json!({ "mobility": { "air": { "layer": "low_air", "flight": "rotor" } } }),
         );
     }
     let units = json!([
         { "side": "blue", "kind": "test_aa", "position": [800, 300] },
-        { "side": "red", "kind": "test_heli", "position": [1000, 300], "yaw": std::f64::consts::PI }
+        { "side": "red", "kind": "test_slant_aircraft", "position": [1000, 300], "yaw": std::f64::consts::PI }
     ]);
     battle_with_events(
         &fixture,
@@ -230,7 +236,7 @@ fn radar_detection_range_is_3d() {
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "test_heli",
+        "test_slant_aircraft",
         json!({
             "capabilities": { "radar_receiver": { "range_m": 450 } }
         }),
@@ -248,7 +254,7 @@ fn radar_detection_range_is_3d() {
     let near = battle(
         &fixture,
         json!([
-            { "side": "blue", "kind": "test_heli", "position": [100, 300] },
+            { "side": "blue", "kind": "test_slant_aircraft", "position": [100, 300] },
             { "side": "red", "kind": "test_jeep", "position": [400, 300] }
         ]),
         &map([800.0, 600.0]),
@@ -264,7 +270,7 @@ fn radar_detection_range_is_3d() {
     let far = battle(
         &fixture,
         json!([
-            { "side": "blue", "kind": "test_heli", "position": [100, 300] },
+            { "side": "blue", "kind": "test_slant_aircraft", "position": [100, 300] },
             { "side": "red", "kind": "test_jeep", "position": [500, 300] }
         ]),
         &map([800.0, 600.0]),

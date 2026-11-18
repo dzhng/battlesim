@@ -30,6 +30,8 @@ use crate::ground::GroundRunPatch;
 
 mod cells;
 mod crash_row;
+mod deployment;
+mod identified_row;
 mod layout;
 mod logical;
 mod mount_row;
@@ -44,8 +46,10 @@ mod smoke;
 mod step_row;
 mod tags;
 
-use cells::{footprint_cells, host_cells};
+pub(crate) use cells::limbs;
+use cells::{footprint_cells, host_cells, limbs_or_absent};
 use crash_row::{crash_row, CRASH_FIELDS};
+use identified_row::{identified_row, IDENTIFIED_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
 use logical::pack_record;
@@ -237,7 +241,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 58] = [
+const OWN_FIELDS: [&str; 59] = [
     "id",
     "owner",
     "kind",
@@ -263,6 +267,7 @@ const OWN_FIELDS: [&str; 58] = [
     "concealed",
     "deployProgress",
     "deployTarget",
+    "grounded",
     "hostKind",
     "hostLo",
     "hostHi",
@@ -296,23 +301,6 @@ const OWN_FIELDS: [&str; 58] = [
     "smokeCharges",
     "smoking",
     "shotAt",
-];
-const IDENTIFIED_FIELDS: [&str; 15] = [
-    "id",
-    "kind",
-    "cost",
-    "x",
-    "y",
-    "z",
-    "yaw",
-    "vx",
-    "vy",
-    "memberCount",
-    "poseCount",
-    "reversing",
-    "smoking",
-    "buildingLo",
-    "buildingHi",
 ];
 const XY_FIELDS: [&str; 2] = ["x", "y"];
 const XYZ_FIELDS: [&str; 3] = ["x", "y", "z"];
@@ -430,15 +418,6 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("smokeClouds", "smokeCloudCount", &SMOKE_CLOUD_FIELDS),
     rows("flares", "flareCount", &FLARE_FIELDS),
 ];
-
-/// An integer as its two exact 16-bit limbs.
-pub(crate) fn limbs(n: u32) -> [f32; 2] {
-    [(n & 0xffff) as f32, (n >> LIMB_BITS) as f32]
-}
-
-fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
-    n.map_or([-1.0; 2], limbs)
-}
 
 const LEAN_FIELDS: [&str; 3] = ["side", "x", "y"];
 

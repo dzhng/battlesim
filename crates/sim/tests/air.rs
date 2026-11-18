@@ -83,19 +83,11 @@ fn air_rules_refuse_a_high_air_floor_above_the_fixed_wing_ceilings() {
 
 #[test]
 fn authored_high_air_is_retained_in_runtime_layer() {
-    let mut fixture = fixture();
-    let doc = fixture["catalog"]
-        .as_array_mut()
-        .unwrap()
-        .iter_mut()
-        .find(|doc| doc["units"].get("test_heli").is_some())
-        .unwrap();
-    doc["units"]["test_heli"]["mobility"]["air"]["layer"] = json!("high_air");
-    doc["units"]["test_heli"]["mobility"]["air"]["flight"] = json!("fixed_wing");
+    let fixture = fixture();
     let b = battle_with(
         &fixture,
         open_map(),
-        json!([{ "side": "blue", "kind": "test_heli", "position": [300, 200] }]),
+        json!([{ "side": "blue", "kind": "test_jet", "position": [300, 200] }]),
     );
     let jet = b.unit(UnitId(0)).unwrap();
     assert_eq!(jet.layer(), AltitudeLayer::HighAir);
@@ -104,19 +96,11 @@ fn authored_high_air_is_retained_in_runtime_layer() {
 
 #[test]
 fn a_jet_spawns_at_the_jet_cruise_height() {
-    let mut fixture = fixture();
-    let doc = fixture["catalog"]
-        .as_array_mut()
-        .unwrap()
-        .iter_mut()
-        .find(|doc| doc["units"].get("test_heli").is_some())
-        .unwrap();
-    doc["units"]["test_heli"]["mobility"]["air"]["layer"] = json!("high_air");
-    doc["units"]["test_heli"]["mobility"]["air"]["flight"] = json!("fixed_wing");
+    let fixture = fixture();
     let b = battle_with(
         &fixture,
         open_map(),
-        json!([{ "side": "blue", "kind": "test_heli", "position": [300, 200] }]),
+        json!([{ "side": "blue", "kind": "test_jet", "position": [300, 200] }]),
     );
     let jet = b.unit(UnitId(0)).unwrap();
     let cruise = b.rules().air.high_air.cruise_agl_m;

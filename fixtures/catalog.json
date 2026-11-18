@@ -343,6 +343,23 @@
       }
     },
     {
+      "cost": 150,
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "disabled_reason": null,
+      "family": "mi_8_hip",
+      "id": "eastern_mi_8_hip_supply",
+      "name": "Mi-8AMTSh Supply",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-8 Hip",
+        "variant": "Mi-8AMTSh Supply"
+      }
+    },
+    {
       "cost": 300,
       "description": "MiG-29SMT",
       "disabled_reason": null,
@@ -1003,6 +1020,23 @@
         ],
         "family_name": "CH-47 Chinook",
         "variant": "HC6"
+      }
+    },
+    {
+      "cost": 150,
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "disabled_reason": null,
+      "family": "ch_47_chinook",
+      "id": "europe_ch_47_chinook_supply",
+      "name": "Chinook HC6 Supply",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "HC6 Supply"
       }
     },
     {
@@ -1773,6 +1807,23 @@
         ],
         "family_name": "CH-47 Chinook",
         "variant": "CH-47F"
+      }
+    },
+    {
+      "cost": 150,
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "disabled_reason": null,
+      "family": "ch_47_chinook",
+      "id": "us_ch_47_chinook_supply",
+      "name": "CH-47F Supply",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "CH-47F Supply"
       }
     },
     {
@@ -9006,6 +9057,140 @@
             "profile": "vehicle"
           }
         },
+        "eastern_mi_8_hip_supply": {
+          "appearance": "eastern_mi_8_hip_mi_8amtsh",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 21.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 22.0,
+                "side": 25.0
+              },
+              "half_extents_m": [
+                9.127,
+                2.7,
+                2.2
+              ],
+              "hp": 120.0,
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "deploy": {
+              "drop_seconds": 2.0,
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            },
+            "supply": {
+              "stock": 500
+            }
+          },
+          "concealment": 2.8,
+          "cost": 150,
+          "description": "Lands to resupply nearby units; door guns cover the delivery.",
+          "faction": "eastern",
+          "family": "mi_8_hip",
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "flight": "rotor",
+              "layer": "low_air",
+              "rotor_radius_m": 10.997,
+              "turn_deg_s": 70.0
+            }
+          },
+          "mounts": [
+            {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
+              "id": "door",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.647,
+                1.3,
+                1.65
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.647,
+                -1.3,
+                1.65
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Mi-8AMTSh Supply",
+          "roles": [
+            "logistics"
+          ],
+          "roster": {
+            "category": "sup",
+            "factions": [
+              "eastern"
+            ],
+            "family_name": "Mi-8 Hip",
+            "variant": "Mi-8AMTSh Supply"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
+          }
+        },
         "eastern_mig_29_fulcrum_mig_29smt": {
           "appearance": "eastern_mig_29_fulcrum_mig_29smt",
           "body": {
@@ -13258,6 +13443,140 @@
             ],
             "family_name": "CH-47 Chinook",
             "variant": "HC6"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 1000.0,
+            "profile": "vehicle"
+          }
+        },
+        "europe_ch_47_chinook_supply": {
+          "appearance": "europe_ch_47_chinook_hc6",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 21.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 22.0,
+                "side": 25.0
+              },
+              "half_extents_m": [
+                8.137,
+                1.945,
+                2.713
+              ],
+              "hp": 140.0,
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "deploy": {
+              "drop_seconds": 2.0,
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            },
+            "supply": {
+              "stock": 500
+            }
+          },
+          "concealment": 2.8,
+          "cost": 150,
+          "description": "Lands to resupply nearby units; door guns cover the delivery.",
+          "faction": "europe",
+          "family": "ch_47_chinook",
+          "mobility": {
+            "air": {
+              "climb_mps": 6.0,
+              "cruise_kmh": 230.0,
+              "flight": "rotor",
+              "layer": "low_air",
+              "rotor_radius_m": 14.947,
+              "turn_deg_s": 50.0
+            }
+          },
+          "mounts": [
+            {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
+              "id": "door",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                -1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Chinook HC6 Supply",
+          "roles": [
+            "logistics"
+          ],
+          "roster": {
+            "category": "sup",
+            "factions": [
+              "europe"
+            ],
+            "family_name": "CH-47 Chinook",
+            "variant": "HC6 Supply"
           },
           "sensors": {
             "ground_m": 700.0,
@@ -18321,6 +18640,140 @@
             ],
             "family_name": "CH-47 Chinook",
             "variant": "CH-47F"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 1000.0,
+            "profile": "vehicle"
+          }
+        },
+        "us_ch_47_chinook_supply": {
+          "appearance": "us_ch_47_chinook_ch_47f",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 21.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 22.0,
+                "side": 25.0
+              },
+              "half_extents_m": [
+                8.137,
+                1.945,
+                2.713
+              ],
+              "hp": 140.0,
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "deploy": {
+              "drop_seconds": 2.0,
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            },
+            "supply": {
+              "stock": 500
+            }
+          },
+          "concealment": 2.8,
+          "cost": 150,
+          "description": "Lands to resupply nearby units; door guns cover the delivery.",
+          "faction": "us",
+          "family": "ch_47_chinook",
+          "mobility": {
+            "air": {
+              "climb_mps": 6.0,
+              "cruise_kmh": 230.0,
+              "flight": "rotor",
+              "layer": "low_air",
+              "rotor_radius_m": 14.947,
+              "turn_deg_s": 50.0
+            }
+          },
+          "mounts": [
+            {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
+              "id": "door",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                -1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "CH-47F Supply",
+          "roles": [
+            "logistics"
+          ],
+          "roster": {
+            "category": "sup",
+            "factions": [
+              "us"
+            ],
+            "family_name": "CH-47 Chinook",
+            "variant": "CH-47F Supply"
           },
           "sensors": {
             "ground_m": 700.0,
@@ -29105,6 +29558,144 @@
       "vehicle_class": "air_light"
     },
     {
+      "appearance": "eastern_mi_8_hip_mi_8amtsh",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 21.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 22.0,
+            "side": 25.0
+          },
+          "half_extents_m": [
+            9.127,
+            2.7,
+            2.2
+          ],
+          "hp": 120.0,
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "deploy": {
+          "drop_seconds": 2.0,
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        },
+        "supply": {
+          "stock": 500
+        }
+      },
+      "concealment": 2.8,
+      "cost": 150,
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "faction": "eastern",
+      "family": "mi_8_hip",
+      "id": "eastern_mi_8_hip_supply",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "flight": "rotor",
+          "layer": "low_air",
+          "rotor_radius_m": 10.997,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.647,
+            1.3,
+            1.65
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.647,
+            -1.3,
+            1.65
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Mi-8AMTSh Supply",
+      "roles": [
+        "logistics"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-8 Hip",
+        "variant": "Mi-8AMTSh Supply"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "air_light_logistics"
+    },
+    {
       "appearance": "eastern_mig_29_fulcrum_mig_29smt",
       "body": {
         "hull": {
@@ -33868,6 +34459,144 @@
         "profile": "vehicle"
       },
       "vehicle_class": "air_light"
+    },
+    {
+      "appearance": "europe_ch_47_chinook_hc6",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 21.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 22.0,
+            "side": 25.0
+          },
+          "half_extents_m": [
+            8.137,
+            1.945,
+            2.713
+          ],
+          "hp": 140.0,
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "deploy": {
+          "drop_seconds": 2.0,
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        },
+        "supply": {
+          "stock": 500
+        }
+      },
+      "concealment": 2.8,
+      "cost": 150,
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "faction": "europe",
+      "family": "ch_47_chinook",
+      "id": "europe_ch_47_chinook_supply",
+      "mobility": {
+        "air": {
+          "climb_mps": 6.0,
+          "cruise_kmh": 230.0,
+          "flight": "rotor",
+          "layer": "low_air",
+          "rotor_radius_m": 14.947,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            -1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Chinook HC6 Supply",
+      "roles": [
+        "logistics"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "HC6 Supply"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 1000.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "air_light_logistics"
     },
     {
       "appearance": "europe_challenger_challenger_2_tes",
@@ -39549,6 +40278,144 @@
       "vehicle_class": "air_light"
     },
     {
+      "appearance": "us_ch_47_chinook_ch_47f",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 21.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 22.0,
+            "side": 25.0
+          },
+          "half_extents_m": [
+            8.137,
+            1.945,
+            2.713
+          ],
+          "hp": 140.0,
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "deploy": {
+          "drop_seconds": 2.0,
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        },
+        "supply": {
+          "stock": 500
+        }
+      },
+      "concealment": 2.8,
+      "cost": 150,
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "faction": "us",
+      "family": "ch_47_chinook",
+      "id": "us_ch_47_chinook_supply",
+      "mobility": {
+        "air": {
+          "climb_mps": 6.0,
+          "cruise_kmh": 230.0,
+          "flight": "rotor",
+          "layer": "low_air",
+          "rotor_radius_m": 14.947,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            -1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "CH-47F Supply",
+      "roles": [
+        "logistics"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "CH-47F Supply"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 1000.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "air_light_logistics"
+    },
+    {
       "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
       "body": {
         "hull": {
@@ -44270,7 +45137,7 @@
       "aim_s": 1.2,
       "ammo": 3,
       "anti_radiation": false,
-      "appearance": "bomb",
+      "appearance": "cluster_bomb",
       "armor_piercing": false,
       "blast_radius_m": 40.0,
       "damage": 220.0,
@@ -44615,6 +45482,7 @@
       "ammo": 24,
       "anti_radiation": false,
       "appearance": "artillery",
+      "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 36.0,
       "damage": 240.0,
@@ -44647,7 +45515,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.05,
       "round_cost": 12,
-      "speed_mps": 160.0,
+      "speed_mps": 380.0,
       "stationary": true,
       "structural_damage": 180.0,
       "suppression_radius_m": 18.0,
@@ -44671,6 +45539,7 @@
       "ammo": 36,
       "anti_radiation": false,
       "appearance": "mortar",
+      "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 30.0,
       "damage": 180.0,
@@ -44703,7 +45572,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.1,
       "round_cost": 8,
-      "speed_mps": 145.0,
+      "speed_mps": 280.0,
       "stationary": true,
       "structural_damage": 110.0,
       "suppression_radius_m": 16.0,
@@ -44727,6 +45596,7 @@
       "ammo": 12,
       "anti_radiation": false,
       "appearance": "rocket_artillery",
+      "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 40.0,
       "damage": 300.0,
@@ -44763,7 +45633,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.2,
       "round_cost": 16,
-      "speed_mps": 160.0,
+      "speed_mps": 460.0,
       "stationary": true,
       "structural_damage": 220.0,
       "suppression_radius_m": 24.0,
@@ -44787,6 +45657,7 @@
       "ammo": 18,
       "anti_radiation": false,
       "appearance": "rocket_artillery",
+      "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 32.0,
       "damage": 200.0,
@@ -44823,7 +45694,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.25,
       "round_cost": 10,
-      "speed_mps": 160.0,
+      "speed_mps": 400.0,
       "stationary": true,
       "structural_damage": 150.0,
       "suppression_radius_m": 20.0,
@@ -44847,6 +45718,7 @@
       "ammo": 6,
       "anti_radiation": false,
       "appearance": "strike_missile",
+      "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 48.0,
       "damage": 440.0,
@@ -44879,7 +45751,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.025,
       "round_cost": 24,
-      "speed_mps": 160.0,
+      "speed_mps": 460.0,
       "stationary": true,
       "structural_damage": 300.0,
       "suppression_radius_m": 26.0,

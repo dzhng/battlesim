@@ -286,43 +286,6 @@ fn policy_for_player(seed: u64, index: usize) -> crate::skirmish_ai::BalancedDoc
     crate::skirmish_ai::BalancedDoctrine::new(stream)
 }
 
-/// Authored starting wear: vehicle health, fallen soldiers (their records lie
-/// where they stand in the squad's starting arrangement) and spent rounds.
-fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
-    if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
-        unit.hp = hp.clamp(1.0, unit.max_hp(rules));
-    }
-    if let Some(hp) = c.soldier_hp {
-        for soldier in &mut unit.members {
-            soldier.hp = hp.max(1.0);
-        }
-    }
-    let n = unit.members.len();
-    for k in n.saturating_sub(c.casualties as usize)..n {
-        let at = unit.members[k].position;
-        unit.members[k].fall(at, unit.yaw, None);
-    }
-    if !unit.members.is_empty() {
-        unit.suppression = c.suppression.clamp(0.0, 1.0);
-    }
-    let specs = arsenal.specs(unit.kind);
-    for mount in &mut unit.mounts {
-        for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
-            if let (Some(spent), Some(n)) = (
-                c.spent.get(&arsenal.weapons[row].id),
-                mount.ammo[k].as_mut(),
-            ) {
-                *n = n.saturating_sub(*spent);
-            }
-        }
-        for cycle in &mut mount.cycles {
-            if cycle.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
-                cycle.loaded = None;
-            }
-        }
-    }
-}
-
 impl Battle {
     pub fn tick(&self) -> Tick {
         self.tick

@@ -1,3 +1,10 @@
+import type { RosterMembership, UnitType } from "../../../scene-assets/src/units";
+
+/** The catalog's resolved playable membership, all voice admission reads. */
+export type VoiceUnit = Pick<UnitType, "id"> & {
+  roster?: Pick<RosterMembership, "factions">;
+};
+
 export const RESPONSE_TRIGGERS = [
   "selected",
   "move",
@@ -171,17 +178,15 @@ function validateVoiceAssignments(catalog: VoiceCatalog) {
   }
 }
 
-// The caller may pass a roster map to enforce resolution. Deferred rows with no roles are not playable.
-function validateRosterAssignments(catalog: VoiceCatalog, roster: unknown) {
-  if (!roster || typeof roster !== "object") return;
-  for (const [unit, raw] of Object.entries(roster as Record<string, unknown>)) {
-    const row = own(raw);
-    const roles = Array.isArray(row.roles) ? row.roles : [];
-    if (unit.startsWith("test_") || unit.startsWith("capture_") || roles.length === 0) continue;
+// Callers supply resolved unit rows: abstract parents and planned cards are
+// absent, and inherited roster membership is already materialized.
+function validateRosterAssignments(catalog: VoiceCatalog, roster: readonly VoiceUnit[] | null) {
+  for (const row of roster ?? []) {
+    const unit = row.id;
+    if (unit.startsWith("test_") || unit.startsWith("capture_") || !row.roster) continue;
     const assignment = catalog.assignments[unit];
     if (!assignment) throw new Error(`playable unit ${unit}: no voice assignment`);
-    const factions = own(row.roster).factions;
-    for (const faction of Array.isArray(factions) ? factions : []) {
+    for (const faction of row.roster.factions) {
       const set = typeof assignment === "string" ? assignment : assignment[faction];
       if (!set || !catalog.sets[set])
         throw new Error(`playable unit ${unit}/${faction}: no voice set`);
@@ -189,7 +194,10 @@ function validateRosterAssignments(catalog: VoiceCatalog, roster: unknown) {
   }
 }
 
-export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCatalog {
+export function validateVoiceCatalog(
+  value: unknown,
+  roster: readonly VoiceUnit[] | null,
+): VoiceCatalog {
   const root = own(value);
   for (const key of ["roles", "sets", "assignments", "retakes"]) own(root[key]);
   if (Object.keys(root).some((key) => !["roles", "sets", "assignments", "retakes"].includes(key)))

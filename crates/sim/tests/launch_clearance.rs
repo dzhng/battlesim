@@ -22,6 +22,7 @@ const TARGET: [f64; 3] = [800.0, 300.0, 0.0];
 fn launcher(requires: bool) -> Value {
     json!({
         "extends": "artillery_mortar",
+        "arc_height_m": null,
         "speed_mps": 80,
         "range_m": 650,
         "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },

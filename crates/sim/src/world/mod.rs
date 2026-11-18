@@ -438,9 +438,10 @@ impl WorldGeometry {
         let Some((_, normal)) = self.field.height_normal(x, y) else {
             return false;
         };
-        self.bridges.iter().any(|b| bridge_contains(b, v2(x, y)))
-            || (libm::acos(normal.z.clamp(-1.0, 1.0)).to_degrees() < self.slope_cutoff_deg
-                && !self.surfaces.water_at(v2(x, y)))
+        // A bridge only changes the answer where the ground itself is blocked.
+        (libm::acos(normal.z.clamp(-1.0, 1.0)).to_degrees() < self.slope_cutoff_deg
+            && !self.surfaces.water_at(v2(x, y)))
+            || self.bridges.iter().any(|b| bridge_contains(b, v2(x, y)))
     }
 
     /// The ground triangle at (x, y), ignoring any bridge above it.

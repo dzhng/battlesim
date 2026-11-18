@@ -399,6 +399,66 @@ fn a_still_rotor_shows_its_blades_and_a_fast_one_smears_them_never_past_a_turn()
 }
 
 #[test]
+fn rotor_blur_hands_over_to_geometry_without_a_gap() {
+    use presentation::units::{
+        articulation::{articulate, rest_locals},
+        pose::Articulation,
+    };
+    use presentation::world::{Node, Rig};
+    let nodes: Vec<Node> = serde_json::from_value(json!([
+        {"name": "blade", "parent": -1, "bind": {"t":[0,0,3],"r":[0,0,0,1],"s":[1,1,1]}}
+    ]))
+    .unwrap();
+    let mut rig: Rig = serde_json::from_value(json!({
+        "turret":-1,"gun":-1,"hmg":-1,"hmgGun":-1,"pitch":{"gun":[0,0],"hmg":[0,0]},
+        "wheels":[],"tracks":[],"rotors":[],"deploy":[],"gear":[],"muzzles":{}
+    }))
+    .unwrap();
+    rig.rotors = serde_json::from_value(json!([{"node":0,"radius":5,"blades":2,"chord":0.2,"rest":0,"mast_radius":0,"mast_above":0,"mast_below":0}])).unwrap();
+    let mut disc_strength = Vec::new();
+    for speed in [0.0, 0.01, 0.19, 0.2, 0.21, 0.4, 0.8, 1.0] {
+        let mut locals = rest_locals(&nodes);
+        articulate(
+            &mut locals,
+            &nodes,
+            &rig,
+            &Articulation {
+                rotor_speed: speed,
+                ..Articulation::default()
+            },
+        );
+        let geometry = locals[0].s.iter().all(|s| *s > 0.0);
+        let mut r = vectors()["rotor"].clone();
+        r["speed"] = speed.into();
+        r["turned"] = (speed * 5.0).into();
+        let rotor: DrawnRotor = serde_json::from_value(r).unwrap();
+        let mut f = frame();
+        let mut batch = EffectBatch::new(f.presentation().capacity);
+        f.build(0.0, &mut batch, None, &[rotor], &[], None);
+        assert!(geometry || batch.count > 0, "rotor vanished at {speed}");
+        assert!(
+            !geometry || batch.count == 0,
+            "authored blades and effect duplicate at {speed}"
+        );
+        if !geometry {
+            // The disc's coverage word, after the swept-blade record.
+            disc_strength.push(batch.data[EFFECT_FLOATS + 15]);
+        }
+        if speed == 0.0 {
+            assert!(geometry);
+            assert_eq!(batch.count, 0, "no blur on a still rotor");
+        }
+        if speed == 1.0 {
+            assert!(!geometry, "no still blades on a fast rotor");
+        }
+    }
+    assert!(
+        disc_strength.windows(2).all(|p| p[1] > p[0]),
+        "the disc fades as the rotor slows"
+    );
+}
+
+#[test]
 fn a_heavy_gun_s_shot_shakes_dust_off_its_whole_hull_and_blows_it_off_the_ground_under_its_muzzle()
 {
     // The test's own look: a tank round shakes a full shot's dust, an

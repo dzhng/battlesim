@@ -97,7 +97,7 @@ impl Battle {
         };
         // A hull that turns on the spot parks facing as ordered.
         let parking = |u: &Unit| {
-            let pivots = u.ground().drive.is_some_and(|d| d.tracked);
+            let pivots = u.ground(&self.rules).drive.is_some_and(|d| d.tracked);
             u.hull.map(|h| crate::navigation::Parking {
                 half: h.xy(),
                 facing: request.facing.filter(|_| pivots),
@@ -112,16 +112,18 @@ impl Battle {
             .copied()
             .filter(|id| {
                 let u = &self.units[id.0 as usize];
-                !u.airborne()
+                !u.flies()
                     && grid
                         .destination_point(
                             v2(goal[0], goal[1]),
-                            u.ground(),
+                            &u.ground(&self.rules),
                             parking(u),
                             from(u),
                             &pockets,
                         )
-                        .is_some_and(|p| !grid.reaches(from(u), p, u.ground(), &pockets))
+                        .is_some_and(|p| {
+                            !grid.reaches(from(u), p, &u.ground(&self.rules), &pockets)
+                        })
             })
             .collect();
         let plan = crate::formation::place(
@@ -136,18 +138,21 @@ impl Battle {
                 }
                 let u = &self.units[id.0 as usize];
                 // An aircraft hovers over its point, whatever stands there.
-                if u.airborne() {
+                if u.flies() {
                     shorts.borrow_mut().insert(id, (p, None));
                     return Some(p);
                 }
                 let hull = parking(u);
-                let placed = grid.destination_point(p, u.ground(), hull, from(u), &pockets)?;
-                if !grid.reaches(from(u), placed, u.ground(), &pockets) {
+                let placed =
+                    grid.destination_point(p, &u.ground(&self.rules), hull, from(u), &pockets)?;
+                if !grid.reaches(from(u), placed, &u.ground(&self.rules), &pockets) {
                     return None;
                 }
                 let short = hull
                     .filter(|_| placed != p)
-                    .and_then(|hull| grid.room_on_the_way(p, u.ground(), hull, from(u), &pockets))
+                    .and_then(|hull| {
+                        grid.room_on_the_way(p, &u.ground(&self.rules), hull, from(u), &pockets)
+                    })
                     .filter(|&at| at != placed)
                     .map(|at| crate::units::StopShort {
                         at,
@@ -178,8 +183,14 @@ impl Battle {
             .map(|slot| {
                 let u = &self.units[slot.id.0 as usize];
                 let goal = slot.point.unwrap_or(u.position.xy());
-                let facing =
-                    movement::final_yaw(u, request.facing, from(u), goal, request.direction);
+                let facing = movement::final_yaw(
+                    &self.rules,
+                    u,
+                    request.facing,
+                    from(u),
+                    goal,
+                    request.direction,
+                );
                 let living = if u.hull.is_some() {
                     0
                 } else {

@@ -36,6 +36,15 @@ fn receiver_rules(receiver_m: f64, jeep_weapon: &str) -> serde_json::Value {
     rules
 }
 
+/// A separate fixed-wing fake leaves the base rotor and its landing descendants intact.
+fn fixed_wing_rules() -> serde_json::Value {
+    let mut rules = sim::fixtures::test_rules();
+    rules["catalog"].as_array_mut().unwrap().push(json!({"units":{
+        "test_radar_aircraft": {"extends":"test_heli", "mobility":{"air":{"layer":"high_air","flight":"fixed_wing"}}}
+    }}));
+    rules
+}
+
 fn battle_of(rules: &serde_json::Value, size: [f64; 2], units: serde_json::Value) -> Battle {
     let setup = serde_json::from_value(json!({
         "map": { "size": size, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
@@ -315,11 +324,11 @@ fn ground_mission_can_strafe_while_bombs_remain() {
 
 #[test]
 fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
-    let mut rules = sim::fixtures::test_rules();
+    let mut rules = fixed_wing_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "test_heli",
+        "test_radar_aircraft",
         json!({
             "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "sensors": { "ground_m": 1200.0 },
@@ -343,7 +352,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
     let setup = serde_json::from_value(json!({
         "map": { "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
-        "units": [{ "side": "blue", "kind": "test_heli", "position": [200, 300] }],
+        "units": [{ "side": "blue", "kind": "test_radar_aircraft", "position": [200, 300] }],
         "events": [], "scripts": []
     }))
     .unwrap();
@@ -428,11 +437,11 @@ fn long_sam_motor_lifetime_reaches_its_authored_range() {
 #[test]
 fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
     use sim::publication::{self, reader::Reader};
-    let mut rules = sim::fixtures::test_rules();
+    let mut rules = fixed_wing_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "test_heli",
+        "test_radar_aircraft",
         json!({
             "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "capabilities": { "radar_receiver": { "range_m": 1200.0 } }
@@ -451,7 +460,7 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
         "map": { "size": [800, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "test_heli", "position": [400, 400] },
+            { "side": "blue", "kind": "test_radar_aircraft", "position": [400, 400] },
             { "side": "red", "kind": "test_jeep", "position": [700, 600] },
             { "side": "red", "kind": "test_jeep", "position": [700, 150] },
             { "side": "red", "kind": "test_jeep", "position": [100, 150] },
@@ -489,14 +498,14 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
     }
 }
 
-/// The test rules with `test_heli` flying as a SEAD jet whose radar receiver
+/// A fixed-wing fake flying as a SEAD jet whose radar receiver
 /// reaches `reach_m`, and `test_jeep` carrying a radar that emits or not.
 fn sead_rules(reach_m: f64, jeep_emits: bool) -> serde_json::Value {
-    let mut rules = sim::fixtures::test_rules();
+    let mut rules = fixed_wing_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "test_heli",
+        "test_radar_aircraft",
         json!({
             "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "capabilities": { "radar_receiver": { "range_m": reach_m } }
@@ -521,7 +530,7 @@ fn a_sead_jet_finds_an_emitting_radar_but_not_a_silent_one() {
             "map": { "size": [2.0 * reach, reach], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": sead_rules(reach, emits),
             "units": [
-                { "side": "red", "kind": "test_heli", "position": [0.5 * reach, 0.5 * reach], "yaw": 0.0 },
+                { "side": "red", "kind": "test_radar_aircraft", "position": [0.5 * reach, 0.5 * reach], "yaw": 0.0 },
                 { "side": "blue", "kind": "test_jeep", "position": [reach, 0.5 * reach] }
             ],
             "events": [], "scripts": []

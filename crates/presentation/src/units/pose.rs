@@ -24,8 +24,9 @@ pub struct Articulation {
     pub deploy: f64,
     /// Metres every rotor's blade tips have swept.
     pub rotor: f64,
-    /// 1: rotors drawn by their blur; 0: by their geometry.
-    pub rotor_blur: f64,
+    /// Normalized rotor speed: full in flight, zero when shut down.
+    /// Blur hands off to authored geometry as it slows.
+    pub rotor_speed: f64,
     /// How far its landing gear is stowed: 0 down (at rest, on the ground),
     /// 1 up (a fixed-wing aircraft in flight).
     pub gear_up: f64,
@@ -77,7 +78,7 @@ pub struct VehiclePose {
     pub side: Arc<str>,
     pub position: Vec3,
     pub yaw: f64,
-    /// It flies: its rotors turn, and nothing it has rolls.
+    /// It is in the air now, from the published grounded fact.
     pub airborne: bool,
     /// A downed airframe falling: its engines are out.
     pub downed: bool,

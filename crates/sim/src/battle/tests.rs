@@ -614,3 +614,50 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
         );
     }
 }
+
+/// What a side knows of an enemy is what it sees now (Q7): its track of a
+/// supply helicopter it first saw flying files it as a ground vehicle once
+/// landed, and as a rotor aircraft again once it has packed.
+#[test]
+fn a_track_files_what_it_sees_now() {
+    let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+        "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": crate::fixtures::test_rules(),
+        "units": [
+            { "side": "blue", "kind": "test_supply_heli", "position": [200, 200], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [300, 200], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 3);
+    let filed = |b: &Battle| {
+        b.knowledge[Side::Red.index()]
+            .track(UnitId(0))
+            .map(|t| (t.layer, t.class))
+    };
+    battle.step();
+    let flying = filed(&battle).expect("the tank sees the helicopter");
+    assert_eq!(flying.1, contract::weapons::TargetClass::AirRotor);
+    while !battle.units[0].landed() {
+        battle.step();
+    }
+    battle.step();
+    assert_eq!(
+        filed(&battle),
+        Some((
+            AltitudeLayer::Ground,
+            contract::weapons::TargetClass::Vehicle
+        ))
+    );
+    battle.units[0].deployment.as_mut().unwrap().stationary =
+        contract::observation::Posture::Packed;
+    while battle.units[0].landed() {
+        battle.step();
+    }
+    battle.step();
+    assert_eq!(filed(&battle), Some(flying));
+}
+
+#[path = "airlift_tests.rs"]
+mod airlift;

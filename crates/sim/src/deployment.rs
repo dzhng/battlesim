@@ -17,6 +17,13 @@ pub struct Deployment {
     pub duration: u32,
     pub deploy_step: u32,
     pub pack_step: u32,
+    /// Progress at which an aircraft's descent ends and it stands on the
+    /// ground; zero for a deployer that never flies.
+    pub drop_duration: u32,
+    /// The landed state is a latch, not a calculation from progress (P1).
+    pub landed: bool,
+    /// Height at the start of the current descent, for the one landing law.
+    pub landing_start_z: Option<f64>,
     /// The posture held while the unit has no movement intent: deployed by
     /// default (a stopped unit sets up), packed after an explicit Pack.
     pub stationary: Posture,
@@ -29,6 +36,18 @@ impl Deployment {
             Posture::Deployed => (self.current + self.deploy_step).min(self.duration),
             Posture::Packed => self.current.saturating_sub(self.pack_step),
         };
+        if self.lands() && target == Posture::Deployed && self.current >= self.drop_duration {
+            self.landed = true;
+        }
+        if self.lands() && target == Posture::Packed && self.current == 0 {
+            self.landed = false;
+            self.landing_start_z = None;
+        }
+    }
+
+    /// It sets up by landing: an aircraft's deployment.
+    pub fn lands(&self) -> bool {
+        self.drop_duration > 0
     }
 
     /// Setup complete: the one readiness predicate service consumes.
@@ -65,6 +84,12 @@ pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
         duration,
         deploy_step: duration / deploy,
         pack_step: duration / pack,
+        // On the same lattice as `current`: the drop's ticks of deploy steps.
+        drop_duration: t.landing().map_or(0, |landing| {
+            ticks(landing.drop_seconds) * (duration / deploy)
+        }),
+        landed: false,
+        landing_start_z: None,
         stationary: Posture::Deployed,
     })
 }
@@ -73,6 +98,22 @@ pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
 /// go, otherwise its stationary posture.
 pub fn target(unit: &Unit) -> Option<Posture> {
     let d = unit.deployment.as_ref()?;
+    if d.lands() {
+        let at_spot = unit.landing_goal.is_some_and(|goal| {
+            (goal - unit.position.xy()).inside_radius(crate::movement::air::ARRIVAL_M)
+        });
+        return Some(
+            if d.stationary == Posture::Deployed
+                && at_spot
+                && unit.movement_goal().is_none()
+                && !unit.gliding()
+            {
+                Posture::Deployed
+            } else {
+                Posture::Packed
+            },
+        );
+    }
     Some(if unit.movement_goal().is_some() {
         Posture::Packed
     } else {
@@ -94,8 +135,37 @@ pub fn advance_all(units: &mut [Unit]) {
         let Some(target) = target(unit) else {
             continue;
         };
-        unit.deployment.as_mut().unwrap().advance(target);
+        let d = unit.deployment.as_mut().unwrap();
+        if d.lands() && target == Posture::Deployed && d.current == 0 {
+            d.landing_start_z.get_or_insert(unit.position.z);
+        }
+        d.advance(target);
     }
+}
+
+/// The descent share consumed by the landing law, in `[0, 1]`.
+pub fn drop_progress(unit: &Unit) -> Option<f64> {
+    let d = unit.deployment.as_ref()?;
+    (d.lands()
+        && d.current > 0
+        && !d.landed
+        && unit.landing_goal.is_some()
+        && target(unit) == Some(Posture::Deployed))
+    .then(|| (d.current as f64 / d.drop_duration as f64).clamp(0.0, 1.0))
+}
+
+/// The latched landed state (P1).
+pub fn landed(unit: &Unit) -> bool {
+    unit.deployment.as_ref().is_some_and(|d| d.landed)
+}
+
+/// A deploying rotor, or one holding a checked landing spot, does not
+/// participate in air separation while it settles onto that spot.
+pub fn separation_exempt(unit: &Unit) -> bool {
+    let Some(d) = unit.deployment.as_ref() else {
+        return false;
+    };
+    d.lands() && (d.current > 0 || unit.landing_goal.is_some())
 }
 
 /// What the owning side sees of a unit's deployment.

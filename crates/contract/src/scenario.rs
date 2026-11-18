@@ -817,8 +817,8 @@ pub struct UnitSetup {
     pub stock: Option<u32>,
 }
 
-/// A unit that starts the scenario already worn.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// Starting unit wear.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UnitCondition {
     /// Vehicle health at the start.
     #[serde(default)]

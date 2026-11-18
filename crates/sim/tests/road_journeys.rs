@@ -821,7 +821,7 @@ fn a_vehicle_connector_beside_a_rotated_wreck_has_a_finite_route() {
         json!([]),
     );
     let battle = Battle::new(&setup, 1);
-    let m = battle.unit(UnitId(0)).unwrap().ground();
+    let m = &battle.unit(UnitId(0)).unwrap().ground(battle.rules());
     let prepared = PreparedMap::new(&setup.map, &setup.rules);
     let (plan, _) = sim::navigation::plan(
         &prepared.grid,

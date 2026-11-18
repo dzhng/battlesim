@@ -270,7 +270,13 @@ impl Battle {
                         // An enemy it waits for is named only if the side
                         // could name it anyway (Q14: contact reveals nothing).
                         blocker: u.blocker.filter(|b| self.units[b.0 as usize].side == side),
-                        route: u.route.iter().flatten().map(|p| [p.x, p.y]).collect(),
+                        route: u
+                            .route
+                            .as_deref()
+                            .unwrap_or_default()
+                            .iter()
+                            .map(|p| [p.x, p.y])
+                            .collect(),
                         steps: steps.next().expect("one per own unit"),
                         members: u
                             .members
@@ -328,7 +334,7 @@ impl Battle {
                                 u.unit_type(&self.rules),
                             ),
                         }),
-                        final_facing: movement::final_facing(u),
+                        final_facing: movement::final_facing(&self.rules, u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u
@@ -345,6 +351,7 @@ impl Battle {
                             .collect(),
                         weapon_poses: u.mounts.iter().map(weapons::pose).collect(),
                         deployment: deployment::state(u),
+                        grounded: u.landed(),
                         hp: u.hp,
                         smoking: u.smoking(&self.rules),
                         shot_at: near.shot_at.contains(&u.id),

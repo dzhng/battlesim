@@ -49,7 +49,7 @@ impl Battle {
             .collect::<Vec<Unit>>();
         for (unit, setup) in units.iter_mut().zip(&setup.units) {
             if let Some(c) = &setup.condition {
-                wear(unit, c, &arsenal, &rules);
+                spawn::wear(unit, c, &arsenal, &rules);
             }
             unit.settle();
         }

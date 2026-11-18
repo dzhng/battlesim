@@ -95,6 +95,16 @@ export interface ObservationLayout {
 export type Point2 = [number, number];
 export type Point3 = [number, number, number];
 
+export type MoveState =
+  | "idle"
+  | "moving"
+  | "waiting"
+  | "route_blocked"
+  | "halted"
+  | "packing"
+  | "planning"
+  | "no_landing_spot";
+
 export interface OwnUnitView {
   withdrawing: boolean;
   fuelS: number | null;
@@ -115,7 +125,7 @@ export interface OwnUnitView {
   /** Driving backwards this tick: a reverse move or a shunt's reversing
    *  leg (the reverse beeper's cue). */
   reversing: boolean;
-  state: string;
+  state: MoveState;
   /** The friendly unit this one waits for. */
   blocker: number | null;
   route: Point2[];
@@ -163,6 +173,8 @@ export interface OwnUnitView {
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
+  /** An aircraft standing on the ground at this published tick. */
+  grounded: boolean;
   /** The squad's host (a building or a carrier) while entering, inside or
    *  leaving it; null otherwise. */
   hold: HoldView | null;
@@ -453,6 +465,10 @@ export interface IdentifiedView {
   /** It trails smoke: a coarse sign of damage (an aircraft below half its
    *  health), never its health. */
   smoking: boolean;
+  /** Setup progress for an identified unit that deploys in place. */
+  deployment: DeploymentView | null;
+  /** An aircraft standing on the ground at this published tick. */
+  grounded: boolean;
   /** The building it holds, inside or leaving (any of its parts' prop
    *  ids), or null: seen at its windows, a garrison gives its building away. */
   building: number | null;

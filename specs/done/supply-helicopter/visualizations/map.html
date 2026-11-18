@@ -1,0 +1,171 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Supply Heli Map</title>
+<style>
+/* Layout: four quadrant sections in walk order, then builder checks, the tweakable plan, and the copyable prompt. */
+:root{
+  --fg:var(--foreground); --dim:var(--muted-foreground); --line:var(--border); --box:var(--card);
+  --user:var(--primary); --agent:var(--info); --terr:var(--success); --edge:var(--warning); --risk:var(--destructive);
+}
+body{line-height:1.5}
+.wrap{display:grid;gap:22px;padding-block:4px 8px}
+h1{font-size:1.45rem;margin:0;text-wrap:balance}
+h2{font-size:1.05rem;margin:0 0 8px;text-wrap:balance;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h2 .q{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+h3{font-size:.92rem;margin:14px 0 6px}
+p{margin:0 0 8px;max-width:70ch}
+.lede{color:var(--dim)}
+code{font-family:var(--font-mono);font-size:.82em;background:var(--code-background);padding:0 4px;border-radius:3px;word-break:break-word}
+ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px}
+th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--dim);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:var(--font-mono);white-space:nowrap;color:var(--dim)}
+.who{font-family:var(--font-mono);font-size:.72rem;white-space:nowrap;padding:1px 6px;border-radius:3px;border:1px solid currentColor}
+.who.u{color:var(--user)} .who.a{color:var(--agent)} .who.t{color:var(--terr)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.card{background:var(--box);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:block;min-width:0;font-size:.86rem}
+.card>.st,.card>b,.card>.ev{display:block;margin-bottom:4px}
+.card b{font-size:.9rem}
+.card .ev{font-family:var(--font-mono);font-size:.74rem;color:var(--dim);word-break:break-word}
+.st{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase}
+.st.dec{color:var(--terr)} .st.edge{color:var(--edge)}
+.prefs{background:var(--box);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-size:.88rem}
+details{border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;background:var(--box)}
+summary{cursor:pointer;font-weight:600}
+.plan{display:grid;gap:8px}
+.slice{border-left:3px solid var(--line);padding:2px 0 2px 12px;font-size:.88rem}
+.slice.j{border-left-color:var(--user)}
+pre{margin:0;font-family:var(--font-mono);font-size:.8rem;white-space:pre-wrap;word-break:break-word;background:var(--code-background);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+button{font:inherit;font-size:.85rem;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:var(--radius);padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--ring)} button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.note{font-size:.8rem;color:var(--dim)}
+</style></head><body>
+<div class="wrap">
+
+<header>
+  <h1>Supply heli: the map</h1>
+  <p class="lede">Every decision for adding a landing supply helicopter, as walked on 2026-11-17. Source notes: <code>throwaway/supply-heli/scan.md</code>. Nothing is built yet.</p>
+</header>
+
+<section>
+  <h2><span class="q">Quadrant 1</span>Known knowns</h2>
+  <p><b>The request.</b> One supply helicopter per faction. It costs the same as the supply truck (150), carries half its stock (500) and sits in the LOG tab. Deploying lands it and stops the rotor. Packing spins the rotor up and it flies again.</p>
+  <ul>
+    <li>Trucks: HEMTT / MAN HX / Ural, cost 150, stock 1000, deploy 3 s, pack 1 s. <code>fixtures/units/roster/{us,europe,eastern}.json</code></li>
+    <li>The shop tab comes from category + role: <code>sup</code> + <code>logistics</code> → LOG. <code>web/src/battle/present/purchaseFilter.ts:20-37</code></li>
+    <li>Supply works whether or not the supplier flies. Range is 80 m measured flat on the map, and the source must be deployed and must not have moved. <code>crates/sim/src/supply.rs:173-235</code></li>
+    <li>Deploy is generic: it happens automatically when idle, or by <code>SetDeployment</code>, and a unit can't move until packed. That gate already holds aircraft. <code>deployment.rs:74-81</code>, <code>movement/air.rs:58</code></li>
+    <li>Today helis never land. Their lowest point is the low hover (tallest ground hull + 2 m). <code>air.rs:191</code></li>
+    <li>Every roster heli has separate rotor nodes. <code>blender/aircraft_parts.py:410</code></li>
+    <li>Base rows: CH-47F (US), Chinook HC6 (Europe), Mi-8AMTSh (Eastern). They keep their door guns and drop their seats.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="q">Quadrant 2</span>Known unknowns: decision ledger</h2>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>Decision (spec-ready)</th><th>Closed by</th></tr>
+    <tr><td>Q1</td><td>Landed, it is a <b>ground vehicle</b>: tanks and ATGMs hit it, AA can't, ground units route around it, cover and concealment apply.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>Q2</td><td>Deploy takes 3 s: the drop runs about 2 s, then it touches down and becomes ground, then the rotor stops and service starts at 3 s. Pack takes 1 s: the rotor spins up on the ground, then it becomes an aircraft and climbs. Truck times kept.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>Q3</td><td>It lands on the nearest clear spot within 40 m (a rules value). If none is clear, it stays packed in the air and the panel says why.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>Q4</td><td>It deploys automatically when it stops, like the truck. Pack keeps it airborne.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>Q5</td><td>The AI buys it only for emergencies: a unit in a group is below half of any limited ammo or below half health, and no supplier can reach it within 30 s (AI tuning). It flies to the group, lands on the side away from the enemy, serves, then returns to the truck's spot. The truck stays the AI's standing supplier.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>Q6</td><td>Rotor speed eases with the deploy state. The blur hands off to still blades, the rotor loop fades to silence, and it gets its own audio row. Worked out client-side.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>Q7</td><td><code>IdentifiedUnit</code> gains <code>deployment: Option&lt;f64&gt;</code> for identified deployable units. This is a named exception to "never timers". Enemy tracks file layer and class from what was seen.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>G</td><td>It keeps the transport's door guns as working weapons and reuses the transport model unchanged.</td><td><span class="who u">user</span></td></tr>
+    <tr><td>D1</td><td>Killed while landed, it leaves a ground wreck with no crash blast. Killed during the drop, it crashes as an aircraft. <i>Pref 1: landed = ground.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D2</td><td>On Stop in mid-flight it brakes to a hover. The deploy timer starts only once it is stationary over the spot. <i>Pref 2 + Q2.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D3</td><td>Height follows the deploy timer only while landing, bypassing the climb clamp. Packing holds it on the ground. Once packed it climbs at its normal rate and moves sideways only when clear of obstacles. Packed mid-drop, it resumes normal flight from its current height. <i>Pref 1: no 45 m/s jumps.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D4</td><td>A rotor radius is authored on each heli's air mobility, and the clear-spot search uses it. <i>Pref 4: values live in data.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D5</td><td>The low hover clears every type that can land (air + deploy), not just ground-layer hulls. <i>Pref 4.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D6</td><td>A landed heli is out of air separation, both pushing and being pushed. <i>Pref 1.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D7</td><td>The truck stays the first LOG tile and the heli follows. <i>Pref 2.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D8</td><td>Names: "CH-47F Supply", "Chinook HC6 Supply", "Mi-8AMTSh Supply" (18-character cap). <i>Pref 4.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D9</td><td>Voices: each faction's transport-pilot set. <i>Pref 3: no new takes.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D10</td><td>The tutorial's LOG line reads "supply trucks and helicopters". <i>Pref 4.</i></td><td><span class="who a">agent for user</span></td></tr>
+    <tr><td>D11</td><td>The AI's opening buy, truck replacement and truck parking consider only supply units that drive. The flying one is emergency-only. <i>Pref 1 + Q5; needed once guns made it outrank the truck.</i></td><td><span class="who a">agent for user</span></td></tr>
+  </table></div>
+  <div class="prefs" style="margin-top:10px">
+    <b>Confirmed preferences behind the agent answers:</b> (1) realism where it changes how the fight plays; (2) match the truck wherever there's an equivalent; (3) the cheapest option when it's only about looks; (4) otherwise the agent's recommendation. <b>Scope:</b> questions in this walk that follow clearly from these four. Conflicts go to the user. Nothing here authorizes building.
+  </div>
+</section>
+
+<section>
+  <h2><span class="q">Quadrant 3</span>Unknown knowns: taste extracted</h2>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>Answer</th><th>What it reshaped</th></tr>
+    <tr><td>3.1</td><td>Fast drop, flaring at the bottom (ease-out over the first 2 s)</td><td>Sets the height-versus-progress curve in D3</td></tr>
+    <tr><td>3.2</td><td>The rotor starts slowing at touchdown (2 → 3 s)</td><td>Rotor speed is full until ground contact</td></tr>
+    <tr><td>3.3</td><td>Same model as the transport</td><td>Collided with "no guns", resolved by G: it keeps working door guns</td></tr>
+    <tr><td>3.4</td><td>Same panel words as the truck (DEPLOYING / SUPPLYING / PACKING)</td><td>No new UI strings</td></tr>
+    <tr><td>3.5</td><td>Ground-vehicle marker once landed, with no drop line</td><td>The overlay reads live landed state, not the type's airborne flag</td></tr>
+    <tr><td>ctx</td><td>Who uses it and what "done" looks like: left blank</td><td>Taken as no extra constraint</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="q">Quadrant 4</span>Unknown unknowns: landmines</h2>
+  <div class="cards">
+    <div class="card"><span class="st dec">Decided: build it</span><b>The ground-movement data refuses an aircraft</b><span class="ev">units.rs:512 · battle.rs:1809 clear_lanes · drive.rs:678 · push.rs:82 · move_placement.rs</span>One owner predicate, "landed", derived from <code>deployment.current</code>, which advances before movement. Keep <code>Motion::Air</code>; every footprint and ground site keys on that predicate and never calls <code>ground()</code> for a landed heli.</div>
+    <div class="card"><span class="st dec">Decided: Q1</span><b>Target class comes from the type</b><span class="ev">contract/catalog.rs:444 · weapons.rs:336,603,651,745,764 · knowledge.rs:492</span>Becomes a per-unit function: Vehicle while landed. Otherwise a landed heli is unshootable.</div>
+    <div class="card"><span class="st dec">Decided: Q7</span><b>Tracks freeze layer and class</b><span class="ev">knowledge.rs:470-494, 640 · air/mod.rs:363</span>Refresh on every sighting and fold them into the knowledge digest. Fix the layer a LastSeen contact takes.</div>
+    <div class="card"><span class="st dec">Decided: D1</span><b>Death while landed hits the crash path</b><span class="ev">battle.rs:2226 · rules.json:733 (50 dmg, 9 m)</span>Add a landed branch: ground wreck, no burst, no friendly-fire on the units it was supplying.</div>
+    <div class="card"><span class="st dec">Decided: D6</span><b>Air separation slides it</b><span class="ev">air.rs:228-252, 116 · supply.rs:192</span>Exclude landed units both ways, and skip aircraft integration while landed.</div>
+    <div class="card"><span class="st dec">Decided: D2, D3</span><b>Glide, climb clamp, pack rate</b><span class="ev">air.rs:104-120 · deployment.rs:51-70 · weapons.rs:330 leads shots with air.velocity.z</span>Brake first, own height law, climb before moving sideways. Keep <code>air.velocity.z</code> equal to the forced sink.</div>
+    <div class="card"><span class="st dec">Decided: D4, D5</span><b>Rotor radius and hover clearance</b><span class="ev">catalog/limits.rs:13 · air.rs:191 (6.1 m hover vs 5.43 m CH-47)</span>New data field; the low hover counts landable types.</div>
+    <div class="card"><span class="st dec">Decided: D11</span><b>AI buys and parks the heli as its truck</b><span class="ev">purchase.rs:23-56, 288-322, 402 · mod.rs:870-935 · tests.rs:296 (role-only)</span>Tell supply units that drive from ones that fly, by mobility. Tests must assert which one was bought.</div>
+    <div class="card"><span class="st dec">Decided: Q6</span><b>Client "airborne" frozen at first sight</b><span class="ev">presentation units/driver/vehicle.rs:49-81 · drawn.rs:213 · articulation.rs:126</span>Compute airborne, blur and rotor rate every frame. Keep drawing the blur while the rotor turns after touchdown, or the blades vanish. Reset Flight state on takeoff.</div>
+    <div class="card"><span class="st edge">Sharp edge</span><b>Air classes escape the sound test</b><span class="ev">vehicleClass.test.ts:24 · tables.rs:282 · Emitter has no rotor field (records.rs:334)</span>The <code>air_light_logistics</code> row would silently fall back to a truck engine. Rotor speed needs a slot in the emitter record and the wasm packer.</div>
+    <div class="card"><span class="st edge">Sharp edge</span><b>Type-keyed "airborne" across the client</b><span class="ev">battleOverlay.ts:336, 489 · sideInstances.ts:124 · cook_offs.rs:107 · effects/publication.rs:206 · skirmish_ai capability.rs:77</span>Each must read live state: marker, click rings, cook-off, dust, and the AI's AA-threat reaction.</div>
+    <div class="card"><span class="st edge">Sharp edge</span><b>Contract ripple</b><span class="ev">publication.rs:303 IDENTIFIED_FIELDS · observation.rs:17 D5 wording</span>New publication column, TS decoders, and re-blessed parity/capture fixtures. The skirmish corpus will move. The low hover rising is a named digest change.</div>
+    <div class="card"><span class="st edge">Sharp edge</span><b>Long hull on the ground</b><span class="ev">us.json:466 (8.1 × 1.9 m half) · limits.rs:20-41</span>Longer than any wheeled hull the route planner is proven against. It never drives, but ground traffic must path around it. Push class none means it never knocks trees.</div>
+    <div class="card"><span class="st edge">Sharp edge</span><b>Small, known</b><span class="ev">voices.json supply_driver says "truck" · Tutorial.tsx:25 · labels.rs:18</span>Covered by D8–D10. Its concealment of 2.8 matches the truck's. It inherits 4 flares. Withdrawal works unchanged.</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="q">Builder</span>Confirm before coding</h2>
+  <ul>
+    <li>Rotor radius for the CH-47 and Mi-8, read from their <code>rotor_*</code> nodes (needs the LFS model bytes).</li>
+    <li>Door-mount ids on the three base rows still match their appearances, now that seats are dropped (<code>"carriage": null</code> in the override).</li>
+    <li>The new low-hover height, and which <code>air_supply.rs</code> / parity numbers it moves.</li>
+    <li>The 40 m search is a deterministic ring search, like <code>crash.rs:341</code>.</li>
+    <li>A landed unit's height uses the ground surface, not cruise minus 30 m, because the height target lifts helis over roofs and canopy.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="q">Plan</span>Tweakable plan (superseded by ../README.md)</h2>
+  <div class="plan">
+    <div class="slice j"><b>Feel:</b> drop curve and timing, the rotor spin-down handoff, and the climb-before-moving rule. Judge in the browser before locking.</div>
+    <div class="slice j"><b>AI emergency trigger:</b> 50% ammo/health and the 30 s reach are tuning values; expect to adjust after a few AI battles.</div>
+    <div class="slice j"><b>Landing spot:</b> 40 m search and rotor-radius clearance. Check it reads right next to forests and towns.</div>
+    <details><summary>Mechanical work, in build order</summary>
+      <ul style="margin-top:8px">
+        <li>Slice 1, rows: three roster rows extending the transports, with category <code>sup</code>, role <code>logistics</code>, cost 150, deploy + supply 500, <code>carriage: null</code>. Plus voices, the audio row, catalog bless, LOG order and tutorial line.</li>
+        <li>Slice 2, simulation landing: the landed predicate, height law, braking, clear-spot search, takeoff, separation, low hover, ground-site audit, per-unit target class, death branch. Test first, end to end.</li>
+        <li>Slice 3, contract: <code>IdentifiedUnit.deployment</code>, track refresh + digest, live layer in the AI's threat reads, fixture re-bless.</li>
+        <li>Slice 4, presentation: live airborne, rotor rate and blur handoff, marker switch, sound fade. Screenshot critique.</li>
+        <li>Slice 5, AI: emergency buy and flight; truck logic only for supply units that drive.</li>
+        <li>Closeout: full run (LFS pulled), review, close spec.</li>
+      </ul>
+    </details>
+  </div>
+</section>
+
+<section>
+  <h2><span class="q">Next</span>Implementation prompt</h2>
+  <pre id="prompt">Superseded: the shipped rationale is ../README.md, with ../decisions.md and ../choices.md.</pre>
+  <div class="row"><button id="copy" type="button">Copy prompt</button><span class="note" id="copied"></span></div>
+</section>
+
+</div>
+<script>
+document.getElementById("copy").onclick=()=>{const t=document.getElementById("prompt").textContent;
+ navigator.clipboard.writeText(t).then(()=>copied.textContent="Copied").catch(()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("prompt"));getSelection().removeAllRanges();getSelection().addRange(r);copied.textContent="Selected; press Cmd+C";});};
+</script>
+</body></html>

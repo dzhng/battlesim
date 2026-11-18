@@ -125,7 +125,7 @@ pub fn articulate(out: &mut [Trs], nodes: &[Node], rig: &Rig, input: &Articulati
     }
     for rotor in &rig.rotors {
         turn(out, rotor.node, Z, input.rotor / rotor.radius);
-        if input.rotor_blur > 0.0 {
+        if input.rotor_speed > super::rotor::BLUR_CROSSOVER {
             out[rotor.node].s = [0.0; 3];
         }
     }

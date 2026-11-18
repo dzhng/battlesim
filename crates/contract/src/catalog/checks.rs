@@ -81,8 +81,8 @@ pub(super) fn check(
             ));
         }
     }
-    if t.capabilities.supply.is_some() && t.capabilities.deploy.is_none() {
-        return rule("supply serves only when deployed: it needs deploy");
+    if let Some(problem) = t.capability_problem() {
+        return rule(problem);
     }
     // A hull's mounts: each on the hull or an earlier turret, firing from
     // its own muzzle, and neither a squad's weapon nor a soldier's.

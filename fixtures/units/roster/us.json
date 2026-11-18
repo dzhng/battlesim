@@ -443,10 +443,9 @@
         }
       }
     },
-    "us_ch_47_chinook_ch_47f": {
+    "us_ch_47_chinook_ch_47f_airframe": {
       "name": "CH-47F Chinook",
       "description": "CH-47F",
-      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "us",
       "family": "ch_47_chinook",
       "roles": [
@@ -518,7 +517,48 @@
         }
       ],
       "concealment": 2.8,
-      "appearance": "us_ch_47_chinook_ch_47f"
+      "appearance": "us_ch_47_chinook_ch_47f",
+      "abstract": true
+    },
+    "us_ch_47_chinook_ch_47f": {
+      "extends": "us_ch_47_chinook_ch_47f_airframe",
+      "capabilities": {
+        "carriage": {
+          "seats": 16
+        }
+      }
+    },
+    "us_ch_47_chinook_supply": {
+      "extends": "us_ch_47_chinook_ch_47f_airframe",
+      "name": "CH-47F Supply",
+      "description": "Lands to resupply nearby units; door guns cover the delivery.",
+      "cost": 150,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "CH-47F Supply",
+        "family_name": "CH-47 Chinook"
+      },
+      "roles": [
+        "logistics"
+      ],
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 1,
+          "drop_seconds": 2
+        },
+        "supply": {
+          "stock": 500
+        }
+      },
+      "mobility": {
+        "air": {
+          "rotor_radius_m": 14.947
+        }
+      }
     },
     "us_ea_18g_growler_electronic_warfare_aircraft": {
       "name": "EA-18G Growler",

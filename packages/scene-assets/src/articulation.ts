@@ -39,10 +39,13 @@ export interface Articulation {
   /** Metres every rotor's blade tips have swept: an accumulated angle times
    *  each rotor's reach. */
   rotor: number;
-  /** 1: every rotor is drawn by its blur (as a camera's shutter sees it
-   *  turn), not by its own geometry, which draws nothing; 0: by its geometry. */
-  rotor_blur: number;
+  /** Normalized rotor speed; slow rotors hand over to authored geometry. */
+  rotor_speed: number;
 }
+
+/** At or below this rotor speed the authored blades replace the blur;
+ *  kept in step with `units::rotor::BLUR_CROSSOVER` in crates/presentation. */
+export const BLUR_CROSSOVER = 0.2;
 
 export const REST_ARTICULATION: Readonly<Articulation> = {
   turret_yaw: 0,
@@ -54,7 +57,7 @@ export const REST_ARTICULATION: Readonly<Articulation> = {
   travel_r: 0,
   deploy: 0,
   rotor: 0,
-  rotor_blur: 0,
+  rotor_speed: 0,
 };
 
 const DEG = Math.PI / 180;
@@ -331,7 +334,8 @@ export function articulate(
   }
   for (const rotor of rig.rotors) {
     turned(out[rotor.node], nodes[rotor.node].bind, AXIS_Z, input.rotor / rotor.radius);
-    if (input.rotor_blur > 0) vec3.set(out[rotor.node].s, 0, 0, 0);
+    // Kept in step with presentation/units/articulation.rs.
+    if (input.rotor_speed > BLUR_CROSSOVER) vec3.set(out[rotor.node].s, 0, 0, 0);
   }
   for (const motion of rig.deploy) {
     const s = Math.min(1, Math.max(0, (input.deploy - motion.start) / (motion.end - motion.start)));

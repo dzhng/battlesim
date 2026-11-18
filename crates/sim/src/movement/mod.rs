@@ -127,7 +127,7 @@ pub(crate) fn advance(
             continue;
         }
         // Aircraft plan their own routes as they fly (`air`).
-        if unit.airborne() {
+        if unit.flies() {
             continue;
         }
         let s = unit.side.index();
@@ -153,7 +153,7 @@ pub(crate) fn advance(
         if !units[i].on_field() {
             continue;
         }
-        if units[i].airborne() {
+        if units[i].flies() {
             // The flight model picks the flight law, never the layer.
             if units[i].fixed_wing() {
                 crate::air::step_fixed_wing(ctx, &mut units[i]);
@@ -259,7 +259,7 @@ fn request_route(
             let reach = unit.hull.map_or(0.0, |h| h.x) + NEAR_GOAL_M;
             if (goal - here).within_radius(reach) {
                 // As near as the ground (or what stands on the marker) lets it.
-                arrive(unit);
+                arrive(ctx.rules, unit);
             } else {
                 unit.route = None;
                 blocked(unit, ctx.tick);
@@ -313,7 +313,7 @@ fn request_route(
             // pushed through; only bodies new to the route are weighed again.
             let swerve = unit.hull.map_or(0.0, |h| h.x)
                 + unit
-                    .ground()
+                    .ground(ctx.rules)
                     .drive
                     .filter(|d| !d.tracked)
                     .map_or(0.0, |d| d.radius_m);
@@ -326,11 +326,19 @@ fn request_route(
                         ROUTE_RECHECK_REACH_M,
                     )
                     && {
-                        let weighs =
-                            side.reweighs(unit.planned_revision, push::pressed(ctx.world, unit));
+                        let weighs = side.reweighs(
+                            unit.planned_revision,
+                            push::pressed(ctx.world, ctx.rules, unit),
+                        );
                         let grid = side.grid(ctx.world, ctx.authored);
-                        !grid.route_fits(from, route, unit.ground())
-                            || grid.route_pushes_where(from, route, unit.ground(), swerve, &weighs)
+                        !grid.route_fits(from, route, &unit.ground(ctx.rules))
+                            || grid.route_pushes_where(
+                                from,
+                                route,
+                                &unit.ground(ctx.rules),
+                                swerve,
+                                &weighs,
+                            )
                     })
         }
     };
@@ -352,7 +360,7 @@ fn request_route(
     }
     let from = {
         let grid = side.grid(ctx.world, ctx.authored);
-        route_start(unit, |p| grid.placement_fits(p, unit.ground()))
+        route_start(unit, |p| grid.placement_fits(p, &unit.ground(ctx.rules)))
     };
     planner.submit(
         unit.id,
@@ -360,7 +368,7 @@ fn request_route(
             side: unit.side,
             from,
             goal,
-            mobility: *unit.ground(),
+            mobility: unit.ground(ctx.rules),
             policy,
             detour,
             kept,
@@ -449,7 +457,11 @@ fn plan_routes(
             plan,
             revision,
         );
-        line_up(unit, sides[unit.side.index()].grid(ctx.world, ctx.authored));
+        line_up(
+            ctx.rules,
+            unit,
+            sides[unit.side.index()].grid(ctx.world, ctx.authored),
+        );
     }
 }
 
@@ -458,8 +470,8 @@ fn plan_routes(
 /// ([`drive::line_up_heading`]), long enough that the turn onto it is a
 /// forward one ([`drive::lead_in`]). Without room for it, the vehicle keeps
 /// the route it has.
-fn line_up(unit: &mut Unit, grid: &NavGrid) {
-    let Some(drive) = unit.ground().drive.filter(|d| !d.tracked) else {
+fn line_up(rules: &contract::scenario::Rules, unit: &mut Unit, grid: &NavGrid) {
+    let Some(drive) = unit.ground(rules).drive.filter(|d| !d.tracked) else {
         return;
     };
     let Some(order) = unit.orders.front().and_then(|o| o.movement()) else {
@@ -484,7 +496,9 @@ fn line_up(unit: &mut Unit, grid: &NavGrid) {
     let lead = drive::lead_in(end, heading, &drive, unit.hull.map_or(0.0, |h| h.x));
     let mut lined = route[..route.len() - 1].to_vec();
     lined.extend([lead, end]);
-    if grid.placement_fits(lead, unit.ground()) && grid.route_fits(here, &lined, unit.ground()) {
+    if grid.placement_fits(lead, &unit.ground(rules))
+        && grid.route_fits(here, &lined, &unit.ground(rules))
+    {
         unit.route = Some(lined);
     }
 }
@@ -669,13 +683,13 @@ fn blocked(unit: &mut Unit, tick: u64) {
 
 /// A route's end reached: a destination completes its move; a pursuit point
 /// leaves the attack in place for its weapons.
-fn arrive(unit: &mut Unit) {
+fn arrive(rules: &contract::scenario::Rules, unit: &mut Unit) {
     if let Some(m) = unit.orders.front().and_then(|o| o.movement()) {
         // The right-drag's facing (Q9): a squad turns at once; tracks pivot
         // at rest; wheels drove in along it as far as they could (`line_up`).
         match m.facing {
             Some(f) if !unit.is_vehicle() => unit.yaw = f,
-            Some(f) if unit.airborne() || unit.ground().drive.is_some_and(|d| d.tracked) => {
+            Some(f) if unit.flies() || unit.ground(rules).drive.is_some_and(|d| d.tracked) => {
                 unit.turn_to = Some(f)
             }
             _ => {}

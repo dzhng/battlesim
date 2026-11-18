@@ -95,12 +95,16 @@ named as data in its exporter's table; [`textures.py`](textures.py) holds one
 recipe per scheme. The dust film never greys rubber or glass, and only paint
 takes its side's tint.
 
-Roster vehicle exporters build to the physical frame of the unit type that
-draws their appearance, read from the resolved catalogs by
+Roster vehicle exporters build to the physical frame of the unit types that
+draw their appearance, read from the resolved catalogs by
 [one helper](catalog_frames.py); a family is the appearances whose sources lie
 in its folder. Nothing else supplies a frame, so an appearance no unit draws
 cannot be exported, and its tests run without Blender:
 `python3 -m unittest discover -s packages/scene-assets/blender -p 'catalog_frames_test.py'`.
+
+Types sharing an appearance must agree on hull and mounts. The appearance's
+namesake type retains the exporter identity so paint selection is independent
+of catalog order.
 
 A family's script (`roster/<family>.py`) says only what its vehicle looks like and how it is wrecked; [the shared
 export run](vehicle_export.py) does the rest the same way for every family:

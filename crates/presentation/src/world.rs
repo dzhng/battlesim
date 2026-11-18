@@ -165,7 +165,8 @@ pub struct UnitType {
     /// gear and turret take; none for a squad.
     #[serde(default)]
     pub vehicle_class: Option<String>,
-    pub airborne: bool,
+    /// Its mobility is flight, even when observed standing on the ground.
+    pub flies: bool,
     /// The height band it occupies (its mobility's `layer`).
     pub layer: AltitudeLayer,
     /// How it flies (its mobility's `flight`); none on the ground.
@@ -179,6 +180,9 @@ pub struct UnitType {
     /// engines' throttle reads its drawn speed against it. None on the ground.
     #[serde(default)]
     pub cruise_mps: Option<f64>,
+    /// Authored deployment timing; rotor presentation reads the same capability.
+    #[serde(default)]
+    pub deploy: Option<contract::catalog::Deploy>,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,
@@ -189,6 +193,16 @@ impl UnitType {
     /// shadow but shows one on the ground beneath it.
     pub fn high_air(&self) -> bool {
         self.layer == AltitudeLayer::HighAir
+    }
+
+    /// Its flight model drives a rotor.
+    pub fn has_rotor(&self) -> bool {
+        self.flight == Some(FlightModel::Rotor)
+    }
+
+    /// This observed aircraft is off the ground now.
+    pub fn in_the_air(&self, grounded: bool) -> bool {
+        self.flies && !grounded
     }
 }
 

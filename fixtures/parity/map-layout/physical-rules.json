@@ -520,7 +520,8 @@
       "obstacle_m": 30,
       "acceleration_s": 4.5,
       "settle_share": 0.05,
-      "settle_max_m": 4
+      "settle_max_m": 4,
+      "landing_reach_m": 40
     },
     "fixed_wing": {
       "strafe_ceiling_m": 130,

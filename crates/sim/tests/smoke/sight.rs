@@ -312,7 +312,7 @@ fn launcher_rules() -> Value {
             "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
     )]);
     rules["weapons"]["test_launcher"] = json!({
-        "extends": "artillery_mortar", "speed_mps": 80, "range_m": 650,
+        "extends": "artillery_mortar", "arc_height_m": null, "speed_mps": 80, "range_m": 650,
         "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },
         "requires_clear_launch_path": true, "round_cost": 1,
     });

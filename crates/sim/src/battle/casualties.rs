@@ -204,7 +204,8 @@ impl Battle {
                 }
             }
             // A downed aircraft falls first; its wreck lies where it lands.
-            if let Some(air) = unit.air {
+            if unit.airborne() {
+                let air = unit.air.expect("an airborne unit has flight state");
                 self.crashes.push(crate::crash::Crash::new(
                     id,
                     unit.position,

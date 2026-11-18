@@ -20,6 +20,7 @@ import {
   openBattle,
   gpuWarnings,
   hideHud,
+  overlaysOnly,
   aim,
   snapshot,
 } from "./_lab.mjs";
@@ -73,20 +74,6 @@ const DROP_REACH = visuals.overlay.orders.drop_line_reach;
 /** Where along the height a drop line is looked for: low, where its dots
  *  are strongest. */
 const DROP_LOW = 0.2;
-
-/** The overlays alone over black, the DOM hidden: what the overlay pass
- *  lays down (the drop lines; the ground markers are paint in the world). */
-async function overlaysOnly(page) {
-  const hide = await page.addStyleTag({
-    content: "* { visibility: hidden !important } canvas { visibility: visible !important }",
-  });
-  await page.evaluate(() => window.__lab.setFrameView("overlays-on-black"));
-  await page.evaluate(() => window.__lab.frame());
-  const shot = decode(await page.screenshot());
-  await page.evaluate(() => window.__lab.setFrameView("final"));
-  await hide.evaluate((el) => el.remove());
-  return shot;
-}
 
 export async function run(ctx) {
   const page = await openBattle(ctx);

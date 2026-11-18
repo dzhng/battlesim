@@ -388,8 +388,8 @@ fn names(list: &Value) -> impl Iterator<Item = String> + '_ {
         .filter_map(|n| n.as_str().map(str::to_owned))
 }
 
-/// Whether catalog type `t` flies (`airborne`).
-pub(crate) fn airborne(t: &Value) -> bool {
+/// Whether catalog type `t` flies (`flies`).
+pub(crate) fn flies(t: &Value) -> bool {
     t["mobility"].get("air").is_some()
 }
 
@@ -653,7 +653,7 @@ fn unit_types<'a>(
             json!({
                 "hull": hull.is_some(),
                 "vehicleClass": class,
-                "airborne": airborne(t),
+                "flies": flies(t),
                 "layer": mobility(t)?.layer(),
                 "flight": mobility(t)?.flight(),
                 "turnRadS": match mobility(t)? {
@@ -664,6 +664,7 @@ fn unit_types<'a>(
                     Mobility::Air { cruise_kmh, .. } => Some(cruise_kmh / 3.6),
                     _ => None,
                 },
+                "deploy": t["capabilities"]["deploy"],
                 "roles": roles,
                 "mounts": mount_rows,
                 "draws": draws,

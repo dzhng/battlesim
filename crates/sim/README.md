@@ -139,7 +139,9 @@ own that is losing a fight pops its smoke and reverses out of the cloud
 ([smoke](src/skirmish_ai/smoke.rs)); a player's units only pop when ordered.
 A squad it buys where no carrier waits for it comes aboard the carrier that
 seats it, as one purchase ([purchase](src/skirmish_ai/purchase.rs)); boarding
-pairs a squad with a carrier it already has, as after a loss.
+pairs a squad with a carrier it already has, as after a loss. A squad calls
+for a ride only when the driver’s intended drop brings it closer to its task.
+The driver waits while the squad walks to board.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 Each AI opens on the lane its slot holds; that pull fades over the battle, so
@@ -255,10 +257,17 @@ What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
 checks), so loading it is its check.
 
-An aircraft is a hull with no ground footprint (`Unit::ground_footprint` is
-`None`): traffic, shoving, cover, treads, forest lanes and forest concealment
-never see it. Its motion (`units::Motion::Air`) never reaches ground
-navigation; a site that only a ground mover reaches asks `Unit::ground`.
+An aircraft in the air is a hull with no ground footprint: traffic, shoving,
+cover, treads, forest lanes and forest concealment never see it. Two
+predicates keep "flies" and "in the air now" apart: `Unit::flies` (its motion
+is `units::Motion::Air`, so it never reaches ground navigation, and only a
+ground mover asks `Unit::ground`) and `Unit::airborne` (it flies and is off
+the ground). An aircraft whose deploy capability authors a drop sets up by
+landing ([supply helicopter](../../specs/done/supply-helicopter/README.md)):
+from touchdown to the end of packing it is landed (the deployment's latch,
+`Unit::landed`), and every ground rule treats it as a ground vehicle, with a
+footprint, the Ground layer and the Vehicle target class
+(`Unit::target_class`).
 
 An aircraft flies in the altitude layer its row names. High air is the one
 layer that bends physics: its heights are lowered from a real jet's for play,

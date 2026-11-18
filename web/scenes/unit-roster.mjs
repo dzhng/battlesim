@@ -1,9 +1,21 @@
 // The player's production faction skirmish, through its ordinary picker and cursor.
 import { modelGhostAgreement } from "./_modelGhost.mjs";
-import { advance, aim, obs, own, pointerOffCanvas, presented, snapshot, until } from "./_lab.mjs";
+import { unitType } from "./_units.mjs";
+import {
+  advance,
+  aim,
+  obs,
+  own,
+  openBattle,
+  pointerOffCanvas,
+  presented,
+  snapshot,
+  until,
+} from "./_lab.mjs";
 const check = (ctx, ok, name, detail) => ctx.check(name, ok, detail);
 export async function run(ctx) {
   await modelGhostAgreement(ctx);
+  await logCards(ctx);
   const page = await ctx.newPage();
   const failures = [];
   page.on("response", async (response) => {
@@ -140,10 +152,15 @@ export async function run(ctx) {
     JSON.stringify(cameraAfterPlacement) === JSON.stringify(cameraAtPlacement),
   );
   const reserved = await obs(page);
+  const expectedCredits = own(initial).credits - unitType(previewGhost.variant).cost;
   check(
     ctx,
-    reserved.own.length === 0 && own(reserved).credits === 650 && own(reserved).unitCount === 1,
+    reserved.own.length === 0 &&
+      own(reserved).credits === expectedCredits &&
+      own(reserved).unitCount === 1 &&
+      own(reserved).pending[0].kind === previewGhost.variant,
     "cursor confirmation atomically reserves one variant during preparation",
+    JSON.stringify({ player: own(reserved), expectedCredits, variant: previewGhost.variant }),
   );
   // A held left drag places at its press and turns the unit toward its
   // release. This is the second gesture the player uses in the same journey.
@@ -335,4 +352,21 @@ async function transportJourney(ctx, page, entry) {
   await presented(page);
   await snapshot(ctx, page, "journey-transport-arrived.png");
   await ctx.matchBaseline(page, "journey-transport-arrived");
+}
+
+/** Capture the LOG interactions in their own preparation, so adding picker
+ *  shots cannot change the presentation history of the existing journey. */
+async function logCards(ctx) {
+  const page = await openBattle(ctx, { tick: 60 });
+  await page.addStyleTag({ content: ".frame-rate { display: none !important; }" });
+  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  await page.getByRole("tab", { name: "LOG", exact: true }).click();
+  await pointerOffCanvas(page);
+  await snapshot(ctx, page, "log-cards.png");
+  await ctx.matchBaseline(page.locator(".hud-purchase-picker"), "log-cards");
+  await page.getByRole("tabpanel", { name: "LOG", exact: true }).getByRole("button").nth(1).hover();
+  await snapshot(ctx, page, "log-supply-info.png");
+  await ctx.matchBaseline(page.locator(".hud-purchase-info"), "log-supply-info");
+  await pointerOffCanvas(page);
+  await page.close();
 }

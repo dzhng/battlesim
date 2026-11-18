@@ -341,7 +341,8 @@ crate::records! {
         flags: u32,
         /// Position (m, sim); w unused.
         position: [f32; 4],
-        /// Left and right track travel (m), turret yaw (rad), unused.
+        /// Left and right track travel (m), turret yaw (rad), rotor speed
+        /// (0..1), or -1 for an engine without a rotor input.
         motion: [f32; 4],
     }
 

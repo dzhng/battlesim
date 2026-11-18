@@ -50,7 +50,7 @@ fn fixed_wing_admission_uses_the_fixed_wing_hull_limit() {
     fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "test_heli",
+        "test_jet",
         json!({
             "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "body": { "hull": { "half_extents_m": [10.0, 4.0, 1.6] } }

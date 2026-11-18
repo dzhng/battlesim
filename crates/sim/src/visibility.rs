@@ -21,7 +21,7 @@ pub struct OcclusionGrid {
     top: Vec<f64>,
     /// Four-by-four fog cells per tile; entries are rebuilt only on demand.
     tile_revisions: Vec<TileRevision>,
-    /// One complete field per observer, bounded by the battle's unit roster.
+    /// One complete field per observer, released once the unit leaves the field.
     observers: BTreeMap<UnitId, ObserverField>,
 }
 
@@ -35,7 +35,7 @@ struct ObserverField {
     cleared: u32,
     /// Per eye, the clouds within its reach and their phases.
     smoke: Vec<u64>,
-    field: VisibilityField,
+    field: Option<VisibilityField>,
 }
 
 #[derive(Clone, Copy)]
@@ -45,6 +45,10 @@ struct TileRevision {
 }
 
 impl OcclusionGrid {
+    pub(crate) fn retain_observers(&mut self, keep: impl Fn(UnitId) -> bool) {
+        self.observers.retain(|id, _| keep(*id));
+    }
+
     /// A fog cell's side in metres: the finest spot a side's sight resolves.
     pub(crate) fn cell_m(&self) -> f64 {
         self.cell
@@ -64,6 +68,23 @@ impl OcclusionGrid {
         sight: &Sight,
         field: &mut VisibilityField,
     ) {
+        // Moving eyes seldom reuse their previous field. Sweep them straight
+        // into the side's union, where earlier observers can already see much
+        // of the ground. Build a standalone cache once the pose repeats.
+        if let Some(old) = self
+            .observers
+            .get_mut(&observer)
+            .filter(|old| old.eyes != eyes || old.sight != *sight)
+        {
+            old.eyes.clear();
+            old.eyes.extend_from_slice(eyes);
+            old.sight = *sight;
+            old.field = None;
+            for &eye in eyes {
+                sweep(world, self, sensors, eye, sight, field);
+            }
+            return;
+        }
         let sensor_key = [sensors.fog_target_height_m, sensors.foliage_full_block];
         let smoke: Vec<u64> = eyes
             .iter()
@@ -81,8 +102,7 @@ impl OcclusionGrid {
             .unwrap_or(0);
         let cleared = world.cleared_cells();
         let reusable = self.observers.get_mut(&observer).is_some_and(|old| {
-            let same = old.eyes == eyes
-                && old.sight == *sight
+            let same = old.field.is_some()
                 && old.sensors == sensor_key
                 && old.smoke == smoke
                 && old.bodies == bodies
@@ -107,11 +127,11 @@ impl OcclusionGrid {
                     bodies,
                     cleared,
                     smoke,
-                    field: own,
+                    field: Some(own),
                 },
             );
         }
-        let own = &self.observers[&observer].field;
+        let own = self.observers[&observer].field.as_ref().unwrap();
         for (union, &seen) in field.bits.iter_mut().zip(&own.bits) {
             *union |= seen;
         }
@@ -215,7 +235,8 @@ pub fn sweep(
     let clouds = world.smoke().near(eye.xy(), sight.max_range());
     for r in 0..rays {
         let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
-        let dir = v2(libm::cos(angle), libm::sin(angle));
+        let (sin, cos) = libm::sincos(angle);
+        let dir = v2(cos, sin);
         let range = sight.range_at(angle);
         let steps = (range / cell).ceil() as usize;
         // A side's field is the union of every eye. When earlier eyes marked
@@ -223,12 +244,12 @@ pub fn sweep(
         // contribute another bit, whatever would block it.
         // Check the tail first: blocked rays often have an unseen far cell,
         // so this proof can fail before walking the already-visible prefix.
-        if (1..=steps).rev().all(|k| {
+        let Some(steps) = (1..=steps).rev().find(|&k| {
             let p = eye.xy() + dir * (k as f64 * cell);
-            field.visible(p.x, p.y)
-        }) {
+            !field.visible(p.x, p.y)
+        }) else {
             continue;
-        }
+        };
         // Once the horizon is steeper than any later cell's target could be,
         // the rest of the ray marks nothing: stop it there. (Only the result
         // is the same; a slope bound, not a rule.)

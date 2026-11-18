@@ -32,6 +32,9 @@ pub struct OpeningPurchase {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carrier: Option<String>,
     pub destination: [f64; 2],
+    /// Optional authored starting wear for this opening unit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<crate::scenario::UnitCondition>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]

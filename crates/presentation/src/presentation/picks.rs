@@ -25,7 +25,10 @@ pub(super) fn picks(sample: &FrameSample, units: &UnitsSection, body: &BodyBox<'
         let Some(kind) = by_id.get(&(pose.id.to_bits(), flag)) else {
             continue;
         };
-        let aloft = units.types.get(&***kind).is_some_and(|t| t.airborne);
+        let aloft = units
+            .types
+            .get(&***kind)
+            .is_some_and(|t| t.in_the_air(pose.grounded));
         let flags = flag | if aloft { 4 } else { 0 };
         let pick = |member: u32, at: Vec3, half: Vec3| Pick {
             unit: pose.id as u32,

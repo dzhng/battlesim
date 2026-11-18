@@ -9,21 +9,39 @@ use contract::scenario::Rules;
 use contract::skirmish::Phase;
 use std::collections::BTreeMap;
 
+mod airlift;
 mod artillery;
 mod capability;
+mod doctrine;
 mod purchase;
+mod recon;
 use purchase::lane_purchase_destination;
 mod relocation;
 mod smoke;
+mod support;
 pub mod team;
 use artillery::{artillery_ground_guess, artillery_objective_guess};
-pub use capability::unit_engages_aircraft_in;
 use capability::{frame_has_layer_threat, unit_weapons};
+pub use capability::{is_jet, unit_engages_aircraft_in};
 pub(crate) use capability::{unit_can_engage_ground, unit_can_engage_target};
 use purchase::{own_player, PurchasePlan};
 use relocation::{Held, Relocation};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
+
+fn attack_if_changed(
+    orders: &mut Vec<Order>,
+    unit: &contract::observation::OwnUnit,
+    target: TargetRef,
+) {
+    if !matches!(unit.steps.first(), Some(contract::observation::OrderStep::Attack { target: Some(active), .. }) if *active == target)
+    {
+        orders.push(Order::Attack {
+            units: vec![unit.id],
+            target,
+        });
+    }
+}
 
 /// A side-scoped skirmish policy. Implementations emit the same ordinary
 /// orders as a human controller; the battle host owns admission and replay.
@@ -63,17 +81,7 @@ pub struct DecisionInput<'a> {
     pub assignment: Option<&'a Assignment>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum Doctrine {
-    #[default]
-    BalancedOpening,
-    ReconScreen,
-    InfantryPressure,
-    TankSwarm,
-    AirDenial,
-    EmergencyDefense,
-    Consolidate,
-}
+pub use doctrine::Doctrine;
 
 /// The doctrine's timings and distances, authored in
 /// `fixtures/skirmish-ai.json`: its playbook's numbers, not battle rules.
@@ -129,6 +137,11 @@ struct Tuning {
     smoke_loss_share: f64,
     smoke_window_s: f64,
     smoke_reverse_m: f64,
+    /// A group below either share triggers an emergency airlift when no
+    /// supplier can reach it in this many seconds.
+    emergency_ammo_share: f64,
+    emergency_health_share: f64,
+    emergency_reach_s: f64,
     #[serde(flatten)]
     team: team::TeamTuning,
 }
@@ -173,6 +186,7 @@ pub struct BalancedDoctrine {
     group_advance: Option<Assignment>,
     /// Each carrier sent to collect a squad, by the last decision.
     rides: BTreeMap<UnitId, UnitId>,
+    airlift: airlift::Mission,
 }
 
 #[derive(Clone, Debug)]
@@ -203,6 +217,7 @@ impl Default for BalancedDoctrine {
             purchase_plan: None,
             group_advance: None,
             rides: BTreeMap::new(),
+            airlift: airlift::Mission::Idle,
         }
     }
 }
@@ -239,81 +254,9 @@ impl BalancedDoctrine {
         objective: [f64; 2],
     ) -> [f64; 2] {
         if rules.catalog.get(unit.kind).has_role("recon") {
-            recon_post(unit, &self.tuning, objective, entry.center)
+            recon::post(unit, &self.tuning, objective, entry.center)
         } else {
             objective
-        }
-    }
-
-    /// Where a carrier at `from` lets a squad out for `goal` (D18), with
-    /// no enemy in reach `unload_share` of the way from entry to goal short
-    /// of it.
-    fn drop_point(
-        &self,
-        frame: &ObservationFrame,
-        rules: &Rules,
-        entry: &EntrySite,
-        goal: [f64; 2],
-        from: [f64; 2],
-    ) -> [f64; 2] {
-        let standoff = self.tuning.unload_share * distance(entry.center, goal);
-        transport::unload_point(frame, rules, goal, from, standoff)
-    }
-
-    fn update_doctrine(&mut self, frame: &ObservationFrame, rules: &Rules, draw_unit: f64) {
-        if !self.started {
-            self.started = true;
-            self.doctrine_since = frame.tick;
-        }
-        if self.response_delay_ticks.is_none() {
-            // One fixed draw selects a bounded reaction delay. The delay is a
-            // personality trait, not a license to ignore a threat forever.
-            self.response_delay_ticks =
-                Some(1 + Tuning::ticks(draw_unit * self.tuning.reaction_max_s, rules.tick_hz));
-        }
-        let low_air = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
-        let own_count = frame.own.len();
-        let lost_unit = self
-            .last_own_count
-            .is_some_and(|previous| own_count < previous);
-        self.last_own_count = Some(own_count);
-        if low_air {
-            self.last_air_evidence.get_or_insert(frame.tick);
-        } else if self.last_air_evidence.is_some_and(|seen| {
-            frame.tick.saturating_sub(seen) > Tuning::ticks(self.tuning.air_memory_s, rules.tick_hz)
-        }) {
-            self.last_air_evidence = None;
-        }
-        let min_dwell = Tuning::ticks(self.tuning.min_dwell_s, rules.tick_hz);
-        let max_dwell = Tuning::ticks(self.tuning.max_dwell_s, rules.tick_hz);
-        let dwell = frame.tick.saturating_sub(self.doctrine_since);
-        let delayed_air = self.last_air_evidence.is_some_and(|seen| {
-            frame.tick.saturating_sub(seen)
-                >= self
-                    .response_delay_ticks
-                    .expect("reaction delay initialized")
-        });
-        let next = if lost_unit && dwell >= min_dwell {
-            Some(Doctrine::EmergencyDefense)
-        } else if delayed_air && dwell >= min_dwell {
-            Some(Doctrine::AirDenial)
-        } else if dwell >= max_dwell {
-            Some(match self.doctrine {
-                Doctrine::BalancedOpening => Doctrine::ReconScreen,
-                Doctrine::ReconScreen => Doctrine::InfantryPressure,
-                Doctrine::InfantryPressure => Doctrine::TankSwarm,
-                Doctrine::TankSwarm => Doctrine::Consolidate,
-                Doctrine::AirDenial => Doctrine::Consolidate,
-                Doctrine::Consolidate => Doctrine::ReconScreen,
-                Doctrine::EmergencyDefense => Doctrine::ReconScreen,
-            })
-        } else {
-            None
-        };
-        if let Some(next) = next.filter(|next| *next != self.doctrine) {
-            self.doctrine = next;
-            self.doctrine_since = frame.tick;
-            self.pivot_count = self.pivot_count.saturating_add(1);
         }
     }
 
@@ -372,7 +315,7 @@ impl BalancedDoctrine {
         self.next_decision = frame
             .tick
             .saturating_add(Tuning::ticks(self.tuning.decision_s, rules.tick_hz));
-        self.update_doctrine(frame, rules, draw_unit);
+        doctrine::update(self, frame, rules, draw_unit);
         self.held
             .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
         self.jet_targets.retain(|id, target| {
@@ -403,7 +346,30 @@ impl BalancedDoctrine {
             _ => vec![],
         };
         let mut orders = smoke.clone();
-        let purchases = self.shopping(frame, rules, me, view.phase, &eligible);
+        // Emergency airlift is considered before the doctrine's ordinary
+        // role rotation. A flying supplier is a one-at-a-time reserve, so a
+        // present one is dispatched and only an absent one is bought.
+        let emergency = (view.phase == Phase::Active && !self.airlift.is_busy())
+            .then(|| {
+                airlift::emergency(
+                    frame,
+                    rules,
+                    &self.tuning,
+                    &airlift::groups(frame, rules, context),
+                    route_time,
+                )
+            })
+            .flatten();
+        let emergency_buy = emergency.clone().and_then(|need| {
+            airlift::respond(&mut self.airlift, need, frame, rules, me, &eligible)
+        });
+        let purchases = emergency_buy.into_iter().collect::<Vec<_>>();
+        let purchases = if purchases.is_empty() && !(emergency.is_some() && self.airlift.is_busy())
+        {
+            self.shopping(frame, rules, me, view.phase, &eligible)
+        } else {
+            purchases
+        };
         for purchase::Buy { kind, carrier } in purchases {
             // Support, carriers and the squads they will carry wait at base:
             // a squad rides out from there (D17), as a squad bought aboard
@@ -457,7 +423,8 @@ impl BalancedDoctrine {
             own.sort_by_key(|u| (carries(u), u.id));
             // Carriers with no one aboard, free to collect a squad, and the
             // squad each one is sent for at this decision.
-            let mut free = transport::free_carriers(rules, frame, &self.rides);
+            let boarding = transport::boarding_pairs(frame);
+            let mut free = transport::free_carriers(rules, frame, &self.rides, &boarding);
             let mut collect: BTreeMap<UnitId, UnitId> = BTreeMap::new();
             let group_ready = context.is_some_and(|context| {
                 let radius = self.tuning.team.group_radius_m;
@@ -527,9 +494,16 @@ impl BalancedDoctrine {
                 }
                 ready || self.group_advance.is_some()
             });
+            let rides = transport::RidePlan {
+                frame,
+                rules,
+                input,
+                group_ready,
+            };
             for unit in &own {
                 // Passengers take no orders, nor does a unit backing out.
-                if rules.catalog.get(unit.kind).has_role("logistics")
+                if boarding.contains(&unit.id)
+                    || rules.catalog.get(unit.kind).has_role("logistics")
                     || transport::carrier_of(unit).is_some()
                     || smoke::backing_out(unit, &smoke)
                 {
@@ -553,25 +527,10 @@ impl BalancedDoctrine {
                         }
                         continue;
                     }
-                    if transport::passengers(frame, unit.id).next().is_some() {
-                        orders.extend(self.unload(
-                            side,
-                            entry,
-                            frame,
-                            rules,
-                            unit,
-                            context.map(|context| {
-                                if let Some(help) =
-                                    transport::party_aboard(frame, unit, &context.parties)
-                                {
-                                    help.objective
-                                } else if group_ready {
-                                    context.main_objective
-                                } else {
-                                    context.staging_point
-                                }
-                            }),
-                        ));
+                    if let Some(passenger) =
+                        transport::passengers(frame, unit.id).min_by_key(|u| u.id)
+                    {
+                        orders.extend(rides.unload(self, unit, passenger));
                         continue;
                     }
                     if rules.catalog.mounts(unit.kind).is_empty() {
@@ -620,7 +579,7 @@ impl BalancedDoctrine {
                         ));
                         continue;
                     }
-                    if self.worth_riding(frame, rules, entry, unit, objective)
+                    if rides.worth_riding(self, unit, objective)
                         && transport::wait_for_ride(
                             rules,
                             unit,
@@ -664,7 +623,7 @@ impl BalancedDoctrine {
                         // A squad far from a fight on the ground rides to it.
                         let fight = [target.position[0], target.position[1]];
                         if rules.catalog.get(target.kind).mobility.layer() == AltitudeLayer::Ground
-                            && self.worth_riding(frame, rules, entry, unit, fight)
+                            && rides.worth_riding(self, unit, fight)
                             && transport::wait_for_ride(
                                 rules,
                                 unit,
@@ -676,10 +635,11 @@ impl BalancedDoctrine {
                         {
                             continue;
                         }
-                        orders.push(Order::Attack {
-                            units: vec![unit.id],
-                            target: TargetRef::Identified { id: target.id },
-                        });
+                        attack_if_changed(
+                            &mut orders,
+                            unit,
+                            TargetRef::Identified { id: target.id },
+                        );
                         continue;
                     }
                     if rules.catalog.get(unit.kind).has_role("artillery") {
@@ -701,10 +661,7 @@ impl BalancedDoctrine {
                                 route_time,
                             )
                         }) {
-                            orders.push(Order::Attack {
-                                units: vec![unit.id],
-                                target: TargetRef::Ground { point },
-                            });
+                            attack_if_changed(&mut orders, unit, TargetRef::Ground { point });
                             continue;
                         }
                     }
@@ -728,7 +685,7 @@ impl BalancedDoctrine {
                         continue;
                     }
                     if catalog.has_role("recon") {
-                        let goal = recon_post(unit, &self.tuning, objective, entry.center);
+                        let goal = recon::post(unit, &self.tuning, objective, entry.center);
                         if route_time(unit.id, goal).is_some() {
                             orders.push(Order::Move {
                                 units: vec![unit.id],
@@ -747,7 +704,7 @@ impl BalancedDoctrine {
                     if help.is_some() {
                         // A party squad rides when it is worth it, in any
                         // stance: its carrier drives it to the party's goal.
-                        if self.worth_riding(frame, rules, entry, unit, objective)
+                        if rides.worth_riding(self, unit, objective)
                             && transport::wait_for_ride(
                                 rules,
                                 unit,
@@ -784,7 +741,7 @@ impl BalancedDoctrine {
                     } else {
                         context.staging_point
                     };
-                    if self.worth_riding(frame, rules, entry, unit, goal)
+                    if rides.worth_riding(self, unit, goal)
                         && transport::wait_for_ride(
                             rules,
                             unit,
@@ -839,7 +796,7 @@ impl BalancedDoctrine {
                 // A squad heading far for its objective stops for the
                 // nearest free carrier to collect it (D17).
                 let heading = self.heading(rules, entry, unit, objective.center);
-                if self.worth_riding(frame, rules, entry, unit, heading)
+                if rides.worth_riding(self, unit, heading)
                     && transport::wait_for_ride(
                         rules,
                         unit,
@@ -852,7 +809,7 @@ impl BalancedDoctrine {
                     continue;
                 }
                 if rules.catalog.get(unit.kind).has_role("recon") {
-                    let goal = recon_post(unit, &self.tuning, objective.center, entry.center);
+                    let goal = recon::post(unit, &self.tuning, objective.center, entry.center);
                     if route_time(unit.id, goal).is_some() {
                         orders.push(Order::Move {
                             units: vec![unit.id],
@@ -875,73 +832,24 @@ impl BalancedDoctrine {
                 });
             }
             self.rides = collect;
-            // Support stays between the road-edge base and the observed combat
-            // group. An impossible support route falls back to the admitted base.
-            let combat: Vec<_> = own
-                .iter()
-                .filter(|u| !rules.catalog.get(u.kind).has_role("logistics"))
-                .collect();
-            let support = if combat.is_empty() {
-                entry.center
-            } else {
-                let mut center = [0.0; 2];
-                for u in &combat {
-                    center[0] += u.position[0];
-                    center[1] += u.position[1];
-                }
-                let share = self.tuning.supply_share;
-                [
-                    entry.center[0] + share * (center[0] / combat.len() as f64 - entry.center[0]),
-                    entry.center[1] + share * (center[1] / combat.len() as f64 - entry.center[1]),
-                ]
-            };
-            for truck in own
-                .iter()
-                .filter(|u| rules.catalog.get(u.kind).has_role("logistics"))
-            {
-                let here = [truck.position[0], truck.position[1]];
-                let slack = self.tuning.truck_slack_m;
-                if distance(here, support) > slack {
-                    if live_goal(truck).is_some_and(|old| distance(old, support) <= slack) {
-                        continue;
-                    }
-                    let goal = if route_time(truck.id, support)
-                        .is_some_and(|t| t.is_finite() && t >= 0.0)
-                    {
-                        support
-                    } else if route_time(truck.id, entry.center)
-                        .is_some_and(|t| t.is_finite() && t >= 0.0)
-                    {
-                        entry.center
-                    } else {
-                        continue;
-                    };
-                    if distance(here, goal) > slack {
-                        if truck.goal.is_none_or(|old| distance(old, goal) > slack) {
-                            orders.push(Order::Move {
-                                units: vec![truck.id],
-                                gesture: frame.tick,
-                                goal,
-                                route: contract::command::RoutePolicy::Fastest,
-                                direction: contract::command::MoveDirection::Forward,
-                                facing: None,
-                            });
-                        }
-                        continue;
-                    }
-                }
-                if truck.state != contract::observation::MoveState::RouteBlocked
-                    && truck.goal.is_none()
-                    && truck
-                        .deployment
-                        .is_some_and(|d| d.target == contract::observation::Posture::Packed)
-                {
-                    orders.push(Order::SetDeployment {
-                        units: vec![truck.id],
-                        deployed: true,
-                    });
-                }
-            }
+            support::support_orders(
+                &own,
+                rules,
+                entry.center,
+                &self.tuning,
+                frame.tick,
+                route_time,
+                &mut orders,
+            );
+            airlift::orders(
+                &mut self.airlift,
+                frame,
+                rules,
+                entry.center,
+                &self.tuning,
+                route_time,
+                &mut orders,
+            );
         }
         if view.phase == Phase::Preparation && !me.ready {
             orders.push(Order::Ready);
@@ -982,28 +890,6 @@ fn body_distance(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 fn ground_distance(a: [f64; 3], b: [f64; 3]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
-}
-
-fn recon_post(
-    unit: &contract::observation::OwnUnit,
-    tuning: &Tuning,
-    objective: [f64; 2],
-    entry: [f64; 2],
-) -> [f64; 2] {
-    let dx = objective[0] - entry[0];
-    let dy = objective[1] - entry[1];
-    let approach = libm::hypot(dx, dy).max(1.0);
-    let range = unit.sight.range.max(1.0);
-    let standoff = (range * tuning.recon_sight_share).min(approach * tuning.recon_approach_share);
-    [
-        objective[0] - dx / approach * standoff,
-        objective[1] - dy / approach * standoff,
-    ]
-}
-
-/// Whether `kind` flies on wings (its flight model), whatever its layer.
-pub fn is_jet(rules: &Rules, kind: TypeIndex) -> bool {
-    rules.catalog.get(kind).mobility.flight() == Some(contract::catalog::FlightModel::FixedWing)
 }
 
 #[cfg(test)]

@@ -113,6 +113,7 @@ pub(super) fn pack_record(
         frame.flares.len() as f32,
     ]);
     for u in &frame.own {
+        let [deploy_progress, deploy_target] = deployment::cells(u.deployment);
         let (host, footprint, host_seats) = match u.hold.map(|h| h.host) {
             Some(HostRef::Building {
                 id,
@@ -150,8 +151,9 @@ pub(super) fn pack_record(
             u.hp as f32,
             tag(&SUPPRESSION_TIERS, &u.suppression),
             u.concealed as u8 as f32,
-            u.deployment.map_or(-1.0, |d| d.progress as f32),
-            u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
+            deploy_progress,
+            deploy_target,
+            u.grounded as u8 as f32,
             host_kind,
             host_lo,
             host_hi,
@@ -229,24 +231,7 @@ pub(super) fn pack_record(
         ends.push(out.len());
     }
     for e in &frame.identified {
-        let [building_lo, building_hi] = limbs_or_absent(e.building);
-        out.extend([
-            e.id.0 as f32,
-            e.kind.0 as f32,
-            e.cost as f32,
-            e.position[0] as f32,
-            e.position[1] as f32,
-            e.position[2] as f32,
-            e.yaw as f32,
-            e.velocity[0] as f32,
-            e.velocity[1] as f32,
-            e.members.len() as f32,
-            e.weapon_poses.len() as f32,
-            e.reversing as u8 as f32,
-            e.smoking as u8 as f32,
-            building_lo,
-            building_hi,
-        ]);
+        out.extend(identified_row(e));
     }
     for e in &frame.identified {
         out.extend(

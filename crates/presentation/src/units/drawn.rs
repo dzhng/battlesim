@@ -210,7 +210,7 @@ impl DrawnModels {
     pub fn rotors(&mut self) -> Vec<DrawnRotor> {
         let mut out = Vec::new();
         for (v, key) in self.vehicles.iter().map(|v| (v, key_of(&v.side, v.unit))) {
-            if !v.airborne {
+            if v.articulation.rotor_speed <= super::rotor::BLUR_CROSSOVER {
                 continue;
             }
             let Some(name) = self.units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
@@ -226,7 +226,7 @@ impl DrawnModels {
             }
             // Posed with its rotors shown: the blur hides them, not their place.
             let input = Articulation {
-                rotor_blur: 0.0,
+                rotor_speed: 0.0,
                 ..v.articulation
             };
             self.locals.resize(nodes.len(), nodes[0].bind);
@@ -260,6 +260,7 @@ impl DrawnModels {
                     blades: rotor.blades,
                     chord: rotor.chord,
                     turned: tip_travel / rotor.radius,
+                    speed: v.articulation.rotor_speed,
                     mast: (rotor.mast_radius > 0.0).then(|| Mast {
                         base: along(-rotor.mast_below),
                         top: along(rotor.mast_above),

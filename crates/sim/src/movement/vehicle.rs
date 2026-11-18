@@ -31,7 +31,7 @@ fn land(
         yaw: motion.yaw,
         half: current.half,
     };
-    let met = push::meet(ctx.world, &hull, current, units[i].ground().push);
+    let met = push::meet(ctx.world, &hull, current, units[i].push_class(ctx.rules));
     if let Some(body) = met.solid.and_then(|id| ctx.world.prop(id)) {
         return Err(Some(body.footprint()));
     }
@@ -74,7 +74,7 @@ pub(super) fn step_vehicle(
         // hull (a deliberate game rule, listed in development.md).
         let unit = &mut units[i];
         let attacking = matches!(unit.orders.front(), Some(UnitOrder::Attack { .. }));
-        let tracked = unit.ground().drive.is_some_and(|d| d.tracked);
+        let tracked = unit.ground(ctx.rules).drive.is_some_and(|d| d.tracked);
         let face = unit
             .reach
             .face
@@ -90,24 +90,16 @@ pub(super) fn step_vehicle(
     }
     // A shunt keeps its legs to the end: only then does it pick up its route.
     if units[i].shunt.is_none() && drive::prune(ctx, sides, traffic, &mut units[i]) {
-        arrive(&mut units[i]);
+        arrive(ctx.rules, &mut units[i]);
         return;
     }
     let unit = &units[i];
     let target = unit.route.as_ref().unwrap()[0];
     let here = unit.position.xy();
     let footing = ctx.ground.footing(ctx.world, here, &ctx.rules.ground);
-    let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
+    let speed = footing.map_or(0.0, |g| unit.ground(ctx.rules).speed(g));
     let before_shunt = unit.shunt.clone();
-    let mut motion = drive::steer(
-        ctx.world,
-        &mut units[i],
-        target,
-        speed,
-        dt,
-        ctx.tick,
-        traffic,
-    );
+    let mut motion = drive::steer(ctx, &mut units[i], target, speed, dt, traffic);
     let unit = &units[i];
     let mut next = here + motion.heading * motion.step;
     let half = unit.hull.expect("a vehicle has a hull").xy();
@@ -116,7 +108,7 @@ pub(super) fn step_vehicle(
         yaw: unit.yaw,
         half,
     };
-    let push = unit.ground().push;
+    let push = unit.push_class(ctx.rules);
     // Box against box (L8): a body it cannot shove stops it; the bodies it
     // can shove slow it by the heaviest's class ratio and slide aside (Q2).
     let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
@@ -132,12 +124,11 @@ pub(super) fn step_vehicle(
         // multiplying carried speed every tick would compound the slowdown.
         units[i].shunt = before_shunt;
         motion = drive::steer(
-            ctx.world,
+            ctx,
             &mut units[i],
             target,
             speed * push.shove_speed(heaviest),
             dt,
-            ctx.tick,
             traffic,
         );
         next = here + motion.heading * motion.step;
@@ -154,17 +145,19 @@ pub(super) fn step_vehicle(
     // a body. Give the turn room instead of deadlocking: back off from
     // traffic; from a body, roll to where this tick's turn clears. Requiring
     // the whole turn at once would forbid manoeuvring out in stages.
-    let room = (unit.ground().drive.is_some_and(|d| d.tracked)
+    let room = (unit.ground(ctx.rules).drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
-        && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw)
+        && stationary_yaw(ctx.rules, ctx.world, units, i, motion.yaw) == unit.yaw)
         .then(|| match (blocker, met.solid) {
             (Some(_), _) => Some(drive::away(unit) * f64::INFINITY),
-            (None, Some(_)) => drive::room_to_turn(ctx.world, unit, drive::away(unit), motion.yaw),
+            (None, Some(_)) => {
+                drive::room_to_turn(ctx.rules, ctx.world, unit, drive::away(unit), motion.yaw)
+            }
             (None, None) => None,
         })
         .flatten();
     if let Some(room) = room {
-        let back = drive::give_space(unit, room, speed, dt);
+        let back = drive::give_space(ctx.rules, unit, room, speed, dt);
         let at = here + back.heading * back.step;
         let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
         let traffic = in_the_way(units, i, at, back.yaw);
@@ -176,10 +169,10 @@ pub(super) fn step_vehicle(
     }
     if let Some(b) = blocker {
         let gives_way = gives_way(ctx, units, i, b);
-        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let held_yaw = stationary_yaw(ctx.rules, ctx.world, units, i, motion.yaw);
         let unit = &mut units[i];
         if gives_way {
-            drive::shunt(ctx.world, unit, traffic, &[], ctx.tick);
+            drive::shunt(ctx.rules, ctx.world, unit, traffic, &[], ctx.tick);
         }
         unit.state = MoveState::Waiting;
         unit.blocker = Some(b);
@@ -224,16 +217,16 @@ pub(super) fn step_vehicle(
     let (next, shoved, ground) = match landed {
         Ok(free) => free,
         Err(held_by) => {
-            let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+            let held_yaw = stationary_yaw(ctx.rules, ctx.world, units, i, motion.yaw);
             let unit = &mut units[i];
             unit.yaw = held_yaw;
             unit.drive_speed_mps = 0.0;
             // Held by a body anyway (a jammed shove, or a corner the arc's
             // samples passed): a wheeled vehicle works out a shunt with it
             // as solid, or it would pick the same step every tick.
-            let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
+            let wheeled = unit.ground(ctx.rules).drive.is_some_and(|d| !d.tracked);
             if let Some(body) = held_by.filter(|_| wheeled) {
-                drive::shunt(ctx.world, unit, traffic, &[body], ctx.tick);
+                drive::shunt(ctx.rules, ctx.world, unit, traffic, &[body], ctx.tick);
             }
             return;
         }
@@ -259,7 +252,7 @@ pub(super) fn step_vehicle(
         route.remove(0);
         unit.progress = (f64::INFINITY, ctx.tick);
         if route.is_empty() {
-            arrive(unit);
+            arrive(ctx.rules, unit);
         }
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
@@ -267,14 +260,20 @@ pub(super) fn step_vehicle(
 }
 
 /// A rejected step may still let tracks pivot, but only into a clear pose.
-fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> f64 {
+fn stationary_yaw(
+    rules: &contract::scenario::Rules,
+    world: &WorldGeometry,
+    units: &[Unit],
+    i: usize,
+    yaw: f64,
+) -> f64 {
     let unit = &units[i];
-    if yaw == unit.yaw || !unit.ground().drive.is_some_and(|d| d.tracked) {
+    if yaw == unit.yaw || !unit.ground(rules).drive.is_some_and(|d| d.tracked) {
         return unit.yaw;
     }
     let here = unit.ground_footprint().expect("a vehicle has a hull");
     let turned = Obb2 { yaw, ..here };
-    let met = push::meet(world, &turned, &here, unit.ground().push);
+    let met = push::meet(world, &turned, &here, unit.push_class(rules));
     // A stationary pivot checks true hulls; translation's traffic buffer
     // would forbid using the clearance reserved by the stopped approach.
     let occupied = met.solid.is_some()

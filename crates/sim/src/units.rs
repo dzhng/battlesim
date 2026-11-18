@@ -8,7 +8,8 @@ use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::{FlareReadiness, MoveState};
-use contract::scenario::{Armor, Rules};
+use contract::scenario::{Armor, PushClass, Rules};
+use contract::weapons::TargetClass;
 
 use crate::flight::BodyId;
 use crate::hold::{Hold, Phase};
@@ -277,6 +278,8 @@ pub struct Unit {
     pub pursuit: Option<Pursuit>,
     /// The goal the current route was planned to.
     pub planned_goal: Option<V2>,
+    /// Internal landing point chosen for a deployable aircraft; never a player order.
+    pub landing_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
     pub route: Option<Vec<V2>>,
     /// Where a squad's corridor or an aircraft's leg runs from to its first
@@ -436,6 +439,7 @@ impl Unit {
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }
+        self.landing_goal = None;
         if !queued {
             self.orders.clear();
             // Movement decides whether the way it has still serves.
@@ -449,10 +453,28 @@ impl Unit {
         self.hull.is_some()
     }
 
-    /// Flies: no ground rule (traffic, shoving, cover, treads, forest lanes,
-    /// concealment) reaches it.
-    pub fn airborne(&self) -> bool {
+    /// Its motion is flight, whether flying or standing on the ground.
+    pub fn flies(&self) -> bool {
         matches!(self.motion, Motion::Air(_))
+    }
+
+    /// Still translating horizontally while the flight law brakes to a hover.
+    pub fn gliding(&self) -> bool {
+        self.air
+            .is_some_and(|air| air.velocity.xy().length() > 1e-6)
+    }
+
+    /// An aircraft off the ground now: no ground rule (footprint, traffic,
+    /// shoving, cover, treads, concealment, arrival clearance) reaches it, it
+    /// takes part in air separation, and it is in its air layer. A landed
+    /// aircraft is a ground vehicle to all of these.
+    pub fn airborne(&self) -> bool {
+        self.flies() && !self.landed()
+    }
+
+    /// An aircraft that has completed its descent and is holding on the ground.
+    pub fn landed(&self) -> bool {
+        crate::deployment::landed(self)
     }
 
     /// Where rounds aim on it, above its position: the one aim rule, keyed
@@ -479,7 +501,7 @@ impl Unit {
     /// It trails smoke (D19, D34): an aircraft below half its health. What a
     /// viewer sees of its damage, own or enemy; never its health itself.
     pub fn smoking(&self, rules: &Rules) -> bool {
-        self.airborne()
+        self.flies()
             && self.alive()
             && (self.unit_type(rules).hull()).is_some_and(|h| self.hp < SMOKING_HP_SHARE * h.hp)
     }
@@ -489,7 +511,7 @@ impl Unit {
         if self.airborne() {
             match self.motion {
                 Motion::Air(flight) => flight.layer,
-                Motion::Ground(_) => unreachable!("airborne unit has ground motion"),
+                Motion::Ground => unreachable!("airborne unit has ground motion"),
             }
         } else {
             AltitudeLayer::Ground
@@ -510,10 +532,26 @@ impl Unit {
 
     /// How it moves over the ground. Only ground movement, routing and
     /// placement ask, and an aircraft never reaches them.
-    pub fn ground(&self) -> &Mobility {
-        match &self.motion {
-            Motion::Ground(m) => m,
-            Motion::Air(_) => panic!("an aircraft never reaches ground movement"),
+    pub fn ground(&self, rules: &Rules) -> Mobility {
+        ground_mobility(self.unit_type(rules), rules)
+            .expect("an aircraft never reaches ground movement")
+    }
+
+    /// The push class authored on the unit hull. Ground movement can inspect
+    /// this for a landed aircraft without inventing ground mobility for it.
+    pub fn push_class(&self, rules: &Rules) -> PushClass {
+        self.unit_type(rules)
+            .hull()
+            .map_or(PushClass::None, |h| h.push_class())
+    }
+
+    /// The class this unit presents to weapons now. A landed aircraft is a
+    /// vehicle; planning continues to use the type's authored class.
+    pub fn target_class(&self, rules: &Rules) -> TargetClass {
+        if self.landed() {
+            TargetClass::Vehicle
+        } else {
+            self.unit_type(rules).target_class()
         }
     }
 
@@ -600,8 +638,8 @@ impl Unit {
     }
 
     /// The hull's footprint on the ground: what traffic waits for, soldiers
-    /// step out of and lean on. `None` for a squad and for an aircraft, which
-    /// stands on nothing.
+    /// step out of and lean on. `None` for a squad and an airborne aircraft;
+    /// a landed aircraft has its hull footprint.
     pub fn ground_footprint(&self) -> Option<Obb2> {
         self.hull.filter(|_| !self.airborne()).map(|h| Obb2 {
             center: self.position.xy(),
@@ -657,7 +695,8 @@ impl Unit {
         if self.hold.is_some() {
             return None;
         }
-        match self.orders.front()? {
+        let order = self.orders.front()?;
+        match order {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
             UnitOrder::Garrison {

@@ -237,6 +237,8 @@ up: a bright muzzle flash cannot substitute for a readable round in flight.
 Tune the shared weapon looks rather than adding camera-specific effects.
 Damage guides the visual weight of comparable rounds: heavier hits deserve
 stronger glows and smoke, with those looks authored alongside the weapon family.
+Flight glows take priority over lingering smoke when the effect budget fills,
+and draw over it, so a dense salvo cannot hide the rounds still falling.
 
 Soldier poses follow actual published soldiers rather than formation slots. A
 soldier down in a posture, or shooting, keeps his weapon toward the threat as he
@@ -260,10 +262,15 @@ dust off the whole hull and off the ground ahead of the muzzle; each of a
 soldier's own shots snaps his upper body back about his waist, his muzzle
 climbing. How hard each round kicks is its weapon look's `kick` and its flash's `dust`;
 `presentation.pose` owns the shared spring and recovery curves. The whole-model motion
-carries the drawn muzzle. A flying aircraft's rotor is drawn by the effects from the
+carries the drawn muzzle. A turning aircraft's rotor is drawn by the effects from the
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
-rate and a paused one shows its blades.
+rate and a paused one shows its blades. The published grounding and
+deployment pose drive [one rotor speed](src/units/rotor.rs); grounded rotors
+wind down while setting up and up while packing, and hand over to authored
+blades before they stop. The sound emitter carries that pose's rotor speed,
+so the rotor loop's level and pitch follow the blades down to silence.
+A parked showcase takes that same stopped pose.
 
 A visible countermeasure path carries a shower of burning pellets
 ([flares](src/effects/frame/flare.rs)). The simulation's decoy remains the

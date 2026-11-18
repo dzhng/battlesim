@@ -190,7 +190,7 @@ fn the_tank_articulates_as_the_browser_s() {
             travel_r: f("travel_r"),
             deploy: f("deploy"),
             rotor: f("rotor"),
-            rotor_blur: f("rotor_blur"),
+            rotor_speed: f("rotor_speed"),
             gear_up: 0.0,
         };
         articulate(&mut locals, nodes, rig, &input);

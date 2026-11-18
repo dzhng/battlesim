@@ -119,7 +119,11 @@ fn a_new_body_during_infantry_refinement_replans_without_panicking() {
         setup.rules.physics.soldier_radius_m,
     )));
     let unit = battle.unit(UnitId(0)).unwrap();
-    assert!(grid.route_fits(unit.route_from, unit.route.as_ref().unwrap(), unit.ground()));
+    assert!(grid.route_fits(
+        unit.route_from,
+        unit.route.as_ref().unwrap(),
+        &unit.ground(battle.rules())
+    ));
     let replay = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
     let mut copy = Battle::from_replay(&setup, &replay).unwrap();
     for expected in digests {

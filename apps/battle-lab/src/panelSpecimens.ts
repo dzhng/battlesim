@@ -430,6 +430,11 @@ export function panelSpecimens(
     "route blocked",
     panelOf(specimenUnit(catalog, "test_supply", { state: "route_blocked" })),
   );
+  add(
+    s,
+    "no landing zone",
+    panelOf(specimenUnit(catalog, "test_supply_heli", { state: "no_landing_spot" })),
+  );
   // Smoke charges come from the published count alone, so they ride the
   // tank: some left and none, each in the open and hidden in a cloud.
   for (const [label, smoke, concealed] of [

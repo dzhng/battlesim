@@ -316,6 +316,15 @@
     "catalog": "test"
   },
   {
+    "id": "supply-ai",
+    "route": "/labs/supply-ai",
+    "describe": "Test-card skirmish AI emergency airlift: a damaged blue tank group is beyond its truck's reach; the trace samples a flying supplier purchase, far-side landing, service and return to the support post.",
+    "map": null,
+    "catalog": "test",
+    "serial": true,
+    "timeout_s": 300
+  },
+  {
     "id": "benchmark",
     "route": "/labs/benchmark",
     "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro XL seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",

@@ -11,7 +11,7 @@ import { AckLog } from "../AckLog";
 import { orderLayer, supplyLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { SavedEncounter, type SavedBattle } from "../savedMaps";
+import { SavedEncounters, type SavedBattle } from "../savedMaps";
 import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
@@ -21,6 +21,15 @@ import { TickStatus } from "../TickStatus";
 // team short of one soldier. (Service under incoming fire is pinned by the
 // Rust tests, where a squad is shelled from beyond its reach.)
 const SEED = 13;
+const VARIANTS = [
+  "supply",
+  "heli",
+  "heli-fire",
+  "heli-ground",
+  "heli-shift",
+  "heli-crowded",
+] as const;
+type Variant = (typeof VARIANTS)[number];
 
 const SUPPLY_CAMERA: Camera3DParams = {
   target: [215, 215, 0],
@@ -29,17 +38,31 @@ const SUPPLY_CAMERA: Camera3DParams = {
   yaw: -1.57,
   ...gameCamera.lens,
 };
+// Close enough to watch the drop and the rotor, wide enough for the
+// recipients round its landing point.
+const HELI_CAMERA: Camera3DParams = {
+  target: [190, 210, 0],
+  distance: 150,
+  pitch: 0.85,
+  yaw: -1.57,
+  ...gameCamera.lens,
+};
 
 export default function Supply() {
   return (
-    <SavedEncounter fixture="supply" encounter="supply">
-      {(battle) => <SupplyLab battle={battle} />}
-    </SavedEncounter>
+    <SavedEncounters fixture="supply" encounters={VARIANTS}>
+      {(battles) => <SupplyLab battles={battles} />}
+    </SavedEncounters>
   );
 }
 
-function SupplyLab({ battle }: { battle: SavedBattle }) {
-  const session = useBattleSession({ ...battle, seed: SEED });
+function SupplyLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
+  const [variant, setVariant] = useState<Variant>(() => {
+    const requested = new URLSearchParams(window.location.search).get("variant");
+    return VARIANTS.find((name) => name === requested) ?? "supply";
+  });
+  const session = useBattleSession({ ...battles[variant], seed: SEED });
+  const heliVariant = variant !== "supply";
   const catalog = useSessionCatalog();
   const capabilities = (u: OwnUnitView) => catalog.units.type(u.kind).capabilities;
   const { world, meshes, rules, sim, control, surfaceZ } = session;
@@ -90,22 +113,51 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
     },
     [control],
   );
-  const DEMOS: Record<string, Order> = {
-    "Relocate the truck": {
-      kind: "move",
-      units: [0],
-      gesture: 9401,
-      goal: [300, 260],
-      route: "shortest",
-    },
-    "Tank: move off": {
-      kind: "move",
-      units: [1],
-      gesture: 9402,
-      goal: [240, 120],
-      route: "shortest",
-    },
-  };
+  const DEMOS: Record<string, Order> = heliVariant
+    ? {
+        "Heli: lift off": { kind: "set_deployment", units: [0], deployed: false },
+        "Heli: fly on": {
+          kind: "move",
+          units: [0],
+          gesture: 9403,
+          goal: [350, 260],
+          route: "shortest",
+        },
+        ...(variant === "heli-ground"
+          ? {
+              "Jeep: cross the lane": {
+                kind: "move",
+                units: [1],
+                gesture: 9410,
+                goal: [300, 200],
+                route: "shortest",
+              } as Order,
+            }
+          : {}),
+        "Tank: move off": {
+          kind: "move",
+          units: [1],
+          gesture: 9402,
+          goal: [240, 120],
+          route: "shortest",
+        },
+      }
+    : {
+        "Relocate the truck": {
+          kind: "move",
+          units: [0],
+          gesture: 9401,
+          goal: [300, 260],
+          route: "shortest",
+        },
+        "Tank: move off": {
+          kind: "move",
+          units: [1],
+          gesture: 9402,
+          goal: [240, 120],
+          route: "shortest",
+        },
+      };
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, demo: (name: string) => command(DEMOS[name]) };
@@ -120,7 +172,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
         overlay={overlayFeed}
         fog={session.fogFeed}
         {...session.viewport}
-        initialCamera={SUPPLY_CAMERA}
+        initialCamera={variant === "heli" ? HELI_CAMERA : SUPPLY_CAMERA}
         {...session.input}
         onFrame={(project, camera, pointer, scale) => {
           setRenderScale(scale);
@@ -135,9 +187,25 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
         handle={session.readouts}
       />
       <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="supply-panel">
-        <strong>Supply</strong>
+        <strong>Supply {heliVariant ? "heli" : "truck"}</strong>
         <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row">
+          {VARIANTS.map((name) => (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={variant === name}
+              onClick={() => {
+                const url = new URL(window.location.href);
+                if (name === "supply") url.searchParams.delete("variant");
+                else url.searchParams.set("variant", name);
+                window.history.replaceState(window.history.state, "", url);
+                setVariant(name);
+              }}
+            >
+              {name === "supply" ? "Truck" : name}
+            </button>
+          ))}
           {Object.keys(DEMOS).map((name) => (
             <button key={name} type="button" onClick={() => void command(DEMOS[name])}>
               {name}
@@ -148,19 +216,22 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
           </button>
         </div>
         <div className="lab-legend">
-          A selected truck&apos;s reach: <span className="lab-swatch lab-swatch-reach" />
-          <br />A unit receiving supplies shows RESUPPLYING in its panel; why it waits, below. A
-          truck's set-up progress is its panel's.
+          A selected {heliVariant ? "heli" : "truck"}&apos;s reach:{" "}
+          <span className="lab-swatch lab-swatch-reach" />
+          <br />A unit receiving supplies shows RESUPPLYING in its panel; why it waits, below. The
+          supplier&apos;s set-up progress is its panel&apos;s.
         </div>
         <ul className="lab-log lab-list" data-testid="stock">
           {own
             .filter((u) => u.stock !== null)
             .map((u) => (
               <li key={u.id}>
-                Truck #{u.id}: stock {u.stock} of {capabilities(u).supply?.stock} ·{" "}
+                {catalog.units.type(u.kind).name} #{u.id}: stock {u.stock} of{" "}
+                {capabilities(u).supply?.stock} ·{" "}
                 {u.stock === 0
                   ? "empty: serves nothing"
                   : setup(u, capabilities(u).deploy?.seconds ?? 0)}
+                {u.deployment && " · "}
                 {u.deployment && (
                   <span data-testid="service-ready">
                     service:{" "}

@@ -258,6 +258,7 @@ function PurchaseMenu({
       : searching
         ? filterCards(available, query)
         : available.filter((c) => groupOf(c) === group),
+    (c) => (typed(c.id) ? catalog.units.type(c.id) : null),
   );
   const hoveredCard = shown.find((c) => c.id === hovered) ?? null;
   // A squad on sale has a transport menu: the hovered one's, or with nothing

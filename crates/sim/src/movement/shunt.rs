@@ -23,9 +23,9 @@ use super::drive::{self, Motion};
 
 /// Each arc the search tries is this long.
 const ARC_M: f64 = 1.0;
-/// A hull is checked for bodies this often along an arc: a 10 m hull at
+/// Four checks per metre-long arc: a 10 m hull at
 /// full lock swings its corners well under a trunk's width between checks.
-const SAMPLE_M: f64 = 0.25;
+const ARC_SAMPLES: usize = 4;
 /// A change of gear costs a stop and a start, as this many metres forward.
 const GEAR_CHANGE_M: f64 = 4.0;
 /// A shunt ends this close to its route, sideways ...
@@ -146,7 +146,8 @@ impl Way {
 struct Room<'a> {
     world: &'a WorldGeometry,
     solids: Vec<(Obb2, f64)>,
-    traffic: Vec<Obb2>,
+    traffic: Vec<(Obb2, f64)>,
+    radius: f64,
     half: V2,
     corners: bool,
 }
@@ -155,16 +156,15 @@ impl Room<'_> {
     /// Whether the hull may step from `before` to `after`: into no body,
     /// and by traffic's own rule past every vehicle.
     fn free(&self, before: Obb2, after: Obb2) -> bool {
-        let reach = self.half.length();
+        let reach = self.radius;
         let near =
             |c: V2, r: f64| (c - after.center).inside_radius(reach + r + super::TRAFFIC_MARGIN_M);
         !self
             .solids
             .iter()
             .any(|(body, r)| near(body.center, *r) && after.overlaps(body))
-            && !self.traffic.iter().any(|other| {
-                near(other.center, other.half.length())
-                    && super::hull_conflict(before, after, *other)
+            && !self.traffic.iter().any(|(other, radius)| {
+                near(other.center, *radius) && super::hull_conflict(before, after, *other)
             })
     }
 
@@ -177,33 +177,46 @@ impl Room<'_> {
             yaw,
             half: self.half,
         };
-        let crossable = |p: V2| {
-            self.world
-                .surface_at(p.x, p.y)
-                .is_some_and(|s| s.traversable)
-        };
+        let crossable = |p: V2| self.world.traversable_at(p.x, p.y);
         crossable(at) && (!self.corners || hull.corners().into_iter().all(crossable))
     }
 
     /// The poses of an arc from `at`/`yaw` in `gear` turning `turn`, if
     /// every one is free.
-    fn arc(&self, at: V2, yaw: f64, gear: f64, turn: f64) -> Option<(V2, f64)> {
-        let pieces = (ARC_M / SAMPLE_M).ceil() as usize;
-        let piece = ARC_M / pieces as f64;
-        let hull = |center, yaw| Obb2 {
-            center,
+    fn arc(
+        &self,
+        at: V2,
+        yaw: f64,
+        gear: f64,
+        turn: f64,
+        admit: impl FnOnce(V2, f64) -> bool,
+    ) -> Option<(V2, f64)> {
+        let piece = ARC_M / ARC_SAMPLES as f64;
+        let dyaw = turn * piece;
+        let start = Obb2 {
+            center: at,
             yaw,
             half: self.half,
         };
-        let (mut at, mut yaw) = (at, yaw);
-        for _ in 0..pieces {
-            let before = hull(at, yaw);
-            let dyaw = turn * piece;
-            at = at + drive::dir(drive::travel(yaw, gear) + dyaw / 2.0) * piece;
-            yaw += dyaw;
-            if !self.free(before, hull(at, yaw)) {
+        let mut hull = start;
+        let samples: [Obb2; ARC_SAMPLES] = std::array::from_fn(|_| {
+            hull.center =
+                hull.center + drive::dir(drive::travel(hull.yaw, gear) + dyaw / 2.0) * piece;
+            hull.yaw += dyaw;
+            hull
+        });
+        let (at, yaw) = (hull.center, hull.yaw);
+        // A pose already expanded cannot enter the queue. Avoid all its
+        // terrain and swept-hull tests, keeping their order for new poses.
+        if !admit(at, yaw) {
+            return None;
+        }
+        let mut before = start;
+        for after in samples {
+            if !self.free(before, after) {
                 return None;
             }
+            before = after;
         }
         // Ground it cannot cross (water, a cliff) is far coarser than a body.
         self.on_ground(at, yaw).then_some((at, yaw))
@@ -223,6 +236,7 @@ struct Pose {
 /// other vehicles in `traffic` and the bodies in `held` (a body it could
 /// shove but whose shove jammed) as solid.
 pub fn search(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &Unit,
     traffic: &[Option<Obb2>],
@@ -236,7 +250,7 @@ pub fn search(
         from: here,
         tick,
     };
-    let drive = unit.ground().drive.expect("a vehicle has a drive");
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
     let route = unit
         .route
         .as_deref()
@@ -246,7 +260,7 @@ pub fn search(
     let radius = drive.radius_m;
     let reach = REACH_TURNS * (radius + hull.half.x);
     let way = Way::new(here, route, reach);
-    let push = unit.ground().push;
+    let push = unit.push_class(rules);
     let around = reach + way.need + hull.half.length();
     let touching = |body: &Obb2| hull.overlaps(body);
     let solids: Vec<(Obb2, f64)> = world
@@ -263,13 +277,15 @@ pub fn search(
         .enumerate()
         .filter(|&(id, _)| id != unit.id.0 as usize)
         .filter_map(|(_, h)| *h)
-        .filter(|h| (h.center - here).length() < around + h.half.length())
+        .map(|h| (h, h.half.length()))
+        .filter(|(h, r)| (h.center - here).inside_radius(around + r))
         .collect();
     let mut room = Room {
         world,
         solids,
         traffic,
         half: hull.half,
+        radius: hull.half.length(),
         corners: true,
     };
     room.corners = room.on_ground(here, unit.yaw);
@@ -280,7 +296,7 @@ pub fn search(
     let clear_ahead = |at: V2, yaw: f64| {
         let mut pose = Some((at, yaw));
         for _ in 0..ahead {
-            pose = pose.and_then(|(at, yaw)| room.arc(at, yaw, order, 0.0));
+            pose = pose.and_then(|(at, yaw)| room.arc(at, yaw, order, 0.0, |_, _| true));
         }
         pose.is_some()
     };
@@ -350,12 +366,12 @@ pub fn search(
         }
         for next_gear in [1.0, -1.0] {
             for turn in [1.0 / radius, 0.0, -1.0 / radius] {
-                let Some((to, to_yaw)) = room.arc(at, yaw, next_gear, turn) else {
+                let Some((to, to_yaw)) = room.arc(at, yaw, next_gear, turn, |to, angle| {
+                    !(to - here).outside_radius(around)
+                        && !seen.contains(&key(to, angle, next_gear))
+                }) else {
                     continue;
                 };
-                if (to - here).length() > around || seen.contains(&key(to, to_yaw, next_gear)) {
-                    continue;
-                }
                 let change = if gear != 0.0 && gear != next_gear {
                     GEAR_CHANGE_M
                 } else {
@@ -413,6 +429,7 @@ fn ordered(f: f64) -> u64 {
 /// stands) and while no way was found; `None` with no shunt, or when it is
 /// time to look again.
 pub(super) fn drive_on(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &mut Unit,
     speed: f64,
@@ -453,12 +470,12 @@ pub(super) fn drive_on(
             .take_while(|next| next.gear == leg.gear)
             .map(|next| next.length)
             .sum::<f64>();
-    let d = unit.ground().drive.expect("a vehicle has a drive");
-    let braking = unit.ground().road_mps / d.feel.braking_s;
+    let d = unit.ground(rules).drive.expect("a vehicle has a drive");
+    let braking = unit.ground(rules).road_mps / d.feel.braking_s;
     let desired = drive::speed_in(&d, leg.gear, speed)
         .min(d.radius_m * d.turn_rad_s)
         .min((2.0 * braking * to_stop).sqrt());
-    let v = drive::accelerate(unit, desired, leg.gear, dt);
+    let v = drive::accelerate(rules, unit, desired, leg.gear, dt);
     let step = (v * dt).min(remaining);
     let dyaw = leg.turn * step;
     let motion = Motion {
@@ -469,7 +486,7 @@ pub(super) fn drive_on(
         making_space: true,
         blocker: None,
     };
-    if drive::lands(world, unit, &motion, leg.gear).is_some() {
+    if drive::lands(rules, world, unit, &motion, leg.gear).is_some() {
         // Something stands where the shunt meant to go: work it out again.
         unit.shunt = None;
         return Some(hold(unit));

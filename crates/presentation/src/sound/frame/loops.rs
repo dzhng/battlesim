@@ -65,7 +65,13 @@ impl Sound {
             m.turret = v.turret;
             let load = clamp01(m.speed / row.full_speed_mps);
             let traverse = clamp01(m.traverse / row.full_traverse_rps);
-            for layer in vehicle_loops(row, load, traverse, v.reverse) {
+            for mut layer in vehicle_loops(row, load, traverse, v.reverse) {
+                if layer.slot == "engine" {
+                    if let Some(speed) = v.rotor_speed {
+                        layer.gain *= speed;
+                        layer.rate *= speed;
+                    }
+                }
                 wants.push(LoopWant {
                     key: LoopKey::Vehicle(key, layer.slot),
                     sound: layer.sound.to_owned(),

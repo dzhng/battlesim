@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 mod order_step;
 pub use order_step::{Footprint, OrderStep, StepHost};
+mod deployment;
+pub use deployment::{DeploymentState, Posture};
 mod sound;
 pub use sound::{Intensity, Shout, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SoundCue};
 
@@ -17,10 +19,12 @@ pub use sound::{Intensity, Shout, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCa
 pub struct ObservedTargetId(pub u32);
 
 /// What a side knows of an identified enemy: its class and value and what its
-/// sensors saw this tick. Never health, ammunition, orders or timers. The one
-/// audible exception: a seen enemy's shouts (`ObservationFrame::shouts`)
-/// carry its intensity and bark, so a stressed take or a pinned call reveals
-/// that it is hurt or suppressed, as hearing it would (decision D5).
+/// sensors saw this tick. Never health, ammunition, orders or timers, except
+/// how far a deploying unit looks set up (`deployment`), which is plainly
+/// visible while it changes posture. The one audible exception: a seen
+/// enemy's shouts (`ObservationFrame::shouts`) carry its intensity and bark,
+/// so a stressed take or a pinned call reveals that it is hurt or suppressed,
+/// as hearing it would (decision D5).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IdentifiedUnit {
     pub id: ObservedTargetId,
@@ -48,6 +52,10 @@ pub struct IdentifiedUnit {
     /// Driving backwards this tick, seen as plainly as its position (the
     /// reverse beeper's cue for a seen enemy vehicle).
     pub reversing: bool,
+    /// A visible setup posture for a unit that deploys in place.
+    pub deployment: Option<DeploymentState>,
+    /// An aircraft standing on the ground at this published tick.
+    pub grounded: bool,
     /// It trails smoke (D34): a coarse sign of damage, never its health.
     #[serde(default)]
     pub smoking: bool,
@@ -406,22 +414,8 @@ pub enum MoveState {
     Packing,
     /// Has somewhere to go and holds where it is while its route is worked out.
     Planning,
-}
-
-/// The end state a deploying unit's progress is heading to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Posture {
-    Packed,
-    Deployed,
-}
-
-/// A deploying unit's one progress value and where it is heading (L01).
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DeploymentState {
-    /// In [0, 1]: 0 packed and free to move, 1 fully deployed.
-    pub progress: f64,
-    pub target: Posture,
+    /// A deploying aircraft has no clear landing spot within reach.
+    NoLandingSpot,
 }
 
 /// The phase of a unit's stationary hold (L08).
@@ -546,6 +540,8 @@ pub struct OwnUnit {
     pub weapon_poses: Vec<WeaponPose>,
     /// Units that set up in place (the supply vehicle); `None` for the rest.
     pub deployment: Option<DeploymentState>,
+    /// An aircraft standing on the ground at this published tick.
+    pub grounded: bool,
     /// Vehicle health (0 for infantry, whose health is per soldier).
     pub hp: f64,
     /// It trails smoke (D34), by the same rule an enemy's is published.

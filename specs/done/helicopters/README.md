@@ -25,7 +25,7 @@ Research behind the rules:
 
 ## Principles and invariants
 
-- **An aircraft is a hull with no ground footprint.**
+- **An aircraft in the air is a hull with no ground footprint.** A helicopter that lands to deploy is a ground vehicle while landed ([supply helicopter](../supply-helicopter/README.md)).
   - `Unit::ground_footprint` returns `None` in the air, and `Unit::airborne` is true. Through one or the other, traffic, shoving, cover, treads, forest lanes and forest concealment never see it.
   - Its motion is `units::Motion::Air`. A site only a ground mover reaches asks `Unit::ground()`, which refuses an aircraft loudly rather than giving it vehicle rules by accident.
   - Pinned by `crates/sim/tests/air.rs` for traffic, shoving and concealment. Cover and treads are not pinned by a test.

@@ -107,7 +107,7 @@ impl Presentation {
                         "turret_yaw": a.turret_yaw, "gun_pitch": a.gun_pitch, "recoil": a.recoil,
                         "hmg_yaw": a.hmg_yaw, "hmg_pitch": a.hmg_pitch, "travel_l": a.travel_l,
                         "travel_r": a.travel_r, "deploy": a.deploy, "rotor": a.rotor,
-                        "rotor_blur": a.rotor_blur,
+                        "rotor_speed": a.rotor_speed,
                     },
                     // Each mount's muzzle where the hull draws it, rocked and articulated.
                     "muzzles": (0..units.types.get(&*v.kind).map_or(0, |t| t.roles.len()))

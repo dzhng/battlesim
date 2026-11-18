@@ -1,0 +1,94 @@
+{
+    "units": [
+        {
+            "side": "blue",
+            "kind": "test_supply_heli",
+            "position": [
+                180,
+                200
+            ],
+            "engagement": "return_fire_only"
+        },
+        {
+            "side": "blue",
+            "kind": "test_jeep",
+            "position": [
+                100,
+                200
+            ],
+            "engagement": "return_fire_only"
+        },
+        {
+            "side": "blue",
+            "kind": "test_supply_heli",
+            "position": [
+                420,
+                200
+            ],
+            "condition": {
+                "hp": 1
+            },
+            "engagement": "return_fire_only"
+        },
+        {
+            "side": "red",
+            "kind": "test_tank",
+            "position": [
+                260,
+                140
+            ],
+            "yaw": 1.5707963267948966,
+            "engagement": "return_fire_only"
+        },
+        {
+            "side": "red",
+            "kind": "test_jeep",
+            "position": [
+                440,
+                200
+            ],
+            "yaw": 3.141592653589793
+        }
+    ],
+    "events": [],
+    "scripts": [
+        {
+            "tick": 100,
+            "side": "blue",
+            "order": {
+                "kind": "move",
+                "units": [
+                    1
+                ],
+                "gesture": 9410,
+                "goal": [
+                    230,
+                    200
+                ],
+                "route": "shortest"
+            }
+        },
+        {
+            "tick": 200,
+            "side": "red",
+            "order": {
+                "kind": "set_engagement",
+                "units": [
+                    4
+                ],
+                "policy": "return_fire_only"
+            }
+        },
+        {
+            "tick": 2400,
+            "side": "red",
+            "order": {
+                "kind": "set_engagement",
+                "units": [
+                    3
+                ],
+                "policy": "fire_at_will"
+            }
+        }
+    ]
+}

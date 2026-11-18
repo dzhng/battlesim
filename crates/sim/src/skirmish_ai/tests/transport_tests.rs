@@ -98,6 +98,38 @@ fn the_ai_drives_its_squads_and_unloads_short_of_seen_weapons() {
         "a squad waiting for its ride does not set off on foot"
     );
 
+    // The carrier has called the squad over. The remaining walk to its
+    // door must finish, even if another AI decision falls during the walk.
+    frame.tick += 10 * u64::from(rules.tick_hz);
+    let door = [530.0, 60.0];
+    frame.own[0].goal = Some(door);
+    frame.own[0].steps = vec![
+        contract::observation::OrderStep::Move {
+            point: door,
+            attack_move: false,
+        },
+        contract::observation::OrderStep::Board {
+            point: door,
+            carrier,
+        },
+    ];
+    let boarding = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(
+        boarding.is_empty(),
+        "the boarding pair received {boarding:?}"
+    );
+    frame.own[0].steps.clear();
+
     // Aboard, with nothing seen, the carrier drives toward the objective and
     // lets the squad out short of it; the passenger takes no order.
     aboard(&mut frame, 0, 1);
@@ -555,4 +587,82 @@ fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
     let (carrier, squad, _) = bought("test_apc");
     let size = squad.squad_size();
     assert!(size > 3 && size <= seats(&carrier), "{size} soldiers");
+}
+
+#[test]
+fn a_squad_walks_when_its_ride_would_unload_it_here() {
+    let (rules, mut frame, entry) = transport_match(json!([
+        {"side":"red","kind":"test_rifle","position":[500,60]},
+        {"side":"red","kind":"test_apc","position":[505,60]}
+    ]));
+    let mut ai = BalancedDoctrine::default();
+    let objective = [500.0, 950.0];
+    frame
+        .identified
+        .push(identified(42, frame.own[0].kind, [500.0, 130.0, 0.0]));
+    let assignment = Assignment {
+        main_objective: objective,
+        staging_point: objective,
+        force_advance: true,
+        parties: vec![],
+    };
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(
+        !orders.iter().any(|o| matches!(o, Order::Collect { .. })),
+        "{orders:?}"
+    );
+    assert!(
+        orders.iter().any(
+            |o| matches!(o, Order::AttackMove { units, .. } if units.contains(&frame.own[0].id))
+        ),
+        "{orders:?}"
+    );
+}
+
+#[test]
+fn a_distant_contact_cannot_call_a_ride_that_would_stay_at_staging() {
+    let (rules, mut frame, entry) = transport_match(json!([
+        {"side":"red","kind":"test_rifle","position":[500,60]},
+        {"side":"red","kind":"test_apc","position":[505,60]}
+    ]));
+    frame
+        .identified
+        .push(identified(42, frame.own[0].kind, [900.0, 850.0, 0.0]));
+    let assignment = Assignment {
+        main_objective: [500.0, 65.0],
+        staging_point: [500.0, 65.0],
+        force_advance: false,
+        parties: vec![],
+    };
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(
+        orders
+            .iter()
+            .any(|o| matches!(o, Order::Attack {units,..} if units.contains(&frame.own[0].id))),
+        "{orders:?}"
+    );
+    assert!(
+        !orders.iter().any(|o| matches!(o, Order::Collect { .. })),
+        "{orders:?}"
+    );
 }

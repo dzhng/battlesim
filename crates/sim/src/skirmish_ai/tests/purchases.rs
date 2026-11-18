@@ -4,7 +4,7 @@
 use super::*;
 use crate::skirmish_ai::purchase::pick;
 
-fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
+pub(super) fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
     let kind = rules.catalog.index(kind).unwrap();
     contract::observation::IdentifiedUnit {
         id: ObservedTargetId(1),
@@ -19,6 +19,8 @@ fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
         member_active_mounts: vec![],
         weapon_poses: vec![],
         reversing: false,
+        deployment: None,
+        grounded: false,
         smoking: false,
         member_leans: vec![],
         building: None,
@@ -211,6 +213,7 @@ fn seeded_reinforcements_keep_the_wasm_choice_on_native() {
             confirmed_tick: 0,
             blocked: false,
             arrival_tick: None,
+            condition: None,
         });
     // These policy streams start with armour on wasm32. Casting the full
     // hash to a platform-sized index changes them to infantry or AT on 64-bit hosts.
@@ -398,4 +401,22 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
         "threat response bought {}",
         rules.catalog.id(defended)
     );
+}
+
+#[test]
+fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
+    let defends = |classes: Value| {
+        let mut fixture = test_rules();
+        fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
+        fixture["weapons"]["hmg"]["proximity_fuse_m"] = serde_json::json!(2);
+        let rules: Rules = serde_json::from_value(fixture).unwrap();
+        let jeep = rules.catalog.index("test_jeep").unwrap();
+        let heli = rules.catalog.index("test_heli").unwrap();
+        (
+            unit_engages_aircraft_in(&rules, jeep, AltitudeLayer::LowAir),
+            unit_can_engage_target(&rules, jeep, heli),
+        )
+    };
+    assert_eq!(defends(json!(["air_rotor"])), (true, true));
+    assert_eq!(defends(json!(["missile"])), (false, false));
 }
