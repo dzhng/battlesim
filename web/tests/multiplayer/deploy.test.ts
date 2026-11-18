@@ -98,9 +98,12 @@ test("deploy check asks a real lobby without a credential and reports compatibil
   await new Promise<void>((resolve) => site.listen(0, "127.0.0.1", resolve));
   const address = `http://127.0.0.1:${(site.address() as { port: number }).port}`;
   const request: typeof fetch = async (input, init) => {
-    expect(String(input)).toBe(String(new URL("/build", configured.address)));
+    expect(["/build", "/deployment"]).toContain(new URL(String(input)).pathname);
     expect(init?.headers).toBeUndefined();
-    return fetch(`http://127.0.0.1:${(lobby.address() as { port: number }).port}/build`, init);
+    return fetch(
+      `http://127.0.0.1:${(lobby.address() as { port: number }).port}${new URL(String(input)).pathname}`,
+      init,
+    );
   };
   try {
     for (const part of [undefined, "sim", "data", "wire"] as const) {

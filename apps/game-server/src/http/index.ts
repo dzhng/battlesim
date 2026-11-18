@@ -50,6 +50,12 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
       const { sim, data, wire } = build;
       return json(response, 200, { sim, data, wire });
     }
+    if (url.pathname === "/deployment") {
+      if (request.method !== "GET") return json(response, 405, { refused: "method" });
+      return json(response, 200, {
+        commit: (build as BuildIdentity & { commit?: string }).commit,
+      });
+    }
     if (url.pathname === "/hello") {
       if (request.method !== "POST") return json(response, 405, { refused: "method" });
       const id = request.headers[BROWSER_ID_HEADER.toLowerCase()];

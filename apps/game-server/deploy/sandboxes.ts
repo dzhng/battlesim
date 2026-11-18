@@ -187,7 +187,7 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
           const sent = await fetch(target.url, {
             method: target.method,
             headers: { "Content-Length": String(bytes.length) },
-            body: bytes,
+            body: Buffer.from(bytes),
             signal,
             redirect: "error",
           });
