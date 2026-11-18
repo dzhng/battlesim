@@ -37,6 +37,7 @@ pub enum FlightConfigError {
     /// `top_attack` belongs on a guided row, with a positive loft and a dive
     /// between level and vertical.
     TopAttack(&'static str),
+    ArcHeight(&'static str),
     /// An unguided layer more accurate at its reach than
     /// `physics.min_spread_at_max_range_m` allows.
     TighterThanCeiling {
@@ -59,6 +60,7 @@ impl std::fmt::Display for FlightConfigError {
             ),
             Self::Motor(reason) => write!(f, "Invalid missile motor: {reason}"),
             Self::TopAttack(reason) => write!(f, "Invalid top attack: {reason}"),
+            Self::ArcHeight(reason) => write!(f, "Invalid arc height: {reason}"),
             Self::TighterThanCeiling { spread_m, min_m } => write!(
                 f,
                 "Landing spread must be at least {min_m} m at maximum range; entered {spread_m} m"
@@ -170,6 +172,28 @@ impl FlightConfig {
                 max_s: self.max_unguided_lifetime_s,
             });
         }
+        if let Some(height) = weapon.arc_height_m {
+            if !(height.is_finite() && height > 0.0) {
+                return Err(FlightConfigError::NotPositive("arc_height_m"));
+            }
+            if weapon.trajectory != Trajectory::Indirect
+                || weapon.delivery != Delivery::Powered
+                || weapon.turn_deg_s.is_some()
+            {
+                return Err(FlightConfigError::ArcHeight(
+                    "it needs a powered, unguided indirect row",
+                ));
+            }
+            let gravity = -self.gravity.z * weapon.gravity_scale;
+            let rise_s = libm::sqrt(2.0 * height / gravity);
+            if 2.0 * rise_s > lifetime_s
+                || libm::hypot(weapon.range_m / (2.0 * rise_s), gravity * rise_s) > weapon.speed_mps
+            {
+                return Err(FlightConfigError::ArcHeight(
+                    "the arc cannot reach maximum range on level ground within launch speed and lifetime",
+                ));
+            }
+        }
         let motor = match (weapon.accel_mps2, weapon.top_speed_mps) {
             (None, None) => None,
             (Some(accel_mps2), Some(top_speed_mps)) => {
@@ -228,6 +252,7 @@ impl FlightConfig {
             gravity_scale: weapon.gravity_scale,
             lifetime_s,
             trajectory: weapon.trajectory,
+            arc_height_m: weapon.arc_height_m,
             suppression_radius_m: weapon.suppression_radius_m,
             turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
             motor,
@@ -266,6 +291,7 @@ pub struct LaunchProfile {
     pub gravity_scale: f64,
     pub lifetime_s: f64,
     pub trajectory: Trajectory,
+    pub arc_height_m: Option<f64>,
     pub suppression_radius_m: f64,
     /// Guided rounds' turn limit; `None` flies ballistically.
     pub turn_rad_s: Option<f64>,

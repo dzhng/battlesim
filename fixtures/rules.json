@@ -822,7 +822,7 @@
       "stationary": true,
       "requires_clear_launch_path": true,
       "min_range_m": 350,
-      "speed_mps": 160,
+      "speed_mps": 380,
       "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 2.5,
@@ -835,7 +835,8 @@
       "near_miss_suppression": 0.65,
       "blast_radius_m": 36,
       "structural_damage": 180,
-      "trajectory": "indirect"
+      "trajectory": "indirect",
+      "arc_height_m": 65
     },
     "artillery_mortar": {
       "resupply_rounds_per_s": 0.1,
@@ -848,7 +849,7 @@
       "stationary": true,
       "requires_clear_launch_path": true,
       "min_range_m": 120,
-      "speed_mps": 145,
+      "speed_mps": 280,
       "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 3,
@@ -861,7 +862,8 @@
       "near_miss_suppression": 0.55,
       "blast_radius_m": 30,
       "structural_damage": 110,
-      "trajectory": "indirect"
+      "trajectory": "indirect",
+      "arc_height_m": 65
     },
     "artillery_rocket_light": {
       "resupply_rounds_per_s": 0.25,
@@ -874,7 +876,7 @@
       "stationary": true,
       "requires_clear_launch_path": true,
       "min_range_m": 500,
-      "speed_mps": 160,
+      "speed_mps": 400,
       "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 2.5,
@@ -888,7 +890,8 @@
       "near_miss_suppression": 0.7,
       "blast_radius_m": 32,
       "structural_damage": 150,
-      "trajectory": "indirect"
+      "trajectory": "indirect",
+      "arc_height_m": 65
     },
     "artillery_rocket_heavy": {
       "resupply_rounds_per_s": 0.2,
@@ -901,7 +904,7 @@
       "stationary": true,
       "requires_clear_launch_path": true,
       "min_range_m": 700,
-      "speed_mps": 160,
+      "speed_mps": 460,
       "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 3,
@@ -915,7 +918,8 @@
       "near_miss_suppression": 0.8,
       "blast_radius_m": 40,
       "structural_damage": 220,
-      "trajectory": "indirect"
+      "trajectory": "indirect",
+      "arc_height_m": 65
     },
     "artillery_strike_missile": {
       "resupply_rounds_per_s": 0.025,
@@ -928,7 +932,7 @@
       "stationary": true,
       "requires_clear_launch_path": true,
       "min_range_m": 900,
-      "speed_mps": 160,
+      "speed_mps": 460,
       "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 3,
@@ -941,7 +945,8 @@
       "near_miss_suppression": 0.9,
       "blast_radius_m": 48,
       "structural_damage": 300,
-      "trajectory": "indirect"
+      "trajectory": "indirect",
+      "arc_height_m": 65
     }
   },
   "suppression": {

@@ -217,7 +217,7 @@ function benchOf(catalog: SessionCatalog): Bench {
       kind: "grenade",
       from: [92, 118],
       muzzle: P.infantry_muzzle_m,
-      aim: { ground: [92, 292] },
+      aim: { ground: [92, 208] },
     },
     {
       label: "grenade across crossing bodies",

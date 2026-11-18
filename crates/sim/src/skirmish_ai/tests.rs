@@ -1281,12 +1281,12 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
 /// over the wall, and holds for a clear launch path (`BlockedTrajectory`);
 /// a ground point is no target to close on, so nothing else moves it.
 /// After its tuning's `relocate_after_s` of that, the AI orders it about
-/// `relocate_m` off, clear of the wall, and from there it fires. The
+/// `relocate_m` off, clear of the wall, where it fires.
 #[test]
 fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     let mut rules = deck();
     rules["weapons"]["test_launcher"] = json!({
-        "extends": "artillery_mortar", "speed_mps": 80, "range_m": 650,
+        "extends": "artillery_mortar", "arc_height_m": null, "speed_mps": 80,
         "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },
         "requires_clear_launch_path": true,
     });
