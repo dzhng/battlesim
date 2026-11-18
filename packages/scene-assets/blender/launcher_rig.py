@@ -6,11 +6,12 @@ from parts import empty
 from vehicle_export import rig
 
 
-def launcher(v, pivot, elevation, pack, base=(), mount="launcher", vertical=False, turn_x=0.0):
+def launcher(v, pivot, elevation, pack, base=(), mount="launcher", vertical=False, turn_x=0.0, pitch_with_deploy=False):
     """The pack pitches about pivot. Only the turntable and pack slew."""
     if v.wreck:
         return
-    parent = v.hull if vertical else rig(v.frame, v.root)[mount][0]
+    nodes = None if vertical else rig(v.frame, v.root)[mount]
+    parent = nodes[0] if nodes else v.hull
     bpy.context.view_layer.update()
     hinge = empty("deploy_launcher", parent.matrix_world.inverted() @ Vector(pivot), parent,
                   props={"deploy_start": 0.0, "deploy_end": 1.0, "deploy_turn_x": turn_x, "deploy_turn_y": -elevation})
@@ -27,4 +28,10 @@ def launcher(v, pivot, elevation, pack, base=(), mount="launcher", vertical=Fals
         world = part.matrix_world.copy()
         part.parent = owner
         part.matrix_world = world
+    if pitch_with_deploy:
+        gun = nodes[1]
+        gun["pitch_min_deg"] = gun["pitch_max_deg"] = 0.0
+        world = gun.matrix_world.copy()
+        gun.parent = hinge
+        gun.matrix_world = world
     return hinge

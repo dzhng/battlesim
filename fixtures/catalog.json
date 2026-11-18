@@ -7667,9 +7667,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.0,
+                1.955,
                 0.0,
-                0.0
+                0.01
               ],
               "name": "Rockets",
               "on": null,
@@ -8188,9 +8188,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.3,
+                0.88,
                 0.0,
-                0.93
+                0.865
               ],
               "name": "Buk-M3",
               "on": null,
@@ -13202,9 +13202,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                8.06,
+                7.465,
                 0.0,
-                0.0
+                0.28
               ],
               "name": "Howitzer",
               "on": null,
@@ -22009,9 +22009,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.6,
-                0.0,
-                1.4
+                2.905,
+                0.54,
+                1.31
               ],
               "name": "Patriot PAC-3",
               "on": null,
@@ -28110,9 +28110,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.0,
+            1.955,
             0.0,
-            0.0
+            0.01
           ],
           "name": "Rockets",
           "on": null,
@@ -28648,9 +28648,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.3,
+            0.88,
             0.0,
-            0.93
+            0.865
           ],
           "name": "Buk-M3",
           "on": null,
@@ -34271,9 +34271,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            8.06,
+            7.465,
             0.0,
-            0.0
+            0.28
           ],
           "name": "Howitzer",
           "on": null,
@@ -44081,9 +44081,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.6,
-            0.0,
-            1.4
+            2.905,
+            0.54,
+            1.31
           ],
           "name": "Patriot PAC-3",
           "on": null,

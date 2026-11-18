@@ -15,8 +15,7 @@ What the photos settle:
   missiles behind two large caps.
 - BM-21: the Ural-375D 6x6 (the roster Ural's chassis and cab), a spare
   wheel behind the cab, flat fenders over the rear bogie, the forty 122 mm
-  tubes in four rows on a cradle with its sector gears, travelling with
-  their muzzles to the rear.
+  tubes in four rows on a cradle with its sector gears, with their muzzles facing the cab.
 - Tornado-S: the MAZ-543M 8x8, its two cabs either side of the engine, the
   twelve 300 mm tubes in three rows lying along the chassis.
 
@@ -147,7 +146,7 @@ def himars(v, prsm):
     hinge = articulate_launcher(v, (hinge_x, 0, deck + 0.54), elevation,
                                 ("launcher_shell", "launcher_rib", "launcher_front", "launcher_hoist",
                                  "launcher_boom", "launcher_cable", "pod_"),
-                                ("launcher_turntable", "cradle_"), mount="gun")
+                                ("launcher_turntable", "cradle_"), mount="gun", pitch_with_deploy=True)
     if hinge is not None:
         # Equal arm lengths keep the sliding feet on their horizontal cradle rails.
         arm = 1.3
@@ -157,12 +156,6 @@ def himars(v, prsm):
             y = side * 0.57
             box(f"lift_arm_{side}", (arm, 0.16, 0.18), (arm / 2, y, 0), m["dark"], rocker, bevel=0.025)
             cyl(f"lift_roller_{side}", 0.12, 0.22, (arm, y, 0), "Y", m["steel"], rocker, seg=16)
-        # Deployment pitches the pod. Its flash and exhaust follow the same hinge.
-        gun = next(child for child in hinge.parent.children if child.name == "gun")
-        gun["pitch_min_deg"] = gun["pitch_max_deg"] = 0.0
-        world = gun.matrix_world.copy()
-        gun.parent = hinge
-        gun.matrix_world = world
 
 
 def bm21(v):
@@ -180,6 +173,8 @@ def bm21(v):
         box(f"fender_stay_{s}", (0.06, 0.40, 0.18), (-1.62, side * 0.80, 1.26), m["dark"], h, lods=NEAR)
         SW.stowage_box(f"fender_box_{s}", (-2.35, side * 1.0, 1.375), (0.80, 0.40, 0.32), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
+        box(f"tail_lamp_stay_{s}", (0.13, 0.09, 0.28), (-3.55, side * 0.97, 1.00),
+            m["dark"], h, bevel=0.01)
         HF.light_with_guard(f"tail_light_{s}", (-3.62, side * 1.00, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
     box("rear_bumper", (0.12, 2.00, 0.14), (-3.55, 0, 0.88), m["dark"], h, bevel=0.012)
@@ -197,10 +192,9 @@ def bm21(v):
               parent=h, lods=NEAR)
     cyl("elevating_ram", 0.07, 0.95, (tx + 0.45, 0, rail + 0.85), "X", m["steel"], h, seg=10, rot=(0, -0.95, 0),
         lods=MID)
-    # Forty tubes, four rows of ten, travelling with their muzzles to the
-    # rear and the pack rising slightly toward them, as all three photos show.
+    # The forward mouths sit slightly above the breeches in the travel cradle.
     tube_len, rows, cols, r = 3.0, 4, 10, 0.075
-    pitch = math.radians(4)
+    pitch = math.radians(-4)
     cx, cz = -1.85, 2.26
     for j in range(rows):
         for i in range(cols):
@@ -208,7 +202,7 @@ def bm21(v):
             z = cz + j * (2 * r + 0.012)
             cyl(f"grad_tube_{j}_{i}", r, tube_len, (cx, y, z), "X", m["paint"], h, seg=10, rot=(0, pitch, 0),
                 lods=(0, 1, 2) if (i % 2 == 0 or j % 2 == 0) else (0, 1))
-            cyl(f"grad_bore_{j}_{i}", r * 0.82, 0.01, (cx - tube_len / 2 - 0.005, y, z + tube_len / 2 * math.sin(pitch)),
+            cyl(f"grad_bore_{j}_{i}", r * 0.82, 0.01, (cx + tube_len / 2 + 0.005, y, z - tube_len / 2 * math.sin(pitch)),
                 "X", m["black"], h, seg=8, rot=(0, pitch, 0), lods=FINE)
     pack_z = cz + (rows - 1) * (r + 0.006)
     box("tube_pack_hull", (tube_len - 0.2, cols * (2 * r + 0.012), rows * (2 * r + 0.012)), (cx, 0, pack_z), m["paint"],
@@ -300,8 +294,8 @@ def build(variant, v):
     if ident in M270:
         articulate_launcher(v, (-3.21, 0, 1.38), 35, ("gun_body_",), ("turret_body_",), mount="gun")
     elif ident.startswith("eastern_bm_21"):
-        articulate_launcher(v, (-1.45, 0, 2.22), -24, ("grad_", "tube_"),
-                            ("cradle_plate_", "sector_gear_", "launcher_turntable", "elevating_ram"), mount="gun")
+        articulate_launcher(v, (-2.78, 0, 2.15), 24, ("grad_", "tube_"),
+                            ("cradle_plate_", "sector_gear_", "launcher_turntable", "elevating_ram"), mount="gun", pitch_with_deploy=True)
     elif ident.startswith("eastern_9k515"):
         articulate_launcher(v, (-3.4, 0, 2.25), 30, ("smerch_", "tube_band_"), (), mount="gun")
 

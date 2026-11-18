@@ -118,7 +118,7 @@ and listing policy. Directory discovery requires no parallel index.
 
 ## The unit catalog
 
-Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish, and supply waits for setup to finish.
+Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish. Ground vehicles that deploy can release a shot or provide supply once setup is complete.
 
 A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams_sep_v3_trophy"`, `"test_tank"`). No code lists unit types. Its `name` is what the player reads (`"M1A2 SEP v3 Trophy"`), authored, never derived from the id; so are its family's, its mounts', its weapon rows', its protection's and its planned weapons' labels, each held to [the label rule](../crates/contract/src/labels.rs), and each weapon names its generated icon. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
