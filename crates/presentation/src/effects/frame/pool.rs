@@ -114,7 +114,11 @@ impl Pool {
         rng: &mut Mulberry32,
     ) {
         let dt = self.dt;
-        self.push(Look::Trail(*style), t0, t0 + dt + style.puff.life_s);
+        let mut style = *style;
+        if let Some(limit) = style.max_length_m {
+            style.puff.life_s = style.puff.life_s.min(limit * dt / self.live[index].length);
+        }
+        self.push(Look::Trail(style), t0, t0 + dt + style.puff.life_s);
         let (done, ribbon) = self.live.split_at_mut(index + 1);
         let (e, ribbon) = (&done[index], ribbon.last_mut().expect("just pushed"));
         ribbon.path.extend_from_slice(&e.path);

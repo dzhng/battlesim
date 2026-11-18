@@ -66,7 +66,7 @@ pub(super) fn draw_tracer(
             glow.color,
             glow.intensity,
             0.0,
-            5.0,
+            0.0,
         );
     }
     if let Some(body) = &style.body {

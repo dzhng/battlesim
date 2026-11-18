@@ -43,7 +43,7 @@ pub struct EffectPresentation {
     pub impacts: HashMap<String, Arc<ImpactStyle>>,
     /// The hot core and pale smoke of a physical countermeasure flare.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub flare: Option<Arc<TracerStyle>>,
+    pub flare: Option<Arc<FlareStyle>>,
 
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
@@ -155,6 +155,16 @@ pub struct TracerLight {
     pub share: f64,
 }
 
+/// The physical decoy's light and the slow-falling shower ejected beside it.
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlareStyle {
+    pub tracer: Arc<TracerStyle>,
+    pub pellets: usize,
+    pub spread_m: f64,
+    pub spread_s: f64,
+}
+
 /// A round in flight: a glow along a tail `tail_s` of its flight long
 /// (within `tail_m`), and optionally a hot core, a dark body, a smoke trail
 /// and a light.
@@ -207,6 +217,9 @@ pub struct TrailStyle {
     pub puff: PuffStyle,
     pub ribbon: f64,
     pub spacing_m: f64,
+    /// Shorten life at high speed to keep smoke within this distance.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_length_m: Option<f64>,
 }
 
 /// `count` puffs born over the first `over_s` seconds.
@@ -455,8 +468,19 @@ impl EffectPresentation {
         };
         self.check_looks(&self.looks.looks)?;
         if let Some(flare) = &self.flare {
-            flare.validate("flare")?;
-            cast("flare".into(), &flare.cast, false)?;
+            flare.tracer.validate("flare")?;
+            cast("flare".into(), &flare.tracer.cast, false)?;
+            ensure((1..=128).contains(&flare.pellets), || {
+                "flare.pellets must be in [1, 128]".into()
+            })?;
+            for (field, value) in [("spread_m", flare.spread_m), ("spread_s", flare.spread_s)] {
+                crate::settings::validate::range(
+                    &format!("presentation.effects.flare.{field}"),
+                    value,
+                    f64::MIN_POSITIVE,
+                    f64::MAX,
+                )?;
+            }
         }
         ensure(self.smoke_screen_budget > 0.0, || {
             "smoke_screen_budget must be positive".into()
@@ -597,7 +621,7 @@ impl EffectPresentation {
             .looks
             .values()
             .filter_map(|look| look.tracer.as_ref())
-            .chain(self.flare.iter())
+            .chain(self.flare.iter().map(|f| &f.tracer))
         {
             if let Some(s) = &t.smoke {
                 longest = longest.max(s.puff.life_s);
@@ -640,7 +664,12 @@ impl TracerStyle {
         )?;
         ensure(self.smoke.is_none_or(|s| s.spacing_m > 0.0), || {
             at("smoke.spacing_m must be positive")
-        })
+        })?;
+        ensure(
+            self.smoke
+                .is_none_or(|s| within(s.max_length_m, |v| v > 0.0)),
+            || at("smoke.max_length_m must be positive"),
+        )
     }
 }
 

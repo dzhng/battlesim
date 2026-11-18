@@ -414,7 +414,76 @@
   },
   "transit": { "inbound_s": 10, "outbound_s": 10 },
   "effects": {
-    "flare": {"tail_s": 0.15, "tail_m": [0.3, 3.0], "glow": {"color": [1.0, 0.65, 0.2], "intensity": 12, "width_m": 0.22, "min_px": 5}, "core": {"color": [1.0, 0.95, 0.8], "intensity": 22, "width_m": 0.07, "min_px": 2.5, "share": 0.5}, "cast": {"color": [1.0, 0.65, 0.2], "intensity": 2, "radius_m": 4}, "smoke": {"albedo": [0.92, 0.92, 0.94], "ribbon": 0.8, "opacity": 0.38, "size_m": [0.15, 0.5], "life_s": 2.0, "rise_mps": 0.1, "spread_mps": 0.1, "spacing_m": 0.25}, "head_glow": {"color": [1.0, 0.65, 0.2], "intensity": 18, "width_m": 0.3, "min_px": 8}},
+    "flare": {
+      "tracer": {
+        "tail_s": 0.08,
+        "tail_m": [
+          0.15,
+          1.0
+        ],
+        "glow": {
+          "color": [
+            1.0,
+            0.65,
+            0.2
+          ],
+          "intensity": 12,
+          "width_m": 0.22,
+          "min_px": 5
+        },
+        "core": {
+          "color": [
+            1.0,
+            0.95,
+            0.8
+          ],
+          "intensity": 22,
+          "width_m": 0.07,
+          "min_px": 2.5,
+          "share": 0.5
+        },
+        "cast": {
+          "color": [
+            1.0,
+            0.65,
+            0.2
+          ],
+          "intensity": 2,
+          "radius_m": 4
+        },
+        "smoke": {
+          "albedo": [
+            0.92,
+            0.92,
+            0.94
+          ],
+          "ribbon": 0.8,
+          "opacity": 0.48,
+          "size_m": [
+            0.18,
+            0.55
+          ],
+          "life_s": 0.5,
+          "max_length_m": 4,
+          "rise_mps": 0.1,
+          "spread_mps": 0.1,
+          "spacing_m": 0.2
+        },
+        "head_glow": {
+          "color": [
+            1,
+            0.8,
+            0.4
+          ],
+          "intensity": 18,
+          "width_m": 0.2,
+          "min_px": 4
+        }
+      },
+      "pellets": 32,
+      "spread_m": 18,
+      "spread_s": 0.85
+    },
     "capacity": 16384,
     "min_px": 1.5,
     "impacts": {

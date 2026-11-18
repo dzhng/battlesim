@@ -69,6 +69,34 @@ fn physical_flares_publish_their_falling_path_only_to_sides_that_see_them() {
             .collect::<Vec<_>>();
         assert_eq!(decoded.flares, widened, "the client reads the same path");
     }
+    for _ in 0..2 * b.rules().tick_hz {
+        b.step();
+    }
+    let flare = b
+        .observe(Side::Red)
+        .flares
+        .first()
+        .cloned()
+        .expect("the burning flare is still airborne");
+    let dt = 1.0 / f64::from(b.rules().tick_hz);
+    let speed = (v3(flare.to[0], flare.to[1], flare.to[2])
+        - v3(flare.from[0], flare.from[1], flare.from[2]))
+        * (1.0 / dt);
+    assert!(
+        speed.xy().length() < 5.0,
+        "drag arrests the flare's ejection: {speed:?}"
+    );
+    assert!(
+        speed.z < 0.0 && speed.z > -5.0,
+        "a missile follows a slowly settling flare, not a fast falling shell: {speed:?}"
+    );
+    for _ in 0..4 * b.rules().tick_hz {
+        b.step();
+    }
+    assert!(
+        b.observe(Side::Red).flares.is_empty(),
+        "a flare burns out in the air rather than glowing until it reaches the ground"
+    );
 }
 
 #[test]
@@ -314,4 +342,63 @@ fn test_flares_spoof_an_operator_guided_missile_at_a_helicopter() {
     let (lost, charges) = run(false);
     assert_eq!(charges, None);
     assert!(lost > 0.0, "without flares the missile hits");
+}
+
+#[test]
+fn a_fast_flare_cannot_fuse_a_missile_at_a_point_it_never_reaches() {
+    use sim::flight::{self, ImpactContext, ImpactDecision, ImpactResolver, Launch, Projectiles};
+    struct Stops;
+    impl ImpactResolver for Stops {
+        fn resolve(&mut self, _: &ImpactContext) -> ImpactDecision {
+            ImpactDecision::Stop
+        }
+    }
+    let world = crate::common::flat([1200.0, 400.0], "");
+    let mut store = Projectiles::new(crate::common::config());
+    let launch = Launch {
+        origin: v3(510.0, 200.0, 100.0),
+        carrier: v3(0.0, 0.0, 0.0),
+        velocity: v3(0.0, 0.0, 0.0),
+        gravity_scale: 0.0,
+        lifetime_s: 1.0,
+        suppression_radius_m: 0.0,
+        shooter: None,
+        motor: None,
+        fall: None,
+        guidance: Some(flight::Guidance {
+            point: v3(500.0, 200.0, 100.0),
+            turn_rad_s: 1.0,
+            supported: false,
+            loft: None,
+        }),
+    };
+    let id = store.launch(launch);
+    let tracking = store.launch(Launch {
+        origin: v3(400.0, 200.0, 100.0),
+        velocity: v3(100.0, 0.0, 0.0),
+        ..launch
+    });
+    let decoy = flight::Decoy {
+        position: v3(500.0, 200.0, 100.0),
+        velocity: v3(300.0, 0.0, 0.0),
+        meet_m: 0.01,
+        drag_s: 0.85,
+        fall_mps: 3.0,
+        burn_s: 4.0,
+    };
+    for projectile in [id, tracking] {
+        store.divert(projectile, decoy, contract::catalog::AltitudeLayer::HighAir);
+    }
+    let mut events = Vec::new();
+    flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut Stops);
+    assert!(
+        store.get(id).is_some(),
+        "drag keeps the flare short of the stationary missile's tight fuse"
+    );
+    let (_, physical, _) = store.flares().next().unwrap();
+    assert_eq!(
+        store.get(tracking).unwrap().guidance.unwrap().point,
+        physical,
+        "guidance predicts the same endpoint the decoy physically reaches"
+    );
 }

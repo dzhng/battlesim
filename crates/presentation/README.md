@@ -265,6 +265,14 @@ same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
 rate and a paused one shows its blades.
 
+A visible countermeasure path carries a shower of burning pellets
+([flares](src/effects/frame/flare.rs)). The simulation's decoy remains the
+missile's target and supplies the whole shower's motion. Presentation adds
+only a bounded spread around that path, so the target cannot outrun the pack.
+Only consecutive observed paths extend a shower. Losing sight stops it and
+lets its short smoke wisps fade, without retaining an unseen source or exposing
+an aircraft identity.
+
 A running jet glows in every nozzle and leaves its engines' and wingtips'
 trails, as a war film shows a jet: visual only, so it never touches the
 simulation. Where its nozzles, wingtips and wings are is data on its appearance

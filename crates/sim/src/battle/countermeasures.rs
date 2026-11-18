@@ -83,6 +83,9 @@ impl Battle {
                     position,
                     velocity,
                     meet_m: self.rules.guided.flare_meet_m,
+                    drag_s: self.rules.guided.flare_drag_s,
+                    fall_mps: self.rules.guided.flare_fall_mps,
+                    burn_s: self.rules.guided.flare_burn_s,
                 },
                 layer,
             );

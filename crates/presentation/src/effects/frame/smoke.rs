@@ -46,7 +46,12 @@ pub(super) fn draw_trail(
     let puff = &s.puff;
     let rise = [0.0, 0.0, puff.rise_mps];
     for i in 0..e.cum.len().saturating_sub(1) {
-        let (lo, hi) = (e.cum[i], e.cum[i + 1].min(flown));
+        let oldest = if s.max_length_m.is_some() {
+            ((age - puff.life_s) * length / dt).max(0.0)
+        } else {
+            0.0
+        };
+        let (lo, hi) = (e.cum[i].max(oldest), e.cum[i + 1].min(flown));
         if hi <= lo {
             continue;
         }

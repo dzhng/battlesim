@@ -130,10 +130,10 @@ pub fn advance_projectiles(
     flares.retain(|_, flare| {
         let decoy = &mut flare.decoy;
         flare.from = decoy.position;
-        decoy.position = decoy.position
-            + decoy.velocity * config.tick_s
-            + config.gravity * (0.5 * config.tick_s * config.tick_s);
-        decoy.velocity = decoy.velocity + config.gravity * config.tick_s;
+        *decoy = decoy.after(config.tick_s);
+        if decoy.burn_s <= 0.0 {
+            return false;
+        }
         world
             .height_at(decoy.position.x, decoy.position.y)
             .is_some_and(|ground| decoy.position.z > ground)
@@ -265,7 +265,7 @@ impl Flight<'_> {
             p.guidance.as_mut(),
         ) {
             let decoy = flare.decoy;
-            g.point = decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
+            g.point = decoy.after(span).position;
         }
         let gravity = self.acceleration(p, span);
         let fuse = resolver.target_fuse(p.id);
@@ -466,8 +466,8 @@ impl Flight<'_> {
                 let decoy = flare.decoy;
                 let t0 = scratch.path_times[k];
                 let t1 = scratch.path_times[k + 1];
-                let d0 = decoy.position + decoy.velocity * t0 + config.gravity * (0.5 * t0 * t0);
-                let d1 = decoy.position + decoy.velocity * t1 + config.gravity * (0.5 * t1 * t1);
+                let d0 = decoy.after(t0).position;
+                let d1 = decoy.after(t1).position;
                 let relative = a0 - d0;
                 let travel = chord - (d1 - d0);
                 let aa = travel.dot(travel);

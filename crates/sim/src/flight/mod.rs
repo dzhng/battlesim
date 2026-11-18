@@ -230,6 +230,27 @@ pub struct Decoy {
     pub velocity: V3,
     /// The seeker bursts on the flare once this close (`guided.flare_meet_m`).
     pub meet_m: f64,
+    pub drag_s: f64,
+    pub fall_mps: f64,
+    /// Remaining time as a burning decoy.
+    pub burn_s: f64,
+}
+
+impl Decoy {
+    /// One trajectory for physical advance, guidance and the proximity fuse.
+    fn after(self, seconds: f64) -> Self {
+        let retained = libm::exp(-seconds / self.drag_s);
+        let terminal = v3(0.0, 0.0, -self.fall_mps);
+        let excess = self.velocity - terminal;
+        Self {
+            position: self.position
+                + terminal * seconds
+                + excess * (self.drag_s * (1.0 - retained)),
+            velocity: terminal + excess * retained,
+            burn_s: self.burn_s - seconds,
+            ..self
+        }
+    }
 }
 
 /// What a round struck. The derived order is the tie-break order.
@@ -644,7 +665,10 @@ impl Projectiles {
                     .f64(f.velocity.x)
                     .f64(f.velocity.y)
                     .f64(f.velocity.z)
-                    .f64(f.meet_m);
+                    .f64(f.meet_m)
+                    .f64(f.drag_s)
+                    .f64(f.fall_mps)
+                    .f64(f.burn_s);
             }
         }
     }

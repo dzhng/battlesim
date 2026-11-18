@@ -180,7 +180,15 @@ impl BodyRules {
 
 impl crate::ballistics::GuidedRules {
     pub(super) fn check(&self) -> Result<(), RulesError> {
-        positive("guided", &[("release_coast_s", self.release_coast_s)])?;
+        positive(
+            "guided",
+            &[
+                ("release_coast_s", self.release_coast_s),
+                ("flare_drag_s", self.flare_drag_s),
+                ("flare_fall_mps", self.flare_fall_mps),
+                ("flare_burn_s", self.flare_burn_s),
+            ],
+        )?;
         nonnegative("guided", &[("flare_meet_m", self.flare_meet_m)])
     }
 }

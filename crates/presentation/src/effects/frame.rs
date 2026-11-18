@@ -56,6 +56,7 @@ use crate::world::Vec3;
 use crate::GRAVITY;
 
 mod draw;
+mod flare;
 mod pool;
 mod smoke;
 mod smoke_screen;
@@ -334,6 +335,7 @@ pub struct EffectFrame {
     launches: LaunchTracker,
     /// Every jet's trails, from the frames drawn (`observe_jets`).
     jets: JetTrails,
+    flares: flare::Flares,
     instances: usize,
     dropped: usize,
 }
@@ -358,6 +360,7 @@ impl EffectFrame {
             last_tick: -1.0,
             launches: LaunchTracker::default(),
             jets: JetTrails::default(),
+            flares: flare::Flares::default(),
             instances: 0,
             dropped: 0,
         }
@@ -386,6 +389,7 @@ impl EffectFrame {
         self.screens.clear();
         self.launches.reset();
         self.jets.reset();
+        self.flares.clear();
         self.last_tick = -1.0;
         self.noted = 0.0;
         self.keep = 1.0;
@@ -433,16 +437,8 @@ impl EffectFrame {
             }
         }
         if let Some(style) = &p.flare {
-            for flare in &publication.flares {
-                self.pool.tracer_style(
-                    style.clone(),
-                    "flare".into(),
-                    t0,
-                    &[flare.from, flare.to],
-                    &mut rng,
-                    true,
-                );
-            }
+            self.flares
+                .note(style, publication, t0, gap, &mut self.pool);
         }
         for (index, s) in publication.segments.iter().enumerate() {
             if s.path.len() < 2 {

@@ -1,6 +1,6 @@
 //! Authored flight data: the fixture's `physics` flight bounds, its `guided`
-//! release rule and the flight fields of a weapon row. Other fields in those sections belong to other
-//! owners and are ignored here.
+//! guidance and countermeasure rules, and the flight fields of a weapon row.
+//! Other fields in those sections belong to other owners and are ignored here.
 use serde::{Deserialize, Serialize};
 
 /// Flight bounds from the fixture's `physics` section.
@@ -44,6 +44,12 @@ pub struct GuidedRules {
     /// A seeker diverted to a flare bursts on it once this close: its
     /// proximity fuse, following the flare's own fall.
     pub flare_meet_m: f64,
+    /// Ejection velocity decays over this time as the flare meets air drag.
+    pub flare_drag_s: f64,
+    /// The burning decoy settles at this downward speed.
+    pub flare_fall_mps: f64,
+    /// How long the flare remains a burning decoy, even high above ground.
+    pub flare_burn_s: f64,
 }
 
 /// Which ballistic arcs a weapon may choose (P03).

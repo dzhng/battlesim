@@ -553,6 +553,9 @@ fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
             position: center - v3(half.x + 2.0, 0.0, 0.0),
             velocity: v3(0.0, 0.0, 0.0),
             meet_m: battle.rules().guided.flare_meet_m,
+            drag_s: battle.rules().guided.flare_drag_s,
+            fall_mps: battle.rules().guided.flare_fall_mps,
+            burn_s: battle.rules().guided.flare_burn_s,
         },
         contract::catalog::AltitudeLayer::LowAir,
     );

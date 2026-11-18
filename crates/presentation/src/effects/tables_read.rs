@@ -16,6 +16,7 @@ impl<'de> Deserialize<'de> for TrailStyle {
             spread_mps: f64,
             ribbon: f64,
             spacing_m: f64,
+            max_length_m: Option<f64>,
         }
         let f = Fields::deserialize(deserializer)?;
         let puff = PuffStyle {
@@ -30,6 +31,7 @@ impl<'de> Deserialize<'de> for TrailStyle {
             puff,
             ribbon: f.ribbon,
             spacing_m: f.spacing_m,
+            max_length_m: f.max_length_m,
         })
     }
 }
