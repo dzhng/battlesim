@@ -215,7 +215,7 @@ def fin(name, root_x, root_z, height, root_chord, tip_chord, sweep_m, mats, pare
 
 
 # ---------------------------------------------------------------- canopy and fittings
-def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="paint",
+def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="dark",
            tail=0.45, nose=0.05):
     """A bubble canopy on the sill line from `x_front` to `x_back`, highest
     (`top`) at `peak` of the way back, in tinted glass seen through (the
