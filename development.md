@@ -65,10 +65,11 @@ The physical properties that rules read:
 Rules follow from those properties alone. A mover can go where its footprint
 fits and can shove aside a body lighter than itself. A body is cover when it stands
 between a soldier and the threat, breaks when its integrity runs out, and stops a
-round only if it is authored to. A gun holds fire only for what its rounds can't
-break or can't see past. So there is no "wall" or "tank trap" in the code:
-dragon's teeth are small heavy bodies that block vehicles, and a new obstacle is
-a prop catalog entry, not new code.
+round only if it is authored to. When a gun aims at an enemy or contact, it
+checks the trajectory for obstacles both before and after applying weapon spread.
+An explicit ground attack can target a body or wear down a blocker that the crew
+can see past and has enough rounds to destroy. Dragon's teeth are small heavy
+bodies that block vehicles. A new obstacle is a prop catalog entry.
 
 A weapon's mechanisms (guidance, seekers, decoys, clear-launch checks,
 interceptability, firing on its own) are opt-in flags that compose. A radar contact's source

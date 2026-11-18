@@ -1,7 +1,6 @@
-//! A gun holds fire only for what its round cannot break: when
-//! the first thing on its arc is a destroyable body it can see past, and the
-//! round does structural damage, it fires along that arc and wears the
-//! blocker down until the line is clear. Driven through real battles.
+//! Direct fire waits on a round-stopping body in the path to a unit. Explicit
+//! ground fire remains able to wear down a body it is aimed at. Driven through
+//! real battles.
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::ActionReason;
@@ -87,7 +86,7 @@ fn shell_the_house(b: &mut Battle) {
     assert_eq!(ack.error, None);
 }
 
-fn house_hp(b: &Battle, id: u32) -> Option<f64> {
+fn integrity(b: &Battle, id: u32) -> Option<f64> {
     b.structures().hp(b.world(), id)
 }
 
@@ -138,9 +137,9 @@ fn a_tank_shells_a_house_through_the_sandbags_in_front_of_it() {
             && p.footprint().contains(v2(sandbags[0], sandbags[1]), 0.1)),
         "the sandbags left rubble"
     );
-    let hp = house_hp(&b, 0).expect("the house stands");
+    let hp = integrity(&b, 0).expect("the house stands");
     assert!(
-        until(&mut b, 60, |b| house_hp(b, 0).is_none_or(|now| now < hp)),
+        until(&mut b, 60, |b| integrity(b, 0).is_none_or(|now| now < hp)),
         "the house is shelled once the line is clear: {:?}",
         reasons(&b)
     );
@@ -339,36 +338,90 @@ fn a_tank_never_fires_through_a_house_at_ground_beyond_it() {
         queued: false,
     });
     assert_eq!(ack.error, None);
-    let hp_before = house_hp(&b, 0);
+    let hp_before = integrity(&b, 0);
     let fired = until(&mut b, 60, |b| b.rounds().any(|(_, r)| r.unit == UnitId(0)));
     assert!(!fired);
     assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
     assert_eq!(
-        house_hp(&b, 0),
+        integrity(&b, 0),
         hp_before,
         "holding fire leaves integrity unchanged"
     );
 }
 
 #[test]
-fn a_tank_firing_at_will_shoots_through_sandbags_at_the_squad_behind_them() {
-    // Automatic engagement follows the same rule: a chest-high run of
-    // sandbags stands 3 m in front of a red squad, on the tank's line to it.
+fn an_attack_moving_tank_waits_for_a_clear_lane_past_a_breakable_body() {
+    // Blue can identify red over a non-occluding body, but no gun can
+    // reach red until blue moves around its end.
     let map = map(
         json!([]),
-        json!([prop("sandbags", [357.0, 300.0], [0.4, 8.0, 0.75])]),
+        json!([prop("sandbags", [230.0, 300.0], [0.4, 25.0, 2.0])]),
         json!([]),
     );
     let units = json!([
         tank(),
-        { "side": "red", "kind": "test_rifle", "position": [360, 300], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": [360, 300], "yaw": 0,
+            "engagement": "return_fire_only" },
     ]);
     let mut b = Battle::new(&common::scenario(&map, units, json!([])), 1);
+    let full_integrity = integrity(&b, 0);
+    b.step();
     assert!(
-        until(&mut b, 90, |b| b.world().prop(0).is_none()),
-        "the sandbags stand: {:?}",
-        reasons(&b)
+        !b.observe(Side::Blue).identified.is_empty(),
+        "blue sees red"
     );
+    let blue_round = |b: &Battle| b.rounds().any(|(_, r)| r.unit == UnitId(0));
+    assert!(!until(&mut b, 5, blue_round), "blue fires into the blocker");
+    assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
+
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        order: Order::AttackMove {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 410.0],
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    assert!(
+        until(&mut b, 30, blue_round),
+        "blue never fires past the end"
+    );
+    assert!(b.unit(UnitId(0)).unwrap().position.y > 345.0);
+    assert_eq!(integrity(&b, 0), full_integrity);
+}
+
+#[test]
+fn a_wall_just_short_of_the_aim_point_blocks_the_round() {
+    use sim::flight::{solve_launch_past, Aim, NoSolution};
+    use sim::math::{v3, V3};
+
+    let world = common::flat(
+        [400.0, 200.0],
+        r#", "props": [{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.05,5,2]}]"#,
+    );
+    let aim = Aim {
+        origin: v3(100.0, 100.0, 1.4),
+        target: v3(200.35, 100.0, 1.4),
+        target_velocity: V3::default(),
+        carrier: V3::default(),
+    };
+    assert!(matches!(
+        solve_launch_past(
+            &world,
+            &common::config(),
+            &common::profile("rifle"),
+            &aim,
+            None
+        ),
+        Err(NoSolution::Blocked {
+            by: sim::world::Collider::Prop(0),
+            ..
+        })
+    ));
 }
 
 /// A blue unit of `kind` 30 m west of `props` ordered to fire at the
@@ -530,9 +583,10 @@ fn a_soldier_fires_back_past_the_trunk_he_takes_cover_behind() {
 }
 
 #[test]
-fn enemy_fire_still_strikes_and_wears_the_trunks() {
+fn enemy_fire_holds_for_trunks_in_their_line() {
     let t = firefight_from_trunks(30);
-    assert!(t.enemy_struck > 0, "{t:?}");
+    assert_eq!(t.enemy_struck, 0, "{t:?}");
+    assert!(t.red_hurt, "clear lanes still reach red: {t:?}");
 }
 
 #[test]

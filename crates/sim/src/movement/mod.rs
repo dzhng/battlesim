@@ -659,6 +659,7 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
         take_cover::halt(ctx, unit);
     }
     unit.progress.1 = ctx.tick;
+    unit.stalls = (unit.position.xy(), ctx.tick);
     unit.state = held;
     false
 }
