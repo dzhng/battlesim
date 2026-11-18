@@ -12,9 +12,10 @@ Trigger:
 Response:
 - If the side owns no flying supplier, it buys one. If it owns one in reserve,
   it sends that one.
-- The heli flies to the group's far side: half the supply radius from the
-  group's centroid, away from the centroid of the side's known enemy tracks, or
-  toward its own entry if none are known. Slice 04's search picks the spot.
+- The heli flies to the far side of the unit in need: half the supply radius
+  from it, away from the centroid of the enemies the side sees, or toward its
+  own entry if none are seen. Slice 04's search picks the spot. A far side
+  refused or off the map sends it home.
 - It serves. When the group no longer triggers, it returns to the truck's
   support spot, where it deploys as a reserve.
 - Engaged on the way in, it carries on.
@@ -23,7 +24,7 @@ Response:
 **Seam.**
 - One module, for example `crates/sim/src/skirmish_ai/airlift.rs`. Its pure
   functions: `emergency(frame, rules, tuning) -> Option<Need>`,
-  `far_side(group, known_enemies, entry, radius) -> point`, and the mission's
+  `far_side(recipient, known_enemies, entry, radius) -> point`, and the mission's
   small state (idle, inbound, serving, returning).
 - `purchase.rs` calls it before the role loop. `mod.rs` issues its orders after
   the support loop.

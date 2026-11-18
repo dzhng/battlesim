@@ -37,9 +37,6 @@ const HOVER_MPS: f64 = 1.0;
 /// How far the low hover clears the tallest ground hull, and anything else
 /// under the airframe while it holds there (D27).
 const LOW_HOVER_CLEARANCE_M: f64 = 2.0;
-/// Pad the prop lookup so a broad footprint whose centre lies beyond the disc is visited.
-const PROP_SEARCH_PADDING_M: f64 = 8.0;
-
 /// Fly unit `i` one tick.
 pub(super) fn step_aircraft(
     ctx: &MovementContext,
@@ -77,10 +74,7 @@ pub(super) fn step_aircraft(
         return;
     }
     let landing = deployment::drop_progress(unit);
-    let packed_deployer = unit
-        .deployment
-        .as_ref()
-        .is_some_and(|d| d.lands() && d.current == 0 && unit.movement_goal().is_some());
+    let packed_deployer = packed_deployer(unit);
     let low_target = packed_deployer.then(|| {
         height_target(
             ctx.world,
@@ -223,6 +217,14 @@ pub(super) fn step_aircraft(
     }
 }
 
+fn packed_deployer(unit: &Unit) -> bool {
+    unit.deployment.as_ref().is_some_and(|d| {
+        d.lands()
+            && d.current == 0
+            && (unit.movement_goal().is_some() || unit.landing_goal.is_some())
+    })
+}
+
 /// Pick or refresh the internal landing point for a deployable rotor aircraft.
 /// Returns true while no point is available, so the aircraft holds packed aloft.
 fn prepare_landing(world: &WorldGeometry, rules: &Rules, units: &mut [Unit], index: usize) -> bool {
@@ -278,7 +280,7 @@ fn spot_blocked(
     let disc = |hull: &crate::math::Obb2| hull.distance(at) <= radius;
     if world.forest_near(at, radius)
         || world.surface_at(at.x, at.y).is_none_or(|s| !s.traversable)
-        || world.any_prop_near(at, radius + PROP_SEARCH_PADDING_M, |p| {
+        || world.any_prop_near(at, radius, |p| {
             p.blocks(MoverClass::Vehicle) && disc(&p.footprint())
         })
     {

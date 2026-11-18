@@ -487,6 +487,112 @@ fn a_landed_heli_neither_drifts_nor_pushes_other_aircraft() {
 }
 
 #[test]
+fn a_landing_heli_reaches_its_checked_spot_beside_a_hovering_neighbour() {
+    let mut map = open_map();
+    map["props"] = json!([{
+        "kind":"crate", "center":[200,200], "yaw":0,
+        "half_extents":[8,8,1]
+    }]);
+    let mut b = battle_with(
+        &fixture(),
+        map,
+        json!([
+            {"side":"blue","kind":"test_supply_heli","position":[200,200]},
+            {"side":"blue","kind":"test_heli","position":[205,200]}
+        ]),
+    );
+    let mut goal = None;
+    for _ in 0..20 * b.rules().tick_hz {
+        b.step();
+        goal = b.unit(HELI).unwrap().landing_goal;
+        if b.unit(HELI).unwrap().landed() {
+            break;
+        }
+    }
+    let heli = b.unit(HELI).unwrap();
+    let goal = goal.expect("the landing search checks a spot");
+    assert!(
+        heli.landed(),
+        "heli never lands beside the neighbour: {heli:?}"
+    );
+    assert!((heli.position.xy() - goal).length() <= 0.05);
+}
+
+#[test]
+fn a_packing_heli_holds_its_landing_hop_until_low_hover_over_a_vehicle() {
+    let mut rules = fixture();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply_heli",
+        json!({"capabilities":{"deploy":{"pack_seconds":0.1}},"mobility":{"air":{"climb_mps":1}}}),
+    );
+    let mut b = battle_with(
+        &rules,
+        open_map(),
+        units(json!([
+            {"side":"blue","kind":"test_jeep","position":[190,200]}
+        ])),
+    );
+    let low_hover = b
+        .rules()
+        .catalog
+        .indices()
+        .map(|i| b.rules().catalog.get(i))
+        .filter(|t| {
+            t.mobility.layer() == contract::catalog::AltitudeLayer::Ground || t.landing().is_some()
+        })
+        .filter_map(|t| t.hull())
+        .map(|h| 2.0 * h.half_extents_m[2])
+        .fold(0.0, f64::max)
+        + 2.0;
+    for _ in 0..35 {
+        b.step();
+    }
+    assert!(b.unit(HELI).unwrap().deployment.as_ref().unwrap().current > 0);
+    assert!(!b.unit(HELI).unwrap().landed());
+    assert_eq!(b.accept(order(&[1], [200.0, 200.0])).error, None);
+    let mut reversed = false;
+    let mut held_below_hover = false;
+    let mut hopped = false;
+    for _ in 0..20 * b.rules().tick_hz {
+        let before = b.unit(HELI).unwrap().clone();
+        b.step();
+        let heli = b.unit(HELI).unwrap();
+        let progress = heli.deployment.as_ref().unwrap().current;
+        if progress < before.deployment.as_ref().unwrap().current {
+            reversed = true;
+            assert!(
+                !heli.landed(),
+                "the vehicle interrupts the drop before touchdown"
+            );
+        }
+        if reversed && progress == 0 && heli.landing_goal.is_some() {
+            if before.position.z < low_hover - 1e-6 {
+                assert_eq!(
+                    heli.position.xy(),
+                    before.position.xy(),
+                    "the landing hop moved below low hover"
+                );
+                held_below_hover = true;
+            } else if heli.position.xy() != before.position.xy() {
+                hopped = true;
+                break;
+            }
+        }
+    }
+    assert!(
+        reversed,
+        "the vehicle under the descending heli makes it pack"
+    );
+    assert!(
+        held_below_hover,
+        "the packed heli must climb before its hop"
+    );
+    assert!(hopped, "the landing hop starts after reaching low hover");
+}
+
+#[test]
 fn the_low_hover_clears_a_landed_heli() {
     let mut b = battle(json!([
         json!({"side":"blue","kind":"test_heli","position":[205,200],"condition":{"hp":1},"engagement":"return_fire_only"})

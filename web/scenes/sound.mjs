@@ -281,7 +281,7 @@ export async function run(ctx) {
   await auditionTour(ctx, page);
 }
 
-/** Hear the supply and transport through the same calibrated offline graph. */
+/** Hear the supply helicopter through the calibrated offline graph. */
 async function rotorTour(ctx, page) {
   const report = await page.evaluate(
     async ({ url, supplyClass }) => {
@@ -334,11 +334,6 @@ async function rotorTour(ctx, page) {
   ctx.check(
     "rotor loudness rises with its speed",
     report.half > report.stopped && report.flying > report.half,
-    JSON.stringify(report),
-  );
-  ctx.check(
-    "a flying supply helicopter is audible relative to its stopped rotor",
-    report.flying > report.stopped,
     JSON.stringify(report),
   );
 }

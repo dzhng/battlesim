@@ -186,7 +186,7 @@ export interface OrderView {
    *  ground: its attack line runs there from the airframe, the one mark of
    *  its attack (none on the ground). Absent for every other unit. */
   attackAim?: readonly [number, number, number];
-  /** Currently in the air, from the published landing latch, not just its type. */
+  /** Currently in the air, from the published grounded state and type. */
   airborne?: boolean;
   /** How high its ghost stands over where its orders end while one shows
    *  (an aircraft's cruise height, Space held): a drop line joins the ghost

@@ -30,12 +30,15 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
 
 ## Provisional
 
+- **After a refused far side the heli goes home, and if the need lasts it is sent again.** It may shuttle between its post and the same refused spot until the group recovers or a truck reaches it. Simple and visible; revisit if it reads badly in play.
+
 4. **The blur-to-blades switch is at rotor speed 0.2.** It was picked from a
    still strip of a slowing rotor. Judge it in motion. Rust and TS deliberately
    mirror the threshold; the existing draw guard stays. *(`units::rotor::BLUR_CROSSOVER`, mirrored in `scene-assets/articulation.ts`)*
-5. **A hovering heli with nowhere to land searches again every tick.** Each
-   search is bounded (40 m at 1 m steps), which is fine for a few helis. Revisit
-   if a battle ever fields many stuck at once.
+5. **A hovering heli with nowhere to land searches again every tick.** An
+   inbound mission returns to its support post when its far-side goal is
+   refused or unroutable. Each search is bounded (40 m at 1 m steps), which is
+   fine for a few helis. Revisit if a battle ever fields many stuck at once.
 6. **The rotor's shadow appears only once the blades draw as solid
    geometry.** Up close the thin blades' shadow breaks into soft blobs, the
    same as the Armory's parked helicopters. At normal zoom it reads as a plain
@@ -65,7 +68,8 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
     Candidates must also have a direct leg clear of physical air-blocking
     footprints. Air navigation owns that check, permits leaving an obstructed
     start, and excludes routing padding.
-    A refused landing still follows normal flight height and facing.
+    A refused landing still follows normal flight height and facing. A packed
+    hop holds at the low hover before translating sideways.
 14. **The new state is folded into the digest only while it exists** (the
     landed flag, the drop height, the landing goal). Units that never land
     keep their digests.
@@ -81,14 +85,16 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
     loading-height test uses "airborne". *(`Unit::flies`, `Unit::airborne`)*
 18. **Enemy memory updates what a unit is at every sighting**, and the replay
     digest includes it. A last-seen contact keeps the layer it was last seen in.
-19. **Enemies get set-up progress, its direction, and "standing on the
-    ground".** Direction serves the visible setup state; grounded distinguishes
-    the latched ground pose from a descent at the same progress. Own and
-    identified rows share deployment encoding and decoding.
+19. **Enemies get set-up progress, its target, and "standing on the ground".**
+    Target remains in the shared publication codec; grounded distinguishes the
+    grounded pose from a descent at the same progress, and presentation reads
+    grounded, progress and timings for rotor speed. Own and identified rows
+    share deployment encoding and decoding.
 20. **One eased progress curve drives grounded rotor speed**, regardless of
-    deployment direction, so reversing mid-wind-down is continuous. Airborne
-    rotors run at full speed. Drawing and sound read the same result, and both
-    identify rotor aircraft through the presentation type's rotor predicate.
+    deployment direction, so reversals are continuous. Airborne rotors run at
+    full speed. Drawing and sound read the same result; the presentation feed
+    carries grounded state and progress, while deployment target remains only
+    on the wire publication.
     *(`units::rotor::rotor_speed`)*
 21. **Articulation carries `rotor_speed`, a number from 0 to 1**, in Rust, the TS mirror and the pose capture. The effect style
     named `rotor_blur` is a separate thing and kept its name.
@@ -110,11 +116,12 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
     An emergency suppresses shopping only when a flyer is sent, bought, or
     pending. Inbound retains the original need and returns if that recipient
     disappears or the group no longer needs airlift; absent flyers without a
-    reservation release the mission. Returning finishes on
-    arrival within reach or a refused landing, without waiting for setup. The
-    outbound goal follows the current group positions rather than a stored
-    destination; a serving flyer relocates when its needy recipient leaves
-    service range.
+    reservation release the mission. Returning finishes on arrival within
+    reach of its support post, without waiting for setup; a refused landing
+    elsewhere keeps it flying home. The
+    outbound goal follows the needy unit's current position rather than a stored
+    destination; the far-side point is relative to the needy unit, and a
+    serving flyer relocates when its needy recipient leaves service range.
     *(`skirmish_ai/airlift.rs`)*
 27. **The tuning is data**: ammo share 0.5, health share 0.5, reach 30 s.
     *(`fixtures/skirmish-ai.json`)*

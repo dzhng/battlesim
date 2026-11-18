@@ -1,5 +1,5 @@
 //! An identified enemy's fixed publication row: its observed identity, pose,
-//! visible setup posture, landing latch and building limbs.
+//! visible setup posture, grounded state and building limbs.
 use contract::observation::IdentifiedUnit;
 
 use super::cells::limbs_or_absent;

@@ -42,8 +42,6 @@ pub struct FeedUnit {
     pub soldiers: Vec<FeedSoldier>,
     pub mounts: Vec<FeedMount>,
     pub deployment: Option<f64>,
-    /// Published target: deployed or packed; none without deployment.
-    pub deployment_target: Option<Arc<str>>,
     /// The squad is pinned, by the published tier (false where the side cannot know).
     pub pinned: bool,
     /// The squad is in a fight this moment: its own sensors see an enemy, or

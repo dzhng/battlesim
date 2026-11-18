@@ -15,7 +15,6 @@ fn a_landing_rotor_slows_from_touchdown_and_stands_still_once_set_up() {
         heli.kind = "test_supply_heli".into();
         heli.grounded = grounded;
         heli.deployment = Some(progress);
-        heli.deployment_target = Some("deployed".into());
         driver
             .update(&frame(time, vec![heli], &none), &units, None)
             .vehicles[0]
@@ -78,7 +77,6 @@ fn packing(first_seen_grounded: bool) {
         time += 1.0;
     }
     heli.grounded = true;
-    heli.deployment_target = Some("packed".into());
     let mut poses = Vec::new();
     for progress in [1.0, 0.75, 0.5, 0.25] {
         heli.deployment = Some(progress);
@@ -175,7 +173,6 @@ fn an_ungrounded_rotor_is_full_while_its_last_packing_progress_blends_out() {
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut heli = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
     heli.kind = "test_supply_heli".into();
-    heli.deployment_target = Some("packed".into());
     heli.deployment = Some(0.0);
     let full = driver
         .update(&frame(0.0, vec![heli.clone()], &none), &units, None)
@@ -190,7 +187,7 @@ fn an_ungrounded_rotor_is_full_while_its_last_packing_progress_blends_out() {
         .articulation
         .rotor_speed;
     assert!(packing < full);
-    // The latest landing latch has cleared; progress still blends from the prior tick.
+    // The latest grounded state has cleared; progress still blends from the prior tick.
     heli.grounded = false;
     heli.deployment = Some(0.1);
     let lifted = driver
@@ -199,38 +196,4 @@ fn an_ungrounded_rotor_is_full_while_its_last_packing_progress_blends_out() {
         .clone();
     assert!(lifted.airborne);
     assert_eq!(lifted.articulation.rotor_speed, full);
-}
-
-#[test]
-fn reversing_a_grounded_rotor_preserves_its_speed_at_every_progress() {
-    let units = landing_units();
-    let none = fallen(&[]);
-    let mut driver = PoseDriver::new(&units).unwrap();
-    let mut heli = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
-    heli.kind = "test_supply_heli".into();
-    heli.grounded = true;
-    for step in 0..=1000 {
-        heli.deployment = Some(f64::from(step) / 1000.0);
-        heli.deployment_target = Some("deployed".into());
-        let before = driver
-            .update(
-                &frame(f64::from(step), vec![heli.clone()], &none),
-                &units,
-                None,
-            )
-            .vehicles[0]
-            .articulation
-            .rotor_speed;
-        heli.deployment_target = Some("packed".into());
-        let after = driver
-            .update(
-                &frame(f64::from(step), vec![heli.clone()], &none),
-                &units,
-                None,
-            )
-            .vehicles[0]
-            .articulation
-            .rotor_speed;
-        assert_eq!(after, before, "reversal at progress {:?}", heli.deployment);
-    }
 }

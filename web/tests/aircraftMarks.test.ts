@@ -32,7 +32,7 @@ const marks = (kind: keyof typeof KINDS, grounded = false) => {
 };
 
 test("touchdown gives a selected rotor aircraft one ground-vehicle marker and no drop line", () => {
-  // Keep its published position above the surface: the landing latch, not
+  // Keep its published position above the surface: the grounded state, not
   // a height guess, must remove the line.
   const unit = { ...orderView({ position: [0, 0, 2], reveal: 0 }), id: 1, kind: "rotor_low" };
   const draw = (grounded: boolean, catalog = units, selected = [1]) =>

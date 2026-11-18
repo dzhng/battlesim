@@ -20,12 +20,13 @@ impl Battle {
         let t = self.rules.catalog.get(kind);
         let from = v2(from[0], from[1]);
         let goal = v2(destination[0], destination[1]);
-        let mobility = match units::motion(t, &self.rules) {
-            units::Motion::Ground => {
-                units::ground_mobility(self.rules.catalog.get(kind), &self.rules)
-                    .expect("ground motion")
-            }
-            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
+        let mobility = if let Some(mobility) = units::ground_mobility(t, &self.rules) {
+            mobility
+        } else {
+            let units::Motion::Air(f) = units::motion(t, &self.rules) else {
+                unreachable!("an admitted entry unit moves on the ground or in the air")
+            };
+            return Some((goal - from).length() / f.cruise_mps);
         };
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
@@ -55,13 +56,14 @@ impl Battle {
     /// A time [`Self::entry_route_time`] cannot beat, without a search.
     fn least_entry_time(&self, kind: TypeIndex, from: [f64; 2], destination: [f64; 2]) -> f64 {
         let (from, goal) = (v2(from[0], from[1]), v2(destination[0], destination[1]));
-        match units::motion(self.rules.catalog.get(kind), &self.rules) {
-            units::Motion::Ground => {
-                units::ground_mobility(self.rules.catalog.get(kind), &self.rules)
-                    .expect("ground motion")
-                    .least_route_time(from, goal)
-            }
-            units::Motion::Air(f) => (goal - from).length() / f.cruise_mps,
+        if let Some(mobility) = units::ground_mobility(self.rules.catalog.get(kind), &self.rules) {
+            mobility.least_route_time(from, goal)
+        } else {
+            let units::Motion::Air(f) = units::motion(self.rules.catalog.get(kind), &self.rules)
+            else {
+                unreachable!("an admitted entry unit moves on the ground or in the air")
+            };
+            (goal - from).length() / f.cruise_mps
         }
     }
 

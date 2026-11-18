@@ -38,10 +38,9 @@ pub struct Capabilities {
 }
 
 impl super::UnitType {
-    /// What makes this set of abilities inadmissible for a type that moves by
-    /// `mobility`: supply serves only once set up, and an aircraft sets up by
-    /// landing, so it authors a drop shorter than its set-up and the rotor
-    /// radius its landing spot must clear; nothing that drives authors a drop.
+    /// What makes these abilities inadmissible: supply serves only once set
+    /// up, and a landing aircraft needs a shorter drop and a rotor radius for
+    /// its clear spot; ground movers do not author a drop.
     pub(super) fn capability_problem(&self) -> Option<&'static str> {
         let capabilities = &self.capabilities;
         let mobility = &self.mobility;

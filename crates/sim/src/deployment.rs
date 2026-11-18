@@ -159,12 +159,13 @@ pub fn landed(unit: &Unit) -> bool {
     unit.deployment.as_ref().is_some_and(|d| d.landed)
 }
 
-/// A deploying or landed rotor does not participate in air separation.
+/// A deploying rotor, or one holding a checked landing spot, does not
+/// participate in air separation while it settles onto that spot.
 pub fn separation_exempt(unit: &Unit) -> bool {
     let Some(d) = unit.deployment.as_ref() else {
         return false;
     };
-    d.lands() && d.current > 0
+    d.lands() && (d.current > 0 || unit.landing_goal.is_some())
 }
 
 /// What the owning side sees of a unit's deployment.

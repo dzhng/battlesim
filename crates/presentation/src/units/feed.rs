@@ -27,7 +27,6 @@ struct Published<'a> {
     active: &'a [Option<f64>],
     leans: &'a [Option<MemberLean>],
     poses: &'a [WeaponPose],
-    deployment_target: Option<Arc<str>>,
 }
 
 /// What a side knows of its own squad's state and never of an enemy's.
@@ -140,7 +139,6 @@ impl ObservationFeed {
                 active: &u.member_active_mounts,
                 leans: &u.member_leans,
                 poses: &u.weapon_poses,
-                deployment_target: u.deployment.as_ref().map(|d| d.target.clone()),
             };
             let own = OwnState {
                 pinned: &*u.suppression == "pinned",
@@ -159,7 +157,6 @@ impl ObservationFeed {
                 active: &e.member_active_mounts,
                 leans: &e.member_leans,
                 poses: &e.weapon_poses,
-                deployment_target: e.deployment.as_ref().map(|d| d.target.clone()),
             };
             self.unit(slot(&mut list, n), pose, &e.kind, None, &published);
             n += 1;
@@ -185,7 +182,6 @@ impl ObservationFeed {
             }
             unit.deployment = None;
             unit.grounded = false;
-            unit.deployment_target = None;
             unit.pinned = false;
             unit.engaged = false;
             unit.attitude = Some((c.pitch, c.roll));
@@ -216,7 +212,6 @@ impl ObservationFeed {
         out.yaw = pose.yaw;
         out.deployment = pose.deployment;
         out.grounded = pose.grounded;
-        out.deployment_target = published.deployment_target.clone();
         let known = own.unwrap_or_default();
         out.pinned = known.pinned;
         out.engaged = known.engaged;

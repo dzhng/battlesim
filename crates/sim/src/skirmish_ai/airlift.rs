@@ -1,8 +1,8 @@
 //! Emergency supply-helicopter planning for the skirmish doctrine.
 //!
 //! The battle still owns landing, service and movement.  This module only
-//! decides when a combat group needs help, where its far side is, and which
-//! ordinary orders keep one flying supplier on that mission.
+//! decides when a combat group needs help, where its needy unit's far side
+//! is, and which ordinary orders keep one flying supplier on that mission.
 
 use contract::catalog::TypeIndex;
 use contract::command::{MoveDirection, Order, RoutePolicy};
@@ -21,7 +21,6 @@ use std::collections::BTreeSet;
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Group {
     pub units: Vec<UnitId>,
-    pub centroid: [f64; 2],
 }
 
 /// The group and first unit that caused an emergency.
@@ -64,30 +63,15 @@ pub(super) fn groups(
             units.dedup();
             detached.extend(units.iter().copied());
             if !units.is_empty() {
-                groups.push(Group {
-                    centroid: group_centroid(frame, &units),
-                    units,
-                });
+                groups.push(Group { units });
             }
         }
     }
     let main: Vec<_> = all.difference(&detached).copied().collect();
     if !main.is_empty() {
-        groups.push(Group {
-            centroid: group_centroid(frame, &main),
-            units: main,
-        });
+        groups.push(Group { units: main });
     }
     groups
-}
-
-fn group_centroid(frame: &ObservationFrame, ids: &[UnitId]) -> [f64; 2] {
-    let points: Vec<_> = ids
-        .iter()
-        .filter_map(|id| frame.own.iter().find(|u| u.id == *id))
-        .map(|u| [u.position[0], u.position[1]])
-        .collect();
-    centroid(&points).expect("a combat group is nonempty")
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -203,15 +187,15 @@ pub(super) fn emergency(
     })
 }
 
-/// A point half a supplier's radius from the group, on the side away from
-/// known enemies. With no enemy tracks, the side's entry gives the bearing.
+/// A point half a supplier's radius from the needy unit, on the side away
+/// from known enemies. With no enemy tracks, the side's entry gives the
+/// bearing.
 pub(super) fn far_side(
-    group: &Group,
+    centre: [f64; 2],
     known_enemies: &[[f64; 2]],
     entry: [f64; 2],
     radius: f64,
 ) -> [f64; 2] {
-    let centre = group.centroid;
     let away = if let Some(enemy) = centroid(known_enemies) {
         [centre[0] - enemy[0], centre[1] - enemy[1]]
     } else {
@@ -251,7 +235,7 @@ fn centroid(points: &[[f64; 2]]) -> Option<[f64; 2]> {
 
 /// Answer `need`: send the flying supplier the side keeps in reserve, wait
 /// for one already bought, or buy the cheapest it can afford, and start the
-/// mission toward the group's far side. The purchase, if one is made.
+/// mission toward the needy unit's far side. The purchase, if one is made.
 pub(super) fn respond(
     mission: &mut Mission,
     need: Need,
@@ -319,7 +303,7 @@ pub(super) fn orders(
     loop {
         match mission.clone() {
             Mission::Idle => {}
-            Mission::Inbound { heli, mut need } => {
+            Mission::Inbound { heli, need } => {
                 let heli = heli.or_else(|| {
                     frame
                         .own
@@ -369,44 +353,58 @@ pub(super) fn orders(
                     };
                     continue;
                 }
-                need.group.centroid = group_centroid(frame, &need.group.units);
                 let enemies: Vec<_> = frame
                     .identified
                     .iter()
                     .map(|u| [u.position[0], u.position[1]])
                     .collect();
-                let goal = far_side(&need.group, &enemies, entry, rules.service.radius_m);
+                let recipient = frame.own.iter().find(|u| u.id == need.unit).unwrap();
+                let recipient_position = [recipient.position[0], recipient.position[1]];
+                let far_goal =
+                    far_side(recipient_position, &enemies, entry, rules.service.radius_m);
+                let position = [unit.position[0], unit.position[1]];
+                let far_route = route_time(unit.id, far_goal);
+                let refused_far_side = unit.state
+                    == contract::observation::MoveState::NoLandingSpot
+                    && distance(position, far_goal) <= arrived_within(rules);
+                if refused_far_side || far_route.is_none() {
+                    let post = support::support_point(
+                        &frame.own.iter().collect::<Vec<_>>(),
+                        rules,
+                        entry,
+                        tuning,
+                    );
+                    *mission = Mission::Returning {
+                        heli: heli_id,
+                        post,
+                    };
+                    continue;
+                }
                 *mission = Mission::Inbound {
                     heli: Some(heli_id),
                     need: need.clone(),
                 };
+                let goal = far_goal;
                 let stale_goal = unit
                     .goal
                     .is_some_and(|old| distance(old, goal) > ARRIVAL_SLACK_M);
-                let recipient = frame.own.iter().find(|u| u.id == need.unit).unwrap();
-                let out_of_service = distance(
-                    [unit.position[0], unit.position[1]],
-                    [recipient.position[0], recipient.position[1]],
-                ) > rules.service.radius_m;
+                let out_of_service =
+                    distance(position, recipient_position) > rules.service.radius_m;
                 if stale_goal
                     || (unit.goal.is_none()
-                        && (out_of_service
-                            || distance([unit.position[0], unit.position[1]], goal)
-                                > arrived_within(rules)))
+                        && (out_of_service || distance(position, goal) > arrived_within(rules)))
                 {
-                    if route_time(unit.id, goal).is_some() {
-                        orders.push(Order::Move {
-                            units: vec![unit.id],
-                            gesture: frame.tick,
-                            goal,
-                            route: RoutePolicy::Fastest,
-                            direction: MoveDirection::Forward,
-                            facing: Some(libm::atan2(
-                                goal[1] - unit.position[1],
-                                goal[0] - unit.position[0],
-                            )),
-                        });
-                    }
+                    orders.push(Order::Move {
+                        units: vec![unit.id],
+                        gesture: frame.tick,
+                        goal,
+                        route: RoutePolicy::Fastest,
+                        direction: MoveDirection::Forward,
+                        facing: Some(libm::atan2(
+                            goal[1] - unit.position[1],
+                            goal[0] - unit.position[0],
+                        )),
+                    });
                 } else if unit.deployment.as_ref().is_some_and(|d| d.progress >= 1.0) {
                     *mission = Mission::Serving {
                         heli: heli_id,
@@ -452,9 +450,7 @@ pub(super) fn orders(
                     *mission = Mission::Idle;
                     return;
                 };
-                if unit.state == contract::observation::MoveState::NoLandingSpot
-                    || distance([unit.position[0], unit.position[1]], post) <= arrived_within(rules)
-                {
+                if distance([unit.position[0], unit.position[1]], post) <= arrived_within(rules) {
                     if unit.goal.is_some() {
                         orders.push(Order::Stop {
                             units: vec![unit.id],
@@ -489,23 +485,17 @@ mod tests {
 
     #[test]
     fn far_side_bears_away_from_enemy_centroid() {
-        let group = Group {
-            units: vec![UnitId(1), UnitId(2)],
-            centroid: [100.0, 100.0],
-        };
-        let point = far_side(&group, &[[0.0, 100.0], [20.0, 100.0]], [100.0, 0.0], 40.0);
-        assert!(point[0] > group.centroid[0]);
-        assert!((point[1] - group.centroid[1]).abs() < 1e-9);
+        let centre = [100.0, 100.0];
+        let point = far_side(centre, &[[0.0, 100.0], [20.0, 100.0]], [100.0, 0.0], 40.0);
+        assert!(point[0] > centre[0]);
+        assert!((point[1] - centre[1]).abs() < 1e-9);
     }
 
     #[test]
     fn far_side_points_toward_entry_without_known_enemies() {
-        let group = Group {
-            units: vec![UnitId(1)],
-            centroid: [100.0, 100.0],
-        };
-        let point = far_side(&group, &[], [100.0, 0.0], 40.0);
-        assert!(point[1] < group.centroid[1]);
-        assert!((point[0] - group.centroid[0]).abs() < 1e-9);
+        let centre = [100.0, 100.0];
+        let point = far_side(centre, &[], [100.0, 0.0], 40.0);
+        assert!(point[1] < centre[1]);
+        assert!((point[0] - centre[0]).abs() < 1e-9);
     }
 }

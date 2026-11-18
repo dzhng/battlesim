@@ -409,13 +409,136 @@ fn a_reserve_flyer_in_reach_still_answers_the_emergency() {
 }
 
 #[test]
+fn an_airlift_lands_in_service_range_of_the_needy_member_of_a_spread_group() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]},
+        {"side":"red","kind":"test_tank","position":[800,700]},
+        {"side":"red","kind":"test_heli","position":[500,100]}
+    ]));
+    frame.own[1].hp = 1.0;
+    active_credits(&mut frame, 1_000.0);
+    let heli = frame.own[2].id;
+    let needy = frame.own[1].id;
+    let mut ai = BalancedDoctrine::default();
+    let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
+        ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            frame,
+            &rules,
+            |_, _| Some(60.0),
+        )
+    };
+    let first = decide(&mut ai, &frame);
+    let goal = first
+        .iter()
+        .find_map(|o| match o {
+            Order::Move { units, goal, .. } if units.contains(&heli) => Some(*goal),
+            _ => None,
+        })
+        .expect("the emergency sends the flyer");
+    let recipient = frame.own.iter().find(|u| u.id == needy).unwrap();
+    let from_needy = distance(goal, [recipient.position[0], recipient.position[1]]);
+    assert!(
+        (from_needy - rules.service.radius_m * 0.5).abs() < 1e-9,
+        "landing goal {goal:?} is not half a service radius from the needy unit"
+    );
+
+    let flyer = frame.own.iter_mut().find(|u| u.id == heli).unwrap();
+    flyer.position = [goal[0], goal[1], 0.0];
+    flyer.goal = Some(goal);
+    flyer.grounded = true;
+    flyer.deployment.as_mut().unwrap().progress = 1.0;
+    frame.tick += 10 * u64::from(rules.tick_hz);
+    let serving = decide(&mut ai, &frame);
+    assert!(matches!(ai.airlift, airlift::Mission::Serving { .. }));
+    assert!(
+        !serving
+            .iter()
+            .any(|o| matches!(o, Order::Move { units, .. } if units.contains(&heli))),
+        "serving at the needy member reorders: {serving:?}"
+    );
+    let steady = decide(&mut ai, &frame);
+    assert!(
+        !steady
+            .iter()
+            .any(|o| matches!(o, Order::Move { units, .. } if units.contains(&heli))),
+        "a serving airlift keeps reordering: {steady:?}"
+    );
+}
+
+#[test]
+fn a_refused_or_unroutable_inbound_airlift_returns_home_without_a_goal() {
+    for refused in [true, false] {
+        let (rules, mut frame, entry) = emergency_match(json!([
+            {"side":"red","kind":"test_tank","position":[500,700]},
+            {"side":"red","kind":"test_heli","position":[500,100]}
+        ]));
+        frame.own[0].hp = 1.0;
+        let heli = frame.own[1].id;
+        active_credits(&mut frame, 1_000.0);
+        let mut ai = BalancedDoctrine::default();
+        let decide =
+            |ai: &mut BalancedDoctrine, frame: &ObservationFrame, blocked: Option<[f64; 2]>| {
+                ai.decide(
+                    DecisionInput {
+                        side: Side::Red,
+                        faction: Faction::Us,
+                        entry: &entry,
+                        assignment: None,
+                    },
+                    frame,
+                    &rules,
+                    |_, point| (Some(point) != blocked).then_some(60.0),
+                )
+            };
+        let first = decide(&mut ai, &frame, None);
+        let far_side = first
+            .iter()
+            .find_map(|o| match o {
+                Order::Move { units, goal, .. } if units.contains(&heli) => Some(*goal),
+                _ => None,
+            })
+            .expect("the emergency sends the flyer");
+        let flyer = frame.own.iter_mut().find(|u| u.id == heli).unwrap();
+        flyer.position[0] = far_side[0];
+        flyer.position[1] = far_side[1];
+        flyer.goal = None;
+        flyer.state = if refused {
+            contract::observation::MoveState::NoLandingSpot
+        } else {
+            contract::observation::MoveState::Idle
+        };
+        frame.tick += 10 * u64::from(rules.tick_hz);
+        let ended = decide(&mut ai, &frame, (!refused).then_some(far_side));
+        let airlift::Mission::Returning { post, .. } = ai.airlift else {
+            panic!(
+                "a refused or unroutable far side must return: {:?}",
+                ai.airlift
+            );
+        };
+        assert!(
+        ended
+            .iter()
+            .any(|o| matches!(o, Order::Move { units, goal, .. } if units.contains(&heli) && *goal == post)),
+        "a refused or unroutable far side returns home: {ended:?}"
+    );
+    }
+}
+
+#[test]
 fn an_unanswerable_emergency_keeps_ordinary_shopping_available() {
     for unavailable in ["no card", "no credits", "at cap"] {
         let mut authored = supply_flyer_deck();
-        let patch = if unavailable == "no card" {
-            json!({"roster":{"factions":["eastern"]}})
-        } else {
-            json!({"cost":2000})
+        let patch = match unavailable {
+            "no card" => json!({"roster":{"factions":["eastern"]}}),
+            "no credits" => json!({"cost":2000}),
+            "at cap" => json!({}),
+            _ => unreachable!(),
         };
         fixtures::patch_catalog(&mut authored, "units", "test_heli", patch);
         let (rules, mut frame, entry) = transport_tests::transport_match_on(
@@ -450,10 +573,8 @@ fn an_unanswerable_emergency_keeps_ordinary_shopping_available() {
         }
         let orders = decide(&frame);
         assert!(
-            orders
-                .iter()
-                .any(|o| matches!(o, Order::ConfirmPurchase {variant, ..}
-            if rules.catalog.by_id(variant).mobility.locomotion().is_some())),
+            orders.iter().any(|o| matches!(o, Order::ConfirmPurchase { variant, .. }
+                if unavailable == "at cap" || rules.catalog.by_id(variant).mobility.locomotion().is_some())),
             "{unavailable}: ordinary shopping must still buy: {orders:?}"
         );
     }
@@ -541,7 +662,7 @@ fn a_refused_flyer_purchase_does_not_block_the_next_emergency() {
 }
 
 #[test]
-fn a_returning_airlift_finishes_on_arrival_or_a_refused_landing() {
+fn a_returning_airlift_finishes_at_its_post_and_flies_on_past_a_refused_landing() {
     for blocked in [false, true] {
         let (rules, mut frame, entry) = emergency_match(json!([
             {"side":"red","kind":"test_heli","position":[500,100]}
@@ -559,7 +680,7 @@ fn a_returning_airlift_finishes_on_arrival_or_a_refused_landing() {
             airlift: airlift::Mission::Returning { heli, post },
             ..Default::default()
         };
-        ai.decide(
+        let orders = ai.decide(
             DecisionInput {
                 side: Side::Red,
                 faction: Faction::Us,
@@ -570,11 +691,24 @@ fn a_returning_airlift_finishes_on_arrival_or_a_refused_landing() {
             &rules,
             |_, _| Some(60.0),
         );
-        assert!(
-            matches!(ai.airlift, airlift::Mission::Idle),
-            "blocked={blocked}: {:?}",
-            ai.airlift
-        );
+        if blocked {
+            assert!(
+                matches!(ai.airlift, airlift::Mission::Returning { .. }),
+                "a refusal away from the post keeps the mission returning: {:?}",
+                ai.airlift
+            );
+            assert!(
+                orders.iter().any(|order| matches!(order,
+                    Order::Move { units, goal, .. } if units.contains(&heli) && *goal == post)),
+                "it keeps flying home: {orders:?}"
+            );
+        } else {
+            assert!(
+                matches!(ai.airlift, airlift::Mission::Idle),
+                "{:#?}",
+                ai.airlift
+            );
+        }
     }
 }
 
