@@ -22,7 +22,7 @@ What the photos settle:
 
 Each card's frame is the vehicle's
 published length, width and height (launcher stowed), recorded in its
-receipt as `references`. The launchers use fixed mounts and are drawn stowed.
+receipt as `references`. The launch packs rise from their travel rests.
 """
 import math
 import os
@@ -38,6 +38,7 @@ import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, prism  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -123,14 +124,14 @@ def himars(v, prsm):
     box("launcher_base", (1.60, 1.40, 0.22), (-0.60, 0, deck + 0.19), m["dark"], h, bevel=0.02)
     cyl("launcher_turntable", 0.75, 0.12, (-0.60, 0, deck + 0.36), "Z", m["dark"], h, seg=28)
     # The launcher-loader module over the rear deck, one pod in its box.
-    x0, x1 = -half + 0.08, 0.95
+    x0, x1 = -half + 0.08, 0.76
     launcher_box(v, "launcher", x0, x1, deck + 0.42, 3.06, 2.28, h)
     pod(v, "pod", (x0 + (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
         caps=2 if prsm else None)
     for side, s in ((1, "L"), (-1, "R")):
         SW.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-    SW.jerrycan("jerrycan", (0.55, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
+    SW.jerrycan("jerrycan", (0.96, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
     # Behind the cab: the air intake on its stalk and the exhaust stack.
     cyl("air_intake", 0.16, 0.90, (1.05, 0.90, deck + 1.05), "Z", m["paint"], h, seg=16, bevel=0.02)
     cyl("air_intake_cap", 0.20, 0.12, (1.05, 0.90, deck + 1.55), "Z", m["dark"], h, seg=16, lods=MID)
@@ -189,7 +190,7 @@ def bm21(v):
         box(f"tube_band_{k}", (0.06, cols * (2 * r + 0.012) + 0.06, rows * (2 * r + 0.012) + 0.06),
             (cx + x, 0, pack_z - x * math.sin(pitch)), m["dark"], h, rot=(0, pitch, 0), lods=MID)
     # The travel lock under the pack's front, and the firing cable reel.
-    box("travel_lock", (0.10, 0.70, 2.30 - rail - 0.10), (-0.55, 0, (2.30 + rail) / 2 - 0.05), m["dark"], h, lods=MID)
+    box("travel_lock", (0.10, 0.70, 2.16 - rail - 0.10), (-0.55, 0, (2.16 + rail) / 2 - 0.05), m["dark"], h, lods=MID)
     cyl("cable_reel", 0.16, 0.20, (-3.20, -0.70, rail + 0.35), "Y", m["dark"], h, seg=14, lods=NEAR)
 
 
@@ -215,7 +216,7 @@ def tornado_s(v):
     half = v.length / 2
     deck = maz_543m(v)
     box("deck_plate", (7.0, 2.6, 0.10), (-1.6, 0, deck + 0.05), m["paint"], h, bevel=0.01)
-    SW.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
+    SW.stowage_box("crane_box", (3.05, 0, deck), (0.70, 1.80, 0.65), m, h)
     for side, s in ((1, "L"), (-1, "R")):
         # Stowage along the deck's edges, the rear stabiliser jacks, a ladder.
         for k, x in enumerate((0.9, -0.4)):
@@ -229,9 +230,9 @@ def tornado_s(v):
                 lods=FINE)
     cyl("launcher_turntable", 0.85, 0.25, (-3.4, 0, deck + 0.20), "Z", m["dark"], h, seg=28)
     box("launcher_cradle", (1.8, 1.8, 0.25), (-3.6, 0, deck + 0.30), m["paint"], h, bevel=0.02)
-    cyl("elevating_ram", 0.10, 1.6, (-2.4, 0, deck + 0.45), "X", m["steel"], h, seg=12, lods=MID)
+    cyl("elevating_ram", 0.10, 1.6, (-2.4, 0, deck + 0.33), "X", m["steel"], h, seg=12, lods=MID)
     tube_len, rows, cols, r = 7.6, 3, 4, 0.20
-    cx, cz = -1.15, deck + 0.55
+    cx, cz = -1.15, deck + 0.70
     for j in range(rows):
         for i in range(cols):
             y = (i - (cols - 1) / 2) * (2 * r + 0.03)
@@ -268,6 +269,16 @@ def build(variant, v):
         bm21(v)
     else:
         tornado_s(v)
+
+    if ident in M270:
+        articulate_launcher(v, (-3.21, 0, 1.38), 35, ("gun_body_",), ("turret_body_",), mount="gun")
+    elif ident.startswith("us_m142"):
+        articulate_launcher(v, (0.55, 0, 1.85), -32, ("launcher_shell", "launcher_rib", "launcher_rear", "launcher_hoist", "launcher_boom", "launcher_cable", "pod_"), ("launcher_turntable",), mount="gun")
+    elif ident.startswith("eastern_bm_21"):
+        articulate_launcher(v, (-1.45, 0, 2.22), -24, ("grad_", "tube_"),
+                            ("cradle_plate_", "sector_gear_", "launcher_turntable", "elevating_ram"), mount="gun")
+    else:
+        articulate_launcher(v, (-3.4, 0, 2.25), 30, ("smerch_", "tube_band_"), (), mount="gun")
 
 
 def wreck(variant, v):

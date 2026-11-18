@@ -250,6 +250,12 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                     point_mount(unit, &mut mount, spec, r.point, turret_rate);
                 }
             }
+            if let Some(Ok(ready)) = &assessment {
+                mount.elevation = libm::atan2(
+                    ready.velocity.z,
+                    libm::hypot(ready.velocity.x, ready.velocity.y),
+                );
+            }
             plans.push(Some(MountPlan {
                 stationary,
                 idle_reason,

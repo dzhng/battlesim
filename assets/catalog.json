@@ -6004,6 +6004,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m142_himars/us_m142_himars_gmlrs.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "us_m142_himars_gmlrs_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6031,6 +6032,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "us_m142_himars_prsm_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6058,6 +6060,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "us_m270_mlrs_m270a2_wreck"
     },
     "us_m270_mlrs_m270a2_wreck": {
@@ -6082,6 +6085,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck"
     },
     "europe_mars_ii_multiple_launch_rocket_system_wreck": {
@@ -6106,6 +6110,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/caesar/europe_caesar_88.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "europe_caesar_88_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6214,6 +6219,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "eastern_bm_21_grad_bm_21_rocket_artillery_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6241,6 +6247,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery.glb",
       "basis_yaw_deg": 0,
+      "mounts": { "gun": "gun" },
       "wreck": "eastern_9k515_tornado_s_heavy_rocket_artillery_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6269,7 +6276,7 @@
       "source": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "eastern_buk_buk_m3_medium_range_air_defense_wreck"
     },
@@ -6293,7 +6300,7 @@
       "source": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "eastern_pantsir_pantsir_sm_wreck"
     },
@@ -6341,7 +6348,7 @@
       "source": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "europe_boxer_skyranger_30_gun_and_missile_air_defense_wreck"
     },
@@ -6392,7 +6399,7 @@
       "source": "assets/source/roster/nasams/europe_nasams_nasams_3.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "europe_nasams_nasams_3_wreck"
     },
@@ -6416,7 +6423,7 @@
       "source": "assets/source/roster/patriot/us_patriot_long.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "us_patriot_long_wreck"
     },
@@ -6440,7 +6447,7 @@
       "source": "assets/source/roster/nasams/us_nasams_medium.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "us_nasams_medium_wreck"
     },
@@ -6512,7 +6519,7 @@
       "source": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "launcher": "hull"
+        "launcher": "gun"
       },
       "wreck": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle_wreck"
     },

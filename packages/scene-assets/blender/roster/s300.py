@@ -40,6 +40,7 @@ import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, textured  # noqa: E402
 import rocket_artillery as RA  # noqa: E402
 from truck_chassis import on  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -215,6 +216,8 @@ def build(variant, v):
     enclosures(v, dx + cab_x, roof, deck)
     deck_fittings(v, dx, deck)
     launcher(v, deck)
+    articulate_launcher(v, (HINGE[0], 0, HINGE[1]), 90,
+                        ("container_", "erector_", "clamp_"), vertical=True)
 
 
 def wreck(variant, v):

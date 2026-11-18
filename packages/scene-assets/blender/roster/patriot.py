@@ -23,7 +23,7 @@ What the photos settle:
   rear corners; ladders folded up at the rear, warning panels and lamps on
   the rear bumper.
 
-The launcher is drawn stowed and does not articulate yet. The paint is the
+The launcher travels flat and elevates on deployment. The paint is the
 US Army's tan, as the roster's other US vehicles.
 """
 import math
@@ -40,6 +40,7 @@ import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from truck_chassis import chassis, on, spare_wheel  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -64,6 +65,8 @@ def build(variant, v):
     box("deck_plate", (5.9, 2.30, 0.10), (-2.00, 0, deck + 0.05), m["paint"], h, bevel=0.01)
     module(v, deck)
     launcher(v, deck)
+    cyl("slew_bearing", 0.6, 0.12, (-2.2, 0, deck + 0.15), "Z", m["dark"], h)
+    box("slew_carriage", (4.9, 0.82, 0.21), (-2.05, 0, deck + 0.32), m["paint"], h, bevel=0.02)
     for side, s in ((1, "L"), (-1, "R")):
         # Stabiliser jacks, raised: behind the cab and at the rear corners.
         for k, x in enumerate((2.70, -4.72)):
@@ -79,6 +82,9 @@ def build(variant, v):
             lods=MID)
         box(f"warning_stripe_{s}", (0.035, 0.08, 0.36), (-half + 0.078, side * 0.78, deck - 0.40), m["lamp"], h,
             rot=(0.7 * side, 0, 0), lods=NEAR)
+    articulate_launcher(v, (PACK_FRONT - 0.35, 0, PACK_FLOOR - 0.25), -38,
+                        ("launcher_beam", "canister_", "rear_frame", "front_frame", "side_brace", "lifting_eye", "pack_rail", "rear_ladder", "pack_cable", "cable_reel"),
+                        ("trunnion_", "elevating_ram", "ram_body", "slew_carriage"))
 
 
 def kat1_cab(v, x0, front, floor, top):
@@ -170,8 +176,8 @@ def launcher(v, deck):
     box("launcher_beam", (length - 0.40, 1.30, 0.30), (mid + 0.10, 0, PACK_FLOOR - 0.25), m["paint"], h,
         bevel=0.02)
     for side in (-1, 1):
-        box(f"trunnion_{side}", (0.50, 0.20, PACK_FLOOR - deck), (PACK_REAR + 0.85, side * 0.70,
-                                                                  (deck + PACK_FLOOR) / 2), m["dark"], h,
+        box(f"trunnion_{side}", (0.50, 0.20, PACK_FLOOR - deck - 0.1), (PACK_REAR + 0.85, side * 0.70,
+                                                                  (deck + PACK_FLOOR + 0.1) / 2), m["dark"], h,
             bevel=0.02)
         box(f"beam_rest_{side}", (0.30, 0.25, PACK_FLOOR - deck - 0.40), (PACK_FRONT - 0.70, side * 0.60,
                                                                           deck + (PACK_FLOOR - deck - 0.40) / 2),

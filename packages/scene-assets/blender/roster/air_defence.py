@@ -12,8 +12,7 @@ What the photos settle:
   (`assets/source/skins/buk/argon-r2/`): the GM-569 chassis with seven road
   wheels and the sprocket at the rear, no cab; the turret forward with the
   9S36M radar's "pillow" housing at its front and six canisters lying
-  behind it, the raised engine compartment at the rear. Its launcher is a
-  turning mount its model draws fixed on the hull.
+  behind it, the raised engine compartment at the rear. Its canister pack rises on the rotating module.
 - Pantsir-SM (Russian green): the KamAZ-6560 8x8's unarmoured cab-over with
   its tall windscreen; the combat module on the rear: the search radar's
   array on top, the tracking radar's flat array on its front, a twin 30 mm
@@ -23,8 +22,7 @@ What the photos settle:
   (`boxer.drive`), the turret with its 30 mm KCE gun, the four radar
   panels round its top and a missile launcher box on its side.
 
-The Gepard's guns ride the gun rig; the wheeled cards' turrets, guns and
-launchers are drawn stowed and do not articulate yet.
+The hull carries each slew ring, and the launcher hinges ride the rotating module.
 """
 import math
 import os
@@ -41,6 +39,7 @@ import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -81,7 +80,7 @@ def pantsir(v):
         box(f"jack_pad_{s}", (0.36, 0.36, 0.06), (-v.length / 2 + 0.55, side * 1.10, deck - 0.75), m["dark"], h,
             lods=MID)
     mx = -1.6
-    box("module_base", (2.0, 2.0, 0.40), (mx, 0, deck + 0.25), m["paint"], h, bevel=0.03)
+    box("module_base", (2.0, 2.0, 0.38), (mx, 0, deck + 0.25), m["paint"], h, bevel=0.03)
     cyl("module_ring", 1.0, 0.15, (mx, 0, deck + 0.52), "Z", m["dark"], h, seg=32)
     loft("module_body", [(deck + 0.60, [(mx + 0.90, -0.80), (mx - 1.00, -0.80), (mx - 1.00, 0.80), (mx + 0.90, 0.80)]),
                          (deck + 1.80, [(mx + 0.70, -0.70), (mx - 0.95, -0.70), (mx - 0.95, 0.70),
@@ -177,12 +176,21 @@ def build(variant, v):
         path, pitch = BODIES[variant["id"]]
         turret = rig(v.frame, v.root)["gun"][0] if variant["id"] == "europe_gepard_1a2" else None
         SB.wear(v, path, pitch)
-        if turret is not None:
+        if turret is None:
+            articulate_launcher(v, (0.7, 0, 2.35), -40, ("gun_body_",), ("turret_body_",))
+        else:
             # The whips on the turret roof's rear corners (turret frame).
             RF.whip_pair(turret, (-1.40, 0.75, 0.89), v.mats, height=2.0)
         return
     {"eastern_pantsir_pantsir_sm": pantsir,
      "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger}[variant["id"]](v)
+    if variant["id"] == "eastern_pantsir_pantsir_sm":
+        articulate_launcher(v, (-1.6, 0, 2.6), 22, ("missile_", "gun_", "muzzle_", "ammo_"),
+                            ("module_ring", "module_body", "module_hatch", "module_ladder", "search_radar", "tracking_radar", "eo_"))
+    else:
+        articulate_launcher(v, (-0.8, -1.0, boxer.ROOF + 0.5), 25, ("missile_",),
+                            ("turret_", "radar_panel_", "radar_frame_", "gun_", "kce_", "eo_", "smoke_1", "smoke_-1",
+                             "dressing_antenna_turret"))
 
 
 def wreck(variant, v):

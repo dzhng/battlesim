@@ -18,8 +18,7 @@ fire. What the photos settle:
 - Mudguards over the rear axle pairs, under the deck's edge.
 
 The hull is 3.32 m tall to the canisters' top. The US Army's is the same
-launcher and truck in its own tan. The launcher turns in the simulation but
-is drawn stowed on the hull.
+launcher and truck in its own tan. The canisters elevate on the turntable.
 """
 import importlib
 import math
@@ -34,6 +33,7 @@ import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty  # noqa: E402
 from truck_chassis import spare_wheel  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 hx = importlib.import_module("man-hx")
@@ -66,6 +66,8 @@ def build(variant, v):
     crane(v)
     launcher(v)
     underside(v)
+    articulate_launcher(v, (CAN_X - 1.35, 0, FLOOR + 0.65), 35,
+                        ("canister_", "launcher_arm"), ("turntable", "launcher_cradle", "slew_carriage"))
 
 
 def crane(v):
@@ -116,6 +118,7 @@ def launcher(v):
     box("deck_plate", (3.0, 2.0, 0.08), (TURNTABLE_X, 0, FLOOR + 0.04), m["paint"], h, bevel=0.01)
     cyl("turntable", 0.65, 0.22, (TURNTABLE_X, 0, FLOOR + 0.19), "Z", m["dark"], h, seg=28)
     box("launcher_cradle", (1.0, 1.4, 0.30), (TURNTABLE_X, 0, FLOOR + 0.44), m["paint"], h, bevel=0.03)
+    box("slew_carriage", (2.30, 0.90, 0.19), (-1.45, 0, FLOOR + 0.53), m["dark"], h, bevel=0.02)
     # The side arms that hold the pack, against the outer canisters' ribs.
     for side in (-1, 1):
         box(f"launcher_arm_{side}", (2.2, 0.08, 0.45), (CAN_X, side * (CAN_PITCH + 0.32 + 0.04), FLOOR + 1.06),

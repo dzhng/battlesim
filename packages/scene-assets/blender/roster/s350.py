@@ -16,7 +16,7 @@ What the photos settle (the export 50P6E at MAKS 2013, Russian green):
 - side outriggers stowed upright behind the housings, two rear outriggers
   under the tail.
 
-The box is drawn stowed and does not articulate yet: it raises about the
+The box rises about the
 hinge at the tail (the mount's pivot), mouths up.
 """
 import math
@@ -33,6 +33,7 @@ import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, textured  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
 from wreckage import remove  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -181,6 +182,8 @@ def _posts():
 def build(variant, v):
     deck = baz(v)
     launcher(v, deck)
+    articulate_launcher(v, (-4.9, 0, 1.85), 90, ("box_floor", "canister_", "rail_", "post_", "frame_post",
+                        "mouth_", "tail_", "top_"), vertical=True)
     whip = empty("dressing_antenna_cab_rear", parent=v.hull)
     RF.antenna("antenna_housing", (2.45, 1.05, 2.87), v.mats, whip, height=1.2)
 
