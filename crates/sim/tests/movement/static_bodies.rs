@@ -32,7 +32,8 @@ fn tracks_manoeuvre_past_a_post_without_room_for_the_whole_turn_at_once() {
         "units",
         "test_tank",
         serde_json::json!({
-            "body": { "hull": { "half_extents_m": [3.275, 1.8, 1.38], "push_class": "medium" } },
+            "body": { "hull": { "half_extents_m": [3.275, 1.8, 1.38],
+                                "weight_class": "medium", "wreck": "medium_wreck" } },
             "mobility": { "tracked": { "offroad_kmh": 28, "road_kmh": 65,
                 "turn_deg_s": 45, "reverse_speed_factor": 0.4 } }
         }),

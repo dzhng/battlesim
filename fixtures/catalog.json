@@ -7038,7 +7038,6 @@
                 2.36
               ],
               "hp": 200.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -7251,7 +7250,6 @@
                 1.41
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -7342,7 +7340,6 @@
                 1.525
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -7586,7 +7583,6 @@
                 1.545
               ],
               "hp": 120.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -7678,7 +7674,6 @@
                 1.075
               ],
               "hp": 70.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -7795,7 +7790,6 @@
                 1.2
               ],
               "hp": 90.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -7913,7 +7907,6 @@
                 1.2
               ],
               "hp": 90.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -8010,7 +8003,6 @@
                 1.205
               ],
               "hp": 70.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -8107,7 +8099,6 @@
                 1.78
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -8200,7 +8191,6 @@
                 2.72
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8337,7 +8327,6 @@
                 2.29
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8453,7 +8442,6 @@
                 2.425
               ],
               "hp": 200.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8675,7 +8663,6 @@
                 1.95
               ],
               "hp": 170.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8796,7 +8783,6 @@
                 2.355
               ],
               "hp": 200.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8914,7 +8900,6 @@
                 2.2
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -9043,7 +9028,6 @@
                 2.36
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -9201,7 +9185,6 @@
                 3.08
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -9359,7 +9342,6 @@
                 2.05
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -9453,7 +9435,6 @@
                 1.625
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -9696,7 +9677,6 @@
                 1.9
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -9790,7 +9770,6 @@
                 1.8
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -10004,7 +9983,6 @@
                 2.4
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -10141,7 +10119,6 @@
                 2.31
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -10299,7 +10276,6 @@
                 2.96
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -10436,7 +10412,6 @@
                 3.18
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -10576,7 +10551,6 @@
                 3.05
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -10734,7 +10708,6 @@
                 2.95
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -10871,7 +10844,6 @@
                 1.4
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -11004,7 +10976,6 @@
                 1.6
               ],
               "hp": 160.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -11147,7 +11118,6 @@
                 1.115
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -11280,7 +11250,6 @@
                 1.101
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -11413,7 +11382,6 @@
                 1.11
               ],
               "hp": 160.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -11546,7 +11514,6 @@
                 1.0
               ],
               "hp": 45.0,
-              "push_class": "light",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -11643,7 +11610,6 @@
                 1.25
               ],
               "hp": 100.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -11775,7 +11741,6 @@
                 1.25
               ],
               "hp": 160.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -11908,7 +11873,6 @@
                 1.5025
               ],
               "hp": 60.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -11985,7 +11949,6 @@
                 1.75
               ],
               "hp": 150.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12103,7 +12066,6 @@
                 1.875
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12232,7 +12194,6 @@
                 1.4
               ],
               "hp": 85.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -12329,7 +12290,6 @@
                 1.35
               ],
               "hp": 80.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -12492,7 +12452,6 @@
                 2.31
               ],
               "hp": 140.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12621,7 +12580,6 @@
                 1.7
               ],
               "hp": 80.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12722,7 +12680,6 @@
                 1.19
               ],
               "hp": 90.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -12819,7 +12776,6 @@
                 1.815
               ],
               "hp": 85.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -12916,7 +12872,6 @@
                 1.69
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -13008,7 +12963,6 @@
                 1.6
               ],
               "hp": 130.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -13100,7 +13054,6 @@
                 1.6
               ],
               "hp": 100.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -13215,7 +13168,6 @@
                 2.713
               ],
               "hp": 140.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -13344,7 +13296,6 @@
                 1.245
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -13477,7 +13428,6 @@
                 1.35
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -13622,7 +13572,6 @@
                 1.25
               ],
               "hp": 100.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -13754,7 +13703,6 @@
                 1.25
               ],
               "hp": 90.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -13850,7 +13798,6 @@
                 1.4
               ],
               "hp": 100.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -13963,7 +13910,6 @@
                 1.4
               ],
               "hp": 80.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -14078,7 +14024,6 @@
                 1.75
               ],
               "hp": 200.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14196,7 +14141,6 @@
                 2.16
               ],
               "hp": 200.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14314,7 +14258,6 @@
                 2.64
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14451,7 +14394,6 @@
                 1.145
               ],
               "hp": 65.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -14545,7 +14487,6 @@
                 1.5
               ],
               "hp": 110.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -14638,7 +14579,6 @@
                 1.96
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -14732,7 +14672,6 @@
                 2.25
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14942,7 +14881,6 @@
                 1.25
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -15075,7 +15013,6 @@
                 1.265
               ],
               "hp": 160.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -15208,7 +15145,6 @@
                 1.35
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -15341,7 +15277,6 @@
                 1.415
               ],
               "hp": 160.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -15474,7 +15409,6 @@
                 1.415
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -15619,7 +15553,6 @@
                 1.65
               ],
               "hp": 60.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -15748,7 +15681,6 @@
                 1.31
               ],
               "hp": 125.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -15839,7 +15771,6 @@
                 2.6
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -15976,7 +15907,6 @@
                 1.66
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -16070,7 +16000,6 @@
                 2.0
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -16199,7 +16128,6 @@
                 1.65
               ],
               "hp": 120.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -16333,7 +16261,6 @@
                 1.53
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -16424,7 +16351,6 @@
                 2.67
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -16674,7 +16600,6 @@
                 2.98
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -16814,7 +16739,6 @@
                 2.98
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -16951,7 +16875,6 @@
                 1.5
               ],
               "hp": 85.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -17048,7 +16971,6 @@
                 0.85
               ],
               "hp": 45.0,
-              "push_class": "light",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -17145,7 +17067,6 @@
                 2.44
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -17304,7 +17225,6 @@
                 2.2
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -17618,7 +17538,6 @@
                 2.23
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -17755,7 +17674,6 @@
                 1.45
               ],
               "hp": 90.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -17852,7 +17770,6 @@
                 1.725
               ],
               "hp": 200.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -17970,7 +17887,6 @@
                 1.213
               ],
               "hp": 80.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18088,7 +18004,6 @@
                 1.213
               ],
               "hp": 80.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18316,7 +18231,6 @@
                 2.713
               ],
               "hp": 140.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18445,7 +18359,6 @@
                 2.44
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18585,7 +18498,6 @@
                 2.82
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18743,7 +18655,6 @@
                 2.82
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18880,7 +18791,6 @@
                 2.56
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -19017,7 +18927,6 @@
                 2.19
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -19175,7 +19084,6 @@
                 2.43
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -19453,7 +19361,6 @@
                 1.345
               ],
               "hp": 70.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -19550,7 +19457,6 @@
                 1.0
               ],
               "hp": 70.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -19643,7 +19549,6 @@
                 1.48
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -19734,7 +19639,6 @@
                 1.3
               ],
               "hp": 100.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -19866,7 +19770,6 @@
                 1.32
               ],
               "hp": 65.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -19964,7 +19867,6 @@
                 1.6
               ],
               "hp": 110.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20056,7 +19958,6 @@
                 1.0
               ],
               "hp": 45.0,
-              "push_class": "light",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -20153,7 +20054,6 @@
                 1.6
               ],
               "hp": 120.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20245,7 +20145,6 @@
                 1.6
               ],
               "hp": 120.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20337,7 +20236,6 @@
                 1.22
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20470,7 +20368,6 @@
                 1.22
               ],
               "hp": 150.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20615,7 +20512,6 @@
                 1.22
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20760,7 +20656,6 @@
                 1.22
               ],
               "hp": 200.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20905,7 +20800,6 @@
                 1.31
               ],
               "hp": 125.0,
-              "push_class": "heavy",
               "weight_class": "heavy",
               "wreck": "heavy_wreck"
             }
@@ -20996,7 +20890,6 @@
                 1.38
               ],
               "hp": 90.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21130,7 +21023,6 @@
                 1.38
               ],
               "hp": 80.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21248,7 +21140,6 @@
                 1.5
               ],
               "hp": 60.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21475,7 +21366,6 @@
                 1.66
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21569,7 +21459,6 @@
                 1.98
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21754,7 +21643,6 @@
                 1.32
               ],
               "hp": 70.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21851,7 +21739,6 @@
                 1.32
               ],
               "hp": 70.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -21944,7 +21831,6 @@
                 1.32
               ],
               "hp": 85.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -22041,7 +21927,6 @@
                 1.65
               ],
               "hp": 120.0,
-              "push_class": "medium",
               "weight_class": "medium",
               "wreck": "medium_wreck"
             }
@@ -22133,7 +22018,6 @@
                 1.8
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -22262,7 +22146,6 @@
                 1.825
               ],
               "hp": 120.0,
-              "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -26781,7 +26664,6 @@
             2.36
           ],
           "hp": 200.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -27134,7 +27016,6 @@
             1.41
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -27228,7 +27109,6 @@
             1.525
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -27665,7 +27545,6 @@
             1.545
           ],
           "hp": 120.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -27760,7 +27639,6 @@
             1.075
           ],
           "hp": 70.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -27881,7 +27759,6 @@
             1.2
           ],
           "hp": 90.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -28003,7 +27880,6 @@
             1.2
           ],
           "hp": 90.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -28103,7 +27979,6 @@
             1.205
           ],
           "hp": 70.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -28203,7 +28078,6 @@
             1.78
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -28299,7 +28173,6 @@
             2.72
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -28440,7 +28313,6 @@
             2.29
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -28559,7 +28431,6 @@
             2.425
           ],
           "hp": 200.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -28878,7 +28749,6 @@
             1.95
           ],
           "hp": 170.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29003,7 +28873,6 @@
             2.355
           ],
           "hp": 200.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29125,7 +28994,6 @@
             2.2
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29258,7 +29126,6 @@
             2.36
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29421,7 +29288,6 @@
             3.08
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29562,7 +29428,6 @@
             2.05
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -29659,7 +29524,6 @@
             1.625
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -30144,7 +30008,6 @@
             1.9
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -30241,7 +30104,6 @@
             1.8
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -30552,7 +30414,6 @@
             2.4
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -30693,7 +30554,6 @@
             2.31
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -30856,7 +30716,6 @@
             2.96
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -30997,7 +30856,6 @@
             3.18
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -31141,7 +30999,6 @@
             3.05
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -31304,7 +31161,6 @@
             2.95
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -31445,7 +31301,6 @@
             1.4
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -31582,7 +31437,6 @@
             1.6
           ],
           "hp": 160.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -31729,7 +31583,6 @@
             1.115
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -31866,7 +31719,6 @@
             1.101
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -32003,7 +31855,6 @@
             1.11
           ],
           "hp": 160.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -32140,7 +31991,6 @@
             1.0
           ],
           "hp": 45.0,
-          "push_class": "light",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -32240,7 +32090,6 @@
             1.25
           ],
           "hp": 100.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -32376,7 +32225,6 @@
             1.25
           ],
           "hp": 160.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -32513,7 +32361,6 @@
             1.5025
           ],
           "hp": 60.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -32593,7 +32440,6 @@
             1.75
           ],
           "hp": 150.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -32715,7 +32561,6 @@
             1.875
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -32848,7 +32693,6 @@
             1.4
           ],
           "hp": 85.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -32948,7 +32792,6 @@
             1.35
           ],
           "hp": 80.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -33177,7 +33020,6 @@
             2.31
           ],
           "hp": 140.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33310,7 +33152,6 @@
             1.7
           ],
           "hp": 80.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33414,7 +33255,6 @@
             1.19
           ],
           "hp": 90.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -33514,7 +33354,6 @@
             1.815
           ],
           "hp": 85.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -33614,7 +33453,6 @@
             1.69
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -33709,7 +33547,6 @@
             1.6
           ],
           "hp": 130.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -33804,7 +33641,6 @@
             1.6
           ],
           "hp": 100.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -33923,7 +33759,6 @@
             2.713
           ],
           "hp": 140.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -34056,7 +33891,6 @@
             1.245
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -34193,7 +34027,6 @@
             1.35
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -34342,7 +34175,6 @@
             1.25
           ],
           "hp": 100.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -34478,7 +34310,6 @@
             1.25
           ],
           "hp": 90.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -34577,7 +34408,6 @@
             1.4
           ],
           "hp": 100.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -34693,7 +34523,6 @@
             1.4
           ],
           "hp": 80.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -34812,7 +34641,6 @@
             1.75
           ],
           "hp": 200.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -34934,7 +34762,6 @@
             2.16
           ],
           "hp": 200.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35056,7 +34883,6 @@
             2.64
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35197,7 +35023,6 @@
             1.145
           ],
           "hp": 65.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -35294,7 +35119,6 @@
             1.5
           ],
           "hp": 110.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -35390,7 +35214,6 @@
             1.96
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -35487,7 +35310,6 @@
             2.25
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35650,7 +35472,6 @@
             1.25
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -35787,7 +35608,6 @@
             1.265
           ],
           "hp": 160.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -35924,7 +35744,6 @@
             1.35
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -36061,7 +35880,6 @@
             1.415
           ],
           "hp": 160.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -36198,7 +36016,6 @@
             1.415
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -36347,7 +36164,6 @@
             1.65
           ],
           "hp": 60.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -36624,7 +36440,6 @@
             1.31
           ],
           "hp": 125.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -36718,7 +36533,6 @@
             2.6
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -36859,7 +36673,6 @@
             1.66
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -36956,7 +36769,6 @@
             2.0
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -37089,7 +36901,6 @@
             1.65
           ],
           "hp": 120.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -37227,7 +37038,6 @@
             1.53
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -37321,7 +37131,6 @@
             2.67
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -37592,7 +37401,6 @@
             2.98
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -37736,7 +37544,6 @@
             2.98
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -37877,7 +37684,6 @@
             1.5
           ],
           "hp": 85.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -37977,7 +37783,6 @@
             0.85
           ],
           "hp": 45.0,
-          "push_class": "light",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -38077,7 +37882,6 @@
             2.44
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -38241,7 +38045,6 @@
             2.2
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -38799,7 +38602,6 @@
             2.23
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -38940,7 +38742,6 @@
             1.45
           ],
           "hp": 90.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -39040,7 +38841,6 @@
             1.725
           ],
           "hp": 200.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39162,7 +38962,6 @@
             1.213
           ],
           "hp": 80.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39284,7 +39083,6 @@
             1.213
           ],
           "hp": 80.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39640,7 +39438,6 @@
             2.713
           ],
           "hp": 140.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39773,7 +39570,6 @@
             2.44
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39917,7 +39713,6 @@
             2.82
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40080,7 +39875,6 @@
             2.82
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40221,7 +40015,6 @@
             2.56
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40362,7 +40155,6 @@
             2.19
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40525,7 +40317,6 @@
             2.43
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40834,7 +40625,6 @@
             1.345
           ],
           "hp": 70.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -40934,7 +40724,6 @@
             1.0
           ],
           "hp": 70.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -41030,7 +40819,6 @@
             1.48
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -41124,7 +40912,6 @@
             1.3
           ],
           "hp": 100.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -41260,7 +41047,6 @@
             1.32
           ],
           "hp": 65.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -41361,7 +41147,6 @@
             1.6
           ],
           "hp": 110.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -41456,7 +41241,6 @@
             1.0
           ],
           "hp": 45.0,
-          "push_class": "light",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -41556,7 +41340,6 @@
             1.6
           ],
           "hp": 120.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -41651,7 +41434,6 @@
             1.6
           ],
           "hp": 120.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -41746,7 +41528,6 @@
             1.22
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -41883,7 +41664,6 @@
             1.22
           ],
           "hp": 150.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -42032,7 +41812,6 @@
             1.22
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -42181,7 +41960,6 @@
             1.22
           ],
           "hp": 200.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -42330,7 +42108,6 @@
             1.31
           ],
           "hp": 125.0,
-          "push_class": "heavy",
           "weight_class": "heavy",
           "wreck": "heavy_wreck"
         }
@@ -42424,7 +42201,6 @@
             1.38
           ],
           "hp": 90.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -42562,7 +42338,6 @@
             1.38
           ],
           "hp": 80.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -42684,7 +42459,6 @@
             1.5
           ],
           "hp": 60.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43168,7 +42942,6 @@
             1.66
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43265,7 +43038,6 @@
             1.98
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43468,7 +43240,6 @@
             1.32
           ],
           "hp": 70.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43568,7 +43339,6 @@
             1.32
           ],
           "hp": 70.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43664,7 +43434,6 @@
             1.32
           ],
           "hp": 85.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43764,7 +43533,6 @@
             1.65
           ],
           "hp": 120.0,
-          "push_class": "medium",
           "weight_class": "medium",
           "wreck": "medium_wreck"
         }
@@ -43859,7 +43627,6 @@
             1.8
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -43992,7 +43759,6 @@
             1.825
           ],
           "hp": 120.0,
-          "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
         }

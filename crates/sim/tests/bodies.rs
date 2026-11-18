@@ -95,7 +95,7 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 let prop = b.world().prop(BODY).unwrap().footprint();
                 entered |= hull.separation(&prop).is_some_and(|v| v.length() > 0.05);
             }
-            let shoves = match common::hull(mover).push_class {
+            let shoves = match common::hull(mover).push_class() {
                 PushClass::None => false,
                 PushClass::Light => matches!(weight, WeightClass::Trivial),
                 PushClass::Medium => matches!(weight, WeightClass::Trivial | WeightClass::Light),
@@ -135,12 +135,6 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
 #[test]
 fn a_vehicle_shoves_a_panel_that_only_touches_its_neighbour() {
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(
-        &mut rules,
-        "units",
-        "test_supply",
-        json!({ "body": { "hull": { "push_class": "medium" } } }),
-    );
     sim::fixtures::patch_catalog(
         &mut rules,
         "props",
@@ -546,9 +540,7 @@ fn a_destroyed_jeep_leaves_a_light_wreck() {
         b.world().types().id(wreck.kind),
         common::hull("test_jeep").wreck
     );
-    assert!(common::hull("test_tank")
-        .push_class
-        .pushes(wreck.body.weight_class));
+    assert!(common::hull("test_tank").shoves(wreck.body.weight_class));
 }
 
 /// A new prop type is one catalog entry: a vehicle whose `wreck` names a
