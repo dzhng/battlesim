@@ -7,6 +7,71 @@ use sim::math::v3;
 use crate::guidance::{missile, quick, until_launch};
 
 #[test]
+fn physical_flares_publish_their_falling_path_only_to_sides_that_see_them() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_heli", "position": [500, 300], "engagement": "return_fire_only" }
+        ]),
+        7,
+        |r| {
+            r["weapons"]["hmg"]["damage"] = json!(0);
+            r["weapons"]["atgm"]["decoyable"] = json!(true);
+            r["weapons"]["atgm"]["ammo"] = json!(1);
+            r["weapons"]["atgm"]["targets"] = json!({"low_air": {
+                "classes": ["air_rotor"], "range_m": 650, "scatter_mrad": 0.5
+            }});
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "test_heli",
+                json!({
+                    "capabilities": {"flares": {"capacity": 2, "reload_s": 30}}
+                }),
+            );
+        },
+    );
+    until_launch(&mut b);
+    b.step();
+    let aircraft = b.unit(UnitId(1)).unwrap().position;
+    for side in [Side::Blue, Side::Red, Side::Neutral] {
+        let frame = b.observe(side);
+        if side == Side::Neutral {
+            assert!(frame.flares.is_empty(), "no observer, no flare disclosure");
+        } else {
+            let flare = frame.flares.first().expect("the side sees the flare");
+            assert_eq!(frame.flares.len(), 1);
+            assert!(flare.to[2] < flare.from[2], "the flare falls");
+            assert!(
+                (v3(flare.to[0], flare.to[1], flare.to[2]) - aircraft).length() < 20.0,
+                "the visible flare stays beside the aircraft"
+            );
+        }
+        let words = sim::publication::Publisher::new()
+            .publish(&b, side)
+            .unwrap()
+            .iter()
+            .map(|w| w.to_bits())
+            .collect::<Vec<_>>();
+        let decoded = sim::publication::reader::Reader::new(&sim::publication::layout_json(&b))
+            .unwrap()
+            .decode(&words)
+            .unwrap()
+            .unwrap();
+        let widened = frame
+            .flares
+            .iter()
+            .map(|f| contract::observation::Flare {
+                from: f.from.map(|v| f64::from(v as f32)),
+                to: f.to.map(|v| f64::from(v as f32)),
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(decoded.flares, widened, "the client reads the same path");
+    }
+}
+
+#[test]
 fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
     let mut b = quick(
         json!([]),
@@ -115,6 +180,20 @@ fn a_diverted_seeker_bursts_within_the_authored_meeting_distance() {
         "the flare diverts the seeker"
     );
     assert!(missile(&b).is_none(), "the seeker bursts on its flare");
+    let flare = b
+        .observe(Side::Red)
+        .flares
+        .first()
+        .cloned()
+        .expect("the physical flare outlives the missile");
+    b.step();
+    let later = b
+        .observe(Side::Red)
+        .flares
+        .first()
+        .cloned()
+        .expect("the flare keeps falling independently");
+    assert!(later.to[2] < flare.to[2], "the flare continues falling");
     assert_eq!(b.unit(UnitId(1)).unwrap().hp, hp, "the airframe unhurt");
 }
 
@@ -168,9 +247,9 @@ fn flares_decoy_a_seeker_fired_at_any_unit_that_carries_them() {
     assert!(lost > 0.0, "without flares the missile hits");
 }
 
-/// A flare spoofs an operator-guided missile as it does a seeker: the
-/// launcher loses its guidance, as when its operator loses sight, and the
-/// round flies on past. Without flares the helicopter is hit.
+/// A spoofed missile flies toward the flare ejected beside the aircraft,
+/// independently of its launcher, rather than diving beside the shooter.
+/// Without flares the helicopter is hit.
 #[test]
 fn test_flares_spoof_an_operator_guided_missile_at_a_helicopter() {
     let run = |flares: bool| {
@@ -203,6 +282,19 @@ fn test_flares_spoof_an_operator_guided_missile_at_a_helicopter() {
             missile(&b).is_some_and(|m| m.supported),
             "the operator guides it"
         );
+        b.step();
+        if flares {
+            let diverted = missile(&b).expect("the diverted missile keeps flying");
+            let target = b.unit(UnitId(1)).unwrap();
+            assert!(!diverted.supported, "the launcher has let go");
+            assert!(
+                (v3(diverted.point[0], diverted.point[1], diverted.point[2]) - target.position)
+                    .length()
+                    < 20.0,
+                "the missile chases a flare beside the aircraft: {:?}",
+                diverted.point
+            );
+        }
         for _ in 0..10 * b.rules().tick_hz {
             b.step();
         }

@@ -272,6 +272,13 @@ pub struct GuidedMissile {
     pub supported: bool,
 }
 
+/// A visible flare's physical travel over one tick, without launcher or target identity.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Flare {
+    pub from: [f64; 3],
+    pub to: [f64; 3],
+}
+
 /// Which way an aircraft crosses the map edge.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -753,6 +760,9 @@ pub struct ObservationFrame {
     pub crashes: Vec<FallingAirframe>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,
+    /// Physical flares within this side's sight.
+    #[serde(default)]
+    pub flares: Vec<Flare>,
     /// This side's own aircraft crossing the map edge this tick: arrivals
     /// still waiting off the map, announced every tick until they cross, and
     /// withdrawing jets on the tick they leave. Recorded frames older than

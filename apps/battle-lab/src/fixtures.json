@@ -166,6 +166,12 @@
     "map": "air-jet"
   },
   {
+    "id": "air-flares",
+    "route": "/labs/air-flares",
+    "describe": "A MANPADS missile follows a visible falling flare beside a helicopter. Fixed ticks show the hot core, smoke trail and diverted missile together at battle zoom.",
+    "map": "air-jet"
+  },
+  {
     "id": "air-survivability",
     "route": "/labs/air-survivability",
     "describe": "Air-jet survivability: a Buk fires decoyable 290 m/s proximity-fused missiles at an F-16, which spends a flare, and at an Apache without flares, which is shot down. The shot shows the missile and flare tracks together.",

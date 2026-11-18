@@ -31,6 +31,7 @@ pub fn advance_projectiles(
     let Projectiles {
         config,
         active,
+        flares,
         grid,
         ..
     } = store;
@@ -41,6 +42,7 @@ pub fn advance_projectiles(
         world,
         bodies,
         grid,
+        flares,
     };
     // Projectile interception is checked before body standoffs. A short,
     // deterministic proximity window is enough for two physical missiles to
@@ -125,6 +127,17 @@ pub fn advance_projectiles(
             flight.fly_tick(p, &mut scratch, events, resolver)
         }
     });
+    flares.retain(|_, flare| {
+        let decoy = &mut flare.decoy;
+        flare.from = decoy.position;
+        decoy.position = decoy.position
+            + decoy.velocity * config.tick_s
+            + config.gravity * (0.5 * config.tick_s * config.tick_s);
+        decoy.velocity = decoy.velocity + config.gravity * config.tick_s;
+        world
+            .height_at(decoy.position.x, decoy.position.y)
+            .is_some_and(|ground| decoy.position.z > ground)
+    });
     events[first..].sort_by(|a, b| {
         let (ka, kb) = (a.order_key(), b.order_key());
         ka.0.total_cmp(&kb.0)
@@ -153,6 +166,7 @@ struct Flight<'a> {
     world: &'a WorldGeometry,
     bodies: &'a [Body],
     grid: &'a BodyGrid,
+    flares: &'a std::collections::BTreeMap<ProjectileId, Flare>,
 }
 
 /// The earliest hit along one leg of a round's flight.
@@ -246,7 +260,11 @@ impl Flight<'_> {
     ) -> bool {
         let config = self.config;
         let span = config.tick_s.min(p.lifetime_s - p.age_s);
-        if let (Some(decoy), Some(g)) = (p.decoy, p.guidance.as_mut()) {
+        if let (Some(flare), Some(g)) = (
+            p.decoy.and_then(|id| self.flares.get(&id)),
+            p.guidance.as_mut(),
+        ) {
+            let decoy = flare.decoy;
             g.point = decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
         }
         let gravity = self.acceleration(p, span);
@@ -315,11 +333,6 @@ impl Flight<'_> {
         p.position = end;
         p.velocity = v_end;
         p.age_s += span;
-        if let Some(decoy) = p.decoy.as_mut() {
-            decoy.position =
-                decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
-            decoy.velocity = decoy.velocity + config.gravity * span;
-        }
         let expire = |cause| {
             FlightEvent::Expired(Expired {
                 projectile: p.id,
@@ -363,6 +376,7 @@ impl Flight<'_> {
             world,
             bodies,
             grid,
+            ..
         } = *self;
         let rest = span - flown;
         let split = p
@@ -448,7 +462,8 @@ impl Flight<'_> {
             // flare's swept motion.
             // Earlier terrain or body collisions still win, so a flare never
             // grants immunity to an aircraft already in the missile's path.
-            if let Some(decoy) = p.decoy {
+            if let Some(flare) = p.decoy.and_then(|id| self.flares.get(&id)) {
+                let decoy = flare.decoy;
                 let t0 = scratch.path_times[k];
                 let t1 = scratch.path_times[k + 1];
                 let d0 = decoy.position + decoy.velocity * t0 + config.gravity * (0.5 * t0 * t0);

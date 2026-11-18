@@ -98,6 +98,10 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
     title: "Air to ground",
     variants: { missions: { label: "Bomb, strafe, SEAD", source: { encounter: "ground" } } },
   },
+  "air-flares": {
+    title: "Missile and flare",
+    variants: { manpads: { label: "MANPADS", source: { encounter: "manpads-flares" } } },
+  },
   "air-survivability": {
     title: "Survivability",
     variants: {

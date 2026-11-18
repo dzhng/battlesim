@@ -41,6 +41,9 @@ pub struct EffectPresentation {
     #[serde(default, skip_serializing_if = "crate::looks::WeaponLooks::is_empty")]
     pub looks: crate::looks::WeaponLooks,
     pub impacts: HashMap<String, Arc<ImpactStyle>>,
+    /// The hot core and pale smoke of a physical countermeasure flare.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flare: Option<Arc<TracerStyle>>,
 
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
@@ -168,6 +171,9 @@ pub struct TracerStyle {
     pub tail_s: f64,
     pub tail_m: [f64; 2],
     pub glow: TracerLight,
+    /// A luminous head, independent of the fading tail (for a burning flare).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head_glow: Option<TracerLight>,
     pub core: Option<TracerLight>,
     pub body: Option<Body>,
     pub smoke: Option<TrailStyle>,
@@ -448,6 +454,10 @@ impl EffectPresentation {
             })
         };
         self.check_looks(&self.looks.looks)?;
+        if let Some(flare) = &self.flare {
+            flare.validate("flare")?;
+            cast("flare".into(), &flare.cast, false)?;
+        }
         ensure(self.smoke_screen_budget > 0.0, || {
             "smoke_screen_budget must be positive".into()
         })?;
@@ -582,8 +592,13 @@ impl EffectPresentation {
                 .max(s.smoke.life_s)
                 .max(s.smoulder.life_s);
         }
-        for look in self.looks.looks.values() {
-            let Some(t) = &look.tracer else { continue };
+        for t in self
+            .looks
+            .looks
+            .values()
+            .filter_map(|look| look.tracer.as_ref())
+            .chain(self.flare.iter())
+        {
             if let Some(s) = &t.smoke {
                 longest = longest.max(s.puff.life_s);
             }

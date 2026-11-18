@@ -38,6 +38,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "air-dogfight": lazy(() => import("./routes/airWar")),
   "air-ingress": lazy(() => import("./routes/airWar")),
   "air-ground": lazy(() => import("./routes/airWar")),
+  "air-flares": lazy(() => import("./routes/airWar")),
   "air-survivability": lazy(() => import("./routes/airWar")),
   "air-roster": lazy(() => import("./routes/airWar")),
   "air-hud": lazy(() => import("./routes/airWar")),

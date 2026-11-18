@@ -120,6 +120,9 @@ pub struct EffectPublication {
     /// Own aircraft flare releases observed since the previous publication.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub flare_deploys: Vec<Vec3>,
+    /// Visible physical flare paths over the publication tick.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub flares: Vec<contract::observation::Flare>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub grinds: Vec<Grind>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -320,6 +323,7 @@ impl EffectFeed {
             smokes,
             cook_offs: Vec::new(),
             flare_deploys,
+            flares: o.flares.clone(),
             grinds: o
                 .grinds
                 .iter()

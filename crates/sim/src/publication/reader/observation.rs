@@ -207,6 +207,13 @@ impl Reader {
             })?,
             grinds: map(&rows[group("grinds")], |r| Ok(grind(r)))?,
             smoke_clouds: map(&rows[group("smokeClouds")], |r| self.smoke_cloud(r))?,
+            flares: map(&rows[group("flares")], |r| {
+                const FIELDS: &[&str] = &FLARE_FIELDS;
+                Ok(Flare {
+                    from: [v!(r.fields, "ax"), v!(r.fields, "ay"), v!(r.fields, "az")],
+                    to: [v!(r.fields, "bx"), v!(r.fields, "by"), v!(r.fields, "bz")],
+                })
+            })?,
         })
     }
 

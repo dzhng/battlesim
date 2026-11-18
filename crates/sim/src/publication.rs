@@ -92,7 +92,7 @@ const POSE_FIELDS: [&str; 8] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 45] = [
+const HEADER: [&str; 46] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -138,6 +138,7 @@ const HEADER: [&str; 45] = [
     "propDisplayPoseCount",
     "grindCount",
     "smokeCloudCount",
+    "flareCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -211,6 +212,7 @@ const SHOUT_FIELDS: [&str; 9] = [
     "intensity",
 ];
 const PROP_DISPLAY_POSE_FIELDS: [&str; 5] = ["propId", "x", "y", "yaw", "baseZ"];
+const FLARE_FIELDS: [&str; 6] = ["ax", "ay", "az", "bx", "by", "bz"];
 const GRIND_FIELDS: [&str; 5] = ["x", "y", "z", "headingX", "headingY"];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
@@ -426,6 +428,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     ),
     rows("grinds", "grindCount", &GRIND_FIELDS),
     rows("smokeClouds", "smokeCloudCount", &SMOKE_CLOUD_FIELDS),
+    rows("flares", "flareCount", &FLARE_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -649,7 +652,7 @@ fn encode_delivery(
 }
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 22;
+pub const GROUPS: usize = 23;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.
