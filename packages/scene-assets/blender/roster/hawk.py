@@ -88,8 +88,16 @@ def build(variant, v):
         # role is also used by optics and can read too bright on box-projected
         # donor-free windows in the workbench.
         box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["black"], hull, lods=MID)
+        for edge, z in (("top", 1.79), ("bottom", 1.31)):
+            box(f"cabin_window_{edge}_frame_{k}", (0.62, 0.055, 0.055), (1.6, side * 1.105, z), m["dark"], hull,
+                lods=NEAR)
+        for edge, x in (("front", 1.31),):
+            box(f"cabin_window_{edge}_frame_{k}", (0.055, 0.055, 0.52), (x, side * 1.105, 1.55), m["dark"], hull,
+                lods=NEAR)
         box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["black"], hull,
             lods=MID)
+        box(f"cockpit_window_top_frame_{k}", (0.98, 0.055, 0.06), (length / 2 - 2.3, side * 1.01, 1.86), m["dark"], hull,
+            lods=NEAR)
     A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
     cyl("mast", 0.2, 0.75, (0.3, 0, 2.95), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, height - 0.22), 8.18 if not z20 else 8.2, 4 if not z20 else 5, 0.53, m, hull,
