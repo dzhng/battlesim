@@ -83,7 +83,7 @@ def build(variant, v):
         cyl(f"exhaust_{k}", 0.2, 0.5, (-0.7, side * 0.86, 2.6), "Y", m["nozzle"], hull, seg=12,
             rot=(0, 0, side * 0.4), lods=MID)
         # Cabin door rails and windows, cockpit door windows.
-        box(f"cabin_door_{k}", (1.8, 0.03, 1.2), (1.2, side * 1.06, 1.25), m["dark"], hull, lods=MID)
+        box(f"cabin_door_{k}", (1.8, 0.03, 1.2), (1.2, side * 1.06, 1.25), m["paint"], hull, lods=MID)
         # Keep the framed tactical glazing dark at every LOD. The shared glass
         # role is also used by optics and can read too bright on box-projected
         # donor-free windows in the workbench.
