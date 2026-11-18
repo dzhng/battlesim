@@ -14,9 +14,8 @@
 // throwaway/armory-measures/. Each switch builds a new scene, and a scene's
 // screen-sized targets are destroyed with it, never left for the browser's
 // garbage collector to find.
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
-import roster from "../../fixtures/catalog.json" with { type: "json" };
 import presentation from "../../fixtures/presentation.json" with { type: "json" };
 import { decode, writeCrop } from "./_png.mjs";
 
@@ -194,6 +193,11 @@ export async function run(ctx) {
 
   // Each landing supplier's actual card and reused airframe, through the
   // player's address. The sheet is static; the full stage stays review evidence.
+  // The roster as the scene reads data, from disk (the page's catalog is
+  // the session's own).
+  const roster = JSON.parse(
+    await readFile(new URL("../../fixtures/catalog.json", import.meta.url), "utf8"),
+  );
   for (const kind of roster.units.filter((u) => u.mobility.air && u.capabilities.deploy)) {
     await openMenu(page, `${origin}${armory}?unit=${kind.id}`);
     await page.waitForFunction((k) => window.__armory?.shown()?.kind === k, kind.id, {

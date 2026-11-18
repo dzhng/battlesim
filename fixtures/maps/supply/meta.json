@@ -8,6 +8,6 @@
   "tags": [],
   "source": "authored",
   "seed": null,
-  "encounters": ["supply", "heli", "heli-fire", "heli-ground", "heli-shift", "heli-crowded"],
+  "encounters": ["heli", "heli-crowded", "heli-fire", "heli-ground", "heli-shift", "supply"],
   "benchmarks": []
 }

@@ -21,6 +21,7 @@ const standIns = [
   "test_jeep",
   "test_apc",
   "test_scout_car",
+  "test_supply_heli",
 ];
 const UNITS = new UnitCatalog({
   ...TEST_CATALOG.units.view,
