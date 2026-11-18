@@ -74,8 +74,10 @@ def build(variant, v):
     # The Apache's tandem cockpit is stepped and flat-paned. Keep the forward
     # gunner glazing narrow over its low sill, then raise the pilot's section
     # behind it instead of making one continuous bubble.
-    A.canopy("canopy", 5.74, 4.4, 1.9, 2.42, 0.49, m, hull, bows=(5.6, 5.0), peak=0.6, tail=0.7)
-    A.canopy("canopy_glass_rear", 4.4, 3.0, 2.14, 2.82, 0.52, m, hull, bows=(4.32, 3.65), peak=0.5, tail=0.75)
+    A.canopy("canopy", 5.74, 4.4, 1.9, 2.42, 0.49, m, hull, bows=(5.6, 5.0), peak=0.6, tail=0.7,
+             frame="dark")
+    A.canopy("canopy_glass_rear", 4.4, 3.0, 2.14, 2.82, 0.52, m, hull, bows=(4.32, 3.65), peak=0.5, tail=0.75,
+             frame="dark")
     # TADS/PNVS on the nose: the turret and its sensor windows.
     A.sensor_ball("tads", (6.7, 0, 1.25), 0.36, m, hull)
     box("pnvs", (0.4, 0.3, 0.3), (6.51, 0, 1.78), m["dark"], hull, bevel=0.03, lods=MID)
