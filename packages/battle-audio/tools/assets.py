@@ -53,6 +53,8 @@ FILTERS = {
     # while the compressor keeps a warning cue usable over the battlefield mix.
     "air-alarm": "highpass=f=120,lowpass=f=6200,acompressor=threshold=0.2:ratio=2:attack=8:release=120",
     "motor-loop": "highpass=f=80,lowpass=f=6000",
+    # The moving emitter already swells as it passes the listener.
+    "flyby-loop": "highpass=f=80,lowpass=f=6000,acompressor=threshold=0.1:ratio=4:attack=35:release=240",
     "running-gear": "highpass=f=50,lowpass=f=5000",
     "blast": "highpass=f=30,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "bassy-cannon": BASSY_CANNON,
@@ -264,11 +266,17 @@ def render(clip, decoded):
     if not x or any(not (-10 < value < 10) for value in x):
         raise ValueError("empty or invalid PCM")
     if clip["loop"]:
-        cross = min(4800, len(x) // 8)
+        # A flyby changes tone as it goes by. A longer equal-power blend joins
+        # the two parts of the pass without an audible dip in the exhaust noise.
+        flyby = profile == "flyby-loop"
+        cross = min(24000 if flyby else 4800, len(x) // 8)
         result = x[cross:]
         for i in range(cross):
-            t = i / cross
-            result[len(result) - cross + i] = x[len(x) - cross + i] * (1 - t) + x[i] * t
+            incoming = i / cross
+            outgoing = 1 - incoming
+            if flyby:
+                incoming, outgoing = math.sqrt(incoming), math.sqrt(outgoing)
+            result[len(result) - cross + i] = x[len(x) - cross + i] * outgoing + x[i] * incoming
         x = result
     else:
         # A click guard at both ends; a cut through a still-sounding source fades longer.

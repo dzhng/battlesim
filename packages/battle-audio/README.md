@@ -98,7 +98,10 @@ the exception to this preparation: it streams instead (see [Music playback](#mus
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak
-level with headroom. Loop clips use a crossfade. A one-shot clip never ends on a cut:
+level with headroom. Loop clips use a crossfade. A loop cut from a flyby softens
+the recorded approach and departure and blends the seam over a wider span, so
+the aircraft's movement past the camera supplies the swell.
+A one-shot clip never ends on a cut:
 one still ringing at its end (a siren mid-cycle, a hit cut at 1.6 s, a generated master
 stopping at its requested length) fades out over up to half a second by how loud it
 still is there, and one starting inside a sound already going fades in over a few
@@ -246,11 +249,12 @@ sound off screen or behind it, so weapon reports on screen sound close at any zo
 and one on the horizon sounds far
 ([`sound::spatial`](../../crates/presentation/src/sound/spatial.rs)).
 The mix owns named distance profiles by sound use, independently of recordings
-and starting volume. Engines name their profile in their authored vehicle row;
-mechanical details and footsteps share the small-details profile. Burning and
-smouldering use the burning profile, so crackle stays strong close up but
-recedes to a faint background at the RTS camera. Weapon reports and world voices
-each have their own profile. Camera focus and air treatment are shared.
+and starting volume. Helicopter rotors and jet engines share an aircraft profile
+so both carry across the tactical view. Engines name their profile in their
+authored vehicle row. Mechanical details and footsteps share the small-details
+profile. Burning and smouldering use the burning profile, so crackle stays strong
+close up but recedes to a faint background at the RTS camera. Weapon reports and
+world voices each have their own profile. Camera focus and air treatment are shared.
 
 The bed keeps its level between shots and makes room under a loud one, as a
 film mix does: a sound at least `audio.ambience.duck_over` loud
