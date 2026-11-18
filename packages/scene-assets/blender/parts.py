@@ -225,7 +225,14 @@ def glass(name="glass"):
     """Sight glass and windows: near black and smooth, so what it shows is what it
     reflects (a pale sky at grazing angles), never a colour of its own. Opaque and
     unworn: a blended surface cannot wear."""
-    return flat_paint(name, (0.008, 0.01, 0.011), rough=0.08, grime=0, role="glass")
+    colour = (0.008, 0.01, 0.011)
+    material = flat_paint(name, colour, rough=0.08, grime=0, role="glass")
+    # Donor meshes may not carry the procedural vertex-colour albedo channel.
+    # Keep the material itself dark so those windows cannot fall back to the
+    # neutral node base colour.
+    material.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*colour, 1.0)
+    material.diffuse_color = (*colour, 1.0)
+    return material
 
 
 def track_steel(name="track", links=True, dirt=0.15):

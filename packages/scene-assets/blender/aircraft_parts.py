@@ -63,7 +63,7 @@ CHORD = ((0.0, 0.03, 0.1, 0.22, 0.38, 0.55, 0.72, 0.88, 1.0),
 AIR_DIRT, AIR_RISE, AIR_CHIP = 0.08, 0.5, 0.12
 # The canopy's glass: a smoky, faintly blue tint held as dark as sight glass
 # (`parts.glass`), smoother than it, and partly seen through.
-CANOPY_TINT, CANOPY_ROUGH, CANOPY_OPACITY = (0.016, 0.019, 0.023), 0.04, 0.6
+CANOPY_TINT, CANOPY_ROUGH, CANOPY_OPACITY = (0.006, 0.010, 0.016), 0.08, 0.82
 
 
 def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.052, 0.055)):
@@ -89,6 +89,8 @@ def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.
         nav_red=flat_paint("nav_red", (0.42, 0.02, 0.015), rough=0.25, grime=0.05),
         nav_green=flat_paint("nav_green", (0.02, 0.3, 0.06), rough=0.25, grime=0.05),
     )
+    v.mats["canopy"].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*CANOPY_TINT, 1.0)
+    v.mats["canopy"].diffuse_color = (*CANOPY_TINT, 1.0)
     return v.mats
 
 
@@ -370,7 +372,10 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
     carries."""
     node = empty(f"gear_{name}", loc=(x, y, top), parent=parent)
     drop = top - radius
-    r_strut = 0.06 + radius * 0.12
+    # Aircraft legs need a readable load path at game distance. A thin axial
+    # rod makes the wheel look detached in three-quarter views, so give the
+    # upper leg a substantial collar and a visible trailing arm into the hub.
+    r_strut = 0.09 + radius * 0.16
     cyl(f"gear_{name}_strut", r_strut, drop, (0, 0, -drop / 2), "Z", mats["gear"], node, seg=10,
         rot=(0, rake, 0), lods=MID)
     cyl(f"gear_{name}_oleo", 0.04 + radius * 0.08, drop * 0.4, (0, 0, -drop * 0.8), "Z", mats["steel"], node, seg=10,
@@ -378,6 +383,14 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
     # The drag brace, from the strut's middle up and back to the bay's roof.
     tube_part(f"gear_{name}_brace", lambda lod: [(0, 0, -drop * 0.5), (-drop * 0.45, 0, -0.02)], r_strut * 0.45,
               mats["gear"], node, NEAR)
+    # Wide sponson gear already has its own housing and brace. The visible
+    # trailing arm is for narrow cheek-mounted legs where it cannot sink into
+    # that housing.
+    if abs(y) < 1.1:
+        outside = 1 if y >= 0 else -1
+        tube_part(f"gear_{name}_trailing_arm", lambda lod: [(0, outside * 0.16, -drop * 0.48),
+                                                             (0.18, outside * 0.16, -drop * 0.98)],
+                  r_strut * 0.42, mats["gear"], node, NEAR)
     # The torque links' scissor ahead of the oleo.
     for k, (z0, z1) in enumerate(((-drop * 0.58, -drop * 0.72), (-drop * 0.72, -drop * 0.86))):
         line(f"gear_{name}_link_{k}", (r_strut + 0.03, 0, z0), (r_strut + 0.07 - 0.04 * k, 0, z1), mats["gear"], node,
