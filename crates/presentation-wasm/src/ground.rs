@@ -119,6 +119,7 @@ impl Presentation {
                 min_height: g.min_height,
                 page_ids,
                 heights,
+                page_mins: Default::default(),
             },
             relief,
             props,

@@ -205,9 +205,12 @@ impl Ground {
     /// The window of tiles a camera at `eye` grows grass over, by the
     /// rules the field grows by and down to the map's lowest ground.
     pub fn grass_window(&self, eye: [f64; 3], metres_per_px: f64) -> Window {
+        // The lowest ground the grass could reach, not the whole map's: a
+        // deep valley elsewhere must not lift the strategic cut-off.
+        let reach = self.biome.grass.fade_m_per_px[1] / metres_per_px;
         window(
             eye,
-            self.source.grid.min_height,
+            self.source.grid.lowest_within(eye[0], eye[1], reach),
             metres_per_px,
             &self.biome.grass,
         )

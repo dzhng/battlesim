@@ -202,6 +202,7 @@ pub fn source(
             min_height: n("minHeight"),
             page_ids: world.export_terrain_page_ids(),
             heights: world.export_terrain_heights(),
+            page_mins: Default::default(),
         },
         relief: relief::BackdropRelief::default(),
         props: world.export_props(),

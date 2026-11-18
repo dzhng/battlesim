@@ -359,6 +359,8 @@ pub struct Grid {
     pub page_ids: Vec<u32>,
     /// `page_size²` row-major heights per present page.
     pub heights: Vec<f32>,
+    /// Each page's lowest height (absent pages 0), filled on first use.
+    pub page_mins: std::sync::OnceLock<Vec<f32>>,
 }
 
 impl Grid {
@@ -387,6 +389,41 @@ impl Grid {
         match self.page_ids.binary_search(&id) {
             Ok(page) => self.heights[page * size * size + (j % size) * size + i % size] as f64,
             Err(_) => 0.0,
+        }
+    }
+
+    /// The lowest ground within `radius` metres (a square round `(x, y)`,
+    /// clamped to the grid) by its pages' minima: never above the true
+    /// lowest there, and never below `min_height`.
+    pub fn lowest_within(&self, x: f64, y: f64, radius: f64) -> f64 {
+        if self.nx < 2 || self.ny < 2 || self.page_size == 0 || self.spacing <= 0.0 {
+            return self.min_height;
+        }
+        let size = self.page_size;
+        let cols = self.nx.div_ceil(size);
+        let rows = self.ny.div_ceil(size);
+        let mins = self.page_mins.get_or_init(|| {
+            let mut out = vec![0f32; cols * rows];
+            for (p, &id) in self.page_ids.iter().enumerate() {
+                let page = &self.heights[p * size * size..(p + 1) * size * size];
+                out[id as usize] = page.iter().copied().fold(f32::INFINITY, f32::min);
+            }
+            out
+        });
+        let cell =
+            |v: f64, n: usize| ((v / self.spacing).floor().max(0.0) as usize).min(n - 1) / size;
+        let (i0, i1) = (cell(x - radius, self.nx), cell(x + radius, self.nx));
+        let (j0, j1) = (cell(y - radius, self.ny), cell(y + radius, self.ny));
+        let mut lowest = f64::INFINITY;
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                lowest = lowest.min(f64::from(mins[j * cols + i]));
+            }
+        }
+        if lowest.is_finite() {
+            lowest.max(self.min_height)
+        } else {
+            self.min_height
         }
     }
 

@@ -584,3 +584,27 @@ fn grass_growth_rows_normalize_mixes_and_refuse_composed_heights_over_the_cap() 
     meadow.patches.height[1] = 1.2;
     assert!(params(&g).unwrap_err().contains("effective field height"));
 }
+
+#[test]
+fn grass_lowest_ground_is_local_not_the_maps() {
+    // 51x51 vertices at 4 m in 16-vertex pages (4x4 pages): all 10 m high but
+    // the far corner page, a 100 m deep pit.
+    let mut heights = Vec::new();
+    for page in 0..16u32 {
+        let h = if page == 15 { -100.0 } else { 10.0 };
+        heights.extend(std::iter::repeat_n(h, 16 * 16));
+    }
+    let grid = Grid {
+        nx: 51,
+        ny: 51,
+        spacing: 4.0,
+        page_size: 16,
+        min_height: -100.0,
+        page_ids: (0..16).collect(),
+        heights,
+        ..Grid::default()
+    };
+    assert_eq!(grid.lowest_within(20.0, 20.0, 30.0), 10.0);
+    assert_eq!(grid.lowest_within(190.0, 190.0, 10.0), -100.0);
+    assert_eq!(grid.lowest_within(20.0, 20.0, 1000.0), -100.0);
+}
