@@ -125,6 +125,10 @@ impl EffectBatch {
         albedo: Vec3,
         opacity: f64,
     ) {
+        // Zero alpha identifies additive light in the shared streak format.
+        if opacity <= 0.0 {
+            return;
+        }
         let shape = [STREAK, 1.0, 1.0, 0.0];
         self.put([v4(a, width), v4(b, min_px), v4(albedo, opacity), shape]);
     }

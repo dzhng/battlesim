@@ -610,7 +610,7 @@
     },
     "air_bomb_cluster": {
       "resupply_rounds_per_s": 0.05,
-      "appearance": "bomb",
+      "appearance": "cluster_bomb",
       "round_cost": 25,
       "delivery": "unpowered",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 14 } },

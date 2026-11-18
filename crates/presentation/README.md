@@ -237,6 +237,8 @@ up: a bright muzzle flash cannot substitute for a readable round in flight.
 Tune the shared weapon looks rather than adding camera-specific effects.
 Damage guides the visual weight of comparable rounds: heavier hits deserve
 stronger glows and smoke, with those looks authored alongside the weapon family.
+Flight glows take priority over lingering smoke when the effect budget fills,
+and draw over it, so a dense salvo cannot hide the rounds still falling.
 
 Soldier poses follow actual published soldiers rather than formation slots. A
 soldier down in a posture, or shooting, keeps his weapon toward the threat as he

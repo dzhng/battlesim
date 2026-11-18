@@ -44270,7 +44270,7 @@
       "aim_s": 1.2,
       "ammo": 3,
       "anti_radiation": false,
-      "appearance": "bomb",
+      "appearance": "cluster_bomb",
       "armor_piercing": false,
       "blast_radius_m": 40.0,
       "damage": 220.0,

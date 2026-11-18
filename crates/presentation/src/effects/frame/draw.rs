@@ -13,7 +13,7 @@ pub(super) fn tracer_amplitude(u: f64, retained: f64) -> f64 {
 }
 
 /// A round in flight: its glow along the tail, its hot core along the
-/// tail's front, and its body and light while this stretch holds the round.
+/// tail's front, and its body while this stretch holds the round.
 pub(super) fn draw_tracer(
     p: &EffectPresentation,
     e: &Effect,
@@ -49,15 +49,10 @@ pub(super) fn draw_tracer(
             batch,
         );
     }
-    // The round is on this stretch from its tick's start to its end (a
-    // clock at the tick's end lands a rounding off it).
-    if (style.body.is_none() && style.cast.is_none() && style.head_glow.is_none())
-        || age <= 0.0
-        || head > length * (1.0 + 1e-6)
-    {
+    if style.head_glow.is_none() && style.body.is_none() {
         return;
     }
-    let a = point_along(e, head.min(length));
+    let Some(a) = tracer_head(e, age) else { return };
     if let Some(glow) = &style.head_glow {
         batch.glow(
             a,
@@ -72,11 +67,14 @@ pub(super) fn draw_tracer(
     if let Some(body) = &style.body {
         batch.disc(a, body.size_m, p.min_px * 2.0, body.color, 1.0);
     }
-    if let Some(c) = &style.cast {
-        batch
-            .lights
-            .offer(a, c.radius_m, c.color, c.intensity, &e.cause);
-    }
+}
+
+/// The round is on this stretch from its tick's start to its end (a
+/// clock at the tick's end lands a rounding off it).
+pub(super) fn tracer_head(e: &Effect, age: f64) -> Option<Vec3> {
+    let head = e.length * age / e.span;
+    (e.length > 1e-6 && age > 0.0 && head <= e.length * (1.0 + 1e-6))
+        .then(|| point_along(e, head.min(e.length)))
 }
 
 /// The part of `e`'s stretch within `length` behind `head`, in `light`, as
