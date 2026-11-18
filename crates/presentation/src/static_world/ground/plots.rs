@@ -164,6 +164,9 @@ fn road_cuts(poly: &[f64], a: [f64; 2], b: [f64; 2], short_chord: f64, share: f6
 /// The grain a piece is cut on: its heading, depth and whether it's a tract.
 type Grain = (f64, usize, bool);
 
+/// Ground higher than this is a hill's (only relief raises the land).
+const HILL_PLOT_M: f64 = 1.0;
+
 struct Split<'a> {
     rules: &'a FieldRules,
     biome: &'a Biome,
@@ -246,8 +249,10 @@ impl Split<'_> {
 
     /// The ground round a building is the settlement's own, and the land
     /// round that its surround, where no crop is drilled; a swamp floods the
-    /// ground its look names.
-    fn pick_kind(&mut self, centre: [f64; 2]) -> usize {
+    /// ground its look names; on a hill (any corner or the middle above
+    /// `HILL_PLOT_M`) it is the surround's meadow, never a drilled crop.
+    fn pick_kind(&mut self, poly: &[f64]) -> usize {
+        let centre = centroid(poly);
         if let Some(ground) = self.water.flooded(centre[0], centre[1]) {
             if let Some(p) = self.biome.plots.iter().position(|p| p.name == ground) {
                 return p;
@@ -257,6 +262,15 @@ impl Split<'_> {
             return self.out.settlement;
         }
         if self.near_building(centre, libm::pow(self.rules.settlement_m, 2.0), false) {
+            return self.surround;
+        }
+        let grid = &self.source.grid;
+        if grid.nx >= 2
+            && grid.ny >= 2
+            && std::iter::once(centre)
+                .chain(poly.as_chunks::<2>().0.iter().copied())
+                .any(|p| grid.height(p[0], p[1]) > HILL_PLOT_M)
+        {
             return self.surround;
         }
         let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
@@ -271,7 +285,7 @@ impl Split<'_> {
     }
 
     fn leaf(&mut self, poly: Vec<f64>, heading: f64) -> f64 {
-        let kind = self.pick_kind(centroid(&poly));
+        let kind = self.pick_kind(&poly);
         let palette = &self.biome.palettes[&self.biome.plots[kind].palette];
         let base = &palette[(self.rng.sample() * palette.len() as f64).floor() as usize];
         let jitter = self.rules.colour_jitter;

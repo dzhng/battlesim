@@ -128,7 +128,8 @@ pub struct FieldRules {
     pub mottle_m: f64,
     /// A plot whose centre lies within `yard_m` of a building on the same
     /// side of every carriageway is `settlement_kind`; any other within
-    /// `settlement_m` of one is `surround_kind`.
+    /// `settlement_m` of one is `surround_kind`, as is every plot on a
+    /// hill.
     pub settlement_kind: String,
     pub yard_m: f64,
     pub settlement_m: f64,
