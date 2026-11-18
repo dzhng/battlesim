@@ -143,6 +143,35 @@ fn a_reverse_order_holds_the_facing_and_drives_backwards() {
 }
 
 #[test]
+fn an_armoured_vehicle_runs_over_a_chainlink_fence() {
+    let fixture = rules();
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                  "props": [{ "kind": "chainlink_fence", "center": [80.0, 60.0], "yaw": 0.0,
+                               "half_extents": [0.15, 8.0, 1.0] }] },
+        "rules": fixture,
+        "units": [{ "side": "blue", "kind": "test_apc", "position": [20.0, 60.0], "yaw": 0.0,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": [140.0, 60.0], "route": "shortest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let poses = drive(&mut b, 30.0);
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert_eq!(tank.state, MoveState::Idle, "it is still {:?}", tank.state);
+    assert!((tank.position.xy() - sim::math::v2(140.0, 60.0)).length() < 1.0);
+    assert!(poses
+        .iter()
+        .any(|(p, _, _)| p.x > 80.0 && (p.y - 60.0).abs() < 1.0));
+    assert!(!b
+        .world()
+        .props()
+        .any(|p| p.kind == crate::common::kind("chainlink_fence")));
+}
+
+#[test]
 fn a_reverse_order_repeats_from_its_seed_and_changes_the_digest() {
     let run = |direction: &str| {
         let mut b = battle(

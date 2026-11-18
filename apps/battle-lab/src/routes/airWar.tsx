@@ -100,7 +100,13 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
   },
   "air-survivability": {
     title: "Survivability",
-    variants: { flares: { label: "Flares or none", source: { encounter: "survivability" } } },
+    variants: {
+      flares: { label: "Flares or none", source: { encounter: "survivability" } },
+      visibility: {
+        label: "Air fire over unseen ground",
+        source: { encounter: "projectile-visibility" },
+      },
+    },
   },
   "air-roster": {
     title: "Air roster",
@@ -393,7 +399,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
         return (
           <div key={name} data-weapon={name}>
             {w.name}: <span data-field="targets">{targets}</span> {w.range_m} m
-            {intercepts ? ` · intercepts missiles from ${intercepts}` : ""}
+            {intercepts ? ` · intercepts missiles in ${intercepts}` : ""}
             {w.decoyable ? " · decoyable" : ""}
             {w.seeker ? ` · ${String(w.seeker)} seeker` : ""}
           </div>

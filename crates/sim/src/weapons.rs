@@ -67,7 +67,7 @@ pub enum Target {
     Round(RoundTarget),
 }
 
-/// A round in flight, by its id and the layer it was fired from; where it
+/// A round in flight, by its id and fixed engagement layer; where it
 /// is and how it flies are read live ([`IncomingRound`]).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RoundTarget {
@@ -76,7 +76,7 @@ pub struct RoundTarget {
 }
 
 /// An interceptable round in flight, as every mount may engage it: who fired
-/// it, where it is, how it flies, and the layer it was fired from.
+/// it, where it is, how it flies, and its fixed engagement layer.
 #[derive(Clone, Copy, Debug)]
 pub struct IncomingRound {
     pub id: ProjectileId,
@@ -359,7 +359,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             current: true,
             armor: None,
             // Ground orders always remain Ground; only a round target carries
-            // the layer it was fired from.
+            // its fixed engagement layer.
             layer: AltitudeLayer::Ground,
             class: None,
             emits: false,
@@ -921,8 +921,8 @@ fn automatic_lock(
     reason
 }
 
-/// The nearest enemy round in this mount's `missile` reach (by the layer it
-/// was fired from) that a shot can catch now: the same assessment as any
+/// The nearest enemy round in this mount's `missile` reach, by its assigned
+/// layer, that a shot can catch now: the same assessment as any
 /// target, its lead solution included (a round speeding away has none),
 /// and the shot meets it in time and within reach.
 fn catchable_round(

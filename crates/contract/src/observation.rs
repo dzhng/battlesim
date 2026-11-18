@@ -381,7 +381,7 @@ pub struct SegmentRicochet {
 }
 
 /// A round's burst this tick: HE, grenades and missiles. Own blasts are all
-/// published; enemy blasts only on ground this side sees.
+/// published; enemy blasts use sight in the projectile's fixed band.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Blast {
     pub point: [f64; 3],

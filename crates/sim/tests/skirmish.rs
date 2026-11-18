@@ -509,7 +509,7 @@ fn view_exposes_each_observed_players_economy_and_hides_the_enemy_side() {
 }
 
 #[test]
-fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
+fn occupied_entry_relocates_the_next_paid_unit_without_overlap() {
     let setup = setup();
     let mut battle = Battle::new(&setup, 1);
     for seq in 1..=2 {
@@ -528,14 +528,18 @@ fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
         battle.step();
     }
     let frame = battle.observe(Side::Blue);
-    assert_eq!(frame.own.len(), 1);
-    assert_eq!(frame.own[0].position[0], 400.0);
-    assert!((frame.own[0].position[1] - 10.0).abs() < 1.0);
+    assert_eq!(frame.own.len(), 2);
+    assert!(frame
+        .own
+        .iter()
+        .any(|unit| unit.position[0] == 400.0 && (unit.position[1] - 10.0).abs() < 1.0));
+    assert!(frame
+        .own
+        .iter()
+        .any(|unit| unit.position[0] != 400.0 || (unit.position[1] - 10.0).abs() >= 1.0));
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(status.players[0].unit_count, 2);
-    assert_eq!(status.players[0].pending.len(), 1);
-    assert!(status.players[0].pending[0].blocked);
-    assert_eq!(status.players[0].pending[0].id.0, 1);
+    assert!(status.players[0].pending.is_empty());
     let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
     while replay.tick() < battle.tick() {
         replay.step();

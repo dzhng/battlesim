@@ -32,8 +32,8 @@ pub struct FlightRules {
     pub min_spread_at_max_range_m: f64,
 }
 
-/// What a guided missile does once its launcher stops supporting it (the
-/// fixture's `guided` section).
+/// What a guided missile does once tracking ends, from its launcher or its
+/// own seeker (the fixture's `guided` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GuidedRules {
@@ -50,10 +50,11 @@ pub struct GuidedRules {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Trajectory {
-    /// Normal low arc only.
+    /// Normal low arc only; gravity alone does not make ground fire airborne.
     #[default]
     Direct,
-    /// A dedicated indirect-fire weapon: prefers the high arc.
+    /// A dedicated indirect-fire weapon: prefers the high arc. Its
+    /// ground-to-ground projectiles use LowAir for their entire flight.
     Indirect,
 }
 
@@ -109,7 +110,8 @@ pub struct WeaponBallistics {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guidance: Option<Guidance>,
     /// A guided round that climbs above its point, then dives onto it from
-    /// above (absent: it flies straight at its point).
+    /// above (absent: it flies straight at its point). Its ground-to-ground
+    /// projectiles use LowAir for their entire flight.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_attack: Option<TopAttack>,
 }
@@ -130,10 +132,11 @@ pub enum Guidance {
     OnTheMove,
 }
 
-/// A top-attack path: while its launcher supports it, a guided round climbs
+/// A top-attack path: while tracking, a guided round climbs
 /// at `dive_deg` to `loft_m` above its commanded point, holds that height
 /// until the point lies at least `dive_deg` below its horizon, then dives
-/// onto it.
+/// onto it. Launcher support and an autonomous seeker share this path;
+/// releasing or diverting the round drops the loft.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TopAttack {

@@ -502,12 +502,10 @@ fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
     );
 }
 
-/// A round keeps the band its shooter fired it from for its whole flight,
-/// never one read from its height: a ground launcher's missile lofting 60 m
-/// over the field is a ground round throughout, and a helicopter's bullets
-/// falling to the ground stay low-air rounds.
+/// A deliberately lofted ground missile and a helicopter's falling bullets
+/// both stay LowAir throughout flight, regardless of their physical height.
 #[test]
-fn a_round_keeps_the_band_it_was_fired_from_for_its_whole_flight() {
+fn a_round_keeps_its_assigned_band_throughout_flight() {
     let mut rules = fixture();
     rules["weapons"]["atgm"]["top_attack"] = json!({ "loft_m": 60, "dive_deg": 40 });
     rules["weapons"]["atgm"]["turn_deg_s"] = json!(360);
@@ -527,10 +525,10 @@ fn a_round_keeps_the_band_it_was_fired_from_for_its_whole_flight() {
         for (p, r) in b.rounds() {
             let ground = b.world().height_at(p.position.x, p.position.y).unwrap();
             match r.unit {
-                UnitId(0) => {
+                UnitId(0) if b.arsenal().weapons[r.weapon].profile.loft.is_some() => {
                     assert_eq!(
                         r.layer,
-                        AltitudeLayer::Ground,
+                        AltitudeLayer::LowAir,
                         "at {:.0} m up",
                         p.position.z - ground
                     );
@@ -938,14 +936,15 @@ fn a_heard_helicopter_report_is_airborne() {
     );
 }
 
-/// Blue's tank and, 720 m off and beyond each other's sight, a red `kind`
-/// that fires every second: blue holds only its firing area.
+/// A tank hears an unseen enemy firing within its HE range.
 fn hidden_fire_at_a_tank(fixture: &Value, kind: &str) -> Battle {
+    let mut fixture = fixture.clone();
+    json_ground_reach(&mut fixture["weapons"]["tank_he"], 1000.0);
     let fire: Vec<Value> = (0..20)
         .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 1 } }))
         .collect();
     scripted(
-        fixture,
+        &fixture,
         strip(),
         json!([
             { "side": "blue", "kind": "test_tank", "position": [100, 200] },
@@ -972,10 +971,8 @@ fn blue_rounds(b: &mut Battle, ticks: u64) -> usize {
 
 #[test]
 fn area_fire_refuses_an_air_contact() {
-    // A tank crew hears a helicopter's gun but can't see it: shelling the
-    // field under where the sound came from would be silly, so neither the
-    // player's attack order nor the crew's own fire aims at the report. A
-    // squad's report from the same place draws HE as before.
+    // A crew cannot shell an unseen helicopter's firing report; an unseen
+    // ground squad at the same distance still draws HE.
     let fixture = fixture();
     let mut b = hidden_fire_at_a_tank(&fixture, "test_heli");
     let mut ground = hidden_fire_at_a_tank(&fixture, "test_rifle");

@@ -159,19 +159,17 @@ pub fn generate_layout(
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
+    let outlines: Vec<_> = towns.iter().map(|t| t.outline.as_slice()).collect();
     let mut skirmish = crate::skirmish::reserve(
         request,
         &mut surfaces,
         &water,
         skeleton.hub,
-        &towns
-            .iter()
-            .map(|t| t.outline.as_slice())
-            .collect::<Vec<_>>(),
+        &outlines,
         presets.joints.edge_run_m,
     )?;
     placed.reserved.extend(
-        crate::skirmish::objective_clearances(skirmish.as_ref())
+        crate::skirmish::objective_clearances(skirmish.as_ref(), outlines)
             .map(|(center, clearance)| sites::Corridor::objective(center, clearance)),
     );
     let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);

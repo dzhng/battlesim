@@ -1,0 +1,27 @@
+{
+  "units": [
+    {
+      "side": "blue",
+      "kind": "f_16c_block_50",
+      "position": [2000, 1500],
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "us_f_15_eagle_f_15e_strike_eagle",
+      "position": [220, 1450],
+      "engagement": "return_fire_only"
+    }
+  ],
+  "scripts": [
+    {
+      "tick": 5,
+      "side": "red",
+      "order": {
+        "kind": "attack",
+        "units": [1],
+        "target": { "kind": "ground", "point": [2380, 1450, 0] }
+      }
+    }
+  ]
+}

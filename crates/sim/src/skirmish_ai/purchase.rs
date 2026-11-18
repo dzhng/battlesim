@@ -134,7 +134,13 @@ pub(super) fn lane_purchase_destination(
     advance_m: f64,
 ) -> [f64; 2] {
     let span = distance(entry.center, staging);
-    let advance = advance_m.max(0.0).min(span * 0.5);
+    // A missing or coincident staging point still needs to leave the road
+    // mouth. The entry heading supplies the only useful direction then.
+    let advance = if span > 0.0 {
+        advance_m.max(0.0).min(span * 0.5)
+    } else {
+        advance_m.max(0.0)
+    };
     let toward = [staging[0] - entry.center[0], staging[1] - entry.center[1]];
     let road = [libm::cos(entry.yaw), libm::sin(entry.yaw)];
     let heading = if road[0] * toward[0] + road[1] * toward[1] >= 0.0 {

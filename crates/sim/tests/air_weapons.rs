@@ -223,7 +223,9 @@ fn rifles_can_hurt_a_little_bird_but_not_a_wildcat() {
 
 #[test]
 fn an_air_defence_team_brings_down_a_helicopter() {
-    let b = against("test_aa", 250.0);
+    let mut fixture = fixture();
+    fixture["weapons"]["stinger"]["damage"] = json!(260);
+    let b = against_at(&fixture, "test_aa", 250.0, 30);
     assert!(shots(&b, "AA launcher") > 0, "the missile never went up");
     assert!(
         !b.unit(UnitId(0)).unwrap().alive(),
@@ -265,7 +267,8 @@ fn an_air_defence_team_never_fires_its_missile_at_ground_targets() {
 /// where it was.
 #[test]
 fn an_air_defence_missile_runs_down_a_helicopter_crossing_its_front() {
-    let fixture = fixture();
+    let mut fixture = fixture();
+    fixture["weapons"]["stinger"]["damage"] = json!(260);
     let map = json!({ "size": [1600, 1200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
     let mut b = battle_with(
         &fixture,

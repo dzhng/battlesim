@@ -49,21 +49,29 @@ fn a_squad_boards_a_carrier_whose_route_is_blocked() {
         {"kind":"crate", "center":[600,120], "yaw":0, "half_extents":[1.5,9.9,2]},
         {"kind":"crate", "center":[603,120], "yaw":0, "half_extents":[1.5,9.9,2]}
     ]);
-    let mut b = Battle::new(
-        &common::scenario_with(
-            &json!({"size":[1200,240], "fog_cell_m":8, "height_grid_m":4,
+    let mut setup = common::scenario_with(
+        &json!({"size":[1200,240], "fog_cell_m":8, "height_grid_m":4,
                 "slope_cutoff_deg":35, "props":props})
-            .to_string(),
-            json!([
-                {"side":"blue","kind":"test_apc","position":[540,120],"yaw":0},
-                {"side":"blue","kind":"test_rifle","position":[520,120]},
-                {"side":"red","kind":"test_rifle","position":[1150,200]}
-            ]),
-            json!([]),
-            json!([]),
-        ),
-        7,
+        .to_string(),
+        json!([
+            {"side":"blue","kind":"test_apc","position":[540,120],"yaw":0},
+            {"side":"blue","kind":"test_rifle","position":[520,120]},
+            {"side":"red","kind":"test_rifle","position":[1150,200]}
+        ]),
+        json!([]),
+        json!([]),
     );
+    setup.rules = setup
+        .rules
+        .overridden(
+            json!({ "props": {
+        "crate": { "body": { "weight_class": "light", "topples": false } }
+    } })
+            .as_object()
+            .unwrap(),
+        )
+        .unwrap();
+    let mut b = Battle::new(&setup, 7);
     let drive = b.accept(command(
         1,
         Order::Move {

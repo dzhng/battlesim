@@ -9,6 +9,7 @@ use contract::ground::GroundShape;
 use contract::ids::Side;
 use contract::map::{SurfaceArea, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
+use std::f64::consts::TAU;
 
 /// How far in from the edge an entry stands on its road.
 const ENTRY_INSET_M: f64 = 8.0;
@@ -399,32 +400,110 @@ fn add_entry_arms(
 /// Ground kept beyond a reserved objective's clearance, so what stands round
 /// it does not crowd its edge.
 const CLEARANCE_MARGIN_M: f64 = 10.0;
-/// The most of the primary junction's capture circle that is kept clear: it
-/// stands in the main town's square, and the town's first buildings must
-/// stand inside the circle, not beyond it. The capture radius itself stays
-/// the objective's.
-const JUNCTION_CLEARANCE_M: f64 = 18.0;
+/// The most of a town objective's capture circle that is kept clear: it
+/// stands in a square, and the town's buildings must stand inside the
+/// circle, not beyond it. The capture radius itself stays the objective's.
+const TOWN_SQUARE_M: f64 = 18.0;
+
+/// The outlines of the plan's towns, for [`in_town`].
+pub(crate) fn town_outlines(plan: &MapPlan) -> Vec<&[[f64; 2]]> {
+    plan.settlements
+        .iter()
+        .map(|town| town.outline.as_slice())
+        .collect()
+}
+
+/// Whether an objective at `center` stands on a town's ground. One there is
+/// fought over the town's buildings round its square; one in the open
+/// country over its own homestead.
+pub(crate) fn in_town(towns: &[&[[f64; 2]]], center: [f64; 2]) -> bool {
+    towns
+        .iter()
+        .any(|ring| contract::ground::polygon_contains(ring, center))
+}
 
 /// The ground every generation pass keeps clear about each reserved objective
 /// of `sites` (forests, parcels, the open country and street furniture
-/// alike): its centre and how far from it nothing stands.
-pub(crate) fn objective_clearances(
-    sites: Option<&SkirmishSites>,
-) -> impl Iterator<Item = ([f64; 2], f64)> + '_ {
+/// alike): its centre and how far from it nothing stands, among `towns`.
+pub(crate) fn objective_clearances<'a>(
+    sites: Option<&'a SkirmishSites>,
+    towns: Vec<&'a [[f64; 2]]>,
+) -> impl Iterator<Item = ([f64; 2], f64)> + 'a {
     sites
         .into_iter()
         .flat_map(SkirmishSites::all_reserved_objectives)
-        .map(|o| {
-            let kept = match o.kind {
-                ObjectiveSiteKind::Junction => o.radius_m.min(JUNCTION_CLEARANCE_M),
-                _ => o.radius_m,
+        .map(move |o| {
+            let kept = if in_town(&towns, o.center) {
+                o.radius_m.min(TOWN_SQUARE_M)
+            } else {
+                o.radius_m
             };
             (o.center, kept + CLEARANCE_MARGIN_M)
         })
 }
 
-/// Keep the reserved objectives the finished `plan` builds on: each holds a
-/// building within its capture circle, a town's or its own homestead's.
+/// [`objective_clearances`] of a laid-out `plan`, among its own towns.
+pub(crate) fn objective_clearances_in(
+    plan: &MapPlan,
+) -> impl Iterator<Item = ([f64; 2], f64)> + '_ {
+    objective_clearances(plan.skirmish.as_ref(), town_outlines(plan))
+}
+
+/// How far past a capture circle's edge the buildings that surround an
+/// objective may stand: the frontage of a square.
+const SURROUND_M: f64 = 25.0;
+/// The arcs the bearings round an objective are read in: a side is a
+/// quarter of them.
+const BEARINGS: usize = 72;
+const SIDE: usize = BEARINGS / 4;
+
+/// Whether an objective is fought over buildings among `walls`: one stands
+/// in its capture circle, or buildings surround it on three sides within
+/// [`SURROUND_M`] of its edge, as round a town square. A side is a quarter
+/// of the way round, turned however fits best, and it is built up when
+/// buildings front at least half of it.
+fn fought_over(site: &ObjectiveSite, walls: &[Rect]) -> bool {
+    let reach = site.radius_m + SURROUND_M;
+    let mut walled = [false; BEARINGS];
+    for wall in walls {
+        let gap = wall.segment_gap(site.center, site.center);
+        if gap < site.radius_m {
+            return true;
+        }
+        if gap >= reach {
+            continue;
+        }
+        // The bearings of its outline within reach, a metre at a time.
+        let corners = wall.corners();
+        for (k, &a) in corners.iter().enumerate() {
+            let b = corners[(k + 1) % 4];
+            let steps = libm::ceil(distance(a, b)).max(1.0) as usize;
+            for step in 0..=steps {
+                let t = step as f64 / steps as f64;
+                let p = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+                if distance(p, site.center) < reach {
+                    let bearing = libm::atan2(p[1] - site.center[1], p[0] - site.center[0]);
+                    let arc = libm::floor(bearing / TAU * BEARINGS as f64) as isize;
+                    walled[arc.rem_euclid(BEARINGS as isize) as usize] = true;
+                }
+            }
+        }
+    }
+    (0..SIDE).any(|turn| {
+        (0..4)
+            .filter(|side| {
+                (0..SIDE)
+                    .filter(|k| walled[(turn + side * SIDE + k) % BEARINGS])
+                    .count()
+                    >= SIDE / 2
+            })
+            .count()
+            >= 3
+    })
+}
+
+/// Keep the reserved objectives the finished `plan` builds on: each is
+/// [`fought_over`] buildings, a town's or its own homestead's.
 /// The kept halves are paired again in reservation order, since the
 /// simulation pairs them by travel anyway. A plan left without its centres
 /// or its pairs is refused.
@@ -450,11 +529,6 @@ pub(crate) fn keep_built(
                 }),
         );
     }
-    let built = |site: &ObjectiveSite| {
-        walls
-            .iter()
-            .any(|wall| wall.segment_gap(site.center, site.center) < site.radius_m)
-    };
     let centres = sites
         .objectives
         .iter()
@@ -463,7 +537,7 @@ pub(crate) fn keep_built(
     let pairs = (sites.objectives.len() - centres) / 2;
     let (central, paired): (Vec<_>, Vec<_>) = sites
         .all_reserved_objectives()
-        .filter(|site| built(site))
+        .filter(|site| fought_over(site, &walls))
         .cloned()
         .partition(|site| site.counterpart.is_none());
     let (high, low): (Vec<_>, Vec<_>) = paired.into_iter().partition(|o| o.center[1] > middle);
@@ -482,7 +556,7 @@ pub(crate) fn keep_built(
             feature: Some("skirmish_sites".into()),
             location: "$.profile".into(),
             message: format!(
-                "too few reserved objectives hold a building: {} of {centres} centres, \
+                "too few reserved objectives are fought over buildings: {} of {centres} centres, \
                  {} of {pairs} pairs",
                 central.len(),
                 matched.len()
@@ -506,4 +580,84 @@ pub(crate) fn keep_built(
 
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An objective at the origin with a 50 m capture circle.
+    fn site() -> ObjectiveSite {
+        ObjectiveSite {
+            id: "objective".into(),
+            center: [0.0, 0.0],
+            radius_m: 50.0,
+            kind: ObjectiveSiteKind::Field,
+            counterpart: None,
+        }
+    }
+
+    /// A terrace `length` long whose near face stands `off` metres out on
+    /// the bearing `bearing`, square to it.
+    fn terrace(bearing: f64, off: f64, length: f64) -> Rect {
+        let out = direction(bearing);
+        Rect {
+            center: [out[0] * (off + 5.0), out[1] * (off + 5.0)],
+            axis: [-out[1], out[0]],
+            half: [length / 2.0, 5.0],
+        }
+    }
+
+    /// Terraces fronting a square 60 m out on each of `sides` (quarter
+    /// turns from `turn`), each `length` long.
+    fn square(turn: f64, sides: &[u32], length: f64) -> Vec<Rect> {
+        sides
+            .iter()
+            .map(|&k| terrace(turn + f64::from(k) * TAU / 4.0, 60.0, length))
+            .collect()
+    }
+
+    #[test]
+    fn a_square_built_round_on_three_sides_is_fought_over() {
+        for turn in [0.0, 0.3, 0.785, 1.2] {
+            assert!(fought_over(&site(), &square(turn, &[0, 1, 2], 70.0)));
+            assert!(fought_over(&site(), &square(turn, &[0, 1, 2, 3], 70.0)));
+        }
+    }
+
+    #[test]
+    fn a_square_open_on_two_sides_is_not() {
+        for turn in [0.0, 0.3, 0.785, 1.2] {
+            assert!(!fought_over(&site(), &square(turn, &[0, 1], 70.0)));
+            assert!(!fought_over(&site(), &square(turn, &[0, 2], 70.0)));
+            assert!(!fought_over(&site(), &square(turn, &[1], 200.0)));
+        }
+    }
+
+    /// Streets leave a town square between its terraces: short frontages
+    /// with gaps between still wall it in.
+    #[test]
+    fn streets_between_the_terraces_leave_it_walled_in() {
+        let mut walls = Vec::new();
+        for k in 0..12 {
+            walls.push(terrace(f64::from(k) * TAU / 12.0, 60.0, 22.0));
+        }
+        assert!(fought_over(&site(), &walls));
+    }
+
+    #[test]
+    fn a_building_in_the_circle_or_none_near_decides_alone() {
+        assert!(fought_over(&site(), &[terrace(0.0, 30.0, 10.0)]));
+        assert!(!fought_over(
+            &site(),
+            &square(0.0, &[0, 1, 2, 3], 70.0)
+                .into_iter()
+                .map(|wall| Rect {
+                    center: [wall.center[0] * 3.0, wall.center[1] * 3.0],
+                    ..wall
+                })
+                .collect::<Vec<_>>()
+        ));
+        assert!(!fought_over(&site(), &[]));
+    }
 }

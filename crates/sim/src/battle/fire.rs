@@ -14,8 +14,8 @@ pub struct Round {
     /// The unit it was fired at, until a flare spoofs it: what its
     /// proximity fuse bursts near, and whom its passing shoots at.
     pub aimed_at: Option<UnitId>,
-    /// The height band its shooter fired it from, for its whole flight:
-    /// what an interceptor reaches it by. Never read from its height.
+    /// The higher launch/target band, or LowAir for deliberately lofted
+    /// ground fire, fixed for its whole flight. Never read from its height.
     pub layer: AltitudeLayer,
 }
 
@@ -66,10 +66,29 @@ impl Battle {
     /// flies and one of the side's units sees it), and its operator has physical line of sight independent of
     /// spotting range. It steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
-    /// the missile coasts straight on for `guided.release_coast_s`, then goes
-    /// to ground, so a far one misses a target it can no longer see.
+    /// the missile takes a fixed descent aim projected by
+    /// `guided.release_coast_s`, so a far one misses a target it no longer sees.
     /// Flares are dispensed first, so a spoofed round is steered no more.
     pub(super) fn guide(&mut self, moved: &weapons::tick::Moved) {
+        // A physical miss may have ended steering last tick. Drop its
+        // ownership before countermeasures consult the remaining tracks.
+        for mount in self.units.iter_mut().flat_map(|u| &mut u.mounts) {
+            mount.support = mount.support.filter(|s| {
+                self.projectiles
+                    .get(s.projectile)
+                    .is_some_and(|p| p.guidance.is_some_and(|g| g.supported))
+            });
+        }
+        for (id, round) in &mut self.rounds {
+            if round.seeker_target.is_some()
+                && self
+                    .projectiles
+                    .get(*id)
+                    .is_none_or(|p| p.guidance.is_none())
+            {
+                round.seeker_target = None;
+            }
+        }
         self.dispense_flares();
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
@@ -137,8 +156,7 @@ impl Battle {
                 let keep = (!moved.carrier(i, unit, mount) || on_the_move)
                     && alive[i]
                     && settled
-                    && (unit.hull.is_some() || mount.operator.is_some())
-                    && self.projectiles.get(s.projectile).is_some();
+                    && (unit.hull.is_some() || mount.operator.is_some());
                 match sighting.filter(|&at| {
                     keep && weapons::guidance_clear(&self.world, &self.rules, unit, mount, at)
                 }) {
@@ -176,9 +194,22 @@ impl Battle {
                     .map(|p| (p.position, p.velocity)),
                 _ => None,
             };
-            if let (Some((at, velocity)), Some(seeker)) = (seen, self.projectiles.get(projectile)) {
-                let point = crate::flight::lead(seeker.position, seeker.velocity, at, velocity);
-                self.projectiles.steer_seeker(projectile, point);
+            let fov = self.arsenal.weapons[self.rounds[&projectile].weapon]
+                .def
+                .seeker_fov_deg;
+            match (seen, self.projectiles.get(projectile)) {
+                (Some((at, velocity)), Some(seeker)) if seeker.tracks(at, fov) => {
+                    let point = crate::flight::lead(seeker.position, seeker.velocity, at, velocity);
+                    self.projectiles.steer_seeker(projectile, point);
+                }
+                _ => {
+                    self.rounds.get_mut(&projectile).unwrap().seeker_target = None;
+                    self.projectiles.release(
+                        projectile,
+                        self.rules.guided.release_coast_s,
+                        &self.world,
+                    );
+                }
             }
         }
         let released: Vec<ProjectileId> = self
@@ -259,6 +290,27 @@ impl Battle {
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
+            let target_layer = match shot.target {
+                Target::Unit(id) => self.units[id.0 as usize].layer(),
+                Target::Contact(id) => {
+                    self.knowledge[side.index()]
+                        .contact(id)
+                        .expect("a shot has an acquired contact")
+                        .layer
+                }
+                Target::Round(round) => round.layer,
+                Target::Ground(_) => AltitudeLayer::Ground,
+            };
+            let layer = self.units[shot.unit.0 as usize].layer().max(target_layer);
+            let ballistics = &self.arsenal.weapons[shot.weapon].def.ballistics;
+            let layer = if layer == AltitudeLayer::Ground
+                && (ballistics.trajectory == contract::ballistics::Trajectory::Indirect
+                    || ballistics.top_attack.is_some())
+            {
+                AltitudeLayer::LowAir
+            } else {
+                layer
+            };
             for launch in shot.launches {
                 let seeker = self.arsenal.weapons[shot.weapon].def.seeker.is_some();
                 let guided = launch.guidance.is_some() && !seeker;
@@ -280,7 +332,7 @@ impl Battle {
                             Target::Unit(target) => Some(target),
                             _ => None,
                         },
-                        layer: self.units[shot.unit.0 as usize].layer(),
+                        layer,
                     },
                 );
                 // A guided round is supported by the mount that launched it.

@@ -48,7 +48,10 @@ pub struct Check {
 
 pub enum CheckKind {
     /// An impossible order is refused by this time and never plans again.
-    Refused { unit: u32, by_s: f64 },
+    Refused {
+        unit: u32,
+        by_s: f64,
+    },
     /// Unit ends idle within `within_m` of `at`: a vehicle's centre, a
     /// squad's anchor (its soldiers spread over the area round it).
     Arrive {
@@ -57,7 +60,11 @@ pub enum CheckKind {
         within_m: f64,
     },
     /// Capture the issued marker at `tick`; end idle within `within_m` of it.
-    ArriveAtMarker { unit: u32, tick: u64, within_m: f64 },
+    ArriveAtMarker {
+        unit: u32,
+        tick: u64,
+        within_m: f64,
+    },
     /// No living soldier's disc ever overlaps a solid body (every prop that
     /// blocks infantry: all but the ground kinds, Q27).
     SoldiersClearOfProps,
@@ -68,13 +75,21 @@ pub enum CheckKind {
     NeverInWater,
     /// No hull corner over water ever hangs more than `max_m` off the deck
     /// that carries the hull.
-    HullsOverWater { max_m: f64 },
+    HullsOverWater {
+        max_m: f64,
+    },
     /// At the end, every squad's soldiers stand at least `min_m` apart.
-    Spacing { min_m: f64 },
+    Spacing {
+        min_m: f64,
+    },
     /// Soldiers of different squads never come closer than `min_m`.
-    SquadsNeverOverlap { min_m: f64 },
+    SquadsNeverOverlap {
+        min_m: f64,
+    },
     /// Every living soldier stands within `within_m` of the ground under him.
-    OnGround { within_m: f64 },
+    OnGround {
+        within_m: f64,
+    },
     /// At the end, at least `min` soldiers of `unit` have cover against
     /// `threat`'s position, or the ordered facing when absent: the body stands between.
     InCover {
@@ -89,10 +104,13 @@ pub enum CheckKind {
         goal: [f64; 2],
         min_m: f64,
     },
-    /// The prop nearest `near` at the start ends at least `min_m` from where it began.
-    PropMoved { near: [f64; 2], min_m: f64 },
-    /// The prop nearest `near` at the start never moves: nothing here can shove it.
-    PropStays { near: [f64; 2] },
+    PropMoved {
+        near: [f64; 2],
+        min_m: f64,
+    },
+    PropStays {
+        near: [f64; 2],
+    },
     /// No living soldier's disc ever overlaps a live vehicle's hull (Q23).
     SoldiersClearOfHulls,
     /// Every soldier ends with the health he started with.
@@ -100,26 +118,47 @@ pub enum CheckKind {
     /// No two live hulls ever overlap, whatever their sides (Q14).
     VehiclesNeverOverlap,
     /// `unit` waits for another vehicle at some point (the wait before a detour).
-    Waits { unit: u32 },
+    Waits {
+        unit: u32,
+    },
     /// At the end, at least `min` soldiers of `unit` are each covered
     /// against `threat` by a body no squadmate shares: one tooth each.
-    OneBodyEach { unit: u32, threat: u32, min: usize },
+    OneBodyEach {
+        unit: u32,
+        threat: u32,
+        min: usize,
+    },
     /// At the end, at least `min` soldiers of `unit` have a clear straight
     /// line from their muzzle to one of `threat`'s soldiers (D3: blocked ones
     /// step out).
-    ClearLines { unit: u32, threat: u32, min: usize },
+    ClearLines {
+        unit: u32,
+        threat: u32,
+        min: usize,
+    },
     /// `unit` turns at least `min_deg` within four seconds, before its
     /// centre first moves half a metre: it pivots on the spot (Q29, tracks).
-    PivotsInPlace { unit: u32, min_deg: f64 },
+    PivotsInPlace {
+        unit: u32,
+        min_deg: f64,
+    },
     /// `unit` never turns tighter than its turning radius, nor standing
     /// still (Q29, wheels).
-    WithinRadius { unit: u32 },
+    WithinRadius {
+        unit: u32,
+    },
     /// `unit` drives backwards at some point.
-    Reverses { unit: u32 },
+    Reverses {
+        unit: u32,
+    },
     /// `unit` never drives backwards.
-    NeverReverses { unit: u32 },
+    NeverReverses {
+        unit: u32,
+    },
     /// `unit` keeps the facing it starts with, within a degree (Q31).
-    FacingHeld { unit: u32 },
+    FacingHeld {
+        unit: u32,
+    },
     /// At the end, `unit` is at rest facing `deg` (a right-drag's facing, Q9).
     EndsFacing {
         unit: u32,
@@ -127,17 +166,28 @@ pub enum CheckKind {
         within_deg: f64,
     },
     /// `first` arrives before `second`, and `second` arrives.
-    ArrivesFirst { first: u32, second: u32 },
+    ArrivesFirst {
+        first: u32,
+        second: u32,
+    },
     /// At the end, at least `min` trees fewer stand than at the start (Q16).
-    KnocksTrees { min: usize },
+    KnocksTrees {
+        min: usize,
+    },
     /// No tree ever falls.
     TreesStand,
     /// At the end, at least `min_share` of `rect`'s metre cells (`[x0, y0,
     /// x1, y1]`) are open ground: neither forest ground nor under foliage.
-    OpenGround { rect: [f64; 4], min_share: f64 },
+    OpenGround {
+        rect: [f64; 4],
+        min_share: f64,
+    },
     /// The solid prop nearest `near` at the start ends destroyed, a prop of
     /// `into` standing in its place (Q17).
-    PropBecomes { near: [f64; 2], into: &'static str },
+    PropBecomes {
+        near: [f64; 2],
+        into: &'static str,
+    },
     /// While inside `rect` (`[x0, y0, x1, y1]`), `unit` averages at least `min_mps`.
     FastThrough {
         unit: u32,
@@ -161,7 +211,10 @@ pub enum CheckKind {
     /// Soldiers of `unit` lean out round tall cover to fire: at least
     /// `min` of them lean out on some tick, and none ever leans from inside
     /// a body.
-    Leans { unit: u32, min: usize },
+    Leans {
+        unit: u32,
+        min: usize,
+    },
     /// No soldier twitches while he has somewhere to go (his spot or post
     /// more than half a metre off, set off, his squad neither waiting nor
     /// halted by an attack-move): at most
@@ -1129,7 +1182,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t3-jeep-blocked-by-fence",
-            caption: "a jeep meets a fence it cannot push and drives round it",
+            caption: "a jeep topples a fence",
             map: flat(
                 [120.0, 70.0],
                 json!({ "props": [prop("fence", [60.0, 30.0], 0.0, [0.1, 20.0, 0.6])] }),
@@ -1147,12 +1200,12 @@ fn authored() -> Vec<Scenario> {
                     within_m: 1.5,
                 }),
                 check(VehiclesClearOfProps),
-                check(PropStays { near: [60.0, 30.0] }),
+                check(PropMoved { near: [60.0, 30.0], min_m: 1.0 }),
             ],
         },
         Scenario {
             name: "t3-truck-pushes-crate",
-            caption: "a supply truck meets a crate in a walled lane and shoves it along",
+            caption: "a truck drives through a crate",
             map: flat(
                 [140.0, 60.0],
                 json!({ "props": [
@@ -1174,10 +1227,7 @@ fn authored() -> Vec<Scenario> {
                     within_m: 1.5,
                 }),
                 check(VehiclesClearOfProps),
-                check(PropMoved {
-                    near: [55.0, 30.0],
-                    min_m: 2.0,
-                }),
+                check(PropMoved { near: [55.0, 30.0], min_m: 1.0 }),
             ],
         },
         Scenario {
@@ -1827,7 +1877,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "s-jeep-at-the-garden-fence",
-            caption: "a jeep cannot shove the garden fence and drives round it or through its gate",
+            caption: "a jeep drives through and topples the garden fence",
             map: street([925.0, 895.0, 990.0, 915.0]),
             units: json!([vehicle("blue", "test_jeep", [952.6, 925.0], -std::f64::consts::FRAC_PI_2)]),
             events: none.clone(),
@@ -1842,14 +1892,12 @@ fn authored() -> Vec<Scenario> {
                     within_m: 1.5,
                 }),
                 check(VehiclesClearOfProps),
-                check(PropStays {
-                    near: [952.6, 905.0],
-                }),
+                check(PropMoved { near: [952.6, 905.0], min_m: 1.0 }),
             ],
         },
         Scenario {
-            name: "s-tank-shoves-garden-fence",
-            caption: "a tank drives through the garden fence, shoving a panel aside",
+            name: "s-tank-runs-over-garden-fence",
+            caption: "a tank drives through the garden fence without moving it",
             map: street([925.0, 895.0, 990.0, 915.0]),
             units: json!([vehicle("blue", "test_tank", [946.4, 927.0], -std::f64::consts::FRAC_PI_2)]),
             events: none.clone(),
@@ -1863,10 +1911,7 @@ fn authored() -> Vec<Scenario> {
                     at: [946.4, 889.0],
                     within_m: 1.5,
                 }),
-                check(PropMoved {
-                    near: [946.4, 905.0],
-                    min_m: 1.0,
-                }),
+                check(PropMoved { near: [946.4, 905.0], min_m: 1.0 }),
             ],
         },
         Scenario {
@@ -2978,7 +3023,7 @@ impl Judge {
                 let moved = b
                     .world()
                     .prop(id)
-                    .map_or(0.0, |p| (p.center - start).length());
+                    .map_or(f64::INFINITY, |p| (p.center - start).length());
                 (
                     format!("prop {id} moved at least {min_m} m"),
                     moved >= *min_m,

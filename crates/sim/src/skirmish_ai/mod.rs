@@ -350,64 +350,15 @@ impl BalancedDoctrine {
             .then(|| airlift::emergency(frame, rules, &self.tuning, &air_groups, route_time))
             .flatten();
         let emergency_buy = emergency.clone().and_then(|need| {
-            let goal = airlift::far_side(
-                &need.group,
-                &frame
-                    .identified
-                    .iter()
-                    .map(|u| [u.position[0], u.position[1]])
-                    .collect::<Vec<_>>(),
+            airlift::respond(
+                &mut self.airlift,
+                need,
+                frame,
+                rules,
+                me,
+                &eligible,
                 entry.center,
-                rules.service.radius_m,
-            );
-            if let Some(heli) = airlift::flying_supplier(frame, rules) {
-                self.airlift = airlift::Mission::Inbound {
-                    heli: Some(heli.id),
-                    group: need.group,
-                    goal,
-                };
-                None
-            } else {
-                let pending = me
-                    .pending
-                    .iter()
-                    .flat_map(|purchase| purchase.kinds())
-                    .any(|kind| airlift::is_flying_supplier(rules, kind));
-                if pending {
-                    self.airlift = airlift::Mission::Inbound {
-                        heli: None,
-                        group: need.group,
-                        goal,
-                    };
-                    None
-                } else {
-                    let buy = eligible
-                        .iter()
-                        .copied()
-                        .filter(|&kind| airlift::is_flying_supplier(rules, kind))
-                        .min_by(|&a, &b| {
-                            rules
-                                .catalog
-                                .get(a)
-                                .cost
-                                .cmp(&rules.catalog.get(b).cost)
-                                .then(rules.catalog.id(a).cmp(rules.catalog.id(b)))
-                        })
-                        .filter(|&kind| {
-                            me.unit_count < me.cap
-                                && f64::from(rules.catalog.get(kind).cost) <= me.credits
-                        })
-                        .map(purchase::Buy::alone);
-                    if buy.is_some() {
-                        self.airlift = airlift::Mission::Inbound {
-                            heli: None,
-                            group: need.group,
-                            goal,
-                        };
-                    }
-                    buy
-                }
-            }
+            )
         });
         let purchases = emergency_buy.into_iter().collect::<Vec<_>>();
         let purchases = if purchases.is_empty() && emergency.is_none() {
@@ -423,6 +374,8 @@ impl BalancedDoctrine {
                 || crate::carriage::seats(rules, kind) > 0
                 || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
                     .is_some();
+            let departure =
+                lane_purchase_destination(entry, entry.center, self.tuning.purchase_advance_m);
             let destination = if let Some(context) = context {
                 // Reserve just past the lane entry. Entries still owns the
                 // nearest-entry choice, while the unit clears the footprint
@@ -433,7 +386,7 @@ impl BalancedDoctrine {
                     self.tuning.purchase_advance_m,
                 )
             } else if waits {
-                entry.center
+                departure
             } else {
                 view.objectives
                     .iter()
@@ -443,7 +396,13 @@ impl BalancedDoctrine {
                             .total_cmp(&distance(entry.center, b.center))
                             .then(a.id.cmp(&b.id))
                     })
-                    .map_or(entry.center, |o| o.center)
+                    .map_or(departure, |o| {
+                        if distance(entry.center, o.center) > 0.0 {
+                            o.center
+                        } else {
+                            departure
+                        }
+                    })
             };
             orders.push(Order::ConfirmPurchase {
                 variant: rules.catalog.id(kind).into(),

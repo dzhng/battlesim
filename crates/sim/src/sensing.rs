@@ -123,9 +123,9 @@ pub fn sees_point(
 }
 
 /// Whether one of `side`'s living units sees a round in flight at
-/// `position`, fired from `layer`: from its eyes, by its sight in that
-/// layer, as a round is a target like any other (one fired from the ground
-/// is out of sight of an observer that doesn't see the ground).
+/// `position`, in its assigned `layer`: from its eyes, by its sight in that
+/// layer, as a round is a target like any other (a Ground round is out of
+/// sight of an observer that doesn't see the ground).
 pub fn side_sees_round(
     world: &WorldGeometry,
     rules: &Rules,

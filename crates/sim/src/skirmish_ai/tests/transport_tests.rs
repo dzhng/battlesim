@@ -530,7 +530,13 @@ fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
         };
         let held = rules.catalog.by_id(unit).clone();
         let bought = rules.catalog.by_id(variant).clone();
-        (held, bought, *destination == entry.center)
+        (held, bought, {
+            let distance = libm::hypot(
+                destination[0] - entry.center[0],
+                destination[1] - entry.center[1],
+            );
+            distance > 10.0 && distance < 100.0
+        })
     };
     let seats = |unit: &contract::catalog::UnitType| {
         unit.capabilities.carriage.map_or(0, |c| c.seats as usize)

@@ -57,6 +57,7 @@ impl PropPopulation {
             looks,
             art,
             known: Vec::new(),
+            fallen: Vec::new(),
             moving: Vec::new(),
             shoved: BTreeMap::new(),
             known_models: Vec::new(),
@@ -83,6 +84,7 @@ impl PropPopulation {
     /// Latest knowledge and held shove poses outlive asynchronous art work.
     pub fn adopt_knowledge(&mut self, current: &Self) {
         self.known.clone_from(&current.known);
+        self.fallen.clone_from(&current.fallen);
         self.moving.clone_from(&current.moving);
         self.shoved.clone_from(&current.shoved);
         self.refit();

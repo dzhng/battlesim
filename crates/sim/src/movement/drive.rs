@@ -7,7 +7,7 @@
 //! Tracks turn at their own rate and pivot on the spot beyond
 //! `movement.drive.turn_in_place_deg` of heading error. A body they can't
 //! shove in the way of the turn (a trunk at the flank, a wall at the nose)
-//! sends them straight along their length to where the whole turn clears
+//! sends them straight along their length to where the next turn clears
 //! ([`room_to_turn`]). Wheels never pivot: the yaw
 //! turns only as the hull rolls, at most `1 / radius` per metre, so a
 //! U-turn is an arc. A waypoint inside the turning circle, or already under
@@ -274,25 +274,14 @@ pub fn away(unit: &Unit) -> f64 {
     -gear_sign(unit.direction())
 }
 
-/// The yaw a hull at `at` takes to travel toward `target` in `direction`.
-pub fn yaw_toward(at: V2, target: V2, direction: MoveDirection) -> f64 {
-    let to = target - at;
-    travel(libm::atan2(to.y, to.x), gear_sign(direction))
-}
-
-/// Where a tracked hull that a body stops from turning to `yaw_at(spot)`
+/// Where a tracked hull that a body stops from turning to `yaw`
 /// can make the whole turn: the nearest spot straight along its length,
 /// within one hull length either way, that it rolls to clear and turns at
 /// clear of every body (a trunk beside its hull: drive on until it can come
 /// round; a wall at its nose: back off). Signed metres along its heading;
 /// at equal distance it goes `first` (+1 ahead, -1 back). `None`: nowhere
 /// within reach frees the turn.
-pub fn room_to_turn(
-    world: &WorldGeometry,
-    unit: &Unit,
-    first: f64,
-    yaw_at: impl Fn(V2) -> f64,
-) -> Option<f64> {
+pub fn room_to_turn(world: &WorldGeometry, unit: &Unit, first: f64, yaw: f64) -> Option<f64> {
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let (here, ahead) = (unit.position.xy(), dir(unit.yaw));
     let mut open = [true; 2];
@@ -303,7 +292,7 @@ pub fn room_to_turn(
             // Rolling straight, the hull trails its leading face by its
             // whole length, so no body slips between two of these steps.
             open[way] &= !blocked(world, unit, spot, unit.yaw);
-            if open[way] && turn_clear(world, unit, spot, yaw_at(spot)) {
+            if open[way] && turn_clear(world, unit, spot, yaw) {
                 return Some(d);
             }
         }
@@ -573,7 +562,7 @@ pub fn pivot(
         .footing(ctx.world, here.center, &ctx.rules.ground);
     let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
     let rolled = ordered
-        .then(|| room_to_turn(ctx.world, unit, away(unit), |_| facing))
+        .then(|| room_to_turn(ctx.world, unit, away(unit), facing))
         .flatten()
         .and_then(|room| {
             let roll = give_space(unit, room, speed, dt);

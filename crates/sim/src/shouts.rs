@@ -262,7 +262,7 @@ pub fn incoming(
                     world,
                     crate::sensing::eye(unit, rules),
                     p.position,
-                    &crate::sight::of(unit, rules),
+                    &crate::sight::of_layer(unit, rules, round.layer),
                     1.0,
                     &rules.sensors,
                 )

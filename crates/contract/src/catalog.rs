@@ -487,9 +487,7 @@ impl UnitType {
 
     /// A vehicle's presentation class, from its physics: how it moves
     /// (tracked, wheeled, `air`, or `high_air` for an aircraft in high air),
-    /// its hull's weight class, and `_logistics` for a unit that carries
-    /// supply, as `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
-    /// sound, running gear and art rules are keyed by it, never by unit id.
+    /// its hull's weight class, plus `_logistics` for a supply carrier.
     /// None for a squad.
     pub fn vehicle_class(&self) -> Option<String> {
         let hull = self.hull()?;
@@ -504,6 +502,7 @@ impl UnitType {
             Mobility::Air { .. } => "air",
         };
         let weight = match hull.weight_class {
+            WeightClass::Trivial => "trivial",
             WeightClass::Light => "light",
             WeightClass::Medium => "medium",
             WeightClass::Heavy => "heavy",

@@ -195,6 +195,25 @@ test("a building shows the garrison badge at once; only the simulation's answer 
   expect(cursorForIntent(occupy, preview.update(queued, sim, 1, "building"))).toBe("garrison");
 });
 
+test("a rejected building preview removes the garrison badge", async () => {
+  const rejected = deferred<never>();
+  const sim = client();
+  sim.previewBuilding.mockReturnValue(rejected.promise);
+  const preview = new OrderPreview();
+  const intent = {
+    kind: "building" as const,
+    request: { units: [1], building: 4 },
+  };
+  const occupy: PointerIntent = { kind: "occupy_building", units: [1], building: 4, queued: false };
+
+  expect(cursorForIntent(occupy, preview.update(intent, sim, 1, "building"))).toBe("garrison");
+  rejected.reject(new Error("building is no longer garrisonable"));
+  await rejected.promise.catch(() => undefined);
+  await settled();
+
+  expect(cursorForIntent(occupy, preview.update(intent, sim, 1, "building"))).toBe("blocked");
+});
+
 test("the garrison badge holds from one enterable building to the next while it is asked", async () => {
   const first = deferred<{
     building: number;

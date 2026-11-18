@@ -1,5 +1,5 @@
 //! Bounded complete-generation and native-route probe.
-//! cargo run -p mapgen --example skirmish_probe -- [type] [size] [seeds] [first-seed]
+//! cargo run -p mapgen --example skirmish_probe -- [type] [size] [seeds] [first-seed] [players-per-side]
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize, MapType};
 fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
@@ -20,7 +20,7 @@ fn main() {
         .get(2)
         .map(|s| s.parse::<u64>().unwrap())
         .unwrap_or(3)
-        .min(32);
+        .min(200);
     let presets = include_str!("../../../fixtures/map-presets.json");
     let templates = include_str!("../../../fixtures/prototype-building-templates.json");
     let catalog =
@@ -28,10 +28,17 @@ fn main() {
             .unwrap();
     let rules: contract::scenario::Rules =
         serde_json::from_value(sim::fixtures::test_rules()).unwrap();
-    let players: Vec<contract::players::Player> = serde_json::from_value(serde_json::json!([
-        {"id":"blue-1","side":"blue","faction":"us","controller":"active_ai"},
-        {"id":"red-1","side":"red","faction":"eastern","controller":"active_ai"}
-    ]))
+    let per_side = args.get(4).map(|s| s.parse::<u8>().unwrap()).unwrap_or(1);
+    let players: Vec<contract::players::Player> = serde_json::from_value(serde_json::Value::Array(
+        (1..=per_side)
+            .flat_map(|n| {
+                [
+                    serde_json::json!({"id":format!("blue-{n}"),"side":"blue","faction":"us","controller":"active_ai"}),
+                    serde_json::json!({"id":format!("red-{n}"),"side":"red","faction":"eastern","controller":"active_ai"}),
+                ]
+            })
+            .collect(),
+    ))
     .unwrap();
     let rules_json = serde_json::to_string(&rules).unwrap();
     let presets_def = mapgen::layout::PresetDefinitions::from_json(presets).unwrap();
@@ -46,11 +53,12 @@ fn main() {
             template_catalog_hash: catalog.hash().into(),
             map_type,
             size,
-            entries_per_side: 1,
+            entries_per_side: per_side.into(),
             profile: GenerationProfile::Skirmish,
             region: None,
             limits: serde_json::from_value(defaults["limits"].clone()).unwrap(),
         };
+        let started = std::time::Instant::now();
         let result = match mapgen::generate_map(
             &serde_json::to_string(&request).unwrap(),
             presets,
@@ -76,6 +84,6 @@ fn main() {
                 }
             }
         };
-        println!("{}", result);
+        println!("{} {}ms", result, started.elapsed().as_millis());
     }
 }

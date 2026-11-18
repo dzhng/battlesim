@@ -321,7 +321,7 @@ export interface Reach {
   /** The only kinds of unit it fires at here, present only where they leave
    *  out a kind this layer holds (an anti-tank row: vehicles). */
   only?: Exclude<TargetClass, "missile">[];
-  /** It shoots down rounds fired from this layer. */
+  /** It shoots down rounds assigned to this layer. */
   intercepts: boolean;
 }
 

@@ -58,7 +58,7 @@ mod update;
 
 use base::Body;
 pub use base::NavBase;
-use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, NO_BODY, SUB, SUB_M};
+use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, SUB, SUB_M};
 pub use journey::Journey;
 pub use mobility::{Drive, Footing, Mobility, Parking};
 pub use pockets::Pockets;
@@ -579,8 +579,10 @@ impl NavGrid {
             RoutePolicy::Fastest => length / m.speed(c.footing()),
         };
         match (m.class, c.heaviest) {
-            (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,
-            (MoverClass::Vehicle, weight) => base / m.push.shove_speed(weight),
+            (MoverClass::Vehicle, weight) if weight < m.push.rank() => {
+                base / m.push.shove_speed(weight)
+            }
+            _ => base,
         }
     }
 

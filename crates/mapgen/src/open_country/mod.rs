@@ -45,7 +45,6 @@ use crate::parcels::lots::{placement, Choices, Fit, Frontage, Lot};
 use crate::parcels::space::{Rect, Run};
 use crate::parcels::streets::Network;
 use crate::{BuildingPlacement, Diagnostic, DiagnosticCode, LotPlan, MapPlan};
-use contract::encounter::ObjectiveSiteKind;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{AuthoredPropDefinition, Forest, PropDefinition, SurfaceArea, SurfaceKind};
 use contract::templates::{PlacementFrame, TemplateGeometryCatalog};
@@ -611,8 +610,9 @@ pub(crate) fn furnish(
         // homestead: each gets its own first, from its own stream.
         if let Some(sites) = &plan.skirmish {
             let mut rng = country.stream("objective_homesteads");
+            let towns = crate::skirmish::town_outlines(&plan);
             for (index, site) in sites.all_reserved_objectives().enumerate() {
-                if site.kind == ObjectiveSiteKind::Field {
+                if !crate::skirmish::in_town(&towns, site.center) {
                     (0..h.attempts)
                         .any(|_| country.objective_stead(index, site, &homesteads, &mut rng));
                 }

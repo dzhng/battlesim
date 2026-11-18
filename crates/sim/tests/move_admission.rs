@@ -706,14 +706,22 @@ fn a_truck_gives_up_on_a_lane_its_shove_cannot_clear() {
         }
         let map = json!({"size":[1200,240], "fog_cell_m":8, "height_grid_m":4,
             "slope_cutoff_deg":35, "props":props});
-        Battle::new(
-            &common::scenario(
-                &map.to_string(),
-                json!([{"side":"blue", "kind":"test_supply", "position":[100,120], "yaw":0}]),
-                json!([]),
-            ),
-            1,
-        )
+        let mut setup = common::scenario(
+            &map.to_string(),
+            json!([{"side":"blue", "kind":"test_supply", "position":[100,120], "yaw":0}]),
+            json!([]),
+        );
+        setup.rules = setup
+            .rules
+            .overridden(
+                json!({ "props": {
+            "crate": { "body": { "weight_class": "light", "topples": false } }
+        } })
+                .as_object()
+                .unwrap(),
+            )
+            .unwrap();
+        Battle::new(&setup, 1)
     };
     for blocked in [true, false] {
         let mut battle = lane(blocked);

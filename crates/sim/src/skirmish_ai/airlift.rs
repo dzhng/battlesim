@@ -4,13 +4,15 @@
 //! decides when a combat group needs help, where its far side is, and which
 //! ordinary orders keep one flying supplier on that mission.
 
+use contract::catalog::TypeIndex;
 use contract::command::{MoveDirection, Order, RoutePolicy};
 use contract::ids::UnitId;
 use contract::observation::{ObservationFrame, OwnUnit};
 use contract::scenario::Rules;
+use contract::skirmish::PlayerView;
 use contract::weapons::AmmoCapacity;
 
-use super::purchase::drives;
+use super::purchase::{drives, Buy};
 use super::team;
 use super::{distance, support, Assignment, Tuning};
 use std::collections::BTreeSet;
@@ -262,6 +264,62 @@ fn centroid(points: &[[f64; 2]]) -> Option<[f64; 2]> {
         });
         [sum[0] / points.len() as f64, sum[1] / points.len() as f64]
     })
+}
+
+/// Answer `need`: send the flying supplier the side keeps in reserve, wait
+/// for one already bought, or buy the cheapest it can afford, and start the
+/// mission toward the group's far side. The purchase, if one is made.
+pub(super) fn respond(
+    mission: &mut Mission,
+    need: Need,
+    frame: &ObservationFrame,
+    rules: &Rules,
+    me: &PlayerView,
+    eligible: &[TypeIndex],
+    entry: [f64; 2],
+) -> Option<Buy> {
+    let enemies: Vec<_> = frame
+        .identified
+        .iter()
+        .map(|u| [u.position[0], u.position[1]])
+        .collect();
+    let goal = far_side(&need.group, &enemies, entry, rules.service.radius_m);
+    let inbound = |heli| Mission::Inbound {
+        heli,
+        group: need.group.clone(),
+        goal,
+    };
+    if let Some(heli) = flying_supplier(frame, rules) {
+        *mission = inbound(Some(heli.id));
+        return None;
+    }
+    let pending = me
+        .pending
+        .iter()
+        .flat_map(|purchase| purchase.kinds())
+        .any(|kind| is_flying_supplier(rules, kind));
+    if pending {
+        *mission = inbound(None);
+        return None;
+    }
+    let buy = eligible
+        .iter()
+        .copied()
+        .filter(|&kind| is_flying_supplier(rules, kind))
+        .min_by(|&a, &b| {
+            let cost = |k| rules.catalog.get(k).cost;
+            cost(a)
+                .cmp(&cost(b))
+                .then(rules.catalog.id(a).cmp(rules.catalog.id(b)))
+        })
+        .filter(|&kind| {
+            me.unit_count < me.cap && f64::from(rules.catalog.get(kind).cost) <= me.credits
+        })
+        .map(Buy::alone);
+    if buy.is_some() {
+        *mission = inbound(None);
+    }
+    buy
 }
 
 /// Advance the mission and append its ordinary movement/deployment orders.
