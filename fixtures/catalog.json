@@ -7667,9 +7667,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.955,
+                1.5574,
                 0.0,
-                0.01
+                0.9606
               ],
               "name": "Rockets",
               "on": null,
@@ -8188,9 +8188,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.88,
+                -0.7019,
                 0.0,
-                0.865
+                3.4412
               ],
               "name": "Buk-M3",
               "on": null,
@@ -20584,9 +20584,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.39,
+                0.4248,
                 0.0,
-                -0.2
+                1.8459
               ],
               "name": "Rockets",
               "on": null,
@@ -20680,9 +20680,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.39,
+                0.4248,
                 0.0,
-                -0.2
+                1.8459
               ],
               "name": "Strike Missile",
               "on": null,
@@ -22009,9 +22009,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                2.905,
+                0.6243,
                 0.54,
-                1.31
+                4.4535
               ],
               "name": "Patriot PAC-3",
               "on": null,
@@ -28110,9 +28110,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.955,
+            1.5574,
             0.0,
-            0.01
+            0.9606
           ],
           "name": "Rockets",
           "on": null,
@@ -28648,9 +28648,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.88,
+            -0.7019,
             0.0,
-            0.865
+            3.4412
           ],
           "name": "Buk-M3",
           "on": null,
@@ -42363,9 +42363,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.39,
+            0.4248,
             0.0,
-            -0.2
+            1.8459
           ],
           "name": "Rockets",
           "on": null,
@@ -42462,9 +42462,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.39,
+            0.4248,
             0.0,
-            -0.2
+            1.8459
           ],
           "name": "Strike Missile",
           "on": null,
@@ -44081,9 +44081,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            2.905,
+            0.6243,
             0.54,
-            1.31
+            4.4535
           ],
           "name": "Patriot PAC-3",
           "on": null,

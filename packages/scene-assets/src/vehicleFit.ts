@@ -25,12 +25,7 @@ import {
   isRotor,
   restLocals,
 } from "./articulation.ts";
-import {
-  articulatedPositions,
-  articulatedWorlds,
-  positionsBounds,
-  worldTransforms,
-} from "./pose.ts";
+import { articulatedPositions, articulatedWorlds, positionsBounds } from "./pose.ts";
 import { unitArtRule, type DressingAllowance } from "./unitArt.ts";
 import { extentFindings } from "./boxFit.ts";
 import type { ArticulatedNode, Finding, Tolerances } from "./schema.ts";
@@ -215,21 +210,24 @@ export function typeFindings(
     chain(n.pitch, n.muzzle);
     up(n.yaw);
   }
+  const declaresDeployment =
+    type.capabilities.deploy &&
+    nodes.some(
+      (node) =>
+        node.name.startsWith("deploy_") ||
+        DEPLOY_EXTRAS.some((key) => node.extras?.[key] !== undefined),
+    );
+  const deployRig = declaresDeployment ? articulationRig(nodes) : null;
+  const firingNodes = deployRig?.deploy.length ? deployedNodes(nodes, deployRig) : nodes;
+  const firingWorlds = firingNodes === nodes ? worlds : articulatedWorlds(firingNodes);
   out.push(
-    ...muzzleFindings(label, nodes, worlds, index, drawn, tolerances, {
+    ...muzzleFindings(label, firingNodes, firingWorlds, index, drawn, tolerances, {
       name: `units.${id}.mounts`,
       mounts: mountMuzzles(type.mounts),
     }),
   );
 
-  // Stationary service does not imply legs or a mast. Declared deployment
-  // hardware retains its chain and motion checks.
-  const declaresDeployment = nodes.some(
-    (node) =>
-      node.name.startsWith("deploy_") ||
-      DEPLOY_EXTRAS.some((key) => node.extras?.[key] !== undefined),
-  );
-  if (type.capabilities.deploy && declaresDeployment) {
+  if (deployRig) {
     const legs = nodes
       .map((n) => n.name.match(/^deploy_leg_([A-Za-z0-9]+)(?:_(?:jack|pad))?$/)?.[1])
       .filter((leg): leg is string => !!leg);
@@ -245,7 +243,7 @@ export function typeFindings(
       for (let i = 1; i < MAST_CHAIN.length; i++) chain(MAST_CHAIN[i - 1], MAST_CHAIN[i]);
       up("deploy_mast");
     }
-    out.push(...deployFindings(label, nodes, index, tolerances));
+    out.push(...deployFindings(label, nodes, firingWorlds, deployRig, index, tolerances));
   }
 
   // The hull box, without what its mounts carry beyond it, its dressing or
@@ -358,8 +356,17 @@ interface MountNodes {
   muzzle: string;
 }
 
+/** Bind transforms for the mount-fit sweep with deployment complete. */
+function deployedNodes(
+  nodes: ArticulatedNode[],
+  rig: ReturnType<typeof articulationRig>,
+): ArticulatedNode[] {
+  const locals = articulate(restLocals(nodes), nodes, rig, { ...REST_ARTICULATION, deploy: 1 });
+  return nodes.map((node, i) => ({ ...node, bind: locals[i] }));
+}
+
 /** Each mount's drawn muzzle against the simulation's (`mountMuzzle.ts`): at
- *  rest on its row, and as its carrier (the turret it is on) and its own
+ *  its firing position on its row, and as its carrier (the turret it is on) and its own
  *  ring turn through every pair of bearings, where the simulation's model
  *  puts it. The drawn mount's yaw is relative to its carrier, whose yaw it
  *  adds to its world bearing. */
@@ -434,10 +441,11 @@ function muzzleFindings(
 function deployFindings(
   label: string,
   nodes: ArticulatedNode[],
+  worlds: ReturnType<typeof articulatedWorlds>,
+  rig: ReturnType<typeof articulationRig>,
   index: Map<string, number>,
   tolerances: Tolerances,
 ): Finding[] {
-  const rig = articulationRig(nodes);
   if (!rig.deploy.length)
     return [
       finding(
@@ -446,10 +454,6 @@ function deployFindings(
         `set custom properties ${DEPLOY_EXTRAS.join(", ")} on each deploying part (legs, jacks, mast stages)`,
       ),
     ];
-  const worlds = worldTransforms(
-    nodes.map((n) => n.parent),
-    articulate(restLocals(nodes), nodes, rig, { ...REST_ARTICULATION, deploy: 1 }),
-  );
   const out: Finding[] = [];
   for (const [name, pad] of index) {
     if (!/^deploy_leg_[A-Za-z0-9]+_pad$/.test(name)) continue;

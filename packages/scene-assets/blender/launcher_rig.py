@@ -1,6 +1,8 @@
 """Attach a launcher's hull-frame geometry to its slew ring and deployment hinge."""
+import math
+
 import bpy
-from mathutils import Vector
+from mathutils import Euler, Vector
 
 from parts import empty
 from vehicle_export import rig
@@ -31,7 +33,15 @@ def launcher(v, pivot, elevation, pack, base=(), mount="launcher", vertical=Fals
     if pitch_with_deploy:
         gun = nodes[1]
         gun["pitch_min_deg"] = gun["pitch_max_deg"] = 0.0
+        # The catalog marker is the firing position. Fold it into the model's
+        # bind pose so deployment returns it to that point, including in yaw.
+        tip = nodes[2]
+        turn = Euler((math.radians(turn_x), -math.radians(elevation), 0.0)).to_quaternion()
+        local_tip = hinge.matrix_world.inverted() @ tip.matrix_world.translation
+        folded = hinge.matrix_world @ (turn.inverted() @ local_tip)
         world = gun.matrix_world.copy()
+        world.translation.z = folded.z
         gun.parent = hinge
         gun.matrix_world = world
+        tip.location = world.inverted() @ folded
     return hinge
