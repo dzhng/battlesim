@@ -44783,7 +44783,7 @@
     "akeron_mp": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
-      "ammo": 4,
+      "ammo": 3,
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
@@ -45269,7 +45269,7 @@
     "bastion": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
-      "ammo": 4,
+      "ammo": 3,
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
@@ -45402,7 +45402,7 @@
     "fn_6": {
       "accel_mps2": 95.0,
       "aim_s": 2.0,
-      "ammo": 3,
+      "ammo": 8,
       "anti_radiation": false,
       "appearance": "manpads",
       "armor_piercing": false,
@@ -45942,7 +45942,7 @@
     "igla_s": {
       "accel_mps2": 95.0,
       "aim_s": 2.0,
-      "ammo": 3,
+      "ammo": 8,
       "anti_radiation": false,
       "appearance": "manpads",
       "armor_piercing": false,
@@ -46000,7 +46000,7 @@
     "javelin": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
-      "ammo": 4,
+      "ammo": 3,
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
@@ -46063,7 +46063,7 @@
     "kornet": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
-      "ammo": 4,
+      "ammo": 3,
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
@@ -46886,7 +46886,7 @@
     "spike": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
-      "ammo": 4,
+      "ammo": 3,
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
@@ -46945,7 +46945,7 @@
     "stinger": {
       "accel_mps2": 95.0,
       "aim_s": 2.0,
-      "ammo": 3,
+      "ammo": 8,
       "anti_radiation": false,
       "appearance": "manpads",
       "armor_piercing": false,
@@ -47115,7 +47115,7 @@
     "tow": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
-      "ammo": 4,
+      "ammo": 3,
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,

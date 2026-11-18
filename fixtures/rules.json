@@ -357,6 +357,7 @@
       "interceptable": true,
       "extends": "atgm",
       "name": "TOW 2A",
+      "ammo": 3,
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required."
     },
     "kornet": {
@@ -367,7 +368,7 @@
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "damage": 110,
       "penetration": 320,
-      "ammo": 4,
+      "ammo": 3,
       "reload_s": 4.5,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
     },
@@ -379,7 +380,7 @@
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "damage": 110,
       "penetration": 320,
-      "ammo": 4,
+      "ammo": 3,
       "reload_s": 4.5,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
     },
@@ -388,6 +389,7 @@
       "interceptable": true,
       "extends": "atgm",
       "name": "Javelin",
+      "ammo": 3,
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
       "min_range_m": 100,
       "damage": 105,
@@ -413,7 +415,7 @@
       "top_speed_mps": 290,
       "aim_s": 2,
       "reload_s": 4,
-      "ammo": 3,
+      "ammo": 8,
       "penetration": 40,
       "partial_from": 0.08,
       "damage": 50,
@@ -696,7 +698,7 @@
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "damage": 110,
       "penetration": 320,
-      "ammo": 4,
+      "ammo": 3,
       "reload_s": 4.5,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 850, "scatter_mrad": 0.5 } }
     },
