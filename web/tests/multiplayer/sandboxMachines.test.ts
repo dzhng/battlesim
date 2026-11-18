@@ -142,6 +142,15 @@ test.each([402, 403, 409, 429, 503])(
   },
 );
 
+test("a default-tier capacity refusal falls back to a small battle machine", async () => {
+  const s = await service();
+  s.refuse(503, "default");
+  const provider = await s.provider();
+  const machine = await provider.start(key());
+  machine.stop();
+  await vi.waitFor(() => expect([...s.machines.values()].map((m) => m.state)).toEqual(["deleted"]));
+});
+
 test("an allocation that never becomes ready rejects and is stopped and deleted", async () => {
   const s = await service();
   s.stall();

@@ -28,6 +28,7 @@ export async function serviceStandIn(archive: string) {
   const output: string[] = [];
   const calls: string[] = [];
   let refusal = 0;
+  let refusalType: string | undefined;
   let neverReady = false;
   let lostCreateReply = false;
   const creations = new Map<string, Sandbox>();
@@ -82,17 +83,18 @@ export async function serviceStandIn(archive: string) {
           Number(request.headers["content-length"]) !== bytes.length
         )
           return send({}, 403);
-        await writeFile(join(machines.get(path.split("/")[2])!.folder, "battle.tar.gz"), bytes);
+        const [, , id, file] = path.split("/");
+        await writeFile(join(machines.get(id)!.folder, file), bytes);
         return send({});
       }
       if (request.headers.authorization !== "Bearer stand-in-app-key") return send({}, 403);
       if (path === "/sandboxes" && request.method === "POST") {
-        if (refusal) return send({}, refusal);
+        if (refusal && (!refusalType || body.type === refusalType)) return send({}, refusal);
         if (
-          !body.noEnv ||
+          body.noEnv !== true ||
           body.visibility !== "private" ||
           body.snapshots !== false ||
-          body.type !== settings.machine ||
+          ![settings.machine, "small"].includes(body.type) ||
           !body.ttlSeconds
         )
           return send({}, 400);
@@ -186,8 +188,9 @@ export async function serviceStandIn(archive: string) {
     diagnostic: (text: string) => {
       for (const s of machines.values()) s.stderr += `${text}:stand-in-app-key`;
     },
-    refuse: (status: number) => {
+    refuse: (status: number, type?: string) => {
       refusal = status;
+      refusalType = type;
     },
     stall: () => {
       neverReady = true;

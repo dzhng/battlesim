@@ -47,7 +47,7 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
     });
     // Never read or reflect service error bodies: they may echo the create environment.
     if (reply.status === 404) throw new Gone();
-    if (!reply.ok) throw new ServiceRefusal();
+    if (!reply.ok) throw new ServiceRefusal(reply.status);
     return (await reply.json()).data;
   }
   async function reclaim(id: string, processId?: string) {
@@ -132,20 +132,23 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
       };
       const deadline = performance.now() + startupMs;
       const signal = AbortSignal.timeout(startupMs);
-      const token = randomUUID();
+      let token = randomUUID();
+      let machine = settings.machine;
       let uncertain = false;
       try {
-        const body = {
-          type: settings.machine,
-          ttlSeconds: options.ttlSeconds,
-          noEnv: true,
-          visibility: "private",
-          snapshots: false,
-          labels: { ...labels, allocation: token },
-          env: { BATTLE_KEY: key, HOST: "0.0.0.0", PORT: String(settings.port) },
-        };
         // A lost reply can mean a successful allocation. Replay exactly the same request.
         for (;;) {
+          const body = {
+            type: machine,
+            ttlSeconds: options.ttlSeconds,
+            // Boat requires noEnv and ignores create-time env values. The startup
+            // environment is uploaded through a signed file below instead.
+            noEnv: true,
+            visibility: "private",
+            snapshots: false,
+            labels: { ...labels, allocation: token },
+            env: { BATTLE_KEY: key, HOST: "0.0.0.0", PORT: String(settings.port) },
+          };
           try {
             const { sandbox } = await request(
               "/sandboxes",
@@ -157,6 +160,12 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
             id = sandbox.id;
             break;
           } catch (cause) {
+            if (cause instanceof ServiceRefusal && cause.status === 503 && machine === "default") {
+              machine = "small";
+              token = randomUUID();
+              uncertain = false;
+              continue;
+            }
             if (!(cause instanceof ServiceRefusal)) uncertain = true;
             if (cause instanceof ServiceRefusal || signal.aborted) throw cause;
             await delay(pollMs, undefined, { signal });
@@ -167,25 +176,37 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
           if (["ready", "idle", "running"].includes(sandbox.state)) break;
           await delay(pollMs, undefined, { signal });
         }
-        const upload = await request(
-          `/sandboxes/${id}/files/upload-url`,
-          "POST",
-          { path: "battle.tar.gz", ttlSeconds: Math.ceil(startupMs / 1000) },
-          {},
-          signal,
+        const upload = async (path: string, bytes: Uint8Array) => {
+          const target = await request(
+            `/sandboxes/${id}/files/upload-url`,
+            "POST",
+            { path, ttlSeconds: Math.ceil(startupMs / 1000) },
+            {},
+            signal,
+          );
+          const sent = await fetch(target.url, {
+            method: target.method,
+            headers: { "Content-Length": String(bytes.length) },
+            body: bytes,
+            signal,
+            redirect: "error",
+          });
+          if (!sent.ok) throw new ServiceRefusal();
+        };
+        await upload("battle.tar.gz", archive);
+        const environment = Buffer.from(
+          `BATTLE_KEY=${key}\nHOST=0.0.0.0\nPORT=${settings.port}\n`,
+          "utf8",
         );
-        const sent = await fetch(upload.url, {
-          method: upload.method,
-          headers: { "Content-Length": String(archive.length) },
-          body: archive,
-          signal,
-          redirect: "error",
-        });
-        if (!sent.ok) throw new ServiceRefusal();
+        await upload("battle.env", environment);
         ({ processId } = await request(
           `/sandboxes/${id}/commands`,
           "POST",
-          { command: "tar -xzf battle.tar.gz && exec node battle.mjs", detached: true },
+          {
+            command:
+              "tar -xzf battle.tar.gz && set -a && . ./battle.env && set +a && exec node battle.mjs",
+            detached: true,
+          },
           {},
           signal,
         ));
@@ -240,6 +261,10 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
     },
   };
 }
-class ServiceRefusal extends Error {}
+class ServiceRefusal extends Error {
+  constructor(readonly status = 0) {
+    super("sandbox service refused the request");
+  }
+}
 /** The service no longer has what was asked for. */
 class Gone extends ServiceRefusal {}
