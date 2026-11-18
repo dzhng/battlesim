@@ -1112,43 +1112,6 @@ fn confirm_purchases(
     bought
 }
 
-#[test]
-fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
-    let (rules, mut frame, entry) = empty_match();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":deck(),"units":[{"side":"red","kind":"test_jeep","position":[500,100]}],
-        "events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    frame.own = battle.observe(Side::Red).own.clone();
-    let view = frame.skirmish.as_mut().unwrap();
-    view.phase = Phase::Active;
-    view.players[0].credits = 0.0;
-    frame.identified.push(identified(
-        9,
-        rules.catalog.index("test_tank").unwrap(),
-        [500.0, 500.0, 0.0],
-    ));
-    let orders = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: None,
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(orders.iter().any(|order| matches!(
-        order,
-        Order::Attack { units, target: contract::command::TargetRef::Identified { id } }
-            if units == &vec![UnitId(0)] && *id == contract::observation::ObservedTargetId(9)
-    )));
-}
-
 fn entry_from(center: [f64; 2]) -> EntrySite {
     EntrySite {
         side: Side::Red,
@@ -1393,6 +1356,7 @@ mod parties;
 mod purchases;
 mod ride_purchases;
 mod smoke;
+mod targeting;
 mod transport_tests;
 
 /// A purchase of `kind` alone, confirmed at `tick` and not yet entering.

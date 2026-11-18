@@ -25,6 +25,20 @@ use relocation::{Held, Relocation};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
 
+fn attack_if_changed(
+    orders: &mut Vec<Order>,
+    unit: &contract::observation::OwnUnit,
+    target: TargetRef,
+) {
+    if !matches!(unit.steps.first(), Some(contract::observation::OrderStep::Attack { target: Some(active), .. }) if *active == target)
+    {
+        orders.push(Order::Attack {
+            units: vec![unit.id],
+            target,
+        });
+    }
+}
+
 /// A side-scoped skirmish policy. Implementations emit the same ordinary
 /// orders as a human controller; the battle host owns admission and replay.
 pub trait SkirmishPolicy {
@@ -245,21 +259,6 @@ impl BalancedDoctrine {
         }
     }
 
-    /// Where a carrier at `from` lets a squad out for `goal` (D18), with
-    /// no enemy in reach `unload_share` of the way from entry to goal short
-    /// of it.
-    fn drop_point(
-        &self,
-        frame: &ObservationFrame,
-        rules: &Rules,
-        entry: &EntrySite,
-        goal: [f64; 2],
-        from: [f64; 2],
-    ) -> [f64; 2] {
-        let standoff = self.tuning.unload_share * distance(entry.center, goal);
-        transport::unload_point(frame, rules, goal, from, standoff)
-    }
-
     fn update_doctrine(&mut self, frame: &ObservationFrame, rules: &Rules, draw_unit: f64) {
         if !self.started {
             self.started = true;
@@ -457,7 +456,8 @@ impl BalancedDoctrine {
             own.sort_by_key(|u| (carries(u), u.id));
             // Carriers with no one aboard, free to collect a squad, and the
             // squad each one is sent for at this decision.
-            let mut free = transport::free_carriers(rules, frame, &self.rides);
+            let boarding = transport::boarding_pairs(frame);
+            let mut free = transport::free_carriers(rules, frame, &self.rides, &boarding);
             let mut collect: BTreeMap<UnitId, UnitId> = BTreeMap::new();
             let group_ready = context.is_some_and(|context| {
                 let radius = self.tuning.team.group_radius_m;
@@ -527,9 +527,16 @@ impl BalancedDoctrine {
                 }
                 ready || self.group_advance.is_some()
             });
+            let rides = transport::RidePlan {
+                frame,
+                rules,
+                input,
+                group_ready,
+            };
             for unit in &own {
                 // Passengers take no orders, nor does a unit backing out.
-                if rules.catalog.get(unit.kind).has_role("logistics")
+                if boarding.contains(&unit.id)
+                    || rules.catalog.get(unit.kind).has_role("logistics")
                     || transport::carrier_of(unit).is_some()
                     || smoke::backing_out(unit, &smoke)
                 {
@@ -553,25 +560,10 @@ impl BalancedDoctrine {
                         }
                         continue;
                     }
-                    if transport::passengers(frame, unit.id).next().is_some() {
-                        orders.extend(self.unload(
-                            side,
-                            entry,
-                            frame,
-                            rules,
-                            unit,
-                            context.map(|context| {
-                                if let Some(help) =
-                                    transport::party_aboard(frame, unit, &context.parties)
-                                {
-                                    help.objective
-                                } else if group_ready {
-                                    context.main_objective
-                                } else {
-                                    context.staging_point
-                                }
-                            }),
-                        ));
+                    if let Some(passenger) =
+                        transport::passengers(frame, unit.id).min_by_key(|u| u.id)
+                    {
+                        orders.extend(rides.unload(self, unit, passenger));
                         continue;
                     }
                     if rules.catalog.mounts(unit.kind).is_empty() {
@@ -620,7 +612,7 @@ impl BalancedDoctrine {
                         ));
                         continue;
                     }
-                    if self.worth_riding(frame, rules, entry, unit, objective)
+                    if rides.worth_riding(self, unit, objective)
                         && transport::wait_for_ride(
                             rules,
                             unit,
@@ -664,7 +656,7 @@ impl BalancedDoctrine {
                         // A squad far from a fight on the ground rides to it.
                         let fight = [target.position[0], target.position[1]];
                         if rules.catalog.get(target.kind).mobility.layer() == AltitudeLayer::Ground
-                            && self.worth_riding(frame, rules, entry, unit, fight)
+                            && rides.worth_riding(self, unit, fight)
                             && transport::wait_for_ride(
                                 rules,
                                 unit,
@@ -676,10 +668,11 @@ impl BalancedDoctrine {
                         {
                             continue;
                         }
-                        orders.push(Order::Attack {
-                            units: vec![unit.id],
-                            target: TargetRef::Identified { id: target.id },
-                        });
+                        attack_if_changed(
+                            &mut orders,
+                            unit,
+                            TargetRef::Identified { id: target.id },
+                        );
                         continue;
                     }
                     if rules.catalog.get(unit.kind).has_role("artillery") {
@@ -701,10 +694,7 @@ impl BalancedDoctrine {
                                 route_time,
                             )
                         }) {
-                            orders.push(Order::Attack {
-                                units: vec![unit.id],
-                                target: TargetRef::Ground { point },
-                            });
+                            attack_if_changed(&mut orders, unit, TargetRef::Ground { point });
                             continue;
                         }
                     }
@@ -747,7 +737,7 @@ impl BalancedDoctrine {
                     if help.is_some() {
                         // A party squad rides when it is worth it, in any
                         // stance: its carrier drives it to the party's goal.
-                        if self.worth_riding(frame, rules, entry, unit, objective)
+                        if rides.worth_riding(self, unit, objective)
                             && transport::wait_for_ride(
                                 rules,
                                 unit,
@@ -784,7 +774,7 @@ impl BalancedDoctrine {
                     } else {
                         context.staging_point
                     };
-                    if self.worth_riding(frame, rules, entry, unit, goal)
+                    if rides.worth_riding(self, unit, goal)
                         && transport::wait_for_ride(
                             rules,
                             unit,
@@ -839,7 +829,7 @@ impl BalancedDoctrine {
                 // A squad heading far for its objective stops for the
                 // nearest free carrier to collect it (D17).
                 let heading = self.heading(rules, entry, unit, objective.center);
-                if self.worth_riding(frame, rules, entry, unit, heading)
+                if rides.worth_riding(self, unit, heading)
                     && transport::wait_for_ride(
                         rules,
                         unit,
