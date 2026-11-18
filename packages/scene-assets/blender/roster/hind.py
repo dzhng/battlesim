@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
-from vehicle_parts import MID  # noqa: E402
+from vehicle_parts import MID, NEAR  # noqa: E402
 
 # The GSh-23V's elevation in its chin turret, degrees, and its stroke.
 GUN_PITCH_DEG = (-40.0, 13.0)
@@ -64,8 +64,13 @@ def build(variant, v):
             lods=MID)
         box(f"cabin_door_{k}", (1.2, 0.04, 1.0), (1.2, side * 1.0, 1.35), m["dark"], hull, lods=MID)
         for j in range(3):
-            box(f"cabin_window_{k}_{j}", (0.3, 0.03, 0.3), (2.4 - j * 0.9, side * 1.01, 1.9), m["glass"], hull,
+            x_window = 2.4 - j * 0.9
+            box(f"cabin_window_{k}_{j}", (0.3, 0.03, 0.3), (x_window, side * 1.01, 1.9), m["glass"], hull,
                 lods=MID)
+            box(f"cabin_window_bottom_frame_{k}_{j}", (0.31, 0.045, 0.035), (x_window, side * 1.035, 1.64), m["canopy_frame"], hull,
+                bevel=0.01, lods=MID)
+            box(f"cabin_window_front_frame_{k}_{j}", (0.035, 0.045, 0.32), (x_window - 0.31, side * 1.035, 1.9), m["canopy_frame"], hull,
+                bevel=0.01, lods=MID)
         box(f"wing_tip_launcher_{k}", (1.4, 0.18, 0.4), (0.7, side * 2.46, 1.73), m["dark"], hull, lods=MID)
     cyl("mast", 0.22, 0.8, (0.6, 0, 3.2), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.6, 0, 3.67), 8.65, 5, 0.58, m, hull, hub=0.46, mast=0.0, droop=0.03, phase=0.1)
