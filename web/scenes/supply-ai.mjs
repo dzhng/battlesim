@@ -1,5 +1,5 @@
 // Emergency airlift: keep a trace of the AI's purchase, landing, service and return.
-import { lab, obs, advance, openBattle, snapshot } from "./_lab.mjs";
+import { obs, advance, openBattle, snapshot } from "./_lab.mjs";
 
 const xy = (u) => [u.position[0], u.position[1]];
 const heli = (o) => o.own.find((u) => u.kind === "test_supply_heli");
