@@ -58,7 +58,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             1.35,
             0,
@@ -83,6 +83,7 @@
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Tornado-S",
       "description": "Heavy rocket artillery",
@@ -141,7 +142,7 @@
           "weapons": [
             "artillery_rocket_heavy"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             -3.4,
             0,
@@ -256,6 +257,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "BM-21 Grad",
       "description": "BM-21 rocket artillery",
@@ -314,9 +316,9 @@
           "weapons": [
             "artillery_rocket_light"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
-            -1.8,
+            -2.3,
             0,
             2.6
           ],
@@ -760,6 +762,7 @@
         "high_air_m": 3200
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -771,7 +774,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            2.0,
+            0.15,
             0,
             2.37
           ],
@@ -1529,6 +1532,7 @@
         "high_air_m": 3200
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -1540,7 +1544,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -1.25,
+            -1.6,
             0,
             2.1
           ],
@@ -1611,7 +1615,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             0.5,
             0,
@@ -3382,6 +3386,7 @@
         "high_air_m": 7000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -3463,6 +3468,7 @@
         "high_air_m": 7000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [

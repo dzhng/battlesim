@@ -217,11 +217,13 @@ export function typeFindings(
     if (role === "gun") {
       const muzzle = index.get(n.muzzle);
       const muzzleX = muzzle === undefined ? 1 : pointAt(worlds[muzzle], [0, 0, 0])[0];
-      if (muzzleX <= 0)
+      const yaw = index.get(n.yaw);
+      const pivotX = yaw === undefined ? 0 : pointAt(worlds[yaw], [0, 0, 0])[0];
+      if (muzzleX <= pivotX)
         out.push(
           finding(
             "basis.forward",
-            `${label}: ${type.mounts[i].name}'s muzzle at x ${fmt(muzzleX)} m, behind the hull origin`,
+            `${label}: ${type.mounts[i].name}'s muzzle at x ${fmt(muzzleX)} m, behind its mount pivot at x ${fmt(pivotX)} m`,
             "face the hull along +X after the catalog's basis_yaw_deg",
           ),
         );

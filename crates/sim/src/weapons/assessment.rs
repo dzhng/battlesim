@@ -30,6 +30,7 @@ pub(super) struct Ready {
     pub(super) kind: usize,
     pub(super) time_of_flight_s: f64,
     pub(super) intercept: V3,
+    pub(super) velocity: V3,
     pub(super) soldier: usize,
 }
 
@@ -142,6 +143,7 @@ pub(super) fn assess(
         kind: k,
         time_of_flight_s: s.time_of_flight_s,
         intercept: s.intercept,
+        velocity: s.velocity,
         soldier,
     })
 }

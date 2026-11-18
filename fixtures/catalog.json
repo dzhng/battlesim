@@ -7336,7 +7336,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -7395,7 +7395,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.8,
           "cost": 380,
           "description": "Heavy rocket artillery",
@@ -7427,7 +7432,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_heavy"
               ]
@@ -7638,7 +7643,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 240,
           "description": "BM-21 rocket artillery",
@@ -7664,13 +7674,13 @@
               "name": "Rockets",
               "on": null,
               "pivot_m": [
-                -1.8,
+                -2.3,
                 0.0,
                 2.6
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_light"
               ]
@@ -8155,6 +8165,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -8181,7 +8195,7 @@
               "name": "Buk-M3",
               "on": null,
               "pivot_m": [
-                2.0,
+                0.15,
                 0.0,
                 2.37
               ],
@@ -9532,6 +9546,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -9559,7 +9577,7 @@
               "name": "Pantsir-SM",
               "on": null,
               "pivot_m": [
-                -1.25,
+                -1.6,
                 0.0,
                 2.1
               ],
@@ -9655,7 +9673,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -9867,6 +9885,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -9960,6 +9982,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -13061,7 +13087,12 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -13184,7 +13215,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -14903,6 +14934,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -16004,7 +16039,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 360,
           "description": "Multiple-launch rocket system",
@@ -16035,7 +16075,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_heavy"
               ]
@@ -16231,6 +16271,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.4,
@@ -16615,7 +16659,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -20037,7 +20081,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -20324,7 +20368,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 200,
           "description": "120 mm mortar carrier",
@@ -20511,7 +20560,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 320,
           "description": "GMLRS",
@@ -20537,13 +20591,13 @@
               "name": "Rockets",
               "on": null,
               "pivot_m": [
-                -1.5,
+                -0.6,
                 0.0,
                 2.5
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_light"
               ]
@@ -20602,7 +20656,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 420,
           "description": "PrSM",
@@ -20628,13 +20687,13 @@
               "name": "Strike Missile",
               "on": null,
               "pivot_m": [
-                -1.5,
+                -0.6,
                 0.0,
                 2.5
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_strike_missile"
               ]
@@ -21257,7 +21316,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 370,
           "description": "M270A2",
@@ -21288,7 +21352,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_light"
               ]
@@ -21824,6 +21888,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.4,
@@ -21917,6 +21985,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -21944,7 +22016,7 @@
               "name": "Patriot PAC-3",
               "on": null,
               "pivot_m": [
-                -4.3,
+                -2.2,
                 0.0,
                 2.05
               ],
@@ -22384,7 +22456,12 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -27506,7 +27583,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -27566,7 +27643,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.8,
       "cost": 380,
       "description": "Heavy rocket artillery",
@@ -27600,7 +27682,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_heavy"
           ]
@@ -28002,7 +28084,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 240,
       "description": "BM-21 rocket artillery",
@@ -28030,13 +28117,13 @@
           "name": "Rockets",
           "on": null,
           "pivot_m": [
-            -1.8,
+            -2.3,
             0.0,
             2.6
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_light"
           ]
@@ -28536,6 +28623,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -28564,7 +28655,7 @@
           "name": "Buk-M3",
           "on": null,
           "pivot_m": [
-            2.0,
+            0.15,
             0.0,
             2.37
           ],
@@ -30024,6 +30115,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -30053,7 +30148,7 @@
           "name": "Pantsir-SM",
           "on": null,
           "pivot_m": [
-            -1.25,
+            -1.6,
             0.0,
             2.1
           ],
@@ -30152,7 +30247,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -30604,6 +30699,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -30700,6 +30799,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -34048,7 +34151,12 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -34176,7 +34284,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -35948,6 +36056,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -37173,7 +37285,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 360,
       "description": "Multiple-launch rocket system",
@@ -37206,7 +37323,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_heavy"
           ]
@@ -37407,6 +37524,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.4,
@@ -37804,7 +37925,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -41723,7 +41844,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -42018,7 +42139,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 200,
       "description": "120 mm mortar carrier",
@@ -42211,7 +42337,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 320,
       "description": "GMLRS",
@@ -42239,13 +42370,13 @@
           "name": "Rockets",
           "on": null,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0.0,
             2.5
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_light"
           ]
@@ -42305,7 +42436,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 420,
       "description": "PrSM",
@@ -42333,13 +42469,13 @@
           "name": "Strike Missile",
           "on": null,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0.0,
             2.5
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_strike_missile"
           ]
@@ -42979,7 +43115,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 370,
       "description": "M270A2",
@@ -43012,7 +43153,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_light"
           ]
@@ -43814,6 +43955,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.4,
@@ -43910,6 +44055,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -43939,7 +44088,7 @@
           "name": "Patriot PAC-3",
           "on": null,
           "pivot_m": [
-            -4.3,
+            -2.2,
             0.0,
             2.05
           ],
@@ -44404,7 +44553,12 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",

@@ -1325,7 +1325,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             0.7,
             0,
@@ -1543,6 +1543,7 @@
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "Stryker Mortar",
       "description": "120 mm mortar carrier",
@@ -1710,6 +1711,7 @@
       }
     },
     "us_m142_himars_gmlrs": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "HIMARS GMLRS",
       "description": "GMLRS",
@@ -1768,9 +1770,9 @@
           "weapons": [
             "artillery_rocket_light"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0,
             2.5
           ],
@@ -1793,6 +1795,7 @@
       }
     },
     "us_m142_himars_prsm": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "HIMARS PrSM",
       "description": "PrSM",
@@ -1851,9 +1854,9 @@
           "weapons": [
             "artillery_strike_missile"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0,
             2.5
           ],
@@ -2191,6 +2194,7 @@
       ]
     },
     "us_m270_mlrs_m270a2": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "M270A2 MLRS",
       "description": "M270A2",
@@ -2248,7 +2252,7 @@
           "weapons": [
             "artillery_rocket_light"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             -3.2,
             0,
@@ -2974,6 +2978,7 @@
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Stryker M-SHORAD",
       "description": "Gun-and-missile air-defense vehicle",
@@ -3229,6 +3234,7 @@
         "high_air_m": 7000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -3240,7 +3246,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -4.3,
+            -2.2,
             0,
             2.05
           ],
@@ -3310,6 +3316,7 @@
         "high_air_m": 3200
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [

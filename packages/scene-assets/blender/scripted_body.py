@@ -230,6 +230,14 @@ def wear(v, path, link_pitch, variant=None):
         by_part.setdefault(part_of(o), []).append(o)
     nodes = {name: bpy.data.objects[name] for name in RIG if name in bpy.data.objects}
     nodes["hull"] = v.hull
+    # Scripted bodies expose their turret and carried launcher as named roots.
+    if "turret" in nodes and "gun" in nodes:
+        for name in ("turret_body", "gun_body"):
+            obj = bpy.data.objects.get(name)
+            if obj is not None:
+                world = obj.matrix_world.copy()
+                obj.parent = nodes["gun"]
+                obj.matrix_world = world
     for (own, rig), _ in by_part.items():
         if rig not in nodes:
             raise SystemExit(f"{own or rig}: rides {rig}, which the frame gives no node")

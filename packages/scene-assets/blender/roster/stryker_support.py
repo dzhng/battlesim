@@ -30,6 +30,7 @@ import roof_parts as RF  # noqa: E402
 import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, script_args  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -144,6 +145,13 @@ def mortar_bay(v):
 def build(variant, v):
     stryker_hull(v)
     (rwip_turret if variant["id"] == SHORAD else mortar_bay)(v)
+    if variant["id"] == SHORAD:
+        articulate_launcher(v, (-0.4, 0, S.ROOF + 0.56), 20, ("stinger_", "hellfire_"),
+                            ("rwip_body", "rwip_bearing", "rwip_sensor", "rwip_smoke", "rwip_thermal", "xm914_", "m240_"))
+    else:
+        articulate_launcher(v, (-1.85, 0, S.ROOF), 0,
+                            ("bay_door_",), ("bay_hinge_", "bay_stop_"),
+                            vertical=True, turn_x=68.0)
 
 
 def wreck(variant, v):

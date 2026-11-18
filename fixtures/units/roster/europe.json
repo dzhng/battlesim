@@ -430,6 +430,7 @@
       }
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Skyranger 30",
       "description": "Gun-and-missile air-defense vehicle",
@@ -566,7 +567,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             -2.95,
             0,
@@ -2449,6 +2450,7 @@
       }
     },
     "europe_mars_ii_multiple_launch_rocket_system": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "MARS II",
       "description": "Multiple-launch rocket system",
@@ -2506,7 +2508,7 @@
           "weapons": [
             "artillery_rocket_heavy"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             -3.2,
             0,
@@ -2652,6 +2654,7 @@
         "high_air_m": 7000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -2924,7 +2927,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             0.6,
             0,
@@ -3428,6 +3431,7 @@
         "high_air_m": 3200
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
