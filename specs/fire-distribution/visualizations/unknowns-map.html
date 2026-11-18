@@ -1,0 +1,227 @@
+<title>Overkill Coordination Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; four quadrant sections, each a band with a coloured quadrant chip; ledger as a dense table. */
+:root{
+  --bg:#f3f4f0; --panel:#ffffff; --fg:#1d221c; --muted:#5d665a; --line:#d9ddd3;
+  --accent:#b8740f; --accent-soft:#f5e7cf;
+  --ok:#2f7a45; --ok-soft:#dcefe1; --open:#a8452f; --open-soft:#f6e0da; --edge:#56607a; --edge-soft:#e2e5ee;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141713; --panel:#1c201b; --fg:#e4e7df; --muted:#9aa395; --line:#30362e;
+  --accent:#e0a040; --accent-soft:#3a2d17;
+  --ok:#6cc488; --ok-soft:#1d3324; --open:#e88a72; --open-soft:#3d221c; --edge:#9fa9c6; --edge-soft:#252a38; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141713; --panel:#1c201b; --fg:#e4e7df; --muted:#9aa395; --line:#30362e;
+  --accent:#e0a040; --accent-soft:#3a2d17;
+  --ok:#6cc488; --ok-soft:#1d3324; --open:#e88a72; --open-soft:#3d221c; --edge:#9fa9c6; --edge-soft:#252a38; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:2.4rem;font-weight:700;letter-spacing:.01em}
+h2{font-size:1.55rem;font-weight:600;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0;max-width:68ch}
+code{font:500 .86em var(--mono);background:var(--accent-soft);padding:1px 5px;border-radius:3px}
+a{color:var(--accent)}
+.eyebrow{font:600 .74rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:14px}
+.rule{border-left:3px solid var(--accent);padding:12px 16px;background:var(--panel);font-size:1.05rem;max-width:72ch}
+.quad{font:600 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:var(--accent-soft);color:var(--accent)}
+section{display:flex;flex-direction:column;gap:16px}
+ul.facts{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:76ch}
+.tablebox{overflow-x:auto;border:1px solid var(--line);background:var(--panel);border-radius:4px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font:600 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.id{font:500 .82rem var(--mono);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.who{font:500 .72rem var(--mono);white-space:nowrap;padding:2px 6px;border-radius:3px;background:var(--ok-soft);color:var(--ok)}
+.who.t{background:var(--edge-soft);color:var(--edge)}
+.who.o{background:var(--open-soft);color:var(--open)}
+.dropped td{color:var(--muted)}
+.dropped td:nth-child(2){text-decoration:line-through;text-decoration-color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.card .k{font:600 .8rem var(--mono);color:var(--muted)}
+.status{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
+.status.decided{background:var(--ok-soft);color:var(--ok)}
+.status.edge{background:var(--edge-soft);color:var(--edge)}
+.status.open{background:var(--open-soft);color:var(--open)}
+.card p{font-size:.88rem;color:var(--muted)}
+.card p b{color:var(--fg);font-weight:600}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.two>div{min-width:0;display:flex;flex-direction:column;gap:10px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px 16px}
+summary{cursor:pointer;font-weight:600}
+summary:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+ol.plan{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.prompt{position:relative}
+pre{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;font:400 .8rem/1.55 var(--mono);white-space:pre-wrap;overflow-x:auto}
+button{font:600 .78rem var(--mono);letter-spacing:.04em;background:var(--accent);color:var(--bg);border:0;border-radius:3px;padding:7px 12px;cursor:pointer;align-self:flex-start}
+.scene{font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+<div class="rule" style="border-left-color:var(--open)"><b>Superseded.</b> This is the walk's record. The plan is <a href="../README.md">specs/fire-distribution/README.md</a>; where they differ, its decisions ledger wins. Since this map: arrival times come from an expected-arrival tick recorded at launch (A1), the target-spread mechanic was added (T1–T8), and the implementation prompt below is replaced by the README's Next Agent Prompt.</div>
+  <span class="eyebrow">battlegame · sim · automatic targeting · quadrant map</span>
+  <h1>Overkill coordination</h1>
+  <div class="rule"><b>Rule.</b> A mount firing a weapon that opts in (<code>avoids_overkill</code>) holds its shot while the damage its side already has flying at the target, landing before its own round would, reaches the target's remaining health. It keeps its aim on the target and fires the moment the target stops being doomed.</div>
+  <p>Built in a five-stage walk on 2026-11-19. Every decision below was shown to the user. None were delegated.</p>
+</header>
+
+<section>
+  <h2><span class="quad">Known knowns</span>Settled ground</h2>
+  <ul class="facts">
+    <li>Each mount picks its own target in <code>select</code> (<code>crates/sim/src/weapons.rs:597</code>). It ranks targets by seeker match, threat to itself, armour share, cost, distance and id. Nothing reads other mounts, so focus fire happens by default.</li>
+    <li>Locks are sticky: <code>automatic_lock</code> (<code>weapons.rs:823</code>) keeps a target until the mount can no longer shoot it.</li>
+    <li>Units act in id order and write their locks back during <code>tick::advance</code> (<code>weapons/tick.rs:85</code>). Later units see earlier units' work from the same tick.</li>
+    <li>Each tick runs flight with damage applied, then sensing, then fire (<code>battle.rs:595–610</code>). Health is current when targets are chosen, and every round still in flight is in <code>Battle.rounds</code>.</li>
+    <li>Every round in flight records the unit it was aimed at in <code>Round.aimed_at</code> (<code>battle/fire.rs:16</code>). A flare clears it (<code>battle/countermeasures.rs:73</code>).</li>
+    <li>A vehicle has a single <code>hp</code>. A squad's health is per soldier. Trophy charges live in <code>Unit.protection</code> (<code>protection.rs</code>).</li>
+    <li>Explicit attack orders win in <code>choose_lock</code> (<code>weapons.rs:755</code>). The skirmish AI focuses fire through those orders.</li>
+    <li>There is no prior overkill or fire-distribution code, spec or commit.</li>
+    <li>The only mounts that share several weapon kinds are tank cannons (AP + HE) and one IFV (<code>ifv_he</code> + <code>bastion</code>). Grenades and RPGs each sit on their own mount.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="quad">Known unknowns</span>Decision ledger</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>#</th><th>Decision</th><th>Why</th><th>Closed by</th></tr></thead>
+    <tbody>
+      <tr><td class="id">D1</td><td><b>Automatic targeting only.</b> Explicit attack orders, from the player or the AI, are untouched.</td><td>The user scoped it: not for the human, not for the game AI.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D2</td><td><b>Opt-in weapon-row flag <code>avoids_overkill: true</code></b>, inherited through <code>extends</code>; omitted means off. A flagged weapon's rounds count toward dooming, and a flagged weapon holds. An unflagged weapon does neither.</td><td>The user asked for per-mount, but a tank's <code>cannon</code> mount carries AP and HE, so the flag goes on the row. Weapons own their mechanisms.</td><td><span class="who">user</span> <span class="who t">territory</span></td></tr>
+      <tr><td class="id">D3</td><td>Authored on <code>atgm</code>, <code>tank_ap</code>, <code>sead_missile</code> and <code>grenade</code>, which covers the ATGM family, tank AP, SEAD, the hand grenade and every RPG. Not on <code>tank_he</code>, AA or air missiles, guns, bombs or artillery.</td><td>Only accurate fire coordinates. HE misses infantry often, and <code>tank_he</code> would also flag rocket pods.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D4</td><td><b>Doomed</b> = committed damage landing before this mount's own shot ≥ the target's <b>actual</b> remaining health (1×).</td><td>The arrival-time rule replaced the 2× accuracy margin.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D5</td><td>Remaining health is read from real state: a vehicle's <code>hp</code>, or for a squad the sum of its living soldiers' <code>hp</code>.</td><td>This is internal automatic behaviour, so the fog contract doesn't bind it. Simplest.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D6</td><td>Committed = the side's flagged rounds in flight with <code>aimed_at</code> = the target, plus earlier launches this tick. Locks never count.</td><td>Counting locks would make two mutually locked crews both leave the target.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D7</td><td>A round's damage = <code>damage</code> × <code>pierce_share</code> on the face it meets now (bounces 0). A blast counts as one hit.</td><td>The same function the damage model uses, so the estimate is the actual damage. The simplifications err low.</td><td><span class="who">user</span> <span class="who t">territory</span></td></tr>
+      <tr><td class="id">D8</td><td>A round in flight arrives in distance ÷ current speed. The mount's own shot arrives in <code>Ready.time_of_flight_s</code>. Rate of fire is not predicted.</td><td>A fast gun keeps firing while a slow missile flies. Predicting rate of fire would need a claim order between crews.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D9</td><td><b>Trophy:</b> the target's first N interceptable committed rounds, by arrival, count as zero, where N is its charges left. Cooldown is ignored.</td><td>With two ATGMs and a Trophy, both teams fire. Ignoring cooldown errs toward over-committing, the safe side.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D10</td><td>A guided round stops counting once its guidance is released. A flare spoof already clears <code>aimed_at</code>.</td><td>Nobody holds for a lost missile.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D11</td><td>When every target the mount would shoot is doomed, it <b>holds</b> with its lock kept. The readout reuses <code>ActionReason::HoldingFire</code>, so the contract doesn't change.</td><td>The user's choice: hold rather than keep firing. Hold the lock so a miss gets an instant follow-up.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D12</td><td>The hold is a <b>gate at the firing step</b>, after aim, reload and traverse. Aim keeps building (<code>tick.rs:323</code>), reload continues and the turret keeps tracking (<code>tick.rs:338</code>). The crew fires on the first tick the target isn't doomed.</td><td>Dropping the lock (<code>tick.rs:240</code>) or failing the assessment, which switches the soldier's mount (<code>tick.rs:45</code>), would reset aim.</td><td><span class="who">user</span> <span class="who t">territory</span></td></tr>
+      <tr><td class="id">D13</td><td><b>One mount, one lock, one hold.</b> The hold reads the ammo the mount would choose against its target (<code>preferred_kind</code>). A crew escapes a hold only by changing target, never by switching ammo or weapon at the same target. A held RPG mount stays its soldier's mount. Other mounts on the same hull are independent.</td><td>Otherwise a tank held on AP could fire HE at the doomed tank, which is overkill with extra steps.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D14</td><td>A doomed current lock makes the crew look again. <code>select</code> ranks doomed targets last for a flagged kind, so the crew keeps its lock when nothing better exists.</td><td>Without this, sticky locks would make the rule do nothing for crews already aiming.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D15</td><td>A held mount still reports <code>Reach.can_engage</code>.</td><td>Attack-move stops instead of driving a holding tank into the enemy.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D16</td><td>Same-tick launches are added to a running tally inside <code>tick::advance</code>, in unit id order.</td><td>Two tanks finishing their aim on the same tick is the most common overkill.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D17</td><td>A default gun firing at what it can't hurt is unchanged. It is unflagged and its share is zero.</td><td>Cinematic: the MG keeps plinking at the tank. It gets a test anyway.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">D18</td><td>Committed fire is a sorted per-target list (arrival, damage) on <code>FireContext</code>, derived from digested state. No new digested state.</td><td>Deterministic on native and wasm. Digests change only through what gets locked and fired.</td><td><span class="who">user</span></td></tr>
+      <tr class="dropped"><td class="id">×</td><td>2× health multiplier and its tuning value</td><td>Replaced by D4 and D8.</td><td><span class="who">user</span></td></tr>
+      <tr class="dropped"><td class="id">×</td><td>Exemptions derived from indirect fire or an airborne target</td><td>D2/D3 make them dead checks: no flagged row fires indirect or at aircraft.</td><td><span class="who">user</span></td></tr>
+      <tr class="dropped"><td class="id">×</td><td>Filter out a unit's own rounds</td><td>Moot once only accurate weapons count. A Javelin team should hold its second missile while the first is still flying.</td><td><span class="who">user</span></td></tr>
+      <tr><td class="id">O1</td><td><b>OPEN, defaulted:</b> proof is one sim test per scene on the test units, plus the deliberate digest change and the balance report once at closeout. No filmed capture.</td><td>The probe was asked and not answered. Unblocked by the user saying otherwise, else the default stands.</td><td><span class="who o">open</span></td></tr>
+      <tr><td class="id">O2</td><td><b>OPEN, defaulted:</b> no distinct readout reason for "holding: target handled".</td><td>Same as O1. The default keeps the published contract unchanged.</td><td><span class="who o">open</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="quad">Unknown knowns</span>What the walk drew out</h2>
+  <div class="two">
+    <div>
+      <h3>Taste</h3>
+      <ul class="facts">
+        <li><b>Simplest mechanism</b> that still holds up on screen. The user asked for it outright and kept cutting machinery.</li>
+        <li><b>Cinematic over efficient.</b> A default gun plinks at armour, a crew follows up a miss instantly, a gun never idles behind a slow missile.</li>
+        <li><b>Inaccurate fire never coordinates.</b> This shaped D2/D3 and removed the 2× margin and the derived exemptions.</li>
+        <li><b>Data over derivation.</b> The scope is an authored flag, not a rule inferred from guidance, spread or role.</li>
+        <li>Internal automatic behaviour may read real state.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Scenes the rule must produce</h3>
+      <ul class="facts scene">
+        <li><b>S1</b> Three Javelins, MBT at 200 hp: 105, then 210, so the third team holds.</li>
+        <li><b>S2</b> Three tanks, MBT at 60 hp, same-tick aim: 45, then 90, so tank C holds.</li>
+        <li><b>S3</b> Two ATGMs, 45-hp light vehicle: the second holds and fires at once if the first misses.</li>
+        <li><b>S4</b> MBT at 50 hp with one Trophy charge: the first missile is absorbed, the second fires, a third holds.</li>
+        <li><b>S5</b> An autocannon on a BMP with a Javelin in flight: the autocannon is unflagged and keeps firing.</li>
+        <li><b>S6</b> An MG, rifles or HE on a squad: unchanged.</li>
+        <li><b>S7</b> A default gun on a tank, AA, artillery: unchanged.</li>
+        <li><b>S8</b> A missile released or flared mid-flight: the held team fires.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="quad">Unknown unknowns</span>Landmines</h2>
+  <p>The sweep covered <code>weapons.rs</code>, <code>weapons/tick.rs</code>, <code>weapons/assessment.rs</code>, <code>battle/fire.rs</code>, <code>damage/penetration.rs</code>, <code>protection.rs</code>, <code>battle/countermeasures.rs</code>, <code>contract/weapons.rs</code>, <code>rules.json</code> and <code>catalog.json</code>.</p>
+  <div class="cards">
+    <div class="card"><div class="top"><span class="k">L1 · file budget</span><span class="status edge">sharp edge</span></div><h3>weapons.rs can't grow</h3><p><b>Evidence:</b> 48.9 KB against the 32 KB budget, and the ratchet blocks growth. <b>So:</b> the logic lives in a new <code>weapons/overkill.rs</code>, and <code>weapons.rs</code> gets only call sites, offset by trims. <code>contract/weapons.rs</code> has about 870 B of headroom.</p></div>
+    <div class="card"><div class="top"><span class="k">L2 · shared mount</span><span class="status decided">decided D13</span></div><h3>Ammo swap to escape a hold</h3><p><b>Evidence:</b> the <code>cannon</code> mount carries AP and HE, and <code>preferred_kind</code> picks between them. <b>So:</b> the hold follows the chosen ammo, and the crew escapes only by changing target.</p></div>
+    <div class="card"><div class="top"><span class="k">L3 · lost missile</span><span class="status decided">decided D10</span></div><h3>Released guidance still counted</h3><p><b>Evidence:</b> releasing support is permanent (<code>battle/fire.rs:63</code>). <b>So:</b> a released round stops counting.</p></div>
+    <div class="card"><div class="top"><span class="k">L4 · attack-move</span><span class="status decided">decided D15</span></div><h3>A holding tank drives on</h3><p><b>Evidence:</b> attack-move halts on <code>Reach.can_engage</code>. <b>So:</b> a held mount still reports that it can engage.</p></div>
+    <div class="card"><div class="top"><span class="k">L5 · same tick</span><span class="status decided">decided D16</span></div><h3>Simultaneous shots</h3><p><b>Evidence:</b> shots come out of <code>tick::advance</code> unit by unit. <b>So:</b> a running tally, keyed by each shot's <code>time_of_flight_s</code>.</p></div>
+    <div class="card"><div class="top"><span class="k">L6 · estimates</span><span class="status edge">sharp edge</span></div><h3>Missile arrival estimated too late</h3><p><b>Evidence:</b> a missile just off the rail is slow, so distance ÷ speed runs long. <b>So:</b> a tank may fire thinking it lands first. Slight overkill, the safe direction. Accepted.</p></div>
+    <div class="card"><div class="top"><span class="k">L7 · digest</span><span class="status edge">sharp edge</span></div><h3>A deliberate outcome change</h3><p><b>Evidence:</b> locks and firing are digested. <b>So:</b> name the change. Re-record the menu reel if it moves, inspect it, and approve it. Run the balance report once at closeout.</p></div>
+    <div class="card"><div class="top"><span class="k">L8 · catalog</span><span class="status edge">sharp edge</span></div><h3>Derived catalog</h3><p><b>Evidence:</b> <code>catalog.json</code> carries the resolved weapon flags. <b>So:</b> regenerate it after editing <code>rules.json</code>.</p></div>
+  </div>
+  <details><summary>Confirm before coding</summary>
+    <ol class="plan">
+      <li>The exact "guidance released" predicate for launcher-guided and seeker rounds (the projectile's <code>guidance.supported</code> and <code>Round.seeker_target</code>).</li>
+      <li>That <code>Ready.time_of_flight_s</code> is available where <code>select</code> needs the doomed check, through the assessment cache, without a second solve per candidate.</li>
+      <li>Which face a round meets for <code>pierce_share</code>: the face the target shows the round's current position, or the shooter's for this tick's launches.</li>
+      <li>That the mechanics editor and catalog resolution pass the new bool through generically.</li>
+    </ol>
+  </details>
+</section>
+
+<section>
+  <h2><span class="quad">Build</span>Tweakable plan (superseded: see the slices)</h2>
+  <p>Ordered by how likely each item is to be tweaked, not by execution order.</p>
+  <ol class="plan">
+    <li><b>Judgment:</b> which rows carry the flag (D3). It's data, so it can flip in one line.</li>
+    <li><b>Judgment:</b> holding versus finishing a doomed target (D11). Holding is decided; if it plays badly, ranking doomed targets last without holding is the fallback.</li>
+    <li><b>Judgment:</b> how far Trophy's cooldown is ignored (D9).</li>
+  </ol>
+  <details><summary>Mechanical, I trust you on this part</summary>
+    <ol class="plan">
+      <li>Write the tests first, on test units: S1–S8, plus the same-tick case and the instant follow-up after a miss.</li>
+      <li>Add the <code>avoids_overkill</code> field to <code>WeaponDefinition</code> with a serde default. Author it in <code>rules.json</code> and regenerate the catalog.</li>
+      <li>In <code>battle/fire.rs</code>, build the committed list per side per target from <code>Battle.rounds</code> and the projectiles, then pass it on <code>FireContext</code>.</li>
+      <li>In <code>weapons/overkill.rs</code>: <code>doomed(target, arrive_by)</code>, with the Trophy discount and release filtering, plus a tally update for each launch.</li>
+      <li>Hook into <code>select</code> ranking, the <code>automatic_lock</code> reconsider and the fire gate in <code>tick.rs</code>, then keep <code>can_engage</code>.</li>
+      <li>Run the sim tests. Note the digest change. Run the balance report once at closeout.</li>
+    </ol>
+  </details>
+</section>
+
+<section class="prompt">
+  <h2><span class="quad">Next</span>Implementation prompt (superseded: use the README)</h2>
+  <pre id="prompt">Implement overkill coordination in crates/sim (automatic targeting only) per the overkill coordination map.
+
+Contract: new opt-in weapon-row flag `avoids_overkill: bool` (serde default false, inherited via extends). Author it on atgm, tank_ap, sead_missile, grenade in fixtures/rules.json; regenerate catalog.json. No other contract or publication change (reuse ActionReason::HoldingFire).
+
+Rule: a mount whose chosen kind (preferred_kind) against its target is flagged holds when the damage its side has committed to that target, landing before its own shot (Ready.time_of_flight_s), reaches the target's actual remaining hp (vehicle hp, or sum of living soldiers' hp).
+- Committed = the side's flagged rounds in flight with aimed_at == target, plus earlier launches this tick (running tally in tick::advance, unit-id order). Never locks.
+- Round damage = damage x pierce_share on the face it meets (bounces 0). Arrival = distance / current speed.
+- Trophy: the first N interceptable committed rounds by arrival count zero, N = charges left; ignore cooldown.
+- A guided round stops counting once its guidance is released; flares already clear aimed_at.
+- The hold is a gate at the firing step: keep the lock, aim, reload and turret tracking; fire on the first tick the target isn't doomed. Never switch ammo or weapon to escape a hold; only a target change escapes it.
+- A doomed current lock triggers reconsider; select ranks doomed targets last for flagged kinds.
+- A held mount still sets Reach.can_engage.
+- Explicit attack orders and default-gun fire at unhurtable targets are untouched.
+
+weapons.rs is over the size ratchet: put the logic in weapons/overkill.rs, call sites only in weapons.rs.
+Tests first (write-tests skill, test units): S1-S8 from the map, the same-tick case, and an instant follow-up after a miss. Sim tests only while iterating; a deliberate digest change; balance report once at closeout.</pre>
+  <button type="button" id="copy">Copy prompt</button>
+</section>
+</div>
+<script>
+document.getElementById('copy').addEventListener('click',function(){
+  var b=this,t=document.getElementById('prompt').textContent;
+  navigator.clipboard.writeText(t).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy prompt'},1600)},function(){
+    var r=document.createRange();r.selectNodeContents(document.getElementById('prompt'));var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected, press ⌘C';});
+});
+</script>
