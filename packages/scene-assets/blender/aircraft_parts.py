@@ -85,7 +85,10 @@ def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.
         canopy=flat_paint("canopy_glass", CANOPY_TINT, rough=CANOPY_ROUGH, grime=0, coverage=("blended", CANOPY_OPACITY),
                           role="glass"),
         cockpit=flat_paint("cockpit", (0.05, 0.052, 0.056), rough=0.7, grime=0),
-        blade=textured("blade_paint", "olive_paint", colour=(0.03, 0.032, 0.033), chip=0.2, dirt=0.1, role="paint"),
+        # Composite rotor blades stay neutral charcoal across nations. The
+        # airframe scheme supplies the identity, while a purple/blue blade
+        # texture makes the rotor disc read as a separate material family.
+        blade=flat_paint("blade_paint", (0.026, 0.029, 0.032), rough=0.78, grime=0.08, role="paint"),
         nav_red=flat_paint("nav_red", (0.42, 0.02, 0.015), rough=0.25, grime=0.05),
         nav_green=flat_paint("nav_green", (0.02, 0.3, 0.06), rough=0.25, grime=0.05),
     )
