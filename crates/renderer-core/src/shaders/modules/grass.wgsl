@@ -13,6 +13,7 @@ struct GrassParams {
   counts: vec4u,
   ground: vec4f,
   sway: vec4f,
+  sun: vec4f,
   growth: array<vec4f, GRASS_GROWTH_ROWS>,
   patches: array<vec4f, GRASS_GROWTH_ROWS>,
   mixes: array<vec4f, GRASS_GROWTH_ROWS * GRASS_MIX_MAX>,
@@ -356,8 +357,13 @@ fn growTile(wg: vec3u, li: u32, emit: bool, first: vec2u) -> vec2u {
     // and half with the tussock beneath it: the grain a field keeps when
     // it is too far to show blades. Dry grass is paler, never darker.
     let tussock = valueNoise(p * (*P).grain.x + vec2f(63.9, 27.4));
+    // The ground's dry crests, as the terrain under the clump draws them.
+    var parchedCrest = 0.0;
+    if (terrainParams.crestDry.x > 0.0) {
+      parchedCrest = groundCrest(root.z, dot(grassGroundNormal(p), (*P).sun.xyz));
+    }
     let value = 1.0 + (*P).shading.z * fade * (fract(h.y * 57.31) + tussock - 1.0);
-    let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, paved, water), scar).xyz, dryness);
+    let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, paved, water, parchedCrest), scar).xyz, dryness);
     // Tracks and trampling lay the clump over (carried by the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let base = select((*P).grid.z, 0u, grassTier == 0u);

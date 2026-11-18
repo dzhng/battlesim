@@ -182,6 +182,8 @@ impl Ground {
                 w.flutter,
                 w.flutter_hz * 2.0 * std::f64::consts::PI,
             ]),
+            // Overhead until the frame names the light's sun.
+            sun: f4([0.0, 0.0, 1.0, 0.0]),
             growth: growth.map(f4),
             patches: patches.map(f4),
             mixes: mixes.map(f4),

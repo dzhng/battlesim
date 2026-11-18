@@ -127,6 +127,12 @@ crate::records! {
         shore_earth: [f32; 4],
         shore_edge: [f32; 4],
         distant: [f32; 4],
+        /// Dry crests: strength, ramp start and end height (m), sun weight.
+        crest_dry: [f32; 4],
+        /// Dry crests: desaturation, lift, unused.
+        crest_tone: [f32; 4],
+        /// Dry crests: the straw (linear), unused.
+        crest_straw: [f32; 4],
         shore_tuning: ShoreTuning,
         water_looks: [WaterLook; crate::static_world::ground::biome::WATER_LOOKS_MAX],
         /// Material class, disabled road wear, depth-only water, unused.
@@ -146,6 +152,8 @@ crate::records! {
         counts: [u32; 4],
         ground: [f32; 4],
         sway: [f32; 4],
+        /// Toward the sun (z up), for the dry crests; unused.
+        sun: [f32; 4],
         growth: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS],
         patches: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS],
         mixes: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS * crate::static_world::ground::biome::GRASS_MIX_MAX],

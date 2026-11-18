@@ -196,6 +196,7 @@ impl Ground {
         let [litter, moss, humus] = [0, 1, 2].map(|i| linear(b.palette(&f.palette)[i]));
         let (shore, bank) = (&b.shore, b.palette(&b.shore.palette));
         let pixels = self.tuning.terrain.distant.plot_pixels;
+        let crest = &b.crest_dry;
         let params = TerrainParams {
             region: f4(self.plots.region),
             field: f4([ox, oy, 1.0 / cell, FOOTPRINT_M]),
@@ -237,6 +238,14 @@ impl Ground {
                 shore.relief,
             ]),
             distant: f4(rgb(one("distant"), 0.0)),
+            crest_dry: f4([
+                crest.strength,
+                crest.height_m[0],
+                crest.height_m[1],
+                crest.sun,
+            ]),
+            crest_tone: f4([crest.desaturate, crest.lift, 0.0, 0.0]),
+            crest_straw: f4(rgb(one(&crest.palette), 0.0)),
             shore_tuning: self.shore_tuning(),
             water_looks: self.water_looks(),
             view: [0; 4],

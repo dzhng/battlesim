@@ -14,10 +14,12 @@ use std::collections::BTreeMap;
 
 use crate::wind::WindSettings;
 
+mod crest;
 mod grass;
 mod roads;
 mod scars;
 mod water;
+pub use crest::*;
 pub use grass::*;
 pub use roads::*;
 pub use scars::*;
@@ -47,6 +49,8 @@ pub struct Biome {
     pub trees: Trees,
     pub grass: GrassRules,
     pub scars: Scars,
+    /// Sunlit high ground parched toward straw.
+    pub crest_dry: CrestDry,
     /// The one wind: grass sways in it, smoke and dust drift on it.
     pub wind: WindSettings,
 }
@@ -527,6 +531,7 @@ impl Biome {
         self.check_floor()?;
         self.check_trees()?;
         self.check_grass()?;
+        self.check_crest()?;
         self.wind.check()?;
         self.check_scars()
     }
