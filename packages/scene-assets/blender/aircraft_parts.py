@@ -441,16 +441,18 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
             lods=NEAR)
     cyl(f"rotor_{name}_hub", hub, hub * 0.55, (0, 0, 0), "Z", mats["dark"], node, seg=14, bevel=0.02)
     cyl(f"rotor_{name}_cap", hub * 0.55, hub * 0.4, (0, 0, hub * 0.45), "Z", mats["steel"], node, seg=12, lods=MID)
-    tip = tip_chord if tip_chord is not None else chord
+    # Rotor blades taper and sweep slightly toward the tip. A constant chord
+    # reads as a flat bar in the roster view and overwhelms the airframe.
+    tip = tip_chord if tip_chord is not None else chord * 0.72
     for k in range(blades):
         a = phase + math.tau * k / blades
         ca, sa = math.cos(a), math.sin(a)
         # The blade along its own +X from the hub, its leading edge forward of the axis.
         root, out = hub * 0.9, radius
         dz = -(out - root) * math.sin(droop)
-        sec = [(chord / 2, root, 0.0, chord, chord * thick), (chord / 2, (root + out) / 2, dz / 2 - 0.0, chord,
+        sec = [(chord / 2, root, 0.0, chord, chord * thick), (chord / 2 + 0.03, (root + out) / 2, dz / 2 - 0.0, chord,
                                                               chord * thick * 0.9),
-               (tip / 2, out, dz, tip, tip * thick * 0.8)]
+               (tip / 2 + 0.08, out, dz, tip, tip * thick * 0.8)]
         # surface() sweeps chords along -X: lay the blade on Y, then turn it to its bearing.
         surface(f"blade_{name}_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
                 rot=(0, 0, a - math.pi / 2))
