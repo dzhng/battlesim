@@ -45,6 +45,7 @@ pub enum ArcKind {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FiringSolution {
+    /// Launch velocity relative to the carrier.
     pub velocity: V3,
     pub time_of_flight_s: f64,
     /// Where the target is predicted to be on arrival.
@@ -65,9 +66,9 @@ pub enum NoSolution {
     },
 }
 
-/// Solve the weapon's preferred usable arc: low only for direct fire; the
-/// high arc first for indirect fire, falling back to the low arc. The arc
-/// flies through `past`, the body a soldier fires from behind.
+/// Solve the weapon's preferred usable arc. Direct fire uses the low arc.
+/// Indirect fire uses the authored height when set and otherwise tries
+/// high before low. The arc flies through `past`, a soldier's firing cover.
 pub fn solve_launch_past(
     world: &WorldGeometry,
     config: &FlightConfig,
@@ -75,16 +76,8 @@ pub fn solve_launch_past(
     aim: &Aim,
     past: Option<PropId>,
 ) -> Result<FiringSolution, NoSolution> {
+    let (o, t, w) = (aim.origin, aim.target, aim.target_velocity);
     let carrier = aim.carrier;
-    let frame_aim = Aim {
-        target_velocity: aim.target_velocity - carrier,
-        ..*aim
-    };
-    let (o, t, w) = (
-        frame_aim.origin,
-        frame_aim.target,
-        frame_aim.target_velocity,
-    );
     let motor = profile
         .motor
         .map_or([f64::NAN; 2], |m| [m.accel_mps2, m.top_speed_mps]);
@@ -100,27 +93,26 @@ pub fn solve_launch_past(
         w.z,
         profile.speed_mps,
         profile.gravity_scale,
+        profile.arc_height_m.unwrap_or(f64::NAN),
         profile.lifetime_s,
         profile.turn_rad_s.unwrap_or(f64::NAN),
         motor[0],
         motor[1],
-        profile.motor.map_or(0.0, |_| 1.0),
+        carrier.x,
+        carrier.y,
+        carrier.z,
     ]
-    .map(f64::to_bits)
-    .into_iter()
-    .chain([carrier.x, carrier.y, carrier.z].map(f64::to_bits))
-    .collect::<Vec<_>>()
-    .try_into()
-    .expect("launch key has fixed length");
+    .map(f64::to_bits);
     let world_at = (
         world as *const WorldGeometry as usize,
         world.obstacle_revision(),
     );
     let indirect = profile.trajectory == Trajectory::Indirect;
     let key = (flight, past, indirect, world_at.0, world_at.1);
-    config.solved.launches.get_or(key, || {
-        launch_uncached(world, config, profile, &frame_aim, aim, past, carrier)
-    })
+    config
+        .solved
+        .launches
+        .get_or(key, || launch_uncached(world, config, profile, aim, past))
 }
 
 /// [`solve_launch_past`], worked out.
@@ -128,12 +120,10 @@ fn launch_uncached(
     world: &WorldGeometry,
     config: &FlightConfig,
     profile: &LaunchProfile,
-    frame_aim: &Aim,
-    world_aim: &Aim,
+    aim: &Aim,
     past: Option<PropId>,
-    carrier: V3,
 ) -> Result<FiringSolution, NoSolution> {
-    let arcs = intercepts(config, profile, frame_aim);
+    let arcs = intercepts(config, profile, aim);
     let preferred: Vec<FiringSolution> = match profile.trajectory {
         Trajectory::Direct => arcs.into_iter().filter(|s| s.arc == ArcKind::Low).collect(),
         Trajectory::Indirect => arcs.into_iter().rev().collect(),
@@ -144,28 +134,17 @@ fn launch_uncached(
             world,
             config,
             profile,
-            frame_aim.origin,
+            aim.origin,
             &FiringSolution {
-                velocity: solution.velocity + carrier,
-                intercept: world_aim.target + world_aim.target_velocity * solution.time_of_flight_s,
+                velocity: solution.velocity + aim.carrier,
                 ..solution
             },
             past,
         ) {
-            None => {
-                return Ok(FiringSolution {
-                    intercept: world_aim.target
-                        + world_aim.target_velocity * solution.time_of_flight_s,
-                    ..solution
-                })
-            }
+            None => return Ok(solution),
             Some((point, by)) => {
                 blocked.get_or_insert(NoSolution::Blocked {
-                    arc: FiringSolution {
-                        intercept: world_aim.target
-                            + world_aim.target_velocity * solution.time_of_flight_s,
-                        ..solution
-                    },
+                    arc: solution,
                     point,
                     by,
                 });
@@ -257,9 +236,8 @@ impl<K: std::hash::Hash + Eq, V: Clone> Kept<K, V> {
 }
 
 /// What a launch is solved from, to the bit: the aim (origin, target and
-/// target velocity), the round's flight (speed, gravity scale, lifetime,
-/// arc, turn limit, motor), the body it flies past, and the world it is
-/// flown against: which one, at which obstacle revision.
+/// target and carrier velocities), the round's flight, the body it flies
+/// past, and the world's identity and obstacle revision.
 type LaunchKey = ([u64; 19], Option<PropId>, bool, usize, u64);
 
 /// The ballistic intercepts and the launches already solved: kept answers
@@ -272,8 +250,30 @@ pub(crate) struct Solved {
     launches: Kept<LaunchKey, Result<FiringSolution, NoSolution>>,
 }
 
-/// The low and (if distinct) high intercepts within the round's lifetime.
+/// The available arcs, with muzzle-relative velocity and world-space intercept.
 fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<FiringSolution> {
+    if let Some(height) = profile.arc_height_m {
+        return lob_intercept(profile, -profile.gravity(config).z, aim, height)
+            .into_iter()
+            .collect();
+    }
+    let frame_aim = Aim {
+        target_velocity: aim.target_velocity - aim.carrier,
+        ..*aim
+    };
+    let mut solutions = fixed_speed_intercepts(config, profile, &frame_aim);
+    for solution in &mut solutions {
+        solution.intercept = aim.target + aim.target_velocity * solution.time_of_flight_s;
+    }
+    solutions
+}
+
+/// Work in the carrier's frame so the cached solution uses its relative target motion.
+fn fixed_speed_intercepts(
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+) -> Vec<FiringSolution> {
     if let Some(motor) = profile.motor {
         return motor_intercept(profile.speed_mps, motor, profile.lifetime_s, aim)
             .into_iter()
@@ -302,6 +302,33 @@ fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<
         .solved
         .intercepts
         .get_or(key, || ballistic_intercepts(g, profile, aim))
+}
+
+/// Set the upward speed from the world-space apex. Solve for the descending
+/// meeting with the target's vertical motion, then cover its led horizontal
+/// distance in that time. The muzzle supplies the required speed up to its limit.
+fn lob_intercept(
+    profile: &LaunchProfile,
+    gravity: f64,
+    aim: &Aim,
+    height: f64,
+) -> Option<FiringSolution> {
+    let delta = aim.target - aim.origin;
+    let up = libm::sqrt(2.0 * gravity * (height + delta.z.max(0.0)));
+    let relative_up = up - aim.target_velocity.z;
+    let time =
+        (relative_up + libm::sqrt(relative_up * relative_up - 2.0 * gravity * delta.z)) / gravity;
+    if !(time >= up / gravity && time <= profile.lifetime_s) {
+        return None;
+    }
+    let horizontal = delta * (1.0 / time) + aim.target_velocity;
+    let velocity = v3(horizontal.x, horizontal.y, up) - aim.carrier;
+    (velocity.length() <= profile.speed_mps).then_some(FiringSolution {
+        velocity,
+        time_of_flight_s: time,
+        intercept: aim.target + aim.target_velocity * time,
+        arc: ArcKind::High,
+    })
 }
 
 /// [`intercepts`] for a round with no motor, falling under `gravity`.
@@ -548,23 +575,32 @@ pub fn scatter_reach_m(scatter_mrad: f64, range_m: f64) -> f64 {
 /// angles (±3σ, σ = `scatter_mrad`) about the two axes perpendicular to the
 /// line of fire, converted with a tangent to a displacement in the aim plane.
 pub fn scatter_aim(origin: V3, aim: V3, scatter_mrad: f64, rng: &mut Rng) -> V3 {
+    scatter_in_plane(origin, aim, scatter_mrad, rng, false)
+}
+
+fn scatter_in_plane(origin: V3, aim: V3, scatter_mrad: f64, rng: &mut Rng, horizontal: bool) -> V3 {
     let sigma = scatter_mrad * 1e-3;
     let across = rng.truncated_normal(SCATTER_LIMIT_SIGMA) * sigma;
-    let vertical = rng.truncated_normal(SCATTER_LIMIT_SIGMA) * sigma;
+    let second = rng.truncated_normal(SCATTER_LIMIT_SIGMA) * sigma;
     let line = aim - origin;
     let range = line.length();
     if range == 0.0 {
         return aim;
     }
     let forward = line * (1.0 / range);
-    let side = forward.cross(v3(0.0, 0.0, 1.0));
+    let vertical = v3(0.0, 0.0, 1.0);
+    let side = forward.cross(vertical);
     let right = if side.length() > 1e-9 {
         side.normalized()
     } else {
         v3(1.0, 0.0, 0.0)
     };
-    let up = right.cross(forward);
-    aim + right * (range * libm::tan(across)) + up * (range * libm::tan(vertical))
+    let other = if horizontal {
+        vertical.cross(right)
+    } else {
+        right.cross(forward)
+    };
+    aim + right * (range * libm::tan(across)) + other * (range * libm::tan(second))
 }
 
 /// The arc a round fires on to `aim`, flying through `past`, and where it
@@ -643,29 +679,26 @@ fn launch_along(
     shooter: Option<Shooter>,
 ) -> Result<(Launch, FiringSolution), NoSolution> {
     let carrier = aim.carrier;
-    let frame_aim = Aim {
-        target_velocity: aim.target_velocity - carrier,
-        ..*aim
-    };
-    let mut target = scatter_aim(aim.origin, aim.target, scatter_mrad, rng);
+    // Scatter a height-bounded lob across the battlefield, keeping its apex
+    // fixed and its landing spread independent of the descent angle.
+    let mut target = scatter_in_plane(
+        aim.origin,
+        aim.target,
+        scatter_mrad,
+        rng,
+        profile.arc_height_m.is_some(),
+    );
     let bounded = config.miss_fall_max_s > 0.0
         && profile.turn_rad_s.is_none()
         && profile.trajectory == Trajectory::Direct;
     if bounded {
         target.z = target.z.min(aim.target.z);
     }
-    let scattered = Aim {
-        target,
-        ..frame_aim
-    };
-    let relative = intercepts(config, profile, &scattered)
+    let scattered = Aim { target, ..*aim };
+    let fired = intercepts(config, profile, &scattered)
         .into_iter()
         .find(|s| s.arc == intended.arc)
         .ok_or(NoSolution::OutOfReach)?;
-    let fired = FiringSolution {
-        intercept: scattered.target + aim.target_velocity * relative.time_of_flight_s,
-        ..relative
-    };
     let fall = if bounded {
         let velocity = fired.velocity + carrier + profile.gravity(config) * fired.time_of_flight_s;
         let duration = config.miss_fall_max_s;

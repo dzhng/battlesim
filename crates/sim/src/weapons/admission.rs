@@ -95,6 +95,7 @@ fn flight_error(prefix: &str, error: FlightConfigError) -> RulesError {
         FlightConfigError::TooManySubsegments { .. } => "gravity_scale",
         FlightConfigError::Motor(_) => return RulesError::new(prefix, error.to_string()),
         FlightConfigError::TopAttack(_) => "top_attack",
+        FlightConfigError::ArcHeight(_) => "arc_height_m",
         FlightConfigError::TighterThanCeiling { .. } => "scatter_mrad",
     };
     RulesError::new(format!("{prefix}.{field}"), error.to_string())

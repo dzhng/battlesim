@@ -135,12 +135,11 @@ pub enum BlockReason {
     SearchLimit,
 }
 
-/// One clearance tile: exact capped distance-transform samples.
+/// Grid copies share each clearance tile’s immutable distances.
 #[derive(Clone)]
 struct Clearance {
-    values: Box<[f64; TILE_SAMPLES]>,
-    /// What the grid's side knew ([`NavGrid::knowledge`]) when a search
-    /// last paid to read the tile.
+    values: Arc<[f64; TILE_SAMPLES]>,
+    /// Grid-local knowledge revision at the last paid read.
     paid: u64,
 }
 
@@ -413,7 +412,7 @@ impl NavGrid {
                 }
             }
         }
-        let mut values = Box::new([0.0; TILE_SAMPLES]);
+        let mut values = [0.0; TILE_SAMPLES];
         for y in ty..(ty + TILE_SIDE).min(self.ny) {
             for x in tx..(tx + TILE_SIDE).min(self.nx) {
                 values[(y - ty) * TILE_SIDE + x - tx] = out[(y - y0) * nx + x - x0];
@@ -426,7 +425,7 @@ impl NavGrid {
             tiles.resize_with(count, || None);
         }
         tiles[tile] = Some(Clearance {
-            values,
+            values: Arc::new(values),
             paid: if paid {
                 self.knowledge
             } else {

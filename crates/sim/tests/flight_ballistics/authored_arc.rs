@@ -52,3 +52,52 @@ fn an_authored_gravity_scale_sets_the_rounds_screen_arc() {
         );
     }
 }
+
+#[test]
+fn shipped_indirect_fire_reaches_its_range_under_the_high_air_floor() {
+    let rules = rules();
+    let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz).unwrap();
+    let weapons: Vec<_> = rules
+        .weapons
+        .iter()
+        .filter(|(_, weapon)| weapon.ballistics.trajectory == Trajectory::Indirect)
+        .collect();
+    assert!(!weapons.is_empty());
+    for (name, weapon) in weapons {
+        let row = &weapon.ballistics;
+        let profile = config.profile(row).unwrap();
+        let world = flat([row.range_m + 400.0, 400.0], "");
+        let aim = Aim {
+            origin: v3(100.0, 200.0, 1.4),
+            target: v3(100.0 + row.range_m, 200.0, 0.0),
+            target_velocity: V3::default(),
+            carrier: V3::default(),
+        };
+        let solution = solve_launch_past(&world, &config, &profile, &aim, None)
+            .unwrap_or_else(|error| panic!("{name} cannot reach {} m: {error:?}", row.range_m));
+        assert_eq!(
+            solution.arc,
+            ArcKind::High,
+            "{name} must prefer the indirect arc"
+        );
+        assert!(
+            solution.time_of_flight_s < 12.0,
+            "{name} takes {:.1} seconds to reach its target",
+            solution.time_of_flight_s
+        );
+        let apex = predicted_path(
+            &config,
+            &profile,
+            aim.origin,
+            solution.velocity,
+            solution.time_of_flight_s,
+        )
+        .iter()
+        .map(|point| point.z)
+        .fold(0.0, f64::max);
+        assert!(
+            (rules.air.rotor.ceiling_agl_m..rules.air.high_air.floor_agl_m).contains(&apex),
+            "{name} reaches an altitude of {apex:.1} m"
+        );
+    }
+}

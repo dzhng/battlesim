@@ -3,6 +3,90 @@
 use super::*;
 use serde_json::json;
 
+#[test]
+fn a_height_bounded_artillery_rocket_is_seen_through_low_air_sight() {
+    for sees_low_air in [true, false] {
+        let mut rules = crate::fixtures::test_rules();
+        rules["weapons"]["test_rocket"] = json!({
+            "extends": "artillery_rocket_light",
+            "arc_height_m": 65,
+            "speed_mps": 200,
+            "targets": {"ground": {"range_m": 1000, "scatter_mrad": 12}}
+        });
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            json!({"mounts": [{"id": "HMG", "weapons": ["test_rocket"]}]}),
+        );
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_tank",
+            json!({"sensors": {"ground_m": 20, "low_air_m": if sees_low_air {1500} else {0}, "high_air_m": 1500}}),
+        );
+        let setup = serde_json::from_value(json!({
+            "map": {"size": [1400, 500], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35},
+            "rules": rules,
+            "units": [
+                {"side": "red", "kind": "test_jeep", "position": [100, 200], "engagement": "return_fire_only"},
+                {"side": "blue", "kind": "test_tank", "position": [550, 300], "engagement": "return_fire_only"}
+            ]
+        })).unwrap();
+        let mut battle = Battle::new(&setup, 17);
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Red,
+            player: None,
+            seq: 1,
+            queued: false,
+            order: Order::Attack {
+                units: vec![UnitId(0)],
+                target: TargetRef::Ground {
+                    point: [1000.0, 200.0, 0.0],
+                },
+            },
+        });
+        assert_eq!(ack.error, None);
+        let mut launch_tick = None;
+        let mut apex: f64 = 0.0;
+        let mut landed = false;
+        for _ in 0..450 {
+            battle.step();
+            let owner = battle.observe(Side::Red);
+            let enemy = battle.observe(Side::Blue);
+            for segment in owner.projectiles.iter().filter(|segment| segment.own) {
+                launch_tick.get_or_insert(owner.tick);
+                let top = segment.path.iter().map(|p| p[2]).fold(0.0, f64::max);
+                apex = apex.max(top);
+                if top > battle.rules.air.rotor.ceiling_agl_m && sees_low_air {
+                    assert!(enemy
+                        .projectiles
+                        .iter()
+                        .any(|p| !p.own && p.path == segment.path));
+                }
+            }
+            assert!(sees_low_air || enemy.projectiles.is_empty());
+            if let Some(impact) = owner.blasts.first() {
+                assert!((impact.point[0] - 1000.0).abs() < 36.0, "{impact:?}");
+                assert!((impact.point[1] - 200.0).abs() < 36.0, "{impact:?}");
+                assert!(apex > battle.rules.air.rotor.ceiling_agl_m);
+                assert!(apex < battle.rules.air.high_air.floor_agl_m);
+                assert!(owner.tick - launch_tick.unwrap() < 12 * u64::from(battle.rules.tick_hz));
+                assert_eq!(
+                    enemy.blasts.first().map(|blast| blast.point),
+                    sees_low_air.then_some(impact.point)
+                );
+                assert!(!enemy
+                    .ground_visibility
+                    .visible(impact.point[0], impact.point[1]));
+                landed = true;
+                break;
+            }
+        }
+        assert!(landed, "the rocket burst at its ordered target");
+    }
+}
+
 fn airborne_round(
     layer: AltitudeLayer,
     sensors: [f64; 3],

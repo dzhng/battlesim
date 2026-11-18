@@ -40,7 +40,15 @@ pub(super) fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
         ..hull
     };
     let depth = |hull: Obb2| hull.separation(&other).map_or(0.0, |v| v.length());
-    depth(padded(after)) > depth(padded(before)) + 1e-9 || depth(after) > depth(before) + 1e-9
+    let padded_after = depth(padded(after));
+    if padded_after == 0.0 {
+        return false;
+    }
+    if padded_after > depth(padded(before)) + 1e-9 {
+        return true;
+    }
+    let after_depth = depth(after);
+    after_depth > 1e-9 && after_depth > depth(before) + 1e-9
 }
 
 /// Whether wheeled vehicle `i`, held by the vehicle `b`, now works its way

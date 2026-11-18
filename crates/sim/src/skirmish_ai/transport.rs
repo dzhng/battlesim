@@ -9,7 +9,7 @@ use contract::observation::{HoldPhase, ObservationFrame, OwnUnit};
 use contract::scenario::Rules;
 use std::collections::BTreeMap;
 
-use super::{distance, EntrySite, Side};
+use super::distance;
 use crate::carriage::{seats, seats_squad};
 
 /// The card a squad of `size` soldiers is paired with: the fewest seats that
@@ -182,6 +182,30 @@ pub(super) struct FreeCarrier<'a> {
     coming_for: Option<UnitId>,
 }
 
+/// The squad on its final walk to the carrier and the driver waiting at its
+/// door. A blocked approach or a departing carrier releases the pair.
+pub(super) fn boarding_pairs(frame: &ObservationFrame) -> std::collections::BTreeSet<UnitId> {
+    use contract::observation::{MoveState, OrderStep};
+    let mut boarding = std::collections::BTreeSet::new();
+    for squad in &frame.own {
+        if squad.state == MoveState::RouteBlocked {
+            continue;
+        }
+        let carrier = match squad.steps.as_slice() {
+            [OrderStep::Board { carrier, .. }, ..]
+            | [OrderStep::Move {
+                attack_move: false, ..
+            }, OrderStep::Board { carrier, .. }, ..] => carrier,
+            _ => continue,
+        };
+        if frame.own.iter().any(|u| u.id == *carrier && !u.withdrawing) {
+            boarding.insert(*carrier);
+            boarding.insert(squad.id);
+        }
+    }
+    boarding
+}
+
 /// Every carrier of the player's free to collect a squad this decision:
 /// empty, not withdrawing, and not refused its route. `rides` are the
 /// collections the last decision sent; one still under way keeps its squad.
@@ -189,6 +213,7 @@ pub(super) fn free_carriers<'a>(
     rules: &Rules,
     frame: &'a ObservationFrame,
     rides: &BTreeMap<UnitId, UnitId>,
+    boarding: &std::collections::BTreeSet<UnitId>,
 ) -> Vec<FreeCarrier<'a>> {
     frame
         .own
@@ -196,6 +221,7 @@ pub(super) fn free_carriers<'a>(
         .filter(|u| {
             seats(rules, u.kind) > 0
                 && !u.withdrawing
+                && !boarding.contains(&u.id)
                 && u.state != contract::observation::MoveState::RouteBlocked
                 && passengers(frame, u.id).next().is_none()
         })
@@ -299,50 +325,74 @@ pub(super) fn fight_ahead<'a>(
         })
 }
 
-/// The party a carrier drives for: its own, else that of a squad aboard. A
-/// carrier and its passengers go to one objective.
-pub(super) fn party_aboard<'a>(
-    frame: &ObservationFrame,
-    carrier: &OwnUnit,
-    parties: &'a [super::PartyTask],
-) -> Option<&'a super::PartyTask> {
-    std::iter::once(carrier.id)
-        .chain(passengers(frame, carrier.id).map(|squad| squad.id))
-        .find_map(|id| parties.iter().find(|party| party.units.contains(&id)))
+/// A decision's transport destinations. A squad considering a pickup and
+/// the driver carrying it both judge the same drop, including team orders.
+pub(super) struct RidePlan<'a> {
+    pub frame: &'a ObservationFrame,
+    pub rules: &'a Rules,
+    pub input: super::DecisionInput<'a>,
+    pub group_ready: bool,
 }
 
-/// When a squad rides, and where its carrier lets it out.
-impl super::BalancedDoctrine {
-    /// Where a carrier at `from` lets a squad out for `goal`, short of the
-    /// enemy's observed reach.
+impl RidePlan<'_> {
     fn drop_point(
         &self,
-        frame: &ObservationFrame,
-        rules: &Rules,
-        entry: &EntrySite,
-        goal: [f64; 2],
-        from: [f64; 2],
+        ai: &super::BalancedDoctrine,
+        passenger: &OwnUnit,
+        here: [f64; 2],
     ) -> [f64; 2] {
-        let standoff = self.tuning.unload_share * distance(entry.center, goal);
-        unload_point(frame, rules, goal, from, standoff)
+        let planned = self.input.assignment.map(|team| {
+            team.parties
+                .iter()
+                .find(|p| p.units.contains(&passenger.id))
+                .map_or(
+                    if self.group_ready {
+                        team.main_objective
+                    } else {
+                        team.staging_point
+                    },
+                    |p| p.objective,
+                )
+        });
+        let goal = if let Some(enemy) =
+            fight_ahead(self.frame, self.rules, passenger.kind, here, planned)
+        {
+            [enemy.position[0], enemy.position[1]]
+        } else {
+            let nearest = || {
+                self.frame
+                    .skirmish
+                    .iter()
+                    .flat_map(|s| &s.objectives)
+                    .filter(|o| o.owner != Some(self.input.side))
+                    .min_by(|a, b| {
+                        distance(here, a.center)
+                            .total_cmp(&distance(here, b.center))
+                            .then(a.id.cmp(&b.id))
+                    })
+                    .map(|o| o.center)
+            };
+            let Some(objective) = planned.or_else(nearest) else {
+                return here;
+            };
+            ai.heading(self.rules, self.input.entry, passenger, objective)
+        };
+        let standoff = ai.tuning.unload_share * distance(self.input.entry.center, goal);
+        unload_point(self.frame, self.rules, goal, here, standoff)
     }
 
-    /// Whether `unit`, a squad on foot, rides for `goal`: a ride from where
-    /// it stands would set it down `ride_min_m` nearer or more.
     pub(super) fn worth_riding(
         &self,
-        frame: &ObservationFrame,
-        rules: &Rules,
-        entry: &EntrySite,
-        unit: &contract::observation::OwnUnit,
+        ai: &super::BalancedDoctrine,
+        unit: &OwnUnit,
         goal: [f64; 2],
     ) -> bool {
         if unit.members.is_empty() {
             return false;
         }
         let here = [unit.position[0], unit.position[1]];
-        let out = self.drop_point(frame, rules, entry, goal, here);
-        distance(here, goal) - distance(out, goal) >= self.tuning.ride_min_m
+        let out = self.drop_point(ai, unit, here);
+        distance(here, goal) - distance(out, goal) >= ai.tuning.ride_min_m
     }
 
     /// A loaded carrier's order: drive its squad toward the fight (the
@@ -352,14 +402,11 @@ impl super::BalancedDoctrine {
     /// already stands.
     pub(super) fn unload(
         &self,
-        side: Side,
-        entry: &EntrySite,
-        frame: &ObservationFrame,
-        rules: &Rules,
-        carrier: &contract::observation::OwnUnit,
-        planned_goal: Option<[f64; 2]>,
+        ai: &super::BalancedDoctrine,
+        carrier: &OwnUnit,
+        passenger: &OwnUnit,
     ) -> Option<Order> {
-        let passenger = passengers(frame, carrier.id).min_by_key(|u| u.id)?;
+        let frame = self.frame;
         if carrier.withdrawing || !all_inside(frame, carrier.id) {
             return None;
         }
@@ -375,32 +422,8 @@ impl super::BalancedDoctrine {
             return Some(order(None));
         }
         let here = [carrier.position[0], carrier.position[1]];
-        let available = || {
-            frame
-                .skirmish
-                .iter()
-                .flat_map(|view| &view.objectives)
-                .filter(|o| o.owner != Some(side))
-        };
-        let objective = planned_goal.or_else(|| {
-            available()
-                .min_by(|a, b| {
-                    distance(here, a.center)
-                        .total_cmp(&distance(here, b.center))
-                        .then(a.id.cmp(&b.id))
-                })
-                .map(|objective| objective.center)
-        });
-        let goal = match fight_ahead(frame, rules, passenger.kind, here, planned_goal) {
-            Some(target) => [target.position[0], target.position[1]],
-            None => match objective {
-                Some(objective) => self.heading(rules, entry, passenger, objective),
-                // Nothing to fight and every objective held: out here.
-                None => return carrier.goal.is_none().then(|| order(None)),
-            },
-        };
-        let out = self.drop_point(frame, rules, entry, goal, here);
-        let slack = self.tuning.reaim_m;
+        let out = self.drop_point(ai, passenger, here);
+        let slack = ai.tuning.reaim_m;
         if distance(here, out) <= slack {
             carrier.goal.is_none().then(|| order(None))
         } else {

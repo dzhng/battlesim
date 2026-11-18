@@ -139,7 +139,9 @@ own that is losing a fight pops its smoke and reverses out of the cloud
 ([smoke](src/skirmish_ai/smoke.rs)); a player's units only pop when ordered.
 A squad it buys where no carrier waits for it comes aboard the carrier that
 seats it, as one purchase ([purchase](src/skirmish_ai/purchase.rs)); boarding
-pairs a squad with a carrier it already has, as after a loss.
+pairs a squad with a carrier it already has, as after a loss. A squad calls
+for a ride only when the driver’s intended drop brings it closer to its task.
+The driver waits while the squad walks to board.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 Each AI opens on the lane its slot holds; that pull fades over the battle, so

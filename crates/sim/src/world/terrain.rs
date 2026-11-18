@@ -237,6 +237,11 @@ impl HeightField {
     /// with the ground triangles. Walks cells along the XY projection so no hit
     /// is rounded to a cell. Returns (t, normal).
     pub fn raycast(&self, origin: V3, dir: V3, max_t: f64) -> Option<(f64, V3)> {
+        // Every triangle is below the highest sample. A segment entirely
+        // above it cannot hit, including one that crosses many terrain cells.
+        if origin.z.min(origin.z + dir.z * max_t) > self.top + 1e-3 {
+            return None;
+        }
         // Clip to the map rectangle in XY.
         let (mut t0, mut t1) = (0.0f64, max_t);
         for (o, d, hi) in [

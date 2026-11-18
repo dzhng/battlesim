@@ -744,43 +744,6 @@ fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
 }
 
 #[test]
-fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
-    let raw: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
-    let rules: contract::ballistics::FlightRules =
-        serde_json::from_value(raw["physics"].clone()).unwrap();
-    let config = FlightConfig::new(&rules, 30).unwrap();
-    for name in [
-        "artillery_howitzer",
-        "artillery_mortar",
-        "artillery_rocket_light",
-        "artillery_rocket_heavy",
-        "artillery_strike_missile",
-    ] {
-        let row = crate::common::weapon(name);
-        let profile = config.profile(&row).unwrap();
-        let world = flat([row.range_m + 400.0, 400.0], "");
-        let aim = Aim {
-            origin: v3(100.0, 200.0, 1.4),
-            target: v3(100.0 + row.range_m, 200.0, 0.0),
-            target_velocity: V3::default(),
-            carrier: V3::default(),
-        };
-        let solution = solve_launch_past(&world, &config, &profile, &aim, None)
-            .unwrap_or_else(|error| panic!("{name} cannot reach {} m: {error:?}", row.range_m));
-        assert_eq!(
-            solution.arc,
-            ArcKind::High,
-            "{name} must prefer the indirect arc"
-        );
-        assert!(
-            solution.time_of_flight_s < profile.lifetime_s,
-            "{name} expires before impact"
-        );
-    }
-}
-
-#[test]
 fn an_indirect_arc_still_stops_on_a_prop_in_its_curved_path() {
     let world = flat(
         [800.0, 400.0],

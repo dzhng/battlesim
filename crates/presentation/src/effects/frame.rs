@@ -758,6 +758,21 @@ impl EffectFrame {
         batch.dropped = 0;
         batch.lights.clear(self.p.cast_wrap);
         let p = &self.p;
+        // Flight takes its slots before smoke can fill the visual budget.
+        // Move these records to the front of the picture after everything
+        // else is built, so trailing smoke cannot cover the round's glow.
+        for e in &self.pool.live {
+            if let Look::Tracer {
+                style,
+                visible: true,
+            } = &e.look
+            {
+                if e.start <= clock && clock < e.end {
+                    draw_tracer(p, e, style, clock - e.start, batch);
+                }
+            }
+        }
+        let flight_floats = batch.count * EFFECT_FLOATS;
         // High-air shadows first: they lie on the ground, under everything.
         for s in shadows {
             batch.ground_shadow(s, p.high_air_shadow.ground_band_m);
@@ -793,7 +808,11 @@ impl EffectFrame {
             match &e.look {
                 Look::Tracer { style, visible } => {
                     if *visible {
-                        draw_tracer(p, e, style, age, batch);
+                        if let (Some(c), Some(at)) = (&style.cast, tracer_head(e, age)) {
+                            batch
+                                .lights
+                                .offer(at, c.radius_m, c.color, c.intensity, &e.cause);
+                        }
                     }
                 }
                 Look::Flash {
@@ -820,6 +839,7 @@ impl EffectFrame {
         for src in &self.sources {
             draw_fire_light(src, clock, self.noted, self.keep, batch);
         }
+        batch.data[..batch.count * EFFECT_FLOATS].rotate_left(flight_floats);
         self.instances = batch.count;
         self.dropped = batch.dropped;
     }

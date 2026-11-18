@@ -277,7 +277,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "speed_mps",
       "Launch speed",
       "Flight & accuracy",
-      "Speed as the round leaves its muzzle or rail.",
+      "Speed as the round leaves its muzzle or rail. For indirect weapons with an authored arc height, this is the maximum launch speed.",
       { unit: "m/s" },
     ),
     field(
@@ -291,8 +291,15 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "trajectory",
       "Preferred arc",
       "Flight & accuracy",
-      "Direct prefers a low arc; indirect prefers a high ballistic arc. Bodies still determine whether the path is clear.",
+      "Direct uses a low arc. Indirect uses the authored arc height when set and otherwise prefers a high ballistic arc. Bodies still determine whether the path is clear.",
       { kind: "enum", choices: ["direct", "indirect"] },
+    ),
+    field(
+      "arc_height_m",
+      "Indirect arc height",
+      "Flight & accuracy",
+      "Peak above the higher of the muzzle and aim point. The round uses the launch speed needed to complete this arc within its speed limit.",
+      { unit: "m", optional: true },
     ),
     field(
       "turn_deg_s",

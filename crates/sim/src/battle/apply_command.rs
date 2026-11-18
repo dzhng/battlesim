@@ -263,14 +263,7 @@ impl Battle {
                 // guidance once; policy stays; automatic fire may restart.
                 for id in units {
                     let unit = &mut movers[id.0 as usize];
-                    unit.orders.clear();
-                    unit.route = None;
-                    unit.planned_goal = None;
-                    unit.pursuit = None;
-                    unit.state = MoveState::Idle;
-                    unit.drive_speed_mps = 0.0;
-                    unit.blocker = None;
-                    unit.turn_to = None;
+                    Self::hold_position(unit);
                     for mount in &mut unit.mounts {
                         mount.stop();
                     }
@@ -312,6 +305,20 @@ impl Battle {
     }
 
     fn hold_position(unit: &mut Unit) {
+        if !unit.members.is_empty() && unit.hold.is_none() && unit.movement_goal().is_some() {
+            unit.anchor = Some(crate::cover::Anchor {
+                at: unit.position.xy(),
+                halt: false,
+            });
+            unit.cover.due = true;
+            for soldier in &mut unit.members {
+                soldier.post = None;
+                soldier.spot = None;
+                soldier.cover = None;
+                soldier.lean = None;
+                soldier.path.clear();
+            }
+        }
         unit.orders.clear();
         unit.route = None;
         unit.planned_goal = None;
