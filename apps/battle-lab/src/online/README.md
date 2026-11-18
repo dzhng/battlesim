@@ -27,6 +27,10 @@ The last battle observation owns the result after the server frees its room:
 online player rows use the ticket's public callsigns and return to Multiplayer.
 A battle opened without a ticket is refused.
 
+The [seat banner](../lobby/Seats.tsx) puts the host's move action inside its
+occupancy picker so it takes a deliberate choice to leave the current seat.
+Guests can take an open seat directly from its banner.
+
 [Room previews](roomPreview.ts) prepare the exact server seed through the existing
 map-preview controller, with one admission attempt. A rejected seed stays
 rejected for every viewer until the host changes it. The preparation path needs

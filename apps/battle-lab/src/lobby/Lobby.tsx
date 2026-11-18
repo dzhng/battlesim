@@ -113,6 +113,7 @@ function DrivenLobby({ driver }: { driver: LobbyDriver }) {
           say={lightingLabel}
         />
         <PreviewStatus state={preview} label={room?.previewStatus} />
+        {room && <RoomReady driver={room} />}
         {(!room || room.editable) && (
           <button
             type="button"
@@ -126,7 +127,7 @@ function DrivenLobby({ driver }: { driver: LobbyDriver }) {
         {local ? (
           ready ? (
             <Link
-              className="lobby-deploy"
+              className="menu-deploy"
               data-testid="menu-deploy"
               target="_self"
               to={local.deploy!}
@@ -134,40 +135,37 @@ function DrivenLobby({ driver }: { driver: LobbyDriver }) {
               Deploy
             </Link>
           ) : (
-            <a className="lobby-deploy" data-testid="menu-deploy" role="link" aria-disabled="true">
+            <a className="menu-deploy" data-testid="menu-deploy" role="link" aria-disabled="true">
               Deploy
             </a>
           )
         ) : (
-          room && <RoomCommands driver={room} />
+          room?.editable && (
+            <button
+              type="button"
+              className="menu-deploy"
+              disabled={!room.view.canStart}
+              onClick={room.start}
+            >
+              Start
+            </button>
+          )
         )}
       </div>
     </section>
   );
 }
-function RoomCommands({ driver }: { driver: Extract<LobbyDriver, { kind: "room" }> }) {
+function RoomReady({ driver }: { driver: Extract<LobbyDriver, { kind: "room" }> }) {
   const own = driver.view.seats.find((seat) => seat.id === driver.view.you)?.occupant;
   const ready = own?.kind === "human" && own.ready;
   return (
-    <>
-      <button
-        type="button"
-        className="lobby-order"
-        aria-pressed={ready}
-        onClick={() => driver.ready(!ready)}
-      >
-        {ready ? "Unready" : "Ready"}
-      </button>
-      {driver.editable && (
-        <button
-          type="button"
-          className="lobby-order online-start"
-          disabled={!driver.view.canStart}
-          onClick={driver.start}
-        >
-          Start
-        </button>
-      )}
-    </>
+    <button
+      type="button"
+      className="lobby-order"
+      aria-pressed={ready}
+      onClick={() => driver.ready(!ready)}
+    >
+      {ready ? "Unready" : "Ready"}
+    </button>
   );
 }
