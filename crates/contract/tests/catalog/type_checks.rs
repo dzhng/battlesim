@@ -82,6 +82,17 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
         error(json!({ "t": t })),
         rule("mount \"cannon\" on a hull cannot name operator_appearance")
     );
+    // A hull shoves what is lighter than itself, so it weighs something a
+    // body can be lighter than, and something that can be stopped.
+    for weight in ["trivial", "immovable"] {
+        let off = json!({ "body": { "hull": { "weight_class": weight } } });
+        assert_eq!(
+            tank(off),
+            rule(&format!(
+                "a hull weighs light, medium or heavy, not {weight}"
+            ))
+        );
+    }
     // Its wreck keeps its cover tier (Q24): a heavy hull's wreck is heavy cover.
     let light = json!({ "body": { "hull": { "wreck": "light_wreck" } } });
     assert_eq!(

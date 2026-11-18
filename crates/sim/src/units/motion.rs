@@ -67,7 +67,7 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
         speed_factors,
         half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
         class: MoverClass::Vehicle,
-        push: t.hull().expect("a vehicle has a hull").push_class,
+        push: t.hull().expect("a vehicle has a hull").push_class(),
         drive: Some(drive),
     };
     Some(match t.mobility {

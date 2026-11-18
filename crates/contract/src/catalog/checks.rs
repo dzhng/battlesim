@@ -137,6 +137,17 @@ pub(super) fn check(
         }
     }
     if let Body::Hull(h) = &t.body {
+        // A hull shoves what is lighter than itself: none is so light it
+        // shoves nothing, or so heavy nothing stops it.
+        if matches!(
+            h.weight_class,
+            WeightClass::Trivial | WeightClass::Immovable
+        ) {
+            return rule(&format!(
+                "a hull weighs light, medium or heavy, not {}",
+                lower(&h.weight_class)
+            ));
+        }
         // A wreck keeps its live vehicle's cover (Q24).
         let row = props.by_id(&h.wreck).body.cover_tier;
         let want = h.weight_class.cover_tier();

@@ -6,7 +6,7 @@ export { CONVERSION_CAPTIONS } from "./fieldSchema";
 export type { Conversion, FieldKind, GameplayField, ParsedField } from "./fieldSchema";
 
 const faces = ["front", "side", "rear", "roof"];
-const weights = ["light", "medium", "heavy", "immovable"];
+const hullWeights = ["light", "medium", "heavy"];
 const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
   units: [
     field(
@@ -73,15 +73,8 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "body.hull.weight_class",
       "Body weight class",
       "Body & protection",
-      "How hard the body is to shove and the cover tier it provides. A pusher must be strictly heavier; immovable bodies never move.",
-      { kind: "enum", choices: weights },
-    ),
-    field(
-      "body.hull.push_class",
-      "Push strength",
-      "Body & protection",
-      "The vehicle can push bodies strictly lighter than this class, subject to space and collision rules.",
-      { kind: "enum", choices: weights },
+      "How hard the body is to shove, the cover tier it provides, and what it shoves: the vehicle pushes bodies strictly lighter than itself, subject to space and collision rules. A hull is light, medium or heavy.",
+      { kind: "enum", choices: hullWeights },
     ),
     field(
       "body.hull.wreck",

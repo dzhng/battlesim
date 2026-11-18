@@ -12,7 +12,18 @@ pub struct Hull {
     pub hp: f64,
     pub armor: Armor,
     pub weight_class: WeightClass,
-    pub push_class: PushClass,
     /// The prop type it leaves when destroyed (a `props` id).
     pub wreck: String,
+}
+
+impl Hull {
+    /// What it shoves aside: every body lighter than itself (Q3).
+    pub fn push_class(&self) -> PushClass {
+        PushClass::ALL[usize::from(self.weight_class.rank())]
+    }
+
+    /// Whether it shoves aside a body of `weight`.
+    pub fn shoves(&self, weight: WeightClass) -> bool {
+        self.push_class().pushes(weight)
+    }
 }
