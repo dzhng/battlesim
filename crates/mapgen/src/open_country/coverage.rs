@@ -657,5 +657,43 @@ impl<'a> Coverage<'a> {
     }
 }
 
+/// Refuse presets whose ground-sight proof could not fit its operation
+/// envelope, before any layout is drawn.
+pub(crate) fn admit_coverage(
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+    physics: &contract::generation_physics::GenerationPhysics,
+) -> Result<(), Vec<Diagnostic>> {
+    let range = physics.circular_range_m().map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidPhysicalRules,
+            feature: None,
+            location: "$.rules".into(),
+            message,
+        }]
+    })?;
+    preflight(
+        [request.extent_m(); 2],
+        presets.terrain.fog_cell_m,
+        presets.open_country.sight.cell_m,
+        range,
+    )
+    .and_then(|()| {
+        tree_line_work(
+            presets.open_country.tree_lines.length_m[1],
+            presets.open_country.tree_lines,
+        )
+        .map(|_| ())
+    })
+    .map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::GenerationFailed,
+            feature: Some("ground_sight".into()),
+            location: "$.presets.open_country.sight.cell_m".into(),
+            message,
+        }]
+    })
+}
+
 #[cfg(test)]
 mod tests;
