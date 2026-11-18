@@ -916,3 +916,45 @@ fn a_landing_hop_can_escape_a_wall_and_its_routing_margin() {
             .all(|p| p.footprint().distance(heli.position.xy()) > radius));
     }
 }
+
+/// Stop or Deploy to a heli already set up changes nothing, as for a truck:
+/// it keeps its checked spot and stays on the ground serving.
+#[test]
+fn a_set_up_heli_told_to_stop_or_deploy_stays_set_up() {
+    for order in ["stop", "deploy"] {
+        let mut b = battle(json!([]));
+        let (setup, _, _) = timing(&b);
+        for _ in 0..setup + 5 {
+            b.step();
+        }
+        assert!(b.unit(HELI).unwrap().landed());
+        let seq = b.replay().accepted.len() as u64 + 1;
+        let ack = b.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq,
+            order: if order == "stop" {
+                Order::Stop { units: vec![HELI] }
+            } else {
+                Order::SetDeployment {
+                    units: vec![HELI],
+                    deployed: true,
+                }
+            },
+            queued: false,
+        });
+        assert_eq!(ack.error, None, "{order}");
+        for _ in 0..b.rules().tick_hz * 2 {
+            b.step();
+            let heli = b.unit(HELI).unwrap();
+            assert!(heli.landed(), "{order}: it stays on the ground");
+            assert!(deployment_full(heli), "{order}: it stays set up");
+        }
+    }
+}
+
+fn deployment_full(unit: &sim::units::Unit) -> bool {
+    unit.deployment
+        .as_ref()
+        .is_some_and(|d| d.current == d.duration)
+}

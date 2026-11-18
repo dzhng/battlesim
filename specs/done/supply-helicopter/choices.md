@@ -46,12 +46,13 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
 7. **The AI aims the airlift away from enemies it sees now**, not every enemy
    it remembers.
 
-## Sound
+## Settled
 
 8. **A landing type has one contract accessor.** `UnitType::landing` returns
    its authored drop and rotor clearance together. Admission requires rotor
-   flight; runtime deployment reads the resulting drop duration through
-   `Deployment::lands`. Flight, low hover and AI consume the same type predicate.
+   flight; `deployment::initial` converts the drop to ticks, and
+   `Deployment::lands` answers whether a unit lands at all. Flight, low hover
+   and the AI read the same type accessor.
 9. **The drop time is counted in the same steps as set-up progress**, so the
    two compare directly. *(`deployment.rs::initial`)*
 10. **The heli becomes a ground vehicle at the end of its drop**, not at full

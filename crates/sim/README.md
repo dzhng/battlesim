@@ -249,10 +249,17 @@ What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
 checks), so loading it is its check.
 
-An aircraft is a hull with no ground footprint (`Unit::ground_footprint` is
-`None`): traffic, shoving, cover, treads, forest lanes and forest concealment
-never see it. Its motion (`units::Motion::Air`) never reaches ground
-navigation; a site that only a ground mover reaches asks `Unit::ground`.
+An aircraft in the air is a hull with no ground footprint: traffic, shoving,
+cover, treads, forest lanes and forest concealment never see it. Two
+predicates keep "flies" and "in the air now" apart: `Unit::flies` (its motion
+is `units::Motion::Air`, so it never reaches ground navigation, and only a
+ground mover asks `Unit::ground`) and `Unit::airborne` (it flies and is off
+the ground). An aircraft whose deploy capability authors a drop sets up by
+landing ([supply helicopter](../../specs/done/supply-helicopter/README.md)):
+from touchdown to the end of packing it is landed (the deployment's latch,
+`Unit::landed`), and every ground rule treats it as a ground vehicle, with a
+footprint, the Ground layer and the Vehicle target class
+(`Unit::target_class`).
 
 An aircraft flies in the altitude layer its row names. High air is the one
 layer that bends physics: its heights are lowered from a real jet's for play,

@@ -104,9 +104,9 @@ the one list of deliberate hard-coded rules:
   to fire (he steps out past its edge, fires a burst, and tucks back in);
   everyone else's rounds still hit it;
 - suppression pins squads only; a vehicle's crew isn't suppressed;
-- a supply truck's final positive remainder buys one last service item at its
+- a supplier's final positive remainder buys one last service item at its
   normal delivery rate, even if its full price exceeds that remainder; an empty
-  truck delivers nothing;
+  supplier delivers nothing;
 - an attack order pivots a vehicle on the spot to bring a gun fixed in its
   hull onto its target, on wheels as on tracks; unordered, only tracks pivot
   and wheels hold fire;

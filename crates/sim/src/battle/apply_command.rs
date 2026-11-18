@@ -264,7 +264,6 @@ impl Battle {
                 for id in units {
                     let unit = &mut movers[id.0 as usize];
                     unit.orders.clear();
-                    unit.landing_goal = None;
                     unit.route = None;
                     unit.planned_goal = None;
                     unit.pursuit = None;
@@ -291,7 +290,6 @@ impl Battle {
                         // Set up here: movement ends and progress reverses from where it stands.
                         d.stationary = Posture::Deployed;
                         unit.orders.clear();
-                        unit.landing_goal = None;
                         unit.route = None;
                         unit.planned_goal = None;
                         unit.pursuit = None;
