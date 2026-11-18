@@ -84,6 +84,7 @@ def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.
         store=textured("store_paint", "store_grey", colour=store, chip=0.1, dirt=0, streak=0, role="paint"),
         canopy=flat_paint("canopy_glass", CANOPY_TINT, rough=CANOPY_ROUGH, grime=0, coverage=("blended", CANOPY_OPACITY),
                           role="glass"),
+        canopy_frame=flat_paint("canopy_frame", (0.034, 0.037, 0.041), rough=0.72, grime=0.05, role="paint"),
         cockpit=flat_paint("cockpit", (0.05, 0.052, 0.056), rough=0.7, grime=0),
         # Composite rotor blades stay neutral charcoal across nations. The
         # airframe scheme supplies the identity, while a purple/blue blade
@@ -215,7 +216,7 @@ def fin(name, root_x, root_z, height, root_chord, tip_chord, sweep_m, mats, pare
 
 
 # ---------------------------------------------------------------- canopy and fittings
-def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="dark",
+def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="canopy_frame",
            tail=0.45, nose=0.05):
     """A bubble canopy on the sill line from `x_front` to `x_back`, highest
     (`top`) at `peak` of the way back, in tinted glass seen through (the
