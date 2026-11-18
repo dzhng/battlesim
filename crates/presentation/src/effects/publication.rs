@@ -204,7 +204,7 @@ impl EffectFeed {
                 key,
                 position,
                 half: units.body_half.get(kind).copied().flatten(),
-                airborne: unit.is_some_and(|u| u.airborne) && !grounded,
+                airborne: unit.is_some_and(|u| u.in_the_air(grounded)),
                 smoking,
                 yaw,
                 members: members.to_vec(),

@@ -46,7 +46,7 @@ impl Deployment {
     }
 
     /// It sets up by landing: an aircraft's deployment.
-    fn lands(&self) -> bool {
+    pub fn lands(&self) -> bool {
         self.drop_duration > 0
     }
 
@@ -85,9 +85,9 @@ pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
         deploy_step: duration / deploy,
         pack_step: duration / pack,
         // On the same lattice as `current`: the drop's ticks of deploy steps.
-        drop_duration: timings
-            .drop_seconds
-            .map_or(0, |drop| ticks(drop) * (duration / deploy)),
+        drop_duration: t.landing().map_or(0, |landing| {
+            ticks(landing.drop_seconds) * (duration / deploy)
+        }),
         landed: false,
         landing_start_z: None,
         stationary: Posture::Deployed,
@@ -98,24 +98,21 @@ pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
 /// go, otherwise its stationary posture.
 pub fn target(unit: &Unit) -> Option<Posture> {
     let d = unit.deployment.as_ref()?;
-    if d.lands()
-        && matches!(unit.motion, crate::units::Motion::Air(_))
-        && unit.landing_goal.is_none()
-        && d.current > 0
-    {
-        return Some(Posture::Packed);
-    }
-    if unit.state == contract::observation::MoveState::NoLandingSpot && d.current == 0 {
-        return Some(Posture::Packed);
-    }
-    if d.lands()
-        && matches!(unit.motion, crate::units::Motion::Air(_))
-        && unit.movement_goal().is_none()
-        && unit
-            .air
-            .is_some_and(|air| air.velocity.xy().length() > 1e-6)
-    {
-        return Some(Posture::Packed);
+    if d.lands() {
+        let at_spot = unit.landing_goal.is_some_and(|goal| {
+            (goal - unit.position.xy()).inside_radius(crate::movement::air::ARRIVAL_M)
+        });
+        return Some(
+            if d.stationary == Posture::Deployed
+                && at_spot
+                && unit.movement_goal().is_none()
+                && !unit.gliding()
+            {
+                Posture::Deployed
+            } else {
+                Posture::Packed
+            },
+        );
     }
     Some(if unit.movement_goal().is_some() {
         Posture::Packed
@@ -150,6 +147,7 @@ pub fn advance_all(units: &mut [Unit]) {
 pub fn drop_progress(unit: &Unit) -> Option<f64> {
     let d = unit.deployment.as_ref()?;
     (d.lands()
+        && d.current > 0
         && !d.landed
         && unit.landing_goal.is_some()
         && target(unit) == Some(Posture::Deployed))
@@ -166,7 +164,7 @@ pub fn separation_exempt(unit: &Unit) -> bool {
     let Some(d) = unit.deployment.as_ref() else {
         return false;
     };
-    d.landed || (d.lands() && d.current > 0 && d.current < d.duration)
+    d.lands() && d.current > 0
 }
 
 /// What the owning side sees of a unit's deployment.

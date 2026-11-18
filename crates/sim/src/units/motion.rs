@@ -7,7 +7,7 @@ use super::*;
 /// through the air, where no ground rule reaches it.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Motion {
-    Ground(Mobility),
+    Ground,
     Air(Flight),
 }
 
@@ -49,7 +49,7 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
             model: flight,
             cruise_agl_m: rules.air.cruise_agl_m(&t.mobility),
         }),
-        _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
+        _ => Motion::Ground,
     }
 }
 

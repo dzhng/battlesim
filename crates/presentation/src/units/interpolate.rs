@@ -8,10 +8,24 @@
 //! the publication, but nothing of it is drawn, picked or heard.
 use std::sync::Arc;
 
-use sim::publication::reader::{Crash, Identified, Observation, OwnUnit, PropDisplayPose};
+use sim::publication::reader::{
+    Crash, Deployment, Identified, Observation, OwnUnit, PropDisplayPose,
+};
 
 use super::{delta_angle, lerp3, riding};
 use crate::world::Vec3;
+
+fn blend_deployment(
+    previous: Option<&Deployment>,
+    now: Option<&Deployment>,
+    t: f64,
+) -> Option<f64> {
+    now.map(|d| {
+        previous.map_or(d.progress, |was| {
+            was.progress + (d.progress - was.progress) * t
+        })
+    })
+}
 
 /// One unit's body at the drawn moment.
 #[derive(Clone, Debug, Default)]
@@ -169,24 +183,22 @@ impl TickInterpolator {
         for (pose, u) in out.own.iter_mut().zip(on_field()) {
             let p = previous.and_then(|o| o.own.iter().find(|p| p.id == u.id));
             // Own units also blend their deployment progress.
-            let deployment = u.deployment.as_ref().map(|d| {
-                p.and_then(|p| p.deployment.as_ref())
-                    .map_or(d.progress, |was| {
-                        was.progress + (d.progress - was.progress) * t
-                    })
-            });
+            let deployment = blend_deployment(
+                p.and_then(|p| p.deployment.as_ref()),
+                u.deployment.as_ref(),
+                t,
+            );
             pose.blend(p.map(Body::from), u.into(), t, deployment, u.grounded);
         }
         out.identified
             .resize_with(latest.identified.len(), Pose::default);
         for (pose, u) in out.identified.iter_mut().zip(&latest.identified) {
             let p = previous.and_then(|o| o.identified.iter().find(|p| p.id == u.id));
-            let deployment = u.deployment.as_ref().map(|d| {
-                p.and_then(|p| p.deployment.as_ref())
-                    .map_or(d.progress, |was| {
-                        was.progress + (d.progress - was.progress) * t
-                    })
-            });
+            let deployment = blend_deployment(
+                p.and_then(|p| p.deployment.as_ref()),
+                u.deployment.as_ref(),
+                t,
+            );
             pose.blend(p.map(Body::from), u.into(), t, deployment, u.grounded);
         }
         out.crashes.clear();

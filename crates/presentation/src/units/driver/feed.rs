@@ -53,7 +53,7 @@ pub struct FeedUnit {
     /// A downed airframe's (pitch, roll) as it falls, radians: nose up and
     /// right side down. None: a live unit.
     pub attitude: Option<(f64, f64)>,
-    /// Published landing latch, or a parked showcase aircraft.
+    /// The observed or showcased aircraft stands on the ground.
     pub grounded: bool,
 }
 

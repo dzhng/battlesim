@@ -7,7 +7,8 @@ import { durableSoldiers } from "../scenarios";
 
 const PLAYERS = [
   { id: "blue-1", side: "blue", faction: "us", controller: "active_ai" },
-  { id: "red-1", side: "red", faction: "eastern", controller: "active_ai" },
+  // An empty opponent lets authored wear measure the complete supply cycle.
+  { id: "red-1", side: "red", faction: "eastern", controller: "passive_ai" },
 ];
 
 /** A small, carded-only skirmish showing the emergency supplier path. */

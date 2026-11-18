@@ -365,11 +365,7 @@ pub fn resting_place(world: &WorldGeometry, at: V2, yaw: f64, half: V2, hulls: &
                     || deck_z.is_some_and(|z| p.base_z < z && p.top_z() <= z + 1e-9)
             })
     };
-    let reach = half.length();
-    let on_map = |p: V2| {
-        p.x >= reach && p.y >= reach && p.x <= world.width() - reach && p.y <= world.depth() - reach
-    };
-    nearest_clear_spot(world, at, CLEAR_REACH_M, 0.0, |p| !on_map(p) || !clear(p)).unwrap_or(at)
+    nearest_clear_spot(world, at, CLEAR_REACH_M, half.length(), |p| !clear(p)).unwrap_or(at)
 }
 
 /// The point a crash bursts at: just off the ground it struck.

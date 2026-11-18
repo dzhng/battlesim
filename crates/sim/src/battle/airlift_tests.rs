@@ -193,11 +193,45 @@ fn emergency_airlift_buys_lands_serves_and_returns_to_support() {
         "the purchased supplier is the flying card: {:?}",
         battle.replay().accepted
     );
-    assert!(landed || returning, "the supplier lands before returning");
+    assert!(landed, "the supplier lands before returning");
     assert!(improved, "the tank's health or service state improves");
     assert!(
         bearing[0] * enemy_direction[0] + bearing[1] * enemy_direction[1] < 0.0,
         "landing bearing is away from the seen enemy: {bearing:?}"
     );
     assert!(returning, "the supplier heads back toward the support post");
+}
+
+#[test]
+fn pending_opening_wear_is_part_of_the_battle_digest() {
+    let mut battle = Battle::new(&setup(), 901);
+    let ack = battle.issue(CommandEnvelope {
+        side: Side::Blue,
+        player: Some("blue-1".into()),
+        seq: 1,
+        order: Order::ConfirmPurchase {
+            variant: "test_tank".into(),
+            carrier: None,
+            destination: [1800.0, 800.0],
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    let unworn = battle.digest();
+    for condition in [
+        json!({"hp":40}),
+        json!({"casualties":1}),
+        json!({"soldier_hp":2}),
+        json!({"spent":{"tank_ap":1}}),
+        json!({"suppression":0.5}),
+    ] {
+        battle.skirmish.as_mut().unwrap().players[0].reservations[0]
+            .data
+            .condition = Some(serde_json::from_value(condition.clone()).unwrap());
+        assert_ne!(
+            battle.digest(),
+            unworn,
+            "pending wear affects arriving state: {condition}"
+        );
+    }
 }

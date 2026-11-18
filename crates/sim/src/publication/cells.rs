@@ -4,7 +4,6 @@
 //! building's footprint (`hostX`, `hostY`, `hostHalfX`, `hostHalfY`).
 use contract::command::TargetRef;
 
-use super::limbs_or_absent;
 use super::tags::{tag, HOST_KINDS};
 
 /// A target as `targetKind`, `targetId`, `targetX`, `targetY`, `targetZ`:
@@ -32,4 +31,13 @@ pub(super) fn footprint_cells(footprint: Option<([f64; 2], [f64; 2])>) -> [f32; 
     footprint.map_or([f32::NAN; 4], |([x, y], [hx, hy])| {
         [x as f32, y as f32, hx as f32, hy as f32]
     })
+}
+
+/// An integer as its two exact 16-bit limbs.
+pub(crate) fn limbs(n: u32) -> [f32; 2] {
+    [(n & 0xffff) as f32, (n >> super::LIMB_BITS) as f32]
+}
+
+pub(super) fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
+    n.map_or([-1.0; 2], limbs)
 }

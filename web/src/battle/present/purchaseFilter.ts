@@ -3,7 +3,7 @@
  *  be bought (a card, or a squad with its carrier, and what the pair costs),
  *  and the carriers that can take a squad. */
 import {
-  airborne,
+  flies,
   type UnitCard,
   type UnitCategory,
   type UnitType,
@@ -71,7 +71,7 @@ export function shopOrder(
   for (const positions of tabs.values()) {
     const movers = positions
       .map((at) => ordered[at])
-      .sort((a, b) => Number(airborne(a.type!)) - Number(airborne(b.type!)));
+      .sort((a, b) => Number(flies(a.type!)) - Number(flies(b.type!)));
     positions.forEach((at, i) => {
       ordered[at] = movers[i];
     });

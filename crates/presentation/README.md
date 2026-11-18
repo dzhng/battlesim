@@ -263,7 +263,7 @@ climbing. How hard each round kicks is its weapon look's `kick` and its flash's 
 carries the drawn muzzle. A turning aircraft's rotor is drawn by the effects from the
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
-rate and a paused one shows its blades. The published landing latch and
+rate and a paused one shows its blades. The published grounding and
 deployment pose drive [one rotor speed](src/units/rotor.rs); grounded rotors
 wind down while setting up and up while packing, and hand over to authored
 blades before they stop. The sound emitter carries that pose's rotor speed,

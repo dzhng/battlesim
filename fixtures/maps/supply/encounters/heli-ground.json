@@ -80,7 +80,7 @@
             }
         },
         {
-            "tick": 1100,
+            "tick": 2400,
             "side": "red",
             "order": {
                 "kind": "set_engagement",

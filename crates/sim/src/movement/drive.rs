@@ -108,15 +108,21 @@ pub(super) fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
 }
 
 /// Approach a speed limit without banking speed during a stop or gear change.
-pub(super) fn accelerate(unit: &Unit, desired: f64, gear: f64, dt: f64) -> f64 {
-    let drive = unit.ground().drive.expect("a vehicle has a drive");
+pub(super) fn accelerate(
+    rules: &contract::scenario::Rules,
+    unit: &Unit,
+    desired: f64,
+    gear: f64,
+    dt: f64,
+) -> f64 {
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
     let current = (unit.drive_speed_mps * gear).max(0.0);
     let seconds = if desired > current {
         drive.feel.acceleration_s
     } else {
         drive.feel.braking_s
     };
-    let change = unit.ground().road_mps / seconds * dt;
+    let change = unit.ground(rules).road_mps / seconds * dt;
     current + (desired - current).clamp(-change, change)
 }
 
@@ -137,10 +143,15 @@ fn turn_speed(drive: &Drive, full: f64, angle: f64) -> f64 {
 
 /// Look through short approach legs too: a road bend can have several corners.
 /// Beyond the full-road stopping distance, even a stop cannot bind this tick.
-fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
-    let drive = unit.ground().drive.expect("a vehicle has a drive");
-    let braking = unit.ground().road_mps / drive.feel.braking_s;
-    let stopping_distance = unit.ground().road_mps.powi(2) / (2.0 * braking);
+fn approach_speed(
+    rules: &contract::scenario::Rules,
+    unit: &Unit,
+    surface_speed: f64,
+    gear: f64,
+) -> f64 {
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
+    let braking = unit.ground(rules).road_mps / drive.feel.braking_s;
+    let stopping_distance = unit.ground(rules).road_mps.powi(2) / (2.0 * braking);
     let full = speed_in(&drive, gear, surface_speed);
     let mut limit = full;
     let mut from = unit.position.xy();
@@ -178,14 +189,27 @@ fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2) -> bo
 
 /// Whether a hull at `center`/`yaw` would stand in a body that stops it, or
 /// off traversable ground (true geometry: what the step itself meets).
-fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
-    solid_at(world, unit, center, yaw, 1.0).is_some()
+fn blocked(
+    rules: &contract::scenario::Rules,
+    world: &WorldGeometry,
+    unit: &Unit,
+    center: V2,
+    yaw: f64,
+) -> bool {
+    solid_at(rules, world, unit, center, yaw, 1.0).is_some()
 }
 
 /// What stops a hull at `center`/`yaw` travelling in `gear`, if anything:
 /// `Some(true)` when the body meets it behind its middle (its trailing end).
 /// Ground it cannot cross counts as ahead.
-fn solid_at(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64, gear: f64) -> Option<bool> {
+fn solid_at(
+    rules: &contract::scenario::Rules,
+    world: &WorldGeometry,
+    unit: &Unit,
+    center: V2,
+    yaw: f64,
+    gear: f64,
+) -> Option<bool> {
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let here = unit.ground_footprint().expect("a vehicle has a hull");
     let hull = Obb2 { center, yaw, half };
@@ -195,7 +219,7 @@ fn solid_at(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64, gear: f64)
     {
         return Some(false);
     }
-    let solid = super::push::meet(world, &hull, &here, unit.ground().push).solid?;
+    let solid = super::push::meet(world, &hull, &here, unit.push_class(rules)).solid?;
     let body = world.prop(solid).expect("a met body").footprint();
     Some(hull.to_local(body.closest(center)).x * gear < 0.0)
 }
@@ -203,6 +227,7 @@ fn solid_at(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64, gear: f64)
 /// Whether the hull, rolling `length` from where it stands in `gear` and
 /// turning `turn` radians per metre, stays clear, sampled every metre.
 fn arc_clear(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &Unit,
     gear: f64,
@@ -229,7 +254,7 @@ fn arc_clear(
                 && other.is_some_and(|other| super::hull_conflict(before, after, other)))
             .then_some(UnitId(id as u32))
         });
-        if let Some(trailing) = solid_at(world, unit, at, yaw, gear) {
+        if let Some(trailing) = solid_at(rules, world, unit, at, yaw, gear) {
             return Err(ArcBlock::Solid { trailing });
         }
         if let Some(id) = into_traffic {
@@ -245,7 +270,7 @@ fn arc_clear(
         let dyaw = turn * piece;
         at = at + dir(travel(yaw, gear) + dyaw / 2.0) * piece;
         yaw += dyaw;
-        if let Some(trailing) = solid_at(world, unit, at, yaw, gear) {
+        if let Some(trailing) = solid_at(rules, world, unit, at, yaw, gear) {
             return Err(ArcBlock::Solid { trailing });
         }
     }
@@ -254,10 +279,16 @@ fn arc_clear(
 
 /// Give a blocked tracked turn room: roll straight along the hull, at
 /// most `room` metres (signed, ahead positive).
-pub fn give_space(unit: &Unit, room: f64, speed: f64, dt: f64) -> Motion {
-    let drive = unit.ground().drive.expect("a vehicle has a drive");
+pub fn give_space(
+    rules: &contract::scenario::Rules,
+    unit: &Unit,
+    room: f64,
+    speed: f64,
+    dt: f64,
+) -> Motion {
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
     let gear = room.signum();
-    let v = accelerate(unit, speed_in(&drive, gear, speed), gear, dt);
+    let v = accelerate(rules, unit, speed_in(&drive, gear, speed), gear, dt);
     Motion {
         yaw: unit.yaw,
         heading: dir(travel(unit.yaw, gear)),
@@ -281,7 +312,13 @@ pub fn away(unit: &Unit) -> f64 {
 /// round; a wall at its nose: back off). Signed metres along its heading;
 /// at equal distance it goes `first` (+1 ahead, -1 back). `None`: nowhere
 /// within reach frees the turn.
-pub fn room_to_turn(world: &WorldGeometry, unit: &Unit, first: f64, yaw: f64) -> Option<f64> {
+pub fn room_to_turn(
+    rules: &contract::scenario::Rules,
+    world: &WorldGeometry,
+    unit: &Unit,
+    first: f64,
+    yaw: f64,
+) -> Option<f64> {
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let (here, ahead) = (unit.position.xy(), dir(unit.yaw));
     let mut open = [true; 2];
@@ -291,8 +328,8 @@ pub fn room_to_turn(world: &WorldGeometry, unit: &Unit, first: f64, yaw: f64) ->
             let spot = here + ahead * d;
             // Rolling straight, the hull trails its leading face by its
             // whole length, so no body slips between two of these steps.
-            open[way] &= !blocked(world, unit, spot, unit.yaw);
-            if open[way] && turn_clear(world, unit, spot, yaw) {
+            open[way] &= !blocked(rules, world, unit, spot, unit.yaw);
+            if open[way] && turn_clear(rules, world, unit, spot, yaw) {
                 return Some(d);
             }
         }
@@ -302,24 +339,38 @@ pub fn room_to_turn(world: &WorldGeometry, unit: &Unit, first: f64, yaw: f64) ->
 
 /// Whether a hull at `at` pivots the short way from its yaw to `yaw` with
 /// no part of it meeting a body.
-fn turn_clear(world: &WorldGeometry, unit: &Unit, at: V2, yaw: f64) -> bool {
+fn turn_clear(
+    rules: &contract::scenario::Rules,
+    world: &WorldGeometry,
+    unit: &Unit,
+    at: V2,
+    yaw: f64,
+) -> bool {
     let reach = unit.hull.expect("a vehicle has a hull").xy().length();
     let error = wrap_angle(yaw - unit.yaw);
     let pieces = (error.abs() * reach / SAMPLE_M).ceil().max(1.0) as usize;
-    (1..=pieces).all(|n| !blocked(world, unit, at, unit.yaw + error * n as f64 / pieces as f64))
+    (1..=pieces).all(|n| {
+        !blocked(
+            rules,
+            world,
+            unit,
+            at,
+            unit.yaw + error * n as f64 / pieces as f64,
+        )
+    })
 }
 
 /// This tick's motion toward `target`, at surface speed `speed`.
 pub fn steer(
-    world: &WorldGeometry,
+    ctx: &super::MovementContext,
     unit: &mut Unit,
     target: V2,
     speed: f64,
     dt: f64,
-    tick: u64,
     traffic: &[Option<Obb2>],
 ) -> Motion {
-    let drive = unit.ground().drive.expect("a vehicle has a drive");
+    let (rules, world, tick) = (ctx.rules, ctx.world, ctx.tick);
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
     let gear = gear_sign(unit.direction());
     let here = unit.position.xy();
     let to = target - here;
@@ -332,8 +383,8 @@ pub fn steer(
         let remaining = wrap_angle(bearing - travel(yaw, gear)).abs();
         let pivoting = remaining > drive.feel.turn_in_place_deg.to_radians();
         let desired = turn_speed(&drive, speed_in(&drive, gear, speed), remaining)
-            .min(approach_speed(unit, speed, gear));
-        let v = accelerate(unit, desired, gear, dt);
+            .min(approach_speed(rules, unit, speed, gear));
+        let v = accelerate(rules, unit, desired, gear, dt);
         let step = if pivoting {
             0.0
         } else {
@@ -359,16 +410,16 @@ pub fn steer(
     let side = if error >= 0.0 { 1.0 } else { -1.0 };
     let curvature = |v: f64| (1.0 / radius).min(drive.turn_rad_s / v.max(1e-9));
     let heading = travel(unit.yaw, gear);
-    if let Some(motion) = super::shunt::drive_on(world, unit, speed, dt, tick) {
+    if let Some(motion) = super::shunt::drive_on(rules, world, unit, speed, dt, tick) {
         return motion;
     }
     // A waypoint inside the turning circle needs room worked out first.
     if distance > drive.feel.abeam_m && inside_circle(here, heading, side, radius, target) {
-        return shunt(world, unit, traffic, &[], tick);
+        return shunt(rules, world, unit, traffic, &[], tick);
     }
     let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)
-        .min(approach_speed(unit, speed, gear));
-    let v = accelerate(unit, desired, gear, dt);
+        .min(approach_speed(rules, unit, speed, gear));
+    let v = accelerate(rules, unit, desired, gear, dt);
     let step = (v * dt).min(distance);
     let max = curvature(v) * step;
     let dyaw = error.clamp(-max, max);
@@ -382,10 +433,10 @@ pub fn steer(
         making_space: false,
         blocker: None,
     };
-    let blocked = arc_clear(world, unit, gear, turn, reach, traffic)
+    let blocked = arc_clear(rules, world, unit, gear, turn, reach, traffic)
         .err()
         .or_else(|| {
-            lands(world, unit, &turning, gear).map(|trailing| ArcBlock::Solid { trailing })
+            lands(rules, world, unit, &turning, gear).map(|trailing| ArcBlock::Solid { trailing })
         });
     if let Some(block) = blocked {
         // A turn blocked while straight ahead is clear rolls straight on
@@ -399,8 +450,8 @@ pub fn steer(
         };
         let ahead = error.abs() < std::f64::consts::FRAC_PI_2;
         if matches!(block, ArcBlock::Solid { trailing } if trailing || ahead)
-            && arc_clear(world, unit, gear, 0.0, reach, traffic).is_ok()
-            && lands(world, unit, &straight, gear).is_none()
+            && arc_clear(rules, world, unit, gear, 0.0, reach, traffic).is_ok()
+            && lands(rules, world, unit, &straight, gear).is_none()
         {
             return straight;
         }
@@ -415,7 +466,7 @@ pub fn steer(
                 making_space: false,
                 blocker: Some(id),
             },
-            ArcBlock::Solid { .. } => shunt(world, unit, traffic, &[], tick),
+            ArcBlock::Solid { .. } => shunt(rules, world, unit, traffic, &[], tick),
         };
     }
     turning
@@ -424,13 +475,16 @@ pub fn steer(
 /// Work out `unit`'s shunt onto its route, with the bodies in `held` as
 /// solid, and stand this tick.
 pub(super) fn shunt(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &mut Unit,
     traffic: &[Option<Obb2>],
     held: &[Obb2],
     tick: u64,
 ) -> Motion {
-    unit.shunt = Some(super::shunt::search(world, unit, traffic, held, tick));
+    unit.shunt = Some(super::shunt::search(
+        rules, world, unit, traffic, held, tick,
+    ));
     Motion {
         yaw: unit.yaw,
         heading: travel_heading(unit),
@@ -446,18 +500,19 @@ pub(super) fn shunt(
 /// corner that grazes a body within the first few millimetres; the step
 /// itself must still land clear, or the follower picks it again every tick.
 pub(super) fn lands(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &Unit,
     motion: &Motion,
     gear: f64,
 ) -> Option<bool> {
     let at = unit.position.xy() + motion.heading * motion.step;
-    solid_at(world, unit, at, motion.yaw, gear)
+    solid_at(rules, world, unit, at, motion.yaw, gear)
 }
 
 /// The ordered arrival heading, refined by the route's final approach.
 /// Preview and publication share this estimate; ordinary combat may face elsewhere.
-pub fn final_facing(unit: &Unit) -> f64 {
+pub fn final_facing(rules: &Rules, unit: &Unit) -> f64 {
     let Some((goal, _)) = unit.movement_goal() else {
         return unit.turn_to.unwrap_or(unit.yaw);
     };
@@ -472,7 +527,7 @@ pub fn final_facing(unit: &Unit) -> f64 {
         0 | 1 => unit.position.xy(),
         n => route[n - 2],
     };
-    final_yaw(unit, facing, from, end, unit.direction()).unwrap_or(unit.yaw)
+    final_yaw(rules, unit, facing, from, end, unit.direction()).unwrap_or(unit.yaw)
 }
 
 /// The yaw a hull ends at when `order` completes (D2): a right-drag's
@@ -481,6 +536,7 @@ pub fn final_facing(unit: &Unit) -> f64 {
 /// driving forward they line up on the facing as far as they can
 /// ([`line_up_heading`]); once routed, the lead-in is that last leg.
 pub fn final_yaw(
+    rules: &contract::scenario::Rules,
     unit: &Unit,
     facing: Option<f64>,
     from: V2,
@@ -488,7 +544,7 @@ pub fn final_yaw(
     direction: MoveDirection,
 ) -> Option<f64> {
     // Tracks and rotors turn on the spot, so they end facing as ordered.
-    let pivots = unit.flies() || unit.ground().drive.is_some_and(|d| d.tracked);
+    let pivots = unit.flies() || unit.ground(rules).drive.is_some_and(|d| d.tracked);
     if let Some(f) = facing.filter(|_| pivots || !unit.is_vehicle()) {
         return Some(f);
     }
@@ -532,7 +588,7 @@ pub fn pivot(
     ordered: bool,
     traffic: &[Option<Obb2>],
 ) {
-    let (Some(facing), Some(drive)) = (unit.turn_to, unit.ground().drive) else {
+    let (Some(facing), Some(drive)) = (unit.turn_to, unit.ground(ctx.rules).drive) else {
         return;
     };
     let error = wrap_angle(facing - unit.yaw);
@@ -549,7 +605,7 @@ pub fn pivot(
         unit.turn_to = None;
         return;
     }
-    if !blocked(ctx.world, unit, here.center, yaw) {
+    if !blocked(ctx.rules, ctx.world, unit, here.center, yaw) {
         unit.yaw = yaw;
         unit.drive_speed_mps = 0.0;
         if error.abs() <= max {
@@ -560,17 +616,17 @@ pub fn pivot(
     let footing = ctx
         .ground
         .footing(ctx.world, here.center, &ctx.rules.ground);
-    let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
+    let speed = footing.map_or(0.0, |g| unit.ground(ctx.rules).speed(g));
     let rolled = ordered
-        .then(|| room_to_turn(ctx.world, unit, away(unit), facing))
+        .then(|| room_to_turn(ctx.rules, ctx.world, unit, away(unit), facing))
         .flatten()
         .and_then(|room| {
-            let roll = give_space(unit, room, speed, dt);
+            let roll = give_space(ctx.rules, unit, room, speed, dt);
             let next = Obb2 {
                 center: here.center + roll.heading * roll.step,
                 ..here
             };
-            let met = super::push::meet(ctx.world, &next, &here, unit.ground().push);
+            let met = super::push::meet(ctx.world, &next, &here, unit.push_class(ctx.rules));
             let jam = traffic.iter().enumerate().any(|(id, other)| {
                 id != unit.id.0 as usize
                     && other.is_some_and(|other| super::hull_conflict(here, next, other))
@@ -604,7 +660,7 @@ pub(super) fn prune(
     traffic: &[Option<Obb2>],
     unit: &mut Unit,
 ) -> bool {
-    let mobility = *unit.ground();
+    let mobility = unit.ground(ctx.rules);
     let Some(drive) = mobility.drive.filter(|d| !d.tracked) else {
         return false;
     };
@@ -667,7 +723,7 @@ pub fn death_roll(
         return at;
     };
     let speed = unit.drive_speed_mps.max(0.0);
-    let stopping = unit.ground().road_mps / rules.movement.drive.wreck_stop_s;
+    let stopping = unit.ground(rules).road_mps / rules.movement.drive.wreck_stop_s;
     let length = speed * speed / (2.0 * stopping);
     let gear = if unit.reversing { -1.0 } else { 1.0 };
     let toward = dir(travel(unit.yaw, gear));

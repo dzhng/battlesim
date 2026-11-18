@@ -371,8 +371,10 @@ async function runHeliFire(ctx) {
   );
   await frame(ctx, page, "heli-fire-landed", [180, 200]);
   const shotsOf = (u) => (u?.weaponPoses ?? []).reduce((n, p) => n + p.shots, 0);
-  // The tank's main gun (its first mount) engages only ground targets.
-  const gunShots = (u) => u?.weaponPoses?.[0]?.shots ?? 0;
+  // Catalog mount identity stays stable if its mount order changes.
+  const mainGun = unitType("test_tank").mounts.findIndex((m) => m.name === "Main Gun");
+  if (mainGun < 0) throw new Error("test tank has no main gun");
+  const gunShots = (u) => u?.weaponPoses?.find((p) => p.mount === mainGun)?.shots ?? 0;
   const tankGunBefore = gunShots(seen(o, 1));
   const aaBefore = shotsOf(seen(o, 2));
   await lab(page, () => window.__lab.route.demo("Heli: lift off"));
@@ -404,23 +406,38 @@ async function runHeliGround(ctx) {
   const page = await openBattle(ctx, { url: url.href });
   // The jeep drives the lane the heli landed on; it must go round the hull,
   // never through it (the heli lands facing along the lane).
+  const half = unitType("test_supply_heli").body.hull.half_extents_m;
   let overlapped = null;
   let passed = false;
+  let groundAt = null;
   let wrecked = null;
   let crashed = null;
-  for (let t = 0; t < 1800 && (!wrecked || !crashed || !passed); t += 5) {
+  for (let t = 0; t < 3600 && (!wrecked || !crashed || !passed); t += 5) {
     await advance(page, 5);
     const o = await obs(page);
     const heli = unit(o, 0);
     const jeep = unit(o, 1);
-    if (heli && jeep && heli.position[2] < 0.5) {
-      const dx = Math.abs(jeep.position[0] - heli.position[0]);
-      const dy = Math.abs(jeep.position[1] - heli.position[1]);
+    if (heli?.grounded) groundAt = heli.position;
+    if (heli && jeep && heli.grounded) {
+      const x = jeep.position[0] - heli.position[0];
+      const y = jeep.position[1] - heli.position[1];
+      const dx = Math.abs(x * Math.cos(heli.yaw) + y * Math.sin(heli.yaw));
+      const dy = Math.abs(-x * Math.sin(heli.yaw) + y * Math.cos(heli.yaw));
       // The jeep's centre never enters the heli's hull.
-      if (dx < 7 && dy < 1.2) overlapped ??= { heli: heli.position, jeep: jeep.position };
+      if (dx < half[0] && dy < half[1]) overlapped ??= { heli: heli.position, jeep: jeep.position };
       if (jeep.position[0] > heli.position[0] + 20) passed = true;
     }
-    wrecked ||= o.knownProps.some((p) => p.wreckOf === "test_supply_heli") ? o : null;
+    wrecked ||=
+      !heli &&
+      groundAt &&
+      o.knownProps.some(
+        (p) =>
+          p.wreckOf === "test_supply_heli" &&
+          Math.hypot(p.center[0] - groundAt[0], p.center[1] - groundAt[1]) <
+            Math.hypot(half[0], half[1]),
+      )
+        ? o
+        : null;
     crashed ||= (o.crashes ?? []).length > 0 ? o : null;
   }
   ctx.check(
@@ -430,8 +447,12 @@ async function runHeliGround(ctx) {
   );
   ctx.check(
     "heli-ground: killed on the ground it leaves a wreck, not a crash",
-    !!wrecked && !(wrecked.crashes ?? []).some((c) => c.id === 0),
-    JSON.stringify({ crashes: wrecked?.crashes ?? null }),
+    !!wrecked && !unit(wrecked, 0) && !(wrecked.crashes ?? []).some((c) => c.id === 0),
+    JSON.stringify({
+      at: groundAt,
+      wrecks: wrecked?.knownProps.filter((p) => p.wreckOf),
+      crashes: wrecked?.crashes ?? null,
+    }),
   );
   ctx.check(
     "heli-ground: killed in the drop it crashes",

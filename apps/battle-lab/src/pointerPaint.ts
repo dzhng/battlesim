@@ -24,7 +24,7 @@ import {
 } from "@packages/battle-renderer/src/unitCircle";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import type { BuildingIndex } from "@packages/battle-renderer/src/models/buildingReferences";
-import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { flies, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { GroundStrikes } from "@wasm/game_wasm";
 import type { PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import {
@@ -178,7 +178,7 @@ export function placementCircle(ghost: PurchaseGhost, units: UnitCatalog): UnitC
       yaw: ghost.facing,
       selected: true,
       fixedWing: fixedWing(type),
-      airborne: airborne(type),
+      airborne: flies(type),
     },
     gameOrderStyle,
   );

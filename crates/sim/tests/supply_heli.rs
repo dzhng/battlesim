@@ -350,6 +350,10 @@ fn it_brakes_to_a_hover_before_it_starts_to_land() {
         }
         b.step();
     }
+    assert!(
+        b.unit(HELI).unwrap().deployment.as_ref().unwrap().current > 0,
+        "braking ends and deployment starts"
+    );
 }
 
 #[test]
@@ -360,6 +364,12 @@ fn its_height_falls_with_setup_and_it_touches_down_before_it_serves() {
     })]));
     deploy(&mut b, true);
     let (setup, _, drop) = timing(&b);
+    b.step();
+    assert!(b.unit(HELI).unwrap().landing_goal.is_some());
+    assert_eq!(
+        b.unit(HELI).unwrap().deployment.as_ref().unwrap().current,
+        0
+    );
     let start = b.unit(HELI).unwrap().position.z;
     let mut previous = start;
     for tick in 0..setup {
@@ -441,6 +451,8 @@ fn packed_mid_drop_it_flies_on_from_where_it_was() {
 fn its_vertical_velocity_matches_its_sink() {
     let mut b = battle(json!([]));
     deploy(&mut b, true);
+    b.step();
+    assert!(b.unit(HELI).unwrap().landing_goal.is_some());
     let before = b.unit(HELI).unwrap().position.z;
     b.step();
     let heli = b.unit(HELI).unwrap();
@@ -452,18 +464,26 @@ fn its_vertical_velocity_matches_its_sink() {
 #[test]
 fn a_landed_heli_neither_drifts_nor_pushes_other_aircraft() {
     let mut b = battle(json!([
-        json!({"side":"blue","kind":"test_supply_heli","position":[205,200]}),
+        json!({"side":"blue","kind":"test_heli","position":[205,200]}),
         json!({"side":"blue","kind":"test_supply","position":[205,200]})
     ]));
-    let (setup, _, _) = timing(&b);
-    for _ in 0..setup {
-        b.step();
-    }
+    set_up(&mut b);
     let at = b.unit(HELI).unwrap().position.xy();
+    let hover = at + v2(3.0, 0.0);
+    assert_eq!(b.accept(order(&[1], [hover.x, hover.y])).error, None);
+    for _ in 0..20 * b.rules().tick_hz {
+        b.step();
+        if b.unit(UnitId(1)).unwrap().movement_goal().is_none() {
+            break;
+        }
+    }
+    assert!((b.unit(UnitId(1)).unwrap().position.xy() - hover).length() < 0.1);
+    let neighbour = b.unit(UnitId(1)).unwrap().position.xy();
     for _ in 0..b.rules().tick_hz {
         b.step();
     }
     assert_eq!(b.unit(HELI).unwrap().position.xy(), at);
+    assert_eq!(b.unit(UnitId(1)).unwrap().position.xy(), neighbour);
 }
 
 #[test]
@@ -471,8 +491,8 @@ fn the_low_hover_clears_a_landed_heli() {
     let mut b = battle(json!([
         json!({"side":"blue","kind":"test_heli","position":[205,200],"condition":{"hp":1},"engagement":"return_fire_only"})
     ]));
-    let (setup, _, _) = timing(&b);
-    for _ in 0..setup {
+    set_up(&mut b);
+    for _ in 0..5 * b.rules().tick_hz {
         b.step();
     }
     let landed = b.unit(HELI).unwrap();
@@ -522,14 +542,13 @@ fn ordered_onto_an_obstacle_it_lands_on_the_nearest_clear_spot() {
     let heli = b.unit(HELI).unwrap();
     assert!(heli.landed());
     let at = heli.position.xy();
-    let rotor = b.rules().catalog.by_id("test_supply_heli").mobility;
-    let radius = match rotor {
-        contract::catalog::Mobility::Air {
-            rotor_radius_m: Some(r),
-            ..
-        } => r,
-        _ => 0.0,
-    };
+    let radius = b
+        .rules()
+        .catalog
+        .by_id("test_supply_heli")
+        .landing()
+        .unwrap()
+        .rotor_radius_m;
     assert!((at - v2(200.0, 200.0)).length() <= b.rules().air.rotor.landing_reach_m + 1e-6);
     assert!(
         b.world()
@@ -625,4 +644,169 @@ fn stopped_at_cruise_it_lands_clear_of_what_lies_where_it_comes_to_rest() {
         "landed on the crate at {at:?} (rest {rest:?})"
     );
     assert!((at - rest).length() <= b.rules().air.rotor.landing_reach_m + 1e-6);
+}
+
+#[test]
+fn a_shift_queued_flight_checks_a_fresh_landing_spot_at_its_destination() {
+    let mut map = open_map();
+    let goal = [400.0, 200.0];
+    map["props"] = json!([{"kind":"crate","center":goal,"yaw":0,"half_extents":[8,8,1]}]);
+    let mut b = battle_with(&fixture(), map, units(json!([])));
+    set_up(&mut b);
+    let mut command = order(&[0], goal);
+    command.queued = true;
+    assert_eq!(b.accept(command).error, None);
+    let mut took_off = false;
+    let mut landed_again = false;
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+        let heli = b.unit(HELI).unwrap();
+        took_off |= !heli.landed();
+        if took_off && heli.landed() {
+            let at = heli.position.xy();
+            assert!(
+                b.world()
+                    .props_near(at, 0.0)
+                    .iter()
+                    .all(|p| !p.footprint().contains(at, 0.0)),
+                "landed on obstacle at {at:?}"
+            );
+            assert!((at - v2(goal[0], goal[1])).length() <= b.rules().air.rotor.landing_reach_m);
+            landed_again = true;
+            break;
+        }
+    }
+    assert!(landed_again, "the queued flight lands near its destination");
+}
+
+#[test]
+fn without_a_landing_spot_it_still_climbs_clear_of_the_obstacle() {
+    let probe = battle(json!([]));
+    let mut map = prop_ring_map(&probe, 1.0);
+    map["props"][0]["half_extents"][2] = json!(40);
+    let mut b = battle_with(&fixture(), map, units(json!([])));
+    let start_z = b.unit(HELI).unwrap().position.z;
+    for _ in 0..5 * b.rules().tick_hz {
+        b.step();
+    }
+    let heli = b.unit(HELI).unwrap();
+    assert_eq!(heli.state, contract::observation::MoveState::NoLandingSpot);
+    assert!(
+        heli.position.z > start_z,
+        "a refused landing continues normal height following"
+    );
+}
+
+#[test]
+fn landing_waits_at_a_checked_spot_on_an_unequal_tick_lattice() {
+    let mut rules = fixture();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply_heli",
+        json!({
+            "capabilities":{"deploy":{"seconds":2,"pack_seconds":3,"drop_seconds":1}}
+        }),
+    );
+    for blocked in [false, true] {
+        let mut map = open_map();
+        if blocked {
+            map["props"] =
+                json!([{"kind":"crate","center":[200,200],"yaw":0,"half_extents":[8,8,1]}]);
+        }
+        let mut b = battle_with(&rules, map, units(json!([])));
+        let mut ready = false;
+        for _ in 0..30 * b.rules().tick_hz {
+            b.step();
+            let heli = b.unit(HELI).unwrap();
+            let d = heli.deployment.as_ref().unwrap();
+            if d.current > 0 {
+                let goal = heli
+                    .landing_goal
+                    .expect("deployment requires a checked spot");
+                assert!(
+                    (heli.position.xy() - goal).length() <= 0.05,
+                    "deployment waits for the hop"
+                );
+                assert!(!heli.gliding(), "deployment waits for braking");
+            }
+            if d.fully_deployed() {
+                ready = true;
+                break;
+            }
+        }
+        assert!(
+            ready,
+            "a checked clear spot eventually sets up, blocked={blocked}"
+        );
+    }
+}
+
+#[test]
+fn a_landing_hop_never_flies_through_an_air_blocking_wall() {
+    let mut rules = fixture();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply_heli",
+        json!({
+            "mobility":{"air":{"rotor_radius_m":15}}
+        }),
+    );
+    let mut map = open_map();
+    map["props"] = json!([
+        {"kind":"crate","center":[179,200],"yaw":0,"half_extents":[20,100,1]},
+        {"kind":"crate","center":[216,200],"yaw":0,"half_extents":[1,100,30]}
+    ]);
+    let mut b = battle_with(&rules, map, units(json!([])));
+    for _ in 0..15 * b.rules().tick_hz {
+        b.step();
+        let heli = b.unit(HELI).unwrap();
+        let wall = b.world().props().find(|p| p.center.x == 216.0).unwrap();
+        assert!(
+            !wall.footprint().contains(heli.position.xy(), 0.0) || heli.position.z >= wall.top_z(),
+            "the direct hop crossed a wall below its top: {:?}",
+            heli.position
+        );
+    }
+    assert_eq!(
+        b.unit(HELI).unwrap().state,
+        contract::observation::MoveState::NoLandingSpot
+    );
+}
+
+#[test]
+fn a_landing_hop_can_escape_a_wall_and_its_routing_margin() {
+    let mut map = open_map();
+    map["props"] = json!([
+        {"kind":"crate","center":[205,200],"yaw":0,"half_extents":[1,100,30]}
+    ]);
+    for start_x in [200.0, 205.0] {
+        let mut b = battle_with(
+            &fixture(),
+            map.clone(),
+            json!([
+                {"side":"blue","kind":"test_supply_heli","position":[start_x,200]}
+            ]),
+        );
+        for _ in 0..15 * b.rules().tick_hz {
+            b.step();
+        }
+        let heli = b.unit(HELI).unwrap();
+        assert!(
+            heli.landed(),
+            "it can hop away from a nearby wall: {heli:?}"
+        );
+        let radius = b
+            .rules()
+            .catalog
+            .by_id("test_supply_heli")
+            .landing()
+            .unwrap()
+            .rotor_radius_m;
+        assert!(b
+            .world()
+            .props()
+            .all(|p| p.footprint().distance(heli.position.xy()) > radius));
+    }
 }

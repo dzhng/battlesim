@@ -223,6 +223,7 @@ struct Pose {
 /// other vehicles in `traffic` and the bodies in `held` (a body it could
 /// shove but whose shove jammed) as solid.
 pub fn search(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &Unit,
     traffic: &[Option<Obb2>],
@@ -236,7 +237,7 @@ pub fn search(
         from: here,
         tick,
     };
-    let drive = unit.ground().drive.expect("a vehicle has a drive");
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
     let route = unit
         .route
         .as_deref()
@@ -246,7 +247,7 @@ pub fn search(
     let radius = drive.radius_m;
     let reach = REACH_TURNS * (radius + hull.half.x);
     let way = Way::new(here, route, reach);
-    let push = unit.ground().push;
+    let push = unit.push_class(rules);
     let around = reach + way.need + hull.half.length();
     let touching = |body: &Obb2| hull.overlaps(body);
     let solids: Vec<(Obb2, f64)> = world
@@ -413,6 +414,7 @@ fn ordered(f: f64) -> u64 {
 /// stands) and while no way was found; `None` with no shunt, or when it is
 /// time to look again.
 pub(super) fn drive_on(
+    rules: &contract::scenario::Rules,
     world: &WorldGeometry,
     unit: &mut Unit,
     speed: f64,
@@ -453,12 +455,12 @@ pub(super) fn drive_on(
             .take_while(|next| next.gear == leg.gear)
             .map(|next| next.length)
             .sum::<f64>();
-    let d = unit.ground().drive.expect("a vehicle has a drive");
-    let braking = unit.ground().road_mps / d.feel.braking_s;
+    let d = unit.ground(rules).drive.expect("a vehicle has a drive");
+    let braking = unit.ground(rules).road_mps / d.feel.braking_s;
     let desired = drive::speed_in(&d, leg.gear, speed)
         .min(d.radius_m * d.turn_rad_s)
         .min((2.0 * braking * to_stop).sqrt());
-    let v = drive::accelerate(unit, desired, leg.gear, dt);
+    let v = drive::accelerate(rules, unit, desired, leg.gear, dt);
     let step = (v * dt).min(remaining);
     let dyaw = leg.turn * step;
     let motion = Motion {
@@ -469,7 +471,7 @@ pub(super) fn drive_on(
         making_space: true,
         blocker: None,
     };
-    if drive::lands(world, unit, &motion, leg.gear).is_some() {
+    if drive::lands(rules, world, unit, &motion, leg.gear).is_some() {
         // Something stands where the shunt meant to go: work it out again.
         unit.shunt = None;
         return Some(hold(unit));

@@ -2,7 +2,7 @@
 //! the unit bought, where it is sent, when it was confirmed, whether its
 //! entry is blocked, an aircraft's arrival tick (0 when it doesn't wait),
 //! and the carrier a squad arrives aboard (-1 for none).
-use super::limbs;
+use super::cells::limbs;
 use contract::players::PlayerIndex;
 use contract::skirmish::PendingPurchase;
 

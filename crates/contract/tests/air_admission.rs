@@ -253,3 +253,20 @@ fn a_deploying_aircraft_must_author_rotor_radius() {
         .to_string();
     assert!(error.contains("rotor_radius_m"), "{error}");
 }
+
+#[test]
+fn a_fixed_wing_aircraft_cannot_deploy_by_landing() {
+    let mut jet = base_tank();
+    jet["abstract"] = json!(false);
+    jet["mobility"] = rotor_mobility(220, 90, 6);
+    jet["mobility"]["air"]["flight"] = json!("fixed_wing");
+    jet["mobility"]["air"]["layer"] = json!("high_air");
+    jet["mobility"]["air"]["rotor_radius_m"] = json!(6);
+    jet["capabilities"] = json!({"deploy":{"seconds":3,"pack_seconds":1,"drop_seconds":2}});
+    let result = resolve(&units(json!({"jet":jet})));
+    assert!(
+        result.is_err(),
+        "the fixed-wing flight law cannot land a deployer"
+    );
+    assert!(result.unwrap_err().to_string().contains("rotor"));
+}

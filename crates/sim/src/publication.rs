@@ -30,6 +30,7 @@ use crate::ground::GroundRunPatch;
 
 mod cells;
 mod crash_row;
+mod deployment;
 mod identified_row;
 mod layout;
 mod mount_row;
@@ -44,7 +45,8 @@ mod smoke;
 mod step_row;
 mod tags;
 
-use cells::{footprint_cells, host_cells};
+pub(crate) use cells::limbs;
+use cells::{footprint_cells, host_cells, limbs_or_absent};
 use crash_row::{crash_row, CRASH_FIELDS};
 use identified_row::{identified_row, IDENTIFIED_FIELDS};
 pub use layout::layout_json;
@@ -412,15 +414,6 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("smokeClouds", "smokeCloudCount", &SMOKE_CLOUD_FIELDS),
 ];
 
-/// An integer as its two exact 16-bit limbs.
-pub(crate) fn limbs(n: u32) -> [f32; 2] {
-    [(n & 0xffff) as f32, (n >> LIMB_BITS) as f32]
-}
-
-fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
-    n.map_or([-1.0; 2], limbs)
-}
-
 const LEAN_FIELDS: [&str; 3] = ["side", "x", "y"];
 
 /// A member's lean, or none (side -1, NaN point).
@@ -590,6 +583,7 @@ fn pack_record(
         frame.smoke_clouds.len() as f32,
     ]);
     for u in &frame.own {
+        let [deploy_progress, deploy_target] = deployment::cells(u.deployment);
         let (host, footprint, host_seats) = match u.hold.map(|h| h.host) {
             Some(HostRef::Building {
                 id,
@@ -627,8 +621,8 @@ fn pack_record(
             u.hp as f32,
             tag(&SUPPRESSION_TIERS, &u.suppression),
             u.concealed as u8 as f32,
-            u.deployment.map_or(-1.0, |d| d.progress as f32),
-            u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
+            deploy_progress,
+            deploy_target,
             u.grounded as u8 as f32,
             host_kind,
             host_lo,

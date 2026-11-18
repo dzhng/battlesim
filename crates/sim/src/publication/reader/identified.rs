@@ -1,8 +1,8 @@
 //! Decodes the identified-enemy row and its variable body sections.
 use super::{
-    at, limbs, member_column, points, present, weapon_poses, Deployment, Identified, Reader,
-    Result, Row, IDENTIFIED_FIELDS,
+    at, limbs, member_column, points, present, weapon_poses, Identified, Reader, Result, Row,
 };
+use crate::publication::identified_row::IDENTIFIED_FIELDS;
 
 impl Reader {
     pub(super) fn identified(&self, r: &Row) -> Result<Identified> {
@@ -26,12 +26,7 @@ impl Reader {
             weapon_poses: weapon_poses(poses),
             reversing: v!(f, "reversing") == 1.0,
             smoking: v!(f, "smoking") == 1.0,
-            deployment: self
-                .optional("postures", v!(f, "deployTarget"))?
-                .map(|target| Deployment {
-                    progress: v!(f, "deployProgress"),
-                    target,
-                }),
+            deployment: self.deployment(v!(f, "deployProgress"), v!(f, "deployTarget"))?,
             grounded: v!(f, "grounded") == 1.0,
             building: limbs(v!(f, "buildingLo"), v!(f, "buildingHi")),
         })

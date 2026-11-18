@@ -262,15 +262,21 @@ impl Battle {
                         kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
-                        goal: u.ordered_goal().map(|(g, _)| [g.x, g.y]),
-                        policy: u.ordered_goal().map(|(_, p)| p),
-                        direction: u.ordered_goal().map(|_| u.direction()),
+                        goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
+                        policy: u.movement_goal().map(|(_, p)| p),
+                        direction: u.movement_goal().map(|_| u.direction()),
                         reversing: u.reversing,
                         state: u.state,
                         // An enemy it waits for is named only if the side
                         // could name it anyway (Q14: contact reveals nothing).
                         blocker: u.blocker.filter(|b| self.units[b.0 as usize].side == side),
-                        route: u.ordered_route().iter().map(|p| [p.x, p.y]).collect(),
+                        route: u
+                            .route
+                            .as_deref()
+                            .unwrap_or_default()
+                            .iter()
+                            .map(|p| [p.x, p.y])
+                            .collect(),
                         steps: steps.next().expect("one per own unit"),
                         members: u
                             .members
@@ -328,7 +334,7 @@ impl Battle {
                                 u.unit_type(&self.rules),
                             ),
                         }),
-                        final_facing: movement::final_facing(u),
+                        final_facing: movement::final_facing(&self.rules, u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u

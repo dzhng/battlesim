@@ -493,6 +493,10 @@ impl Skirmish {
                     .u64(r.price as u64)
                     .u64(r.data.arrival_tick.unwrap_or(u64::MAX))
                     .u64(r.data.entry as u64);
+                if let Some(condition) = &r.data.condition {
+                    d.bytes(b"starting wear")
+                        .bytes(&serde_json::to_vec(condition).expect("unit wear serializes"));
+                }
                 // Only a purchase with a carrier hashes it, so battles that
                 // buy none keep their digests.
                 if let (Some(kind), Some(price)) = (r.data.carrier, r.carrier_price) {

@@ -45,7 +45,7 @@ impl PoseDriver {
         let gun_target = gun_mount.map_or(0.0, |m| m.elevation);
         let hmg_target = hmg_mount.map_or(0.0, |m| m.elevation);
         // The publication owns touchdown and lift-off.
-        let airborne = ty.airborne && !unit.grounded;
+        let airborne = ty.in_the_air(unit.grounded);
         let state = self
             .vehicles
             .entry(side_key(unit.id, &*unit.side == "blue").to_bits())
@@ -84,12 +84,11 @@ impl PoseDriver {
         pose.airborne = airborne;
         let a = &mut pose.articulation;
         a.gear_up = gear_up_for(ty, airborne);
-        let speed = if ty.airborne {
+        let speed = if ty.has_rotor() {
             let deploy = ty.deploy.as_ref();
             crate::units::rotor::rotor_speed(
                 unit.grounded,
                 unit.deployment,
-                unit.deployment_target.as_deref(),
                 deploy.and_then(|d| d.drop_seconds).unwrap_or(0.0),
                 deploy.map_or(1.0, |d| d.seconds),
             )
@@ -98,7 +97,7 @@ impl PoseDriver {
         };
         a.rotor_speed = speed;
         a.rotor += feel.rotor.tip_mps * speed * dt;
-        if !ty.airborne {
+        if !ty.flies {
             // Ground covered along the hull, plus each side's share of the turn.
             let forward = (unit.position[0] - pose.position[0]) * libm::cos(unit.yaw)
                 + (unit.position[1] - pose.position[1]) * libm::sin(unit.yaw);

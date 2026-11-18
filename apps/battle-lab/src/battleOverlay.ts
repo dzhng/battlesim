@@ -19,12 +19,8 @@ import type { ScenarioRules } from "./battleSessionOptions";
 import type { StrokeWidth } from "@packages/battle-renderer/src/strokeWidth";
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
-import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { inTheAir, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
 
-/** In the air now: a type that flies, unless it is published standing on the
- *  ground (a landed helicopter wears a ground vehicle's marks). */
-export const inTheAir = (units: UnitCatalog, u: { kind: string; grounded: boolean }): boolean =>
-  airborne(units.type(u.kind)) && !u.grounded;
 import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
@@ -338,7 +334,7 @@ export function orderView(
     // a garrisoned squad's, its building's (inside or leaving, not entering).
     hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
     fixedWing: fixedWing(units.type(u.kind)),
-    airborne: inTheAir(units, u),
+    airborne: inTheAir(units.type(u.kind), u.grounded),
     building:
       g?.host.kind === "building" && g.phase !== "entering"
         ? { center: g.host.center, half: g.host.half }
@@ -414,7 +410,11 @@ export function orderLayer(
     // A squad a carrier holds has no marks of its own: it is off the field.
     .filter((u) => !aboardCarrier(u))
     .filter(
-      (u) => selected.includes(u.id) || u.id === hovered || reveal.has(u.id) || inTheAir(units, u),
+      (u) =>
+        selected.includes(u.id) ||
+        u.id === hovered ||
+        reveal.has(u.id) ||
+        inTheAir(units.type(u.kind), u.grounded),
     );
   const views = shown.map((u) => {
     const view = orderView(
@@ -487,7 +487,9 @@ export function aircraftLayer(
   stroke = gameStroke(OPENING_METRES_PER_PX),
 ): WorldMeshes {
   return buildAircraftMarks(
-    o.identified.filter((u) => inTheAir(units, u)).map((u) => aircraftView(units, u)),
+    o.identified
+      .filter((u) => inTheAir(units.type(u.kind), u.grounded))
+      .map((u) => aircraftView(units, u)),
     [...gameHud.enemy, 1],
     z,
     gameOrderStyle,

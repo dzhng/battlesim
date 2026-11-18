@@ -107,7 +107,7 @@ impl CookOffWatch {
             let airborne = units
                 .types
                 .get(&**kind)
-                .is_some_and(|t| t.airborne && !grounded);
+                .is_some_and(|t| t.in_the_air(grounded));
             let half = units
                 .body_half
                 .get(&**kind)

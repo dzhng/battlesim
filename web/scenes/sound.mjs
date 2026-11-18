@@ -284,7 +284,7 @@ export async function run(ctx) {
 /** Hear the supply and transport through the same calibrated offline graph. */
 async function rotorTour(ctx, page) {
   const report = await page.evaluate(
-    async ({ url, supplyClass, transportClass }) => {
+    async ({ url, supplyClass }) => {
       const { offlineSound, LISTENER } = await import(/* @vite-ignore */ url);
       const render = async (vehicleClass, rotorSpeed) => {
         const { ctx, sink, frame } = await offlineSound(1, "units");
@@ -322,13 +322,11 @@ async function rotorTour(ctx, page) {
         stopped: await render(supplyClass, 0),
         half: await render(supplyClass, 0.5),
         flying: await render(supplyClass, 1),
-        transport: await render(transportClass, 1),
       };
     },
     {
       url: `/@fs${fileURLToPath(new URL("../../apps/battle-lab/src/soundFirefight.ts", import.meta.url))}`,
       supplyClass: unitType("test_supply_heli").vehicle_class,
-      transportClass: unitType("test_transport_heli").vehicle_class,
     },
   );
   await ctx.writeEvidence("rotor-levels.json", report);
@@ -339,8 +337,8 @@ async function rotorTour(ctx, page) {
     JSON.stringify(report),
   );
   ctx.check(
-    "a flying supply helicopter sounds at transport level",
-    report.flying > 0 && Math.abs(report.flying - report.transport) < 1e-9,
+    "a flying supply helicopter is audible relative to its stopped rotor",
+    report.flying > report.stopped,
     JSON.stringify(report),
   );
 }

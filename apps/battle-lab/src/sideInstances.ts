@@ -1,3 +1,4 @@
+import { inTheAir } from "@packages/scene-assets/src/units";
 import { vec2, type Vec2, type Vec3 } from "math";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
 import { NONE, PICK_WORDS, Pick } from "@packages/battle-renderer/src/records.gen";
@@ -14,7 +15,7 @@ import { contactUnder } from "@web/battle/input/contactPick";
 import type { ContactView, ObservationView } from "@web/battle/sim/observationView";
 import type { LabPick } from "./LabViewport";
 import { buildingUnderRay, groundUnderRay, type StaticWorld } from "./useStaticWorld";
-import { aircraftView, inTheAir, orderView } from "./battleOverlay";
+import { aircraftView, orderView } from "./battleOverlay";
 import { gameOrderStyle } from "./gameOverlay";
 
 export interface DrawnInstances {
@@ -121,7 +122,7 @@ export function sideInstances(
   }
   for (const e of observation.identified) {
     const pose = drawnEnemies.get(e.id);
-    if (!pose || !inTheAir(units, e)) continue;
+    if (!pose || !inTheAir(units.type(e.kind), e.grounded)) continue;
     const circle = aircraftCircle(aircraftView(units, { ...e, ...pose }), gameOrderStyle);
     drawn.rings.push({ circle, unit: null, enemy: e.id });
   }

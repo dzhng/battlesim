@@ -37,16 +37,21 @@ pub struct Capabilities {
     pub smoke: Option<SmokeCapability>,
 }
 
-impl Capabilities {
+impl super::UnitType {
     /// What makes this set of abilities inadmissible for a type that moves by
     /// `mobility`: supply serves only once set up, and an aircraft sets up by
     /// landing, so it authors a drop shorter than its set-up and the rotor
     /// radius its landing spot must clear; nothing that drives authors a drop.
-    pub(super) fn problem(&self, mobility: &Mobility) -> Option<&'static str> {
-        if self.supply.is_some() && self.deploy.is_none() {
+    pub(super) fn capability_problem(&self) -> Option<&'static str> {
+        let capabilities = &self.capabilities;
+        let mobility = &self.mobility;
+        if capabilities.supply.is_some() && capabilities.deploy.is_none() {
             return Some("supply serves only when deployed: it needs deploy");
         }
-        let deploy = self.deploy?;
+        let deploy = capabilities.deploy?;
+        if matches!(mobility.flight(), Some(super::FlightModel::FixedWing)) {
+            return Some("an aircraft with deploy requires rotor flight");
+        }
         let rotor = match mobility {
             Mobility::Air { rotor_radius_m, .. } => Some(*rotor_radius_m),
             _ => None,
@@ -60,7 +65,10 @@ impl Capabilities {
                 Some("capabilities.deploy.drop_seconds must be positive and shorter than seconds")
             }
             (_, Some(None)) => Some("mobility: an aircraft with deploy needs rotor_radius_m"),
-            (_, Some(Some(r))) if !(r.is_finite() && r > 0.0) => {
+            _ if self.landing().is_some_and(|landing| {
+                !(landing.rotor_radius_m.is_finite() && landing.rotor_radius_m > 0.0)
+            }) =>
+            {
                 Some("mobility: rotor_radius_m must be positive")
             }
             _ => None,

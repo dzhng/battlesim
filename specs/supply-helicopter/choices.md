@@ -15,23 +15,24 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
 
    No supply-heli map has a bridge today. The forest and slope cases err toward
    "can't land here". *(`movement/air.rs::spot_blocked`)*
-2. **A new contract field the plan didn't list.** A skirmish opening purchase
-   (and the pending purchase it becomes) may carry a `condition`: authored
-   starting wear such as low hp or spent rounds. Skirmish units arrive only by
-   purchase, so this is the only way a lab can start with a damaged group. It
-   mirrors what encounters already allow. *(`contract::players::OpeningPurchase`,
-   `contract::skirmish::PendingPurchase`)*
-3. **AI seats with an authored opening now ready up.** They send "ready" with
-   their opening purchases, as any seat does. Without it the AI-airlift lab sat
-   in preparation. The game's skirmish corpus and every skirmish test are
-   unchanged; only labs with authored openings see a difference.
-   *(`battle/skirmish_turn.rs`)*
+2. **Opening wear stays in the purchase contract.** Skirmish admission refuses
+   authored forces, and player command entitlement comes from the entered
+   purchase receipt. Owner-tagged `UnitSetup` rows therefore cannot replace the
+   lab opening without adding a second fielding path. `OpeningPurchase.condition`
+   and `PendingPurchase.condition` remain; every present condition is included
+   in the reservation digest, including before the unit arrives.
+   *(`contract::players::validate_player_contract`, `skirmish::digest`)*
+3. **An authored AI opening readies after its purchase batch.** That batch
+   bypasses the normal doctrine decision, so it includes the preparation-ready
+   command the normal decision would otherwise supply. This lets the supply-AI
+   lab start its match with the authored damaged group; ordinary purchases still
+   use the doctrine's readiness path. *(`battle/skirmish_turn.rs`)*
 
 ## Provisional
 
 4. **The blur-to-blades switch is at rotor speed 0.2.** It was picked from a
-   still strip of a slowing rotor. Judge it in motion; it is one shared
-   constant. *(`units::rotor::BLUR_CROSSOVER`, mirrored in `scene-assets/articulation.ts`)*
+   still strip of a slowing rotor. Judge it in motion. Rust and TS deliberately
+   mirror the threshold; the existing draw guard stays. *(`units::rotor::BLUR_CROSSOVER`, mirrored in `scene-assets/articulation.ts`)*
 5. **A hovering heli with nowhere to land searches again every tick.** Each
    search is bounded (40 m at 1 m steps), which is fine for a few helis. Revisit
    if a battle ever fields many stuck at once.
@@ -44,8 +45,10 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
 
 ## Sound
 
-8. **A helicopter "lands" when its deploy capability authors a drop.** Nothing
-   else marks a lander. *(`deployment.rs`, `drop_duration > 0`)*
+8. **A landing type has one contract accessor.** `UnitType::landing` returns
+   its authored drop and rotor clearance together. Admission requires rotor
+   flight; runtime deployment reads the resulting drop duration through
+   `Deployment::lands`. Flight, low hover and AI consume the same type predicate.
 9. **The drop time is counted in the same steps as set-up progress**, so the
    two compare directly. *(`deployment.rs::initial`)*
 10. **The heli becomes a ground vehicle at the end of its drop**, not at full
@@ -54,33 +57,44 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
     digest, since it decides the next moments of the battle.
 12. **It picks its landing spot only once it has stopped.** Told to stop at
     cruise, it glides first, then searches from where it came to rest.
-13. **The landing spot is an internal goal, not a player order.** It shows no
-    order line or queue entry; a real order replaces it.
-    *(`Unit::landing_goal`, hidden by `ordered_goal` / `ordered_route`)*
+13. **The landing spot belongs to flight.** The flight law steers the short
+    hop directly to `landing_goal`; order goals and routes contain only orders.
+    Every enqueue, including a queued order, clears the checked spot. Deployment
+    advances only at a checked spot, posted to set up, with no order goal and
+    no horizontal glide. A stationary packed aircraft searches if it holds none.
+    Candidates must also have a direct leg clear of physical air-blocking
+    footprints. Air navigation owns that check, permits leaving an obstructed
+    start, and excludes routing padding.
+    A refused landing still follows normal flight height and facing.
 14. **The new state is folded into the digest only while it exists** (the
     landed flag, the drop height, the landing goal). Units that never land
     keep their digests.
 15. **One ring search serves both the crash wreck and the landing.** The wreck's
     resting place is unchanged byte for byte. *(`crash::nearest_clear_spot`)*
-16. **Ground rules read a landed heli's push class from its hull.** They never
-    ask an aircraft for ground movement, so a landed heli is never shoved and
-    fells no trees. *(`Unit::push_class`)*
+16. **The hull owns push class.** Ground movement and landed-aircraft readers
+    use `Unit::push_class`. Ground motion stores no copied mobility record;
+    navigation receives a fresh catalog-derived query. This removes the
+    persistent second push-class owner without a wrapper or aircraft ground
+    mobility. The ownership refactor preserves battle digests.
 17. **Two words for "in the air".** "Flies" means its motion is flight;
     "airborne" means it flies and is off the ground now. Carriage's
     loading-height test uses "airborne". *(`Unit::flies`, `Unit::airborne`)*
 18. **Enemy memory updates what a unit is at every sighting**, and the replay
     digest includes it. A last-seen contact keeps the layer it was last seen in.
 19. **Enemies get set-up progress, its direction, and "standing on the
-    ground".** Without the direction the client couldn't tell spin-up from
-    spin-down. The values are filled where the spotted unit's row is built.
-20. **One helper turns those published facts into rotor speed.** The picture
-    and the sound both read it. *(`units::rotor::rotor_speed`)*
-21. **The articulation's `rotor_blur` switch became `rotor_speed`, a number from
-    0 to 1**, in Rust, the TS mirror and the pose capture. The effect style
+    ground".** Direction serves the visible setup state; grounded distinguishes
+    the latched ground pose from a descent at the same progress. Own and
+    identified rows share deployment encoding and decoding.
+20. **One eased progress curve drives grounded rotor speed**, regardless of
+    deployment direction, so reversing mid-wind-down is continuous. Airborne
+    rotors run at full speed. Drawing and sound read the same result, and both
+    identify rotor aircraft through the presentation type's rotor predicate.
+    *(`units::rotor::rotor_speed`)*
+21. **Articulation carries `rotor_speed`, a number from 0 to 1**, in Rust, the TS mirror and the pose capture. The effect style
     named `rotor_blur` is a separate thing and kept its name.
-22. **The client decides "in the air now" in one place.** `inTheAir` covers the
-    marker, drop line and click rings; the game and the lab share these
-    overlays.
+22. **Each client side owns one current-flight predicate.** A type `flies`;
+    `inTheAir` in scene-assets and `UnitType::in_the_air` in presentation combine
+    that with published grounding. Current-pose flags retain `airborne`.
 23. **The rotor loop's volume and pitch scale with rotor speed**, silent when
     stopped. Jets and ground vehicles are untouched.
 24. **Every vehicle class a catalog derives must have a sound row.** This
@@ -88,15 +102,23 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
 25. **The AI's standing supplier is one that drives.** "Drives" means the type
     has ground locomotion. Only drivers count as "a supplier can reach it";
     the reserve heli is what answers the emergency.
-    *(`skirmish_ai::purchase::drives`)*
+    `standing_supplier` and `flying_supplier` own the two supplier jobs.
+    *(`skirmish_ai::purchase`)*
 26. **The airlift lives in one AI module**, covering combat groups, the trigger,
     the far side, the mission and the purchase response. The heli counts as
     arrived anywhere within the landing reach of its goal, plus 8 m.
+    An emergency suppresses shopping only when a flyer is sent, bought, or
+    pending. Inbound retains the original need and returns if that recipient
+    disappears or the group no longer needs airlift; absent flyers without a
+    reservation release the mission. Returning finishes on
+    arrival within reach or a refused landing, without waiting for setup. The
+    outbound goal follows the current group positions rather than a stored
+    destination; a serving flyer relocates when its needy recipient leaves
+    service range.
     *(`skirmish_ai/airlift.rs`)*
 27. **The tuning is data**: ammo share 0.5, health share 0.5, reach 30 s.
     *(`fixtures/skirmish-ai.json`)*
-28. **Each transport became an abstract airframe that both the transport and
-    the supply row extend.** All 139 existing unit rows resolve
+28. **Each transport and supply variant extend a shared abstract airframe.** All 139 existing unit rows resolve
     byte-identically. *(`fixtures/units/roster/*.json`)*
 29. **Rotor radii come from the model build scripts**: 14.947 m for the
     Chinooks (the whole tandem), 10.997 m for the Mi-8. Re-measure if a model
@@ -112,17 +134,15 @@ sure first. The planned decisions are in [`decisions.md`](decisions.md).
 34. **Battle-lab staging**:
     - a durable heli in `heli-fire`, so both halves of the demo play out;
     - the truck's wide camera on the newer heli variants;
+    - an empty passive opponent in supply-AI, so ongoing fire cannot consume
+      the reserve before the authored damage is repaired;
     - scene pages closed between variants (the browser stalls after about six
       open WebGPU pages).
 
     The lab doesn't draw props added by an encounter's events, so the
     `heli-shift` and `heli-crowded` crates act but can't be seen. That predates
     this feature.
-35. **Over-budget files gave up whole concepts to make room**, with no behaviour
-    change:
-    - `battle` → `spawn`;
-    - `contract::catalog` → `inheritance` and `capabilities`;
-    - `publication` → `identified_row` and `reader/identified`;
-    - `skirmish_ai` → `support`, `doctrine`, `recon` and `airlift`;
-    - `presentation` sound → `sound/frame/motion`;
-    - several test files were split by subject.
+35. **The size ratchet is met by moving whole concepts.** Type semantics,
+    soldier threat evaluation, doctrine state, publication codecs and domain
+    test suites live with their own concepts. Callers consume those owners
+    directly; there are no forwarding modules or size-limit exemptions.

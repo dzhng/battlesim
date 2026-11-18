@@ -49,6 +49,6 @@ pub fn idle_loops_of(setup: &str, kind: &str) -> Result<Vec<IdleLoop>, String> {
     Ok(idle_loops(
         &admitted.tables,
         unit["vehicle_class"].as_str(),
-        fielded::airborne(unit),
+        fielded::flies(unit),
     ))
 }

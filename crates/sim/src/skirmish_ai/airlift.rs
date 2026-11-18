@@ -12,7 +12,7 @@ use contract::scenario::Rules;
 use contract::skirmish::PlayerView;
 use contract::weapons::AmmoCapacity;
 
-use super::purchase::{drives, Buy};
+use super::purchase::{flying_supplier, standing_supplier, Buy};
 use super::team;
 use super::{distance, support, Assignment, Tuning};
 use std::collections::BTreeSet;
@@ -52,19 +52,6 @@ pub(super) fn groups(
         .collect();
     let mut groups = Vec::new();
     let mut detached = BTreeSet::new();
-    let centroid = |units: &[UnitId]| {
-        if units.is_empty() {
-            return [0.0; 2];
-        }
-        let sum = units.iter().fold([0.0; 2], |mut sum, id| {
-            if let Some(unit) = frame.own.iter().find(|unit| unit.id == *id) {
-                sum[0] += unit.position[0];
-                sum[1] += unit.position[1];
-            }
-            sum
-        });
-        [sum[0] / units.len() as f64, sum[1] / units.len() as f64]
-    };
     if let Some(assignment) = assignment {
         for party in &assignment.parties {
             let mut units: Vec<_> = party
@@ -78,28 +65,29 @@ pub(super) fn groups(
             detached.extend(units.iter().copied());
             if !units.is_empty() {
                 groups.push(Group {
-                    centroid: centroid(&units),
+                    centroid: group_centroid(frame, &units),
                     units,
                 });
             }
         }
     }
-    let mut main: Vec<_> = all.difference(&detached).copied().collect();
-    main.sort_unstable();
+    let main: Vec<_> = all.difference(&detached).copied().collect();
     if !main.is_empty() {
         groups.push(Group {
-            centroid: centroid(&main),
+            centroid: group_centroid(frame, &main),
             units: main,
         });
     }
-    if groups.is_empty() && !all.is_empty() {
-        let units: Vec<_> = all.into_iter().collect();
-        groups.push(Group {
-            centroid: centroid(&units),
-            units,
-        });
-    }
     groups
+}
+
+fn group_centroid(frame: &ObservationFrame, ids: &[UnitId]) -> [f64; 2] {
+    let points: Vec<_> = ids
+        .iter()
+        .filter_map(|id| frame.own.iter().find(|u| u.id == *id))
+        .map(|u| [u.position[0], u.position[1]])
+        .collect();
+    centroid(&points).expect("a combat group is nonempty")
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -108,8 +96,7 @@ pub(super) enum Mission {
     Idle,
     Inbound {
         heli: Option<UnitId>,
-        group: Group,
-        goal: [f64; 2],
+        need: Need,
     },
     Serving {
         heli: UnitId,
@@ -194,12 +181,7 @@ pub(super) fn emergency(
     let suppliers: Vec<UnitId> = frame
         .own
         .iter()
-        .filter(|u| {
-            // The reserve flyer answers an emergency; only a supplier that
-            // drives can make one unnecessary.
-            let t = rules.catalog.get(u.kind);
-            t.has_role("logistics") && t.capabilities.supply.is_some() && drives(rules, u.kind)
-        })
+        .filter(|u| standing_supplier(rules, u.kind))
         .map(|u| u.id)
         .collect();
     groups.iter().find_map(|group| {
@@ -210,9 +192,8 @@ pub(super) fn emergency(
             }
             let point = [target.position[0], target.position[1]];
             let reachable = suppliers.iter().any(|&supplier| {
-                route_time(supplier, point).is_some_and(|seconds| {
-                    seconds.is_finite() && seconds >= 0.0 && seconds < tuning.emergency_reach_s
-                })
+                route_time(supplier, point)
+                    .is_some_and(|seconds| seconds < tuning.emergency_reach_s)
             });
             (!reachable).then(|| Need {
                 group: group.clone(),
@@ -278,20 +259,12 @@ pub(super) fn respond(
     rules: &Rules,
     me: &PlayerView,
     eligible: &[TypeIndex],
-    entry: [f64; 2],
 ) -> Option<Buy> {
-    let enemies: Vec<_> = frame
-        .identified
-        .iter()
-        .map(|u| [u.position[0], u.position[1]])
-        .collect();
-    let goal = far_side(&need.group, &enemies, entry, rules.service.radius_m);
     let inbound = |heli| Mission::Inbound {
         heli,
-        group: need.group.clone(),
-        goal,
+        need: need.clone(),
     };
-    if let Some(heli) = flying_supplier(frame, rules) {
+    if let Some(heli) = frame.own.iter().find(|u| flying_supplier(rules, u.kind)) {
         *mission = inbound(Some(heli.id));
         return None;
     }
@@ -299,7 +272,7 @@ pub(super) fn respond(
         .pending
         .iter()
         .flat_map(|purchase| purchase.kinds())
-        .any(|kind| is_flying_supplier(rules, kind));
+        .any(|kind| flying_supplier(rules, kind));
     if pending {
         *mission = inbound(None);
         return None;
@@ -307,7 +280,7 @@ pub(super) fn respond(
     let buy = eligible
         .iter()
         .copied()
-        .filter(|&kind| is_flying_supplier(rules, kind))
+        .filter(|&kind| flying_supplier(rules, kind))
         .min_by(|&a, &b| {
             let cost = |k| rules.catalog.get(k).cost;
             cost(a)
@@ -324,10 +297,13 @@ pub(super) fn respond(
     buy
 }
 
+/// Arrival tolerance beyond the clear-spot reach, allowing for flight settling.
+const ARRIVAL_SLACK_M: f64 = 8.0;
+
 /// How near its goal the flyer counts as there: it lands on the nearest clear
 /// spot within the landing reach, so anywhere in that reach has arrived.
 fn arrived_within(rules: &Rules) -> f64 {
-    rules.air.rotor.landing_reach_m + 8.0
+    rules.air.rotor.landing_reach_m + ARRIVAL_SLACK_M
 }
 
 /// Advance the mission and append its ordinary movement/deployment orders.
@@ -340,109 +316,171 @@ pub(super) fn orders(
     route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     orders: &mut Vec<Order>,
 ) {
-    match mission.clone() {
-        Mission::Idle => {}
-        Mission::Inbound { heli, group, goal } => {
-            let heli = heli.or_else(|| flying_supplier(frame, rules).map(|u| u.id));
-            let Some(heli_id) = heli else {
-                return;
-            };
-            let Some(unit) = frame.own.iter().find(|u| u.id == heli_id) else {
-                *mission = Mission::Idle;
-                return;
-            };
-            *mission = Mission::Inbound {
-                heli: Some(heli_id),
-                group: group.clone(),
-                goal,
-            };
-            if unit.goal.is_none()
-                && distance([unit.position[0], unit.position[1]], goal) > arrived_within(rules)
-            {
-                if route_time(unit.id, goal).is_some_and(|t| t.is_finite() && t >= 0.0) {
-                    orders.push(Order::Move {
-                        units: vec![unit.id],
-                        gesture: frame.tick,
-                        goal,
-                        route: RoutePolicy::Fastest,
-                        direction: MoveDirection::Forward,
-                        facing: Some(libm::atan2(
-                            goal[1] - unit.position[1],
-                            goal[0] - unit.position[0],
-                        )),
-                    });
-                }
-            } else if unit.deployment.as_ref().is_some_and(|d| d.progress >= 1.0)
-                && group_needs(frame, rules, &group, tuning).is_some()
-            {
-                *mission = Mission::Serving {
-                    heli: heli_id,
-                    group,
+    loop {
+        match mission.clone() {
+            Mission::Idle => {}
+            Mission::Inbound { heli, mut need } => {
+                let heli = heli.or_else(|| {
+                    frame
+                        .own
+                        .iter()
+                        .find(|u| flying_supplier(rules, u.kind))
+                        .map(|u| u.id)
+                });
+                let Some(heli_id) = heli else {
+                    let pending = frame
+                        .skirmish
+                        .as_ref()
+                        .and_then(super::purchase::own_player)
+                        .is_some_and(|me| {
+                            me.pending
+                                .iter()
+                                .flat_map(|p| p.kinds())
+                                .any(|kind| flying_supplier(rules, kind))
+                        });
+                    if !pending {
+                        *mission = Mission::Idle;
+                    }
+                    return;
                 };
-            }
-        }
-        Mission::Serving { heli, group } => {
-            let Some(unit) = frame.own.iter().find(|u| u.id == heli) else {
-                *mission = Mission::Idle;
-                return;
-            };
-            if group_needs(frame, rules, &group, tuning).is_none() {
-                let post = support::support_point(
-                    &frame.own.iter().collect::<Vec<_>>(),
-                    rules,
-                    entry,
-                    tuning,
-                );
-                *mission = Mission::Returning { heli, post };
-            } else if unit.deployment.as_ref().is_none_or(|d| d.progress < 1.0) {
-                // Landing and setup are automatic; leave the heli's existing
-                // movement/landing state alone while it serves this mission.
-            }
-        }
-        Mission::Returning { heli, post } => {
-            let Some(unit) = frame.own.iter().find(|u| u.id == heli) else {
-                *mission = Mission::Idle;
-                return;
-            };
-            if distance([unit.position[0], unit.position[1]], post) > arrived_within(rules) {
-                if unit.goal.is_none()
-                    && route_time(unit.id, post).is_some_and(|t| t.is_finite() && t >= 0.0)
+                let Some(unit) = frame.own.iter().find(|u| u.id == heli_id) else {
+                    *mission = Mission::Idle;
+                    return;
+                };
+                if !frame.own.iter().any(|u| u.id == need.unit)
+                    || emergency(
+                        frame,
+                        rules,
+                        tuning,
+                        std::slice::from_ref(&need.group),
+                        route_time,
+                    )
+                    .is_none()
                 {
-                    orders.push(Order::Move {
-                        units: vec![unit.id],
-                        gesture: frame.tick,
-                        goal: post,
-                        route: RoutePolicy::Fastest,
-                        direction: MoveDirection::Forward,
-                        facing: None,
-                    });
+                    let post = support::support_point(
+                        &frame.own.iter().collect::<Vec<_>>(),
+                        rules,
+                        entry,
+                        tuning,
+                    );
+                    *mission = Mission::Returning {
+                        heli: heli_id,
+                        post,
+                    };
+                    continue;
                 }
-            } else if unit.deployment.as_ref().is_some_and(|d| d.progress >= 1.0) {
-                *mission = Mission::Idle;
+                need.group.centroid = group_centroid(frame, &need.group.units);
+                let enemies: Vec<_> = frame
+                    .identified
+                    .iter()
+                    .map(|u| [u.position[0], u.position[1]])
+                    .collect();
+                let goal = far_side(&need.group, &enemies, entry, rules.service.radius_m);
+                *mission = Mission::Inbound {
+                    heli: Some(heli_id),
+                    need: need.clone(),
+                };
+                let stale_goal = unit
+                    .goal
+                    .is_some_and(|old| distance(old, goal) > ARRIVAL_SLACK_M);
+                let recipient = frame.own.iter().find(|u| u.id == need.unit).unwrap();
+                let out_of_service = distance(
+                    [unit.position[0], unit.position[1]],
+                    [recipient.position[0], recipient.position[1]],
+                ) > rules.service.radius_m;
+                if stale_goal
+                    || (unit.goal.is_none()
+                        && (out_of_service
+                            || distance([unit.position[0], unit.position[1]], goal)
+                                > arrived_within(rules)))
+                {
+                    if route_time(unit.id, goal).is_some() {
+                        orders.push(Order::Move {
+                            units: vec![unit.id],
+                            gesture: frame.tick,
+                            goal,
+                            route: RoutePolicy::Fastest,
+                            direction: MoveDirection::Forward,
+                            facing: Some(libm::atan2(
+                                goal[1] - unit.position[1],
+                                goal[0] - unit.position[0],
+                            )),
+                        });
+                    }
+                } else if unit.deployment.as_ref().is_some_and(|d| d.progress >= 1.0) {
+                    *mission = Mission::Serving {
+                        heli: heli_id,
+                        group: need.group,
+                    };
+                }
+            }
+            Mission::Serving { heli, group } => {
+                let Some(unit) = frame.own.iter().find(|u| u.id == heli) else {
+                    *mission = Mission::Idle;
+                    return;
+                };
+                let needy = group_needs(frame, rules, &group, tuning)
+                    .and_then(|id| frame.own.iter().find(|u| u.id == id));
+                if let Some(recipient) = needy {
+                    if distance(
+                        [unit.position[0], unit.position[1]],
+                        [recipient.position[0], recipient.position[1]],
+                    ) > rules.service.radius_m
+                    {
+                        *mission = Mission::Inbound {
+                            heli: Some(heli),
+                            need: Need {
+                                group,
+                                unit: recipient.id,
+                            },
+                        };
+                        continue;
+                    }
+                } else {
+                    let post = support::support_point(
+                        &frame.own.iter().collect::<Vec<_>>(),
+                        rules,
+                        entry,
+                        tuning,
+                    );
+                    *mission = Mission::Returning { heli, post };
+                    continue;
+                }
+            }
+            Mission::Returning { heli, post } => {
+                let Some(unit) = frame.own.iter().find(|u| u.id == heli) else {
+                    *mission = Mission::Idle;
+                    return;
+                };
+                if unit.state == contract::observation::MoveState::NoLandingSpot
+                    || distance([unit.position[0], unit.position[1]], post) <= arrived_within(rules)
+                {
+                    if unit.goal.is_some() {
+                        orders.push(Order::Stop {
+                            units: vec![unit.id],
+                        });
+                    }
+                    *mission = Mission::Idle;
+                } else {
+                    if unit
+                        .goal
+                        .is_none_or(|goal| distance(goal, post) > ARRIVAL_SLACK_M)
+                        && route_time(unit.id, post).is_some()
+                    {
+                        orders.push(Order::Move {
+                            units: vec![unit.id],
+                            gesture: frame.tick,
+                            goal: post,
+                            route: RoutePolicy::Fastest,
+                            direction: MoveDirection::Forward,
+                            facing: None,
+                        });
+                    }
+                }
             }
         }
+        break;
     }
-}
-
-pub(super) fn flying_supplier<'a>(
-    frame: &'a ObservationFrame,
-    rules: &Rules,
-) -> Option<&'a OwnUnit> {
-    frame.own.iter().find(|u| {
-        let t = rules.catalog.get(u.kind);
-        t.has_role("logistics")
-            && t.capabilities.supply.is_some()
-            && t.mobility.flight().is_some()
-            && !drives(rules, u.kind)
-    })
-}
-
-pub(super) fn is_flying_supplier(rules: &Rules, kind: contract::catalog::TypeIndex) -> bool {
-    let t = rules.catalog.get(kind);
-    t.has_role("logistics")
-        && t.capabilities.supply.is_some()
-        && t.mobility.flight().is_some()
-        && !drives(rules, kind)
 }
 
 #[cfg(test)]

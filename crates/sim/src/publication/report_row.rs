@@ -3,7 +3,7 @@
 //! fields are -1 without one.
 use contract::skirmish::MatchEvent;
 
-use super::limbs;
+use super::cells::limbs;
 
 pub(super) const REPORT_EVENT_FIELDS: [&str; 15] = [
     "tickLo",

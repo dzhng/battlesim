@@ -67,17 +67,7 @@ pub struct DecisionInput<'a> {
     pub assignment: Option<&'a Assignment>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum Doctrine {
-    #[default]
-    BalancedOpening,
-    ReconScreen,
-    InfantryPressure,
-    TankSwarm,
-    AirDenial,
-    EmergencyDefense,
-    Consolidate,
-}
+pub use doctrine::Doctrine;
 
 /// The doctrine's timings and distances, authored in
 /// `fixtures/skirmish-ai.json`: its playbook's numbers, not battle rules.
@@ -328,7 +318,6 @@ impl BalancedDoctrine {
                     .is_some_and(|r| r.factions.contains(&faction))
             })
             .collect();
-        let air_groups = airlift::groups(frame, rules, context);
         // A losing unit's smoke comes first, so the order rate limit never
         // drops its pop (D21).
         let smoke = match view.phase {
@@ -347,21 +336,22 @@ impl BalancedDoctrine {
         // role rotation. A flying supplier is a one-at-a-time reserve, so a
         // present one is dispatched and only an absent one is bought.
         let emergency = (view.phase == Phase::Active && !self.airlift.is_busy())
-            .then(|| airlift::emergency(frame, rules, &self.tuning, &air_groups, route_time))
+            .then(|| {
+                airlift::emergency(
+                    frame,
+                    rules,
+                    &self.tuning,
+                    &airlift::groups(frame, rules, context),
+                    route_time,
+                )
+            })
             .flatten();
         let emergency_buy = emergency.clone().and_then(|need| {
-            airlift::respond(
-                &mut self.airlift,
-                need,
-                frame,
-                rules,
-                me,
-                &eligible,
-                entry.center,
-            )
+            airlift::respond(&mut self.airlift, need, frame, rules, me, &eligible)
         });
         let purchases = emergency_buy.into_iter().collect::<Vec<_>>();
-        let purchases = if purchases.is_empty() && emergency.is_none() {
+        let purchases = if purchases.is_empty() && !(emergency.is_some() && self.airlift.is_busy())
+        {
             self.shopping(frame, rules, me, view.phase, &eligible)
         } else {
             purchases

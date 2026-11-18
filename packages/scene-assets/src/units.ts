@@ -62,9 +62,12 @@ export type Mobility =
       };
     };
 
-/** Whether a type flies (`contract::catalog::Mobility::Air`): its hull is
- *  in the air, so it rolls on nothing and raises no dust. */
-export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in type.mobility;
+/** Its mobility is flight, whether flying or standing on the ground. */
+export const flies = (type: Pick<UnitType, "mobility">): boolean => "air" in type.mobility;
+
+/** A published aircraft is off the ground now. */
+export const inTheAir = (type: Pick<UnitType, "mobility">, grounded: boolean): boolean =>
+  flies(type) && !grounded;
 
 /** It flies in the high-air layer: its card sits on top, and its shadow lies
  *  beneath it. */

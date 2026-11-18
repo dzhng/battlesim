@@ -76,7 +76,7 @@ function report() {
   for (const row of roster) {
     const unit = row.id;
     if (!row.roster) continue;
-    for (const faction of row.roster?.factions ?? []) {
+    for (const faction of row.roster.factions) {
       const set = assignment(unit, faction);
       const spec = catalog.sets[set];
       console.log(
@@ -89,16 +89,16 @@ function report() {
 }
 function html(path: string) {
   const rows = roster
-    .filter((row) => row.roster)
-    .map((row) =>
-      (row.roster?.factions ?? [])
+    .flatMap((row) => {
+      if (!row.roster) return [];
+      return row.roster.factions
         .map((faction) => {
           const set = assignment(row.id, faction);
           const spec = catalog.sets[set];
           return `<tr><td>${row.id}</td><td>${faction}</td><td>${set}</td><td>${spec?.country ?? ""}</td><td>${spec?.role ?? ""}</td><td>${spec?.voices.some((voice) => voice.gender === "female" && (voice.speaks === "responses" || voice.speaks === "all")) ? "yes" : "no"}</td></tr>`;
         })
-        .join(""),
-    )
+        .join("");
+    })
     .join("");
   const subtotals = Object.keys(catalog.sets)
     .sort()

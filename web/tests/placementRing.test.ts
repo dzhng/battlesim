@@ -5,7 +5,7 @@
 // winged aircraft never stops over a point and has none.
 import { expect, test } from "vitest";
 import { unitCircle } from "@packages/battle-renderer/src/unitCircle";
-import { fixedWing, airborne } from "@packages/scene-assets/src/units";
+import { fixedWing, flies } from "@packages/scene-assets/src/units";
 import { orderView } from "@apps/battle-lab/src/battleOverlay";
 import { gameOrderStyle } from "@apps/battle-lab/src/gameOverlay";
 import { placementCircle } from "@apps/battle-lab/src/pointerPaint";
@@ -63,7 +63,7 @@ test("a squad's ghost shows its area's ring once the preview names it, and none 
 
 test("a helicopter's ghost shows its ring; a winged aircraft's shows none", () => {
   const kinds = UNITS.view.units.map((t) => t.id);
-  const rotor = kinds.find((k) => airborne(UNITS.type(k)) && !fixedWing(UNITS.type(k)))!;
+  const rotor = kinds.find((k) => flies(UNITS.type(k)) && !fixedWing(UNITS.type(k)))!;
   const jet = kinds.find((k) => fixedWing(UNITS.type(k)))!;
   expect(placementCircle(ghost(rotor), UNITS)).toEqual(standing(rotor));
   expect(placementCircle(ghost(rotor), UNITS)).not.toBeNull();

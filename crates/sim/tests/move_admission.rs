@@ -670,7 +670,9 @@ fn settle(battle: &mut Battle, id: u32, seconds: u64) -> contract::observation::
             for prop in battle.world().props_near(hull.center, hull.half.length()) {
                 assert!(
                     !prop.blocks(MoverClass::Vehicle)
-                        || unit.ground().push.pushes(prop.body.weight_class)
+                        || unit
+                            .push_class(battle.rules())
+                            .pushes(prop.body.weight_class)
                         || !hull.overlaps(&prop.footprint()),
                     "unit {id} runs into a {:?} at tick {}",
                     prop.kind,

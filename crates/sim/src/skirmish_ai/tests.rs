@@ -1223,24 +1223,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     );
 }
 
-#[test]
-fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
-    let defends = |classes: Value| {
-        let mut fixture = test_rules();
-        fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
-        fixture["weapons"]["hmg"]["proximity_fuse_m"] = serde_json::json!(2);
-        let rules: Rules = serde_json::from_value(fixture).unwrap();
-        let jeep = rules.catalog.index("test_jeep").unwrap();
-        let heli = rules.catalog.index("test_heli").unwrap();
-        (
-            unit_engages_aircraft_in(&rules, jeep, AltitudeLayer::LowAir),
-            unit_can_engage_target(&rules, jeep, heli),
-        )
-    };
-    assert_eq!(defends(json!(["air_rotor"])), (true, true));
-    assert_eq!(defends(json!(["missile"])), (false, false));
-}
-
+mod airlift_tests;
 mod artillery;
 mod backline;
 mod groups;

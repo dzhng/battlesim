@@ -1,6 +1,6 @@
 # Supply helicopter
 
-**Status:** slices 01–10 done; slice 11 (closeout) next. **Updated:** 2026-11-17.
+**Status:** review fixes implemented and verified; slice 11 archival remains. **Updated:** 2026-11-17.
 
 One supply helicopter per faction. It lands to resupply the units around it and
 takes off again when it packs. It costs the same as the supply truck, carries
@@ -10,7 +10,8 @@ is running dry far from its truck.
 
 ## Next Agent Prompt
 
-Pick up at **slice 11**, the closeout. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
+The review-fix pass and full verification are complete. The remaining slice-11
+step is `close-spec` archival; no implementation pass is planned. Browser scenes need `git lfs pull --include="assets/runtime/**"` and `--include="assets/third-party/**"`, and `bun run build:wasm`. Build serially: the disk was at 26 GB free on
 2026-11-17, so check `df` first. Read
 [`decisions.md`](decisions.md) before any slice; every row there is a given.
 Load `tweak-mechanics` before a simulation slice, and `game-ui` and `renderer`
@@ -49,13 +50,13 @@ the TODO below.
 - [x] [08](slices/08-rotor-sound.md) The rotor sound fades with the rotor (audio)
 - [x] [09](slices/09-ai-emergency-airlift.md) The AI flies one in for an emergency
 - [x] [10](slices/10-roster-cards.md) Three roster cards, shop order, voices, tutorial
-- [ ] [11](slices/11-closeout.md) Closeout: full run, review, close-spec
+- [ ] [11](slices/11-closeout.md) Full run and review complete; `close-spec` archival remains
 
 ## Contracts this feature changes
 
 | Contract | Change | Slice |
 |---|---|---|
-| Catalog `capabilities.deploy` | gains `drop_seconds`; required on an aircraft that deploys, refused on a ground unit (P2) | 02 |
+| Catalog `capabilities.deploy` | gains `drop_seconds`; required on a rotor aircraft that deploys, refused on ground or fixed-wing units (P2) | 02 |
 | Catalog `Mobility::Air` | gains `rotor_radius_m`; required on an aircraft that deploys (P6) | 04 |
 | Rules `air.rotor` | gains `landing_reach_m` = 40 (P7) | 04 |
 | Sim `Unit` | `flies()` / `airborne()` / `landed()` / `push_class()` / `target_class(rules)` (P1, P3–P5) | 02, 03 |
@@ -98,8 +99,8 @@ designed today, not tacked on.
 | Layer and target class of a unit | `Unit::layer()` / `Unit::target_class(rules)` (P5) | weapons or knowledge reading `UnitType::target_class` |
 | Height while landing | one height law in `movement/air.rs`, which also sets `air.velocity.z` (D3) | a second clamp, or `position.z` edited elsewhere |
 | Nearest clear spot | one ring search shared with crash wreck placement (P8) | a second scan of props |
-| Rotor speed drawn and heard | one presentation helper from (grounded, progress, target, `drop_seconds`) (P12) | a second calculator in TS, or a sim field named rotor |
-| Standing vs flying supplier | the AI's one `drives` predicate on mobility (D11) | id, label or role special cases |
+| Rotor speed drawn and heard | one presentation helper from (grounded, progress, deploy/drop timings) (P12) | a second calculator in TS, or a sim field named rotor |
+| Standing vs flying supplier | `standing_supplier` / `flying_supplier` in AI purchase planning (D11) | id, label or role special cases |
 | Emergency trigger | one AI module with pure trigger functions (P17) | spread through `purchase.rs` |
 
 ## Gates every slice inherits

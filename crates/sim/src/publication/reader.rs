@@ -33,8 +33,6 @@ use super::{
     STEP_FIELDS,
 };
 
-pub(super) use super::IDENTIFIED_FIELDS;
-
 pub use view::*;
 
 /// What the next record of a stream builds on.
@@ -117,6 +115,7 @@ macro_rules! v {
 
 mod cells;
 mod crash;
+mod deployment;
 mod hold;
 mod identified;
 mod mount;
@@ -771,12 +770,7 @@ impl Reader {
             member_hp: column(member_hp),
             suppression: self.name("suppressionTiers", v!(f, "suppression"))?,
             concealed: v!(f, "concealed") == 1.0,
-            deployment: self
-                .optional("postures", v!(f, "deployTarget"))?
-                .map(|target| Deployment {
-                    progress: v!(f, "deployProgress"),
-                    target,
-                }),
+            deployment: self.deployment(v!(f, "deployProgress"), v!(f, "deployTarget"))?,
             grounded: v!(f, "grounded") == 1.0,
             hold: self.hold(f)?,
             stock: present(v!(f, "stock")),

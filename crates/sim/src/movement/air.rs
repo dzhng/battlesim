@@ -23,7 +23,7 @@ use contract::scenario::Rules;
 /// Within this of a waypoint on the way it counts as passed.
 const WAYPOINT_M: f64 = 1.0;
 /// Within this of its destination it has arrived.
-const ARRIVAL_M: f64 = 0.05;
+pub(crate) const ARRIVAL_M: f64 = 0.05;
 /// Climb lookahead samples are this far apart along the flight.
 const LOOKAHEAD_STEP_M: f64 = 8.0;
 /// How fast two overlapping aircraft drift apart at full overlap.
@@ -37,6 +37,8 @@ const HOVER_MPS: f64 = 1.0;
 /// How far the low hover clears the tallest ground hull, and anything else
 /// under the airframe while it holds there (D27).
 const LOW_HOVER_CLEARANCE_M: f64 = 2.0;
+/// Pad the prop lookup so a broad footprint whose centre lies beyond the disc is visited.
+const PROP_SEARCH_PADDING_M: f64 = 8.0;
 
 /// Fly unit `i` one tick.
 pub(super) fn step_aircraft(
@@ -50,17 +52,11 @@ pub(super) fn step_aircraft(
         unreachable!("only aircraft fly");
     };
     let side = units[i].side.index();
-    if prepare_landing(ctx.world, ctx.rules, units, i) {
-        let unit = &mut units[i];
-        unit.state = MoveState::NoLandingSpot;
-        unit.air
-            .as_mut()
-            .expect("an aircraft's flight state")
-            .velocity = crate::math::v3(0.0, 0.0, 0.0);
-        unit.drive_speed_mps = 0.0;
-        return;
-    }
+    let no_landing_spot = prepare_landing(ctx.world, ctx.rules, units, i);
     plan(ctx, &mut units[i], &mut sides[side]);
+    if no_landing_spot {
+        units[i].state = MoveState::NoLandingSpot;
+    }
     let exempt = deployment::separation_exempt(&units[i]);
     let drift = if exempt {
         v2(0.0, 0.0)
@@ -84,7 +80,7 @@ pub(super) fn step_aircraft(
     let packed_deployer = unit
         .deployment
         .as_ref()
-        .is_some_and(|d| d.drop_duration > 0 && d.current == 0 && unit.movement_goal().is_some());
+        .is_some_and(|d| d.lands() && d.current == 0 && unit.movement_goal().is_some());
     let low_target = packed_deployer.then(|| {
         height_target(
             ctx.world,
@@ -101,8 +97,15 @@ pub(super) fn step_aircraft(
     let cruise_mps = flight.cruise_mps;
     let accel = cruise_mps / ctx.rules.air.rotor.acceleration_s;
     let air_rules = &ctx.rules.air;
-    let wanted = if landing.is_some() || hold_for_low_hover {
+    let wanted = if no_landing_spot || landing.is_some() || hold_for_low_hover {
         v2(0.0, 0.0)
+    } else if let Some(goal) = unit.landing_goal.filter(|_| unit.movement_goal().is_none()) {
+        let leg = goal - here;
+        if leg.inside_radius(ARRIVAL_M) {
+            v2(0.0, 0.0)
+        } else {
+            leg.normalized() * cruise_mps.min((2.0 * BRAKING_SHARE * accel * leg.length()).sqrt())
+        }
     } else if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
         let state = unit.air.as_mut().expect("an aircraft's flight state");
@@ -152,24 +155,26 @@ pub(super) fn step_aircraft(
     } else {
         v2(0.0, 0.0)
     };
-    let air_state = unit.air.as_ref().expect("an aircraft's flight state");
-    let current_velocity = air_state.velocity;
-    let current_fuel = air_state.fuel_s;
-    let change = wanted - current_velocity.xy();
+    let landing_start_z = landing.map(|_| {
+        unit.deployment
+            .as_ref()
+            .unwrap()
+            .landing_start_z
+            .expect("descent captures its start height")
+    });
+    let air = unit.air.as_mut().expect("an aircraft's flight state");
+    let change = wanted - air.velocity.xy();
     let most = accel * dt;
     let velocity = if change.length() > most {
-        current_velocity.xy() + change.normalized() * most
+        air.velocity.xy() + change.normalized() * most
     } else {
         wanted
     };
-    unit.air
-        .as_mut()
-        .expect("an aircraft's flight state")
-        .fuel_s = (current_fuel - dt).max(0.0);
+    air.fuel_s = (air.fuel_s - dt).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
     let target = landing
-        .map(|progress| landing_height(unit, ground, progress))
+        .map(|progress| landing_height(landing_start_z.unwrap(), ground, progress))
         .unwrap_or_else(|| {
             height_target(
                 ctx.world,
@@ -189,10 +194,7 @@ pub(super) fn step_aircraft(
         (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt)
     };
     unit.position = crate::math::v3(next.x, next.y, unit.position.z + climb);
-    unit.air
-        .as_mut()
-        .expect("an aircraft's flight state")
-        .velocity = crate::math::v3(velocity.x, velocity.y, climb / dt);
+    air.velocity = crate::math::v3(velocity.x, velocity.y, climb / dt);
     unit.drive_speed_mps = velocity.length();
     let back = unit.air.and_then(|a| a.settle).is_some_and(|s| s.back);
     turn(unit, flight, velocity, back, dt);
@@ -213,7 +215,7 @@ pub(super) fn step_aircraft(
             unit.route_from = route.remove(0);
         }
         if route.is_empty() {
-            arrive(unit);
+            arrive(ctx.rules, unit);
             let air = unit.air.as_mut().expect("an aircraft's flight state");
             air.velocity = crate::math::v3(0.0, 0.0, 0.0);
             air.settle = None;
@@ -227,17 +229,16 @@ fn prepare_landing(world: &WorldGeometry, rules: &Rules, units: &mut [Unit], ind
     let Some(d) = units[index].deployment.as_ref() else {
         return false;
     };
-    let drop_duration = d.drop_duration;
+    let Some(landing) = units[index].unit_type(rules).landing() else {
+        return false;
+    };
     let landed = d.landed;
     let stationary = d.stationary;
     let current = d.current;
     // The spot is chosen where it comes to rest (D2): while it still glides,
     // it only brakes.
-    let gliding = units[index]
-        .air
-        .is_some_and(|air| air.velocity.xy().length() > 1e-6);
-    if drop_duration == 0
-        || landed
+    let gliding = units[index].gliding();
+    if landed
         || gliding
         || !units[index].orders.is_empty()
         || stationary != contract::observation::Posture::Deployed
@@ -245,30 +246,23 @@ fn prepare_landing(world: &WorldGeometry, rules: &Rules, units: &mut [Unit], ind
         return false;
     }
     if let Some(goal) = units[index].landing_goal {
-        if spot_blocked(world, rules, units, index, goal) {
+        if spot_blocked(world, rules, units, index, goal, landing.rotor_radius_m) {
             units[index].landing_goal = None;
         }
     }
-    if units[index].landing_goal.is_none() && current <= 1 {
-        let radius = match units[index].unit_type(rules).mobility {
-            contract::catalog::Mobility::Air {
-                rotor_radius_m: Some(r),
-                ..
-            } => r,
-            _ => return false,
-        };
+    if units[index].landing_goal.is_none() && current == 0 {
         let at = units[index].position.xy();
         let found = crate::crash::nearest_clear_spot(
             world,
             at,
             rules.air.rotor.landing_reach_m,
-            radius,
-            |p| spot_blocked(world, rules, units, index, p),
+            landing.rotor_radius_m,
+            |p| {
+                spot_blocked(world, rules, units, index, p, landing.rotor_radius_m)
+                    || !crate::navigation::air::clear_direct_leg(world, rules, at, p)
+            },
         );
         units[index].landing_goal = found;
-        if found.is_some() && found != Some(units[index].position.xy()) {
-            units[index].state = MoveState::Moving;
-        }
     }
     units[index].landing_goal.is_none() && current == 0
 }
@@ -279,18 +273,12 @@ fn spot_blocked(
     units: &[Unit],
     index: usize,
     at: V2,
+    radius: f64,
 ) -> bool {
-    let radius = match units[index].unit_type(rules).mobility {
-        contract::catalog::Mobility::Air {
-            rotor_radius_m: Some(r),
-            ..
-        } => r,
-        _ => return true,
-    };
     let disc = |hull: &crate::math::Obb2| hull.distance(at) <= radius;
     if world.forest_near(at, radius)
         || world.surface_at(at.x, at.y).is_none_or(|s| !s.traversable)
-        || world.any_prop_near(at, radius + 8.0, |p| {
+        || world.any_prop_near(at, radius + PROP_SEARCH_PADDING_M, |p| {
             p.blocks(MoverClass::Vehicle) && disc(&p.footprint())
         })
     {
@@ -358,10 +346,7 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
     let tallest = catalog
         .indices()
         .map(|i| catalog.get(i))
-        .filter(|t| {
-            t.mobility.layer() == AltitudeLayer::Ground
-                || (t.mobility.flight().is_some() && t.capabilities.deploy.is_some())
-        })
+        .filter(|t| t.mobility.layer() == AltitudeLayer::Ground || t.landing().is_some())
         .filter_map(|t| t.hull())
         .map(|h| 2.0 * h.half_extents_m[2])
         .fold(0.0, f64::max);
@@ -369,12 +354,7 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
 }
 
 /// Landing's one height law: a fast initial drop easing into touchdown.
-fn landing_height(unit: &Unit, ground: f64, progress: f64) -> f64 {
-    let start = unit
-        .deployment
-        .as_ref()
-        .and_then(|d| d.landing_start_z)
-        .unwrap_or(unit.position.z);
+fn landing_height(start: f64, ground: f64, progress: f64) -> f64 {
     let eased = 1.0 - (1.0 - progress).powi(2);
     (start + (ground - start) * eased).max(ground)
 }
@@ -409,11 +389,7 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
     let here = units[i].position.xy();
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i
-            || !other.on_field()
-            || !other.airborne()
-            || deployment::separation_exempt(other)
-            || deployment::separation_exempt(&units[i])
+        if j == i || !other.on_field() || !other.airborne() || deployment::separation_exempt(other)
         {
             continue;
         }

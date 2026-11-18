@@ -30,7 +30,7 @@ def _variant(appearance_id, appearance, units):
     if not drawn_by:
         raise LookupError(f"{appearance_id}: no unit type draws it in fixtures/catalog.json")
     # Keep the appearance's original export identity (paint schemes use it),
-    # independent of the order in which its new gameplay variants resolve.
+    # independent of the order in which its gameplay variants resolve.
     unit = next((u for u in drawn_by if u["id"] == appearance_id), drawn_by[0])
     for other in drawn_by:
         for field, value in (("hull", lambda u: u["body"]["hull"]),

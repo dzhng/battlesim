@@ -1,11 +1,22 @@
-//! Doctrine pivot hysteresis. The emergency airlift has its own owner; this
-//! module keeps the older threat and dwell transitions together.
+//! Doctrine transitions: remembered threats, reaction delays and dwell hysteresis.
 
 use contract::catalog::AltitudeLayer;
 use contract::observation::ObservationFrame;
 use contract::scenario::Rules;
 
-use super::{frame_has_layer_threat, BalancedDoctrine, Doctrine, Tuning};
+use super::{frame_has_layer_threat, BalancedDoctrine, Tuning};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Doctrine {
+    #[default]
+    BalancedOpening,
+    ReconScreen,
+    InfantryPressure,
+    TankSwarm,
+    AirDenial,
+    EmergencyDefense,
+    Consolidate,
+}
 
 pub(super) fn update(
     ai: &mut BalancedDoctrine,
@@ -17,6 +28,7 @@ pub(super) fn update(
         ai.started = true;
         ai.doctrine_since = frame.tick;
     }
+    // Reaction delay is a personality trait, not a licence to ignore a threat.
     if ai.response_delay_ticks.is_none() {
         ai.response_delay_ticks =
             Some(1 + Tuning::ticks(draw * ai.tuning.reaction_max_s, rules.tick_hz));

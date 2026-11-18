@@ -439,9 +439,9 @@ impl Unit {
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }
+        self.landing_goal = None;
         if !queued {
             self.orders.clear();
-            self.landing_goal = None;
             // Movement decides whether the way it has still serves.
             self.planned_goal = None;
             self.state = MoveState::Idle;
@@ -453,12 +453,15 @@ impl Unit {
         self.hull.is_some()
     }
 
-    /// Motion is air, landed or not: flight dispatch and arrival facing
-    /// (`movement`), drive pivots (`movement::drive`), placement
-    /// (`battle::move_placement`) and damage smoke. Ground movement never
-    /// asks such a unit for the ground mobility it doesn't have.
+    /// Its motion is flight, whether flying or standing on the ground.
     pub fn flies(&self) -> bool {
         matches!(self.motion, Motion::Air(_))
+    }
+
+    /// Still translating horizontally while the flight law brakes to a hover.
+    pub fn gliding(&self) -> bool {
+        self.air
+            .is_some_and(|air| air.velocity.xy().length() > 1e-6)
     }
 
     /// An aircraft off the ground now: no ground rule (footprint, traffic,
@@ -508,7 +511,7 @@ impl Unit {
         if self.airborne() {
             match self.motion {
                 Motion::Air(flight) => flight.layer,
-                Motion::Ground(_) => unreachable!("airborne unit has ground motion"),
+                Motion::Ground => unreachable!("airborne unit has ground motion"),
             }
         } else {
             AltitudeLayer::Ground
@@ -529,11 +532,9 @@ impl Unit {
 
     /// How it moves over the ground. Only ground movement, routing and
     /// placement ask, and an aircraft never reaches them.
-    pub fn ground(&self) -> &Mobility {
-        match &self.motion {
-            Motion::Ground(m) => m,
-            Motion::Air(_) => panic!("an aircraft never reaches ground movement"),
-        }
+    pub fn ground(&self, rules: &Rules) -> Mobility {
+        ground_mobility(self.unit_type(rules), rules)
+            .expect("an aircraft never reaches ground movement")
     }
 
     /// The push class authored on the unit hull. Ground movement can inspect
@@ -694,11 +695,7 @@ impl Unit {
         if self.hold.is_some() {
             return None;
         }
-        let Some(order) = self.orders.front() else {
-            return (self.state == MoveState::Moving || self.route.is_some())
-                .then(|| self.landing_goal.map(|goal| (goal, RoutePolicy::Shortest)))
-                .flatten();
-        };
+        let order = self.orders.front()?;
         match order {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
@@ -710,26 +707,6 @@ impl Unit {
             | UnitOrder::Collect { .. }
             | UnitOrder::Unload { .. }
             | UnitOrder::Withdraw => None,
-        }
-    }
-
-    /// Whether movement is currently an internal landing transfer, invisible
-    /// as a player order and therefore without an order marker or queue entry.
-    pub fn internal_landing(&self) -> bool {
-        self.landing_goal.is_some() && self.orders.is_empty()
-    }
-
-    /// The goal of the order its owner gave, as the owner sees it: never an
-    /// internal landing shift.
-    pub fn ordered_goal(&self) -> Option<(V2, RoutePolicy)> {
-        self.movement_goal().filter(|_| !self.internal_landing())
-    }
-
-    /// The route of the order its owner gave, as the owner sees it.
-    pub fn ordered_route(&self) -> &[V2] {
-        match &self.route {
-            Some(route) if !self.internal_landing() => route,
-            _ => &[],
         }
     }
 

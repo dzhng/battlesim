@@ -1,5 +1,6 @@
 // The player's production faction skirmish, through its ordinary picker and cursor.
 import { modelGhostAgreement } from "./_modelGhost.mjs";
+import { unitType } from "./_units.mjs";
 import {
   advance,
   aim,
@@ -151,10 +152,15 @@ export async function run(ctx) {
     JSON.stringify(cameraAfterPlacement) === JSON.stringify(cameraAtPlacement),
   );
   const reserved = await obs(page);
+  const expectedCredits = own(initial).credits - unitType(previewGhost.variant).cost;
   check(
     ctx,
-    reserved.own.length === 0 && own(reserved).credits === 650 && own(reserved).unitCount === 1,
+    reserved.own.length === 0 &&
+      own(reserved).credits === expectedCredits &&
+      own(reserved).unitCount === 1 &&
+      own(reserved).pending[0].kind === previewGhost.variant,
     "cursor confirmation atomically reserves one variant during preparation",
+    JSON.stringify({ player: own(reserved), expectedCredits, variant: previewGhost.variant }),
   );
   // A held left drag places at its press and turns the unit toward its
   // release. This is the second gesture the player uses in the same journey.

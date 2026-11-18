@@ -21,7 +21,7 @@ use common::*;
 fn a_diving_jet_pitches_nose_down() {
     let units = units_with(|v| {
         let mut jet = v["types"]["capture_us_tank"].clone();
-        jet["airborne"] = true.into();
+        jet["flies"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         v["pose"]["attitude"]["fixed_wing"] = json!({
@@ -60,7 +60,7 @@ fn a_diving_jet_pitches_nose_down() {
 fn a_climbing_jet_pitches_nose_up() {
     let units = units_with(|v| {
         let mut jet = v["types"]["capture_us_tank"].clone();
-        jet["airborne"] = true.into();
+        jet["flies"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         v["pose"]["attitude"]["fixed_wing"] = json!({
@@ -99,7 +99,7 @@ fn a_climbing_jet_pitches_nose_up() {
 fn a_turning_jet_banks_into_the_turn() {
     let units = units_with(|v| {
         let mut jet = v["types"]["capture_us_tank"].clone();
-        jet["airborne"] = true.into();
+        jet["flies"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         v["pose"]["attitude"]["fixed_wing"] = json!({
@@ -139,7 +139,7 @@ fn a_turning_jet_banks_into_the_turn() {
 fn a_jet_banks_as_far_as_its_turn_needs_and_levels_out_flying_straight() {
     let units = units_with(|v| {
         let mut jet = v["types"]["capture_us_tank"].clone();
-        jet["airborne"] = true.into();
+        jet["flies"] = true.into();
         jet["flight"] = "fixed_wing".into();
         jet["turnRadS"] = 0.3.into();
         v["types"]["test_jet"] = jet;
@@ -210,7 +210,7 @@ fn a_jets_bank_builds_with_its_turn_and_reaches_its_cap_at_full_rate() {
     );
     let units = units_with(|v| {
         let mut jet = v["types"]["capture_us_tank"].clone();
-        jet["airborne"] = true.into();
+        jet["flies"] = true.into();
         jet["flight"] = "fixed_wing".into();
         jet["turnRadS"] = full.into();
         v["types"]["test_jet"] = jet;
@@ -274,7 +274,8 @@ fn a_jets_bank_builds_with_its_turn_and_reaches_its_cap_at_full_rate() {
 fn a_helicopters_attitude_is_unchanged() {
     let units = units_with(|v| {
         let mut heli = v["types"]["capture_us_tank"].clone();
-        heli["airborne"] = true.into();
+        heli["flies"] = true.into();
+        heli["flight"] = "rotor".into();
         v["types"]["test_heli"] = heli;
     });
     let none = fallen(&[]);
@@ -369,7 +370,8 @@ fn driving_rolls_both_tracks_and_turning_in_place_counter_rotates_them() {
 fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     let units = units_with(|v| {
         let mut heli = v["types"]["capture_us_tank"].clone();
-        heli["airborne"] = true.into();
+        heli["flies"] = true.into();
+        heli["flight"] = "rotor".into();
         v["types"]["capture_heli"] = heli;
     });
     let none = fallen(&[]);
@@ -408,11 +410,12 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
 fn a_jet_flies_gear_up_while_a_helicopter_and_a_tank_keep_theirs_down() {
     let units = units_with(|v| {
         let mut jet = v["types"]["capture_us_tank"].clone();
-        jet["airborne"] = true.into();
+        jet["flies"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         let mut heli = v["types"]["capture_us_tank"].clone();
-        heli["airborne"] = true.into();
+        heli["flies"] = true.into();
+        heli["flight"] = "rotor".into();
         v["types"]["capture_heli"] = heli;
     });
     let none = fallen(&[]);

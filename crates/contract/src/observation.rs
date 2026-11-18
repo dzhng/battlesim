@@ -52,7 +52,7 @@ pub struct IdentifiedUnit {
     pub reversing: bool,
     /// A visible setup posture for a unit that deploys in place.
     pub deployment: Option<DeploymentState>,
-    /// An aircraft standing on the ground (its landing latch, not its type).
+    /// An aircraft standing on the ground at this published tick.
     pub grounded: bool,
     /// It trails smoke (D34): a coarse sign of damage, never its health.
     #[serde(default)]
@@ -547,7 +547,7 @@ pub struct OwnUnit {
     pub weapon_poses: Vec<WeaponPose>,
     /// Units that set up in place (the supply vehicle); `None` for the rest.
     pub deployment: Option<DeploymentState>,
-    /// An aircraft standing on the ground (its landing latch, not its type).
+    /// An aircraft standing on the ground at this published tick.
     pub grounded: bool,
     /// Vehicle health (0 for infantry, whose health is per soldier).
     pub hp: f64,

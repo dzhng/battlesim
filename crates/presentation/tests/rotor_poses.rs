@@ -44,7 +44,8 @@ fn a_landing_rotor_slows_from_touchdown_and_stands_still_once_set_up() {
 fn landing_units() -> presentation::world::UnitsSection {
     units_with(|v| {
         let mut heli = v["types"]["capture_us_tank"].clone();
-        heli["airborne"] = true.into();
+        heli["flies"] = true.into();
+        heli["flight"] = "rotor".into();
         heli["deploy"] = serde_json::json!({"seconds": 10, "drop_seconds": 2, "pack_seconds": 5});
         v["types"]["test_supply_heli"] = heli;
     })
@@ -198,4 +199,38 @@ fn an_ungrounded_rotor_is_full_while_its_last_packing_progress_blends_out() {
         .clone();
     assert!(lifted.airborne);
     assert_eq!(lifted.articulation.rotor_speed, full);
+}
+
+#[test]
+fn reversing_a_grounded_rotor_preserves_its_speed_at_every_progress() {
+    let units = landing_units();
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut heli = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    heli.kind = "test_supply_heli".into();
+    heli.grounded = true;
+    for step in 0..=1000 {
+        heli.deployment = Some(f64::from(step) / 1000.0);
+        heli.deployment_target = Some("deployed".into());
+        let before = driver
+            .update(
+                &frame(f64::from(step), vec![heli.clone()], &none),
+                &units,
+                None,
+            )
+            .vehicles[0]
+            .articulation
+            .rotor_speed;
+        heli.deployment_target = Some("packed".into());
+        let after = driver
+            .update(
+                &frame(f64::from(step), vec![heli.clone()], &none),
+                &units,
+                None,
+            )
+            .vehicles[0]
+            .articulation
+            .rotor_speed;
+        assert_eq!(after, before, "reversal at progress {:?}", heli.deployment);
+    }
 }
