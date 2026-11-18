@@ -84,8 +84,11 @@ def build(variant, v):
             rot=(0, 0, side * 0.4), lods=MID)
         # Cabin door rails and windows, cockpit door windows.
         box(f"cabin_door_{k}", (1.8, 0.03, 1.2), (1.2, side * 1.06, 1.25), m["dark"], hull, lods=MID)
-        box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["glass"], hull, lods=MID)
-        box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["glass"], hull,
+        # Keep the framed tactical glazing dark at every LOD. The shared glass
+        # role is also used by optics and can read too bright on box-projected
+        # donor-free windows in the workbench.
+        box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["black"], hull, lods=MID)
+        box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["black"], hull,
             lods=MID)
     A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
     cyl("mast", 0.2, 0.75, (0.3, 0, 2.95), "Z", m["dark"], hull, seg=12)

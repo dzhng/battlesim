@@ -110,7 +110,7 @@ def us_gunship_grey():
 def us_army_aviation():
     """US Army aviation green (FS 34031, near black green): Apache, Black Hawk,
     Chinook; the special-operations Little Birds are as dark."""
-    return _air(((0.03, 0.035, 0.027), (0.038, 0.042, 0.032)), (0.62,), 1721)
+    return _air(((0.055, 0.062, 0.046), (0.072, 0.078, 0.056)), (0.62,), 1721)
 
 
 @recipe("russian_air_blue", tile=6.0, wear=(0.28, 0.3, 0.32, 0.8))
@@ -180,4 +180,4 @@ def french_air_camo():
 def nato_helicopter_green():
     """European army aviation: the British and French dark green-greys
     (Wildcat, Merlin, Chinook HC6, Tiger, NH90)."""
-    return _air(((0.042, 0.05, 0.038), (0.05, 0.055, 0.046)), (0.6,), 1781)
+    return _air(((0.068, 0.078, 0.056), (0.084, 0.092, 0.066)), (0.6,), 1781)
