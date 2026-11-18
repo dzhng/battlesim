@@ -18,7 +18,7 @@ mod bearing;
 mod bomb;
 mod cycle;
 mod engagement;
-use engagement::engage;
+use engagement::{engage, fires_into};
 mod fire_point;
 use fire_point::{fire_from, hides_behind, FirePoint};
 mod muzzle;
@@ -45,7 +45,7 @@ use crate::knowledge::SideKnowledge;
 use crate::lean;
 use crate::math::{body_distance, v2, v3, wrap_angle, V3};
 use crate::units::Unit;
-use crate::world::{PropId, WorldGeometry};
+use crate::world::WorldGeometry;
 use contract::random::Rng;
 
 /// Vehicle hull bodies take ids above every soldier id.
@@ -446,35 +446,6 @@ fn resolve_for(
         },
         _ => r,
     })
-}
-
-/// A gun holds fire only for what its rounds cannot break. It
-/// fires into the first body on its arc when that body is what it was
-/// ordered to hit (the ground point lies in it), or when the body can be
-/// destroyed, the gun can see past it, and the rounds it has left of this
-/// kind can destroy it by direct hits (structural damage times the body's
-/// armour; `None` rounds is unlimited). Anything else in the way (terrain,
-/// a body without integrity, an occluder, a body too tough for what is left)
-/// holds fire. The solver reads the true world, as it does for every
-/// obstruction.
-fn fires_into(
-    ctx: &FireContext,
-    weapon: &Weapon,
-    rounds: Option<u32>,
-    target: Target,
-    id: PropId,
-) -> bool {
-    let Some(prop) = ctx.world.prop(id) else {
-        return false;
-    };
-    if matches!(target, Target::Ground(p) if prop.footprint().contains(p.xy(), 0.0)) {
-        return true;
-    }
-    let Some(hp) = ctx.structures.hp(ctx.world, id) else {
-        return false;
-    };
-    let per_round = weapon.def.structural_damage * prop.body.armor;
-    !prop.body.occludes && per_round > 0.0 && rounds.is_none_or(|n| per_round * n as f64 >= hp)
 }
 
 /// Whether a seeker can acquire a bearing inside its forward cone. This is
@@ -1291,6 +1262,17 @@ fn fire(
             )
             .ok()
             .flatten()
+            // A shot aimed past a corner must still clear it after dispersion.
+            .filter(|(launch, solution)| {
+                matches!(target, Target::Ground(_))
+                    || !crate::flight::launch_strikes_prop(
+                        ctx.world,
+                        &ctx.arsenal.config,
+                        &weapon.profile,
+                        launch,
+                        *solution,
+                    )
+            })
             .map(|(launch, _)| launch)
             .into_iter()
             .collect()

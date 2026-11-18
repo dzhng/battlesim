@@ -3231,7 +3231,7 @@
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
         "low_air_m": 1800,
-        "high_air_m": 7000
+        "high_air_m": 3000
       },
       "capabilities": {
         "deploy": { "seconds": 3, "pack_seconds": 1 },
@@ -3312,8 +3312,8 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 3200,
-        "high_air_m": 3200
+        "low_air_m": 2250,
+        "high_air_m": 2250
       },
       "capabilities": {
         "deploy": { "seconds": 3, "pack_seconds": 1 },

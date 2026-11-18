@@ -20,8 +20,7 @@ use contract::random::Rng;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-/// A static hit this close to the intended intercept counts as arrival: an aim
-/// point on the ground, or a target standing on a surface.
+/// A terrain hit this close to the intercept counts as arrival at the surface.
 const ARRIVAL_TOLERANCE_M: f64 = 0.5;
 /// Scatter is truncated at this many standard deviations per axis.
 const SCATTER_LIMIT_SIGMA: f64 = 3.0;
@@ -558,11 +557,41 @@ fn first_obstruction(
             continue;
         }
         if let Some(hit) = world.raycast_past(w[0], chord * (1.0 / len), len, past) {
-            return ((hit.point - solution.intercept).length() > ARRIVAL_TOLERANCE_M)
-                .then_some((hit.point, hit.collider));
+            let arrived = hit.collider == Collider::Terrain
+                && (hit.point - solution.intercept).length() <= ARRIVAL_TOLERANCE_M;
+            return (!arrived).then_some((hit.point, hit.collider));
         }
     }
     None
+}
+
+/// Whether a round-stopping prop catches a sampled launch before its
+/// intercept. A low miss can still land in the dirt.
+pub(crate) fn launch_strikes_prop(
+    world: &WorldGeometry,
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    launch: &Launch,
+    solution: FiringSolution,
+) -> bool {
+    let past = launch.shooter.and_then(|s| match s.cover {
+        Some(super::Struck::Prop(id)) => Some(id),
+        _ => None,
+    });
+    matches!(
+        first_obstruction(
+            world,
+            config,
+            profile,
+            launch.origin,
+            &FiringSolution {
+                velocity: launch.velocity + launch.carrier,
+                ..solution
+            },
+            past,
+        ),
+        Some((_, Collider::Prop(_)))
+    )
 }
 
 /// The farthest a round fired with `scatter_mrad` strays from its aim at

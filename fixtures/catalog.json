@@ -8221,8 +8221,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9603,8 +9603,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9942,7 +9942,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -10039,7 +10039,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -14894,7 +14894,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 3200.0,
+            "high_air_m": 2000.0,
             "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
@@ -14991,8 +14991,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16328,7 +16328,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -21945,8 +21945,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -22042,7 +22042,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -28681,8 +28681,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30174,8 +30174,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30758,7 +30758,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -30858,7 +30858,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -36015,7 +36015,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 3200.0,
+        "high_air_m": 2000.0,
         "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
@@ -36115,8 +36115,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37583,7 +37583,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -44014,8 +44014,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44114,7 +44114,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -45001,7 +45001,7 @@
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 3000.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45019,7 +45019,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 3000.0,
+      "range_m": 2000.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.03333333333333333,
@@ -45036,7 +45036,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 3000.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45061,12 +45061,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -45084,7 +45084,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 2000.0,
+      "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45101,7 +45101,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -45109,7 +45109,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45368,7 +45368,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 1200.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -45385,7 +45385,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 1200.0,
+      "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45399,7 +45399,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 1200.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45511,12 +45511,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -45534,7 +45534,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 2000.0,
+      "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -45551,7 +45551,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -45559,7 +45559,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45632,14 +45632,14 @@
     },
     "artillery_howitzer": {
       "accel_mps2": null,
-      "aim_s": 2.5,
+      "aim_s": 3.0,
       "ammo": 24,
       "anti_radiation": false,
       "appearance": "artillery",
       "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 36.0,
-      "damage": 240.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45648,7 +45648,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2000.0
+            "range_m": 1300.0
           }
         ]
       },
@@ -45659,12 +45659,12 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 350.0,
+      "min_range_m": 150.0,
       "name": "Howitzer",
       "near_miss_suppression": 0.65,
       "partial_from": 0.08,
       "penetration": 12.0,
-      "range_m": 2000.0,
+      "range_m": 1300.0,
       "reload_s": 7.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.05,
@@ -45679,7 +45679,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2000.0,
+          "range_m": 1300.0,
           "scatter_mrad": 8.0
         }
       },
@@ -45696,7 +45696,7 @@
       "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 30.0,
-      "damage": 180.0,
+      "damage": 100.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45705,7 +45705,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 1500.0
+            "range_m": 900.0
           }
         ]
       },
@@ -45716,12 +45716,12 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 120.0,
+      "min_range_m": 100.0,
       "name": "Mortar",
       "near_miss_suppression": 0.55,
       "partial_from": 0.08,
       "penetration": 10.0,
-      "range_m": 1500.0,
+      "range_m": 900.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.1,
@@ -45736,7 +45736,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 1500.0,
+          "range_m": 900.0,
           "scatter_mrad": 10.0
         }
       },
@@ -45746,7 +45746,7 @@
     },
     "artillery_rocket_heavy": {
       "accel_mps2": null,
-      "aim_s": 3.0,
+      "aim_s": 5.0,
       "ammo": 12,
       "anti_radiation": false,
       "appearance": "rocket_artillery",
@@ -45762,7 +45762,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2500.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45775,18 +45775,18 @@
       "magazine": {
         "burst": null,
         "rounds": 4,
-        "shot_interval_s": 0.45
+        "shot_interval_s": 0.9
       },
-      "min_range_m": 700.0,
+      "min_range_m": 250.0,
       "name": "Heavy rocket salvo",
       "near_miss_suppression": 0.8,
       "partial_from": 0.08,
       "penetration": 11.0,
-      "range_m": 2500.0,
-      "reload_s": 12.0,
+      "range_m": 2000.0,
+      "reload_s": 24.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.2,
-      "round_cost": 16,
+      "round_cost": 32,
       "speed_mps": 460.0,
       "stationary": true,
       "structural_damage": 220.0,
@@ -45797,7 +45797,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2500.0,
+          "range_m": 2000.0,
           "scatter_mrad": 10.0
         }
       },
@@ -45807,7 +45807,7 @@
     },
     "artillery_rocket_light": {
       "accel_mps2": null,
-      "aim_s": 2.5,
+      "aim_s": 5.0,
       "ammo": 18,
       "anti_radiation": false,
       "appearance": "rocket_artillery",
@@ -45823,7 +45823,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2200.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45836,18 +45836,18 @@
       "magazine": {
         "burst": null,
         "rounds": 6,
-        "shot_interval_s": 0.35
+        "shot_interval_s": 0.7
       },
-      "min_range_m": 500.0,
+      "min_range_m": 200.0,
       "name": "Rocket salvo",
       "near_miss_suppression": 0.7,
       "partial_from": 0.08,
       "penetration": 10.0,
-      "range_m": 2200.0,
-      "reload_s": 9.0,
+      "range_m": 2000.0,
+      "reload_s": 18.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.25,
-      "round_cost": 10,
+      "round_cost": 20,
       "speed_mps": 400.0,
       "stationary": true,
       "structural_damage": 150.0,
@@ -45858,7 +45858,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2200.0,
+          "range_m": 2000.0,
           "scatter_mrad": 11.0
         }
       },
@@ -45868,7 +45868,7 @@
     },
     "artillery_strike_missile": {
       "accel_mps2": null,
-      "aim_s": 3.0,
+      "aim_s": 5.0,
       "ammo": 6,
       "anti_radiation": false,
       "appearance": "strike_missile",
@@ -45884,7 +45884,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2500.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45895,16 +45895,16 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 900.0,
+      "min_range_m": 300.0,
       "name": "Strike missile",
       "near_miss_suppression": 0.9,
       "partial_from": 0.08,
       "penetration": 9.0,
-      "range_m": 2500.0,
-      "reload_s": 15.0,
+      "range_m": 2000.0,
+      "reload_s": 30.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.025,
-      "round_cost": 24,
+      "round_cost": 48,
       "speed_mps": 460.0,
       "stationary": true,
       "structural_damage": 300.0,
@@ -45915,7 +45915,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2500.0,
+          "range_m": 2000.0,
           "scatter_mrad": 6.0
         }
       },
@@ -47195,12 +47195,12 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           },
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -47218,7 +47218,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 2000.0,
+      "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -47236,7 +47236,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -47245,7 +47245,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47270,7 +47270,7 @@
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 3000.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -47288,7 +47288,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 3000.0,
+      "range_m": 2000.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.03333333333333333,
@@ -47306,7 +47306,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 3000.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47640,7 +47640,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 4000.0
+            "range_m": 2500.0
           }
         ]
       },
@@ -47657,7 +47657,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 180.0,
-      "range_m": 4000.0,
+      "range_m": 2500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.05,
@@ -47673,7 +47673,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 4000.0,
+          "range_m": 2500.0,
           "scatter_mrad": 0.5
         }
       },
