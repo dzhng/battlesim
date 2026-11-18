@@ -275,17 +275,9 @@ fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usi
         .fold(0.0, f64::max)
 }
 
-/// Whether a weapon can hurt a target with this hull armour (`None`: a
-/// soldier) at all (P10: some of its damage gets through the weakest face).
+/// Whether a weapon can hurt a soldier or any face of an armoured target.
 pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>, rules: &Rules) -> bool {
-    damage_share(def, armor.map(Armor::weakest), rules) > 0.0
-}
-
-/// The share of a weapon's damage a fresh hit delivers through a hull face
-/// of `armor`, or into a soldier (`None`): all of it. Whether it is fired at
-/// soldiers at all is its target classes' call.
-fn damage_share(def: &WeaponDefinition, armor: Option<f64>, rules: &Rules) -> f64 {
-    armor.map_or(1.0, |armor| damage::pierce_share(def, 0, rules, armor))
+    armor.is_none_or(|armor| damage::can_damage_hull(def, armor, rules))
 }
 
 /// Whether the mount's kind `k` can hurt `target`; an area or a ground point
@@ -732,7 +724,7 @@ fn share_through(
 ) -> f64 {
     let armor = target
         .armor(ctx.rules)
-        .map(|a| a.face(target.hull_face(unit.position)));
+        .map(|a| (a, target.hull_face(unit.position)));
     (0..spec.kinds.len())
         .filter(|&k| mount.has_rounds(k))
         .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
@@ -740,7 +732,11 @@ fn share_through(
             def.engages(target.layer(), Some(target.target_class(ctx.rules)))
                 .is_some()
         })
-        .map(|def| damage_share(def, armor, ctx.rules))
+        .map(|def| {
+            armor.map_or(1.0, |(armor, face)| {
+                damage::pierce_share(def, 0, ctx.rules, armor, face)
+            })
+        })
         .fold(0.0, f64::max)
 }
 

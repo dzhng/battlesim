@@ -46419,7 +46419,7 @@
     },
     "heavy_sniper": {
       "accel_mps2": null,
-      "aim_s": 2.0,
+      "aim_s": 5.0,
       "ammo": 30,
       "anti_radiation": false,
       "appearance": "heavy_sniper",
@@ -46453,10 +46453,16 @@
       "min_range_m": 0.0,
       "name": "Heavy Sniper",
       "near_miss_suppression": 0.025,
-      "partial_from": 0.5,
-      "penetration": 30.0,
+      "partial_damage_scale": {
+        "front": 0.0,
+        "rear": 0.02,
+        "roof": 0.0,
+        "side": 0.02
+      },
+      "partial_from": 0.15,
+      "penetration": 9.0,
       "range_m": 700.0,
-      "reload_s": 2.5,
+      "reload_s": 5.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
       "round_cost": 2,
