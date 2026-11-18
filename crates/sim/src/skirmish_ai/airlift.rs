@@ -195,8 +195,10 @@ pub(super) fn emergency(
         .own
         .iter()
         .filter(|u| {
+            // The reserve flyer answers an emergency; only a supplier that
+            // drives can make one unnecessary.
             let t = rules.catalog.get(u.kind);
-            t.has_role("logistics") && t.capabilities.supply.is_some()
+            t.has_role("logistics") && t.capabilities.supply.is_some() && drives(rules, u.kind)
         })
         .map(|u| u.id)
         .collect();
@@ -322,6 +324,12 @@ pub(super) fn respond(
     buy
 }
 
+/// How near its goal the flyer counts as there: it lands on the nearest clear
+/// spot within the landing reach, so anywhere in that reach has arrived.
+fn arrived_within(rules: &Rules) -> f64 {
+    rules.air.rotor.landing_reach_m + 8.0
+}
+
 /// Advance the mission and append its ordinary movement/deployment orders.
 pub(super) fn orders(
     mission: &mut Mission,
@@ -348,7 +356,9 @@ pub(super) fn orders(
                 group: group.clone(),
                 goal,
             };
-            if unit.goal.is_none() && distance([unit.position[0], unit.position[1]], goal) > 8.0 {
+            if unit.goal.is_none()
+                && distance([unit.position[0], unit.position[1]], goal) > arrived_within(rules)
+            {
                 if route_time(unit.id, goal).is_some_and(|t| t.is_finite() && t >= 0.0) {
                     orders.push(Order::Move {
                         units: vec![unit.id],
@@ -394,7 +404,7 @@ pub(super) fn orders(
                 *mission = Mission::Idle;
                 return;
             };
-            if distance([unit.position[0], unit.position[1]], post) > 8.0 {
+            if distance([unit.position[0], unit.position[1]], post) > arrived_within(rules) {
                 if unit.goal.is_none()
                     && route_time(unit.id, post).is_some_and(|t| t.is_finite() && t >= 0.0)
                 {

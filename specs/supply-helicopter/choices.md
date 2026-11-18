@@ -110,3 +110,16 @@ against the shipped code at closeout (slice 11).
 | The model exporter accepts several unit types drawing one appearance when hull and mounts agree; a Python test covers it. Card icons are rendered by the asset CLI from the baked models. | Sound (P15). |
 | Re-recorded: the catalog; five publication records and `scenario-overrides` (layouts and type indices); both capture recordings and the Paris manifest (layouts list three more ids; samples unchanged). Removing only the supply rows restored the old records. No corpus fixture changed: the low hover rise doesn't move any recorded skirmish. | Sound; named. |
 | New baselines: the LOG picker, the supply hover card, and the Armory sheet for each faction. Old baselines were restored byte for byte. | Sound. |
+
+## Closeout reconciliation
+
+An independent audit of every decision row against the code (`throwaway/supply-heli/reconcile.md`, local) found:
+
+| Finding | Verdict |
+|---|---|
+| D2: stopped at cruise, the heli chose its landing spot before braking, so it glided about 140 m and set down on unchecked ground. Fixed: the spot is chosen only once it is at rest. Pinned by `stopped_at_cruise_it_lands_clear_of_what_lies_where_it_comes_to_rest`, which puts a crate where it comes to rest. | Fixed. |
+| P17: the AI's "a supplier can reach it" check counted the reserve heli itself, so no emergency fired within about 1.9 km of it. Fixed: only suppliers that drive count; the reserve heli answers. Pinned by `a_reserve_flyer_in_reach_still_answers_the_emergency`. | Fixed. |
+| P17: the AI counted the heli as arrived only within 8 m of its goal, but the landing search can shift it up to the 40 m reach, so the AI re-ordered it each decision. Fixed: arrived means within the landing reach plus 8 m, for the far side and the support post. | Fixed. |
+| P8 approximations. Forest is refused by bounding box, so open ground inside an irregular forest's box is refused too. Standable ground is tested at the spot's centre against the map's slope cutoff, not across the hull. On a bridge, touchdown height comes from the terrain below, not the deck. | Known; conservative except the bridge case, which no supply-heli map has today. |
+| P17: the far side reads enemy positions from currently identified units, not every remembered track. | Acceptable; the AI acts on what it sees. |
+| P16's citation "D38 in the helicopters spec" is stale (D38 is about missile guidance). Neither row authors an arrival delay, so they match. | No code needed; citation corrected. |

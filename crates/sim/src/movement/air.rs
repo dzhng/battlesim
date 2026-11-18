@@ -231,8 +231,14 @@ fn prepare_landing(world: &WorldGeometry, rules: &Rules, units: &mut [Unit], ind
     let landed = d.landed;
     let stationary = d.stationary;
     let current = d.current;
+    // The spot is chosen where it comes to rest (D2): while it still glides,
+    // it only brakes.
+    let gliding = units[index]
+        .air
+        .is_some_and(|air| air.velocity.xy().length() > 1e-6);
     if drop_duration == 0
         || landed
+        || gliding
         || !units[index].orders.is_empty()
         || stationary != contract::observation::Posture::Deployed
     {

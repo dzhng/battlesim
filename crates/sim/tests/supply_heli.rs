@@ -572,3 +572,57 @@ fn the_search_is_deterministic() {
     }
     assert_eq!(a.digest(), b.digest());
 }
+
+/// Told to stop at cruise, it glides a long way before it hovers (D2). The
+/// spot it lands on is chosen where it comes to rest, so a body lying there
+/// sends it to the nearest clear spot rather than under it.
+#[test]
+fn stopped_at_cruise_it_lands_clear_of_what_lies_where_it_comes_to_rest() {
+    let start = json!([{"side":"blue","kind":"test_supply_heli","position":[40,200]}]);
+    let fly_and_stop = |b: &mut Battle| {
+        assert_eq!(b.accept(order(&[0], [590.0, 200.0])).error, None);
+        for _ in 0..b.rules().tick_hz * 3 / 2 {
+            b.step();
+        }
+        deploy(b, true);
+    };
+    // Where it comes to rest with nothing in the way.
+    let mut probe = battle_with(&fixture(), open_map(), start.clone());
+    fly_and_stop(&mut probe);
+    while probe
+        .unit(HELI)
+        .unwrap()
+        .air
+        .unwrap()
+        .velocity
+        .xy()
+        .length()
+        > 1e-6
+    {
+        probe.step();
+    }
+    let rest = probe.unit(HELI).unwrap().position.xy();
+    // The same flight with a crate lying there.
+    let mut map = open_map();
+    map["props"] =
+        json!([{"kind":"crate","center":[rest.x, rest.y],"yaw":0,"half_extents":[8,8,1]}]);
+    let mut b = battle_with(&fixture(), map, start);
+    fly_and_stop(&mut b);
+    for _ in 0..30 * b.rules().tick_hz {
+        b.step();
+        if b.unit(HELI).unwrap().landed() {
+            break;
+        }
+    }
+    let heli = b.unit(HELI).unwrap();
+    assert!(heli.landed(), "it lands: {heli:?}");
+    let at = heli.position.xy();
+    assert!(
+        b.world()
+            .props_near(at, 0.0)
+            .iter()
+            .all(|p| !p.footprint().contains(at, 0.0)),
+        "landed on the crate at {at:?} (rest {rest:?})"
+    );
+    assert!((at - rest).length() <= b.rules().air.rotor.landing_reach_m + 1e-6);
+}

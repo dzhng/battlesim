@@ -420,6 +420,44 @@ fn a_reserve_flyer_is_sent_rather_than_a_second_bought() {
     );
 }
 
+/// The reserve flyer is what answers an emergency, not what rules one out:
+/// a group out of every truck's reach calls it even when it could fly there
+/// in time.
+#[test]
+fn a_reserve_flyer_in_reach_still_answers_the_emergency() {
+    let (rules, mut frame, entry) = emergency_match(json!([
+        {"side":"red","kind":"test_tank","position":[500,700]},
+        {"side":"red","kind":"test_heli","position":[500,100]}
+    ]));
+    frame.own[0].hp = rules.catalog.by_id("test_tank").hull().unwrap().hp * 0.4;
+    active_credits(&mut frame, 1_000.0);
+    let flyer = frame.own[1].id;
+    let reach = Tuning::shipped().emergency_reach_s;
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |unit, _| {
+            Some(if unit == flyer {
+                reach / 3.0
+            } else {
+                reach * 2.0
+            })
+        },
+    );
+    assert!(
+        orders
+            .iter()
+            .any(|order| matches!(order, Order::Move { units, .. } if units.contains(&flyer))),
+        "the reserve flyer is sent: {orders:?}"
+    );
+}
+
 #[test]
 fn within_a_role_a_card_that_can_engage_the_enemy_seen_beats_a_cheaper_one_that_cannot() {
     let mut authored = deck();
