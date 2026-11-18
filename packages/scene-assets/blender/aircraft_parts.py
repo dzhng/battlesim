@@ -363,7 +363,7 @@ def wheel(name, loc, radius, width, mats, parent, lods=ALL):
 
 
 def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, tandem=0.0, door=None, rake=0.0,
-         light=False, load_arm=False, strut_radius=None):
+         light=False, load_arm=False, strut_radius=None, strut_material=None):
     """A landing gear leg: the node `gear_<name>` at its top (`x`, `y`,
     `top`), the strut down to wheels resting on the ground, its drag brace
     and torque links. `wheels` side by side `spread` apart (2 for a twin
@@ -376,7 +376,8 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
     # rod makes the wheel look detached in three-quarter views, so give the
     # upper leg a substantial collar and a visible trailing arm into the hub.
     r_strut = strut_radius if strut_radius is not None else 0.09 + radius * 0.16
-    cyl(f"gear_{name}_strut", r_strut, drop, (0, 0, -drop / 2), "Z", mats["gear"], node, seg=10,
+    leg_mat = mats[strut_material or "gear"]
+    cyl(f"gear_{name}_strut", r_strut, drop, (0, 0, -drop / 2), "Z", leg_mat, node, seg=10,
         rot=(0, rake, 0), lods=MID)
     cyl(f"gear_{name}_oleo", 0.04 + radius * 0.08, drop * 0.4, (0, 0, -drop * 0.8), "Z", mats["steel"], node, seg=10,
         lods=NEAR)
@@ -390,17 +391,17 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
         outside = 1 if y >= 0 else -1
         tube_part(f"gear_{name}_trailing_arm", lambda lod: [(0, outside * 0.16, -drop * 0.48),
                                                              (0.18, outside * 0.16, -drop * 0.98)],
-                  r_strut * 0.42, mats["gear"], node, NEAR)
+                  r_strut * 0.42, leg_mat, node, NEAR)
     if abs(y) < 1.1 or load_arm:
         # Close the load path to the hub in oblique views where the axial
         # strut is hidden by the fuselage cheek.
         tube_part(f"gear_{name}_load_arm", lambda lod: [(0, 0, -drop * 0.30), (0.22, 0, -drop * 0.98)],
-                  r_strut * 0.55, mats["gear"], node, NEAR)
+                  r_strut * 0.55, leg_mat, node, NEAR)
         if load_arm and abs(y) >= 1.1:
             outside = 1 if y >= 0 else -1
             tube_part(f"gear_{name}_sponson_arm",
                       lambda lod: [(0, 0, -drop * 0.24), (0, outside * 0.30, -drop * 0.96)],
-                      r_strut * 0.48, mats["gear"], node, NEAR)
+                      r_strut * 0.48, leg_mat, node, NEAR)
     # The torque links' scissor ahead of the oleo.
     for k, (z0, z1) in enumerate(((-drop * 0.58, -drop * 0.72), (-drop * 0.72, -drop * 0.86))):
         line(f"gear_{name}_link_{k}", (r_strut + 0.03, 0, z0), (r_strut + 0.07 - 0.04 * k, 0, z1), mats["gear"], node,

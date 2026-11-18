@@ -62,8 +62,8 @@ def spec(variant):
         stab=[(tail + 1.0, 0.25, 1.72, 1.1, 0.12), (tail + 0.8, 2.19, 1.72, 0.9, 0.08)],
         fins=[dict(root_x=tail + 1.3, root_z=1.95, height=1.7 if not z20 else 1.8, root_chord=1.6, tip_chord=1.05,
                    sweep_m=0.8, thick=0.16)],
-        gear=[dict(name="main_L", x=nose - 4.1, y=1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17),
-              dict(name="main_R", x=nose - 4.1, y=-1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17),
+        gear=[dict(name="main_L", x=nose - 4.1, y=1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17, strut_material="steel"),
+              dict(name="main_R", x=nose - 4.1, y=-1.38, top=0.95, radius=0.38, width=0.22, load_arm=True, strut_radius=0.17, strut_material="steel"),
               dict(name="tail", x=tail + 1.5, y=0.0, top=1.5, radius=0.2, width=0.12)],
     )
 
@@ -102,6 +102,8 @@ def build(variant, v):
         for edge, x in (("front", 1.31),):
             box(f"cabin_window_{edge}_frame_{k}", (0.055, 0.055, 0.52), (x, side * 1.105, 1.55), m["steel"], hull,
                 lods=NEAR)
+        box(f"cabin_window_center_frame_{k}", (0.055, 0.025, 0.52), (1.45, side * 1.09, 1.55), m["steel"], hull,
+            lods=NEAR)
         box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["black"], hull,
             lods=MID)
         box(f"cockpit_window_top_frame_{k}", (0.98, 0.055, 0.06), (length / 2 - 2.3, side * 1.01, 1.86), m["steel"], hull,
