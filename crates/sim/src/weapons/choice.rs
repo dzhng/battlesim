@@ -34,8 +34,8 @@ pub(super) fn select(
                 && def.engages(target.layer(), Some(class)).is_some()
         })
     };
-    let weighted_distance = |target: &Unit, position: V3, id: UnitId| {
-        let engaged = engaging(units, unit, id);
+    let weighted_distance = |target: &Unit, position: V3| {
+        let engaged = engaging(units, unit, target.id);
         body_distance(position, here)
             * (1.0 + ctx.rules.targeting.engaged_distance_penalty * engaged as f64)
             * spread_factor(
@@ -54,7 +54,7 @@ pub(super) fn select(
                 seeker_target(target),
                 return_fire_threat(ctx, unit, target.kind, t),
                 share_through(ctx, unit, mount, spec, target),
-                weighted_distance(target, t.position, u),
+                weighted_distance(target, t.position),
                 t.id.0,
                 u,
             )

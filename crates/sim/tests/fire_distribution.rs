@@ -685,3 +685,40 @@ fn unflagged_guns_keep_firing_and_a_default_gun_keeps_plinking() {
         );
     }
 }
+
+#[test]
+fn a_squad_takes_one_counted_hit_per_soldier() {
+    // Two soldiers, each well short of one AP round's damage, together short
+    // of one round too: a direct hit strikes one soldier, so the squad needs
+    // two rounds and only the third tank holds.
+    let mut rules = coordination_rules("tank_ap");
+    rules["weapons"]["tank_ap"]["speed_mps"] = json!(150.0);
+    rules["weapons"]["tank_ap"]["gravity_scale"] = json!(0.1);
+    let soldier_hp = damage(&rules, "tank_ap") * 0.4;
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_rifle",
+        json!({"body": {"squad": {"slots": ["test_rifleman", "test_rifleman"]}}}),
+    );
+    let gunner = json!({"spent": {"tank_he": rules["weapons"]["tank_he"]["ammo"]}});
+    let mut b = battle(
+        json!([
+            {"side": "blue", "kind": "test_tank", "position": [200, 260], "condition": gunner},
+            {"side": "blue", "kind": "test_tank", "position": [150, 300], "condition": gunner},
+            {"side": "blue", "kind": "test_tank", "position": [100, 340], "condition": gunner},
+            {"side": "red", "kind": "test_rifle", "position": [500, 300],
+             "engagement": "return_fire_only",
+             "condition": {"soldier_hp": soldier_hp}}
+        ]),
+        rules,
+        47,
+    );
+    until(&mut b, "third tank holds", |b| {
+        mount(b, 2, "tank_ap").reason == ActionReason::HoldingFire
+    });
+    assert_eq!(mount(&b, 0, "tank_ap").shots, 1);
+    assert_eq!(mount(&b, 1, "tank_ap").shots, 1);
+    assert_eq!(mount(&b, 2, "tank_ap").shots, 0);
+    assert_held(&b, 2, "tank_ap", 3);
+}

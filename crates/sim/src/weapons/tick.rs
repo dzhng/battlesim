@@ -509,26 +509,25 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                             rng,
                             &mut leaned,
                         );
-                        if let Some((shot, Target::Unit(target))) =
-                            fired.as_ref().map(|shot| (shot, shot.target))
-                        {
-                            let def = &ctx.arsenal.weapons[shot.weapon].def;
-                            let arrive = overkill::arrival_tick(
-                                ctx.tick,
-                                shot.time_of_flight_s,
-                                ctx.rules.tick_hz,
-                            );
-                            for launch in &shot.launches {
+                        if let Some(shot) = &fired {
+                            if let Target::Unit(target) = shot.target {
+                                let def = &ctx.arsenal.weapons[shot.weapon].def;
+                                let arrive = overkill::arrival_tick(
+                                    ctx.tick,
+                                    shot.time_of_flight_s,
+                                    ctx.rules.tick_hz,
+                                );
                                 let target_unit = &units[target.0 as usize];
-                                if let Some(hit) = overkill::counted(
-                                    def,
-                                    ctx.rules,
-                                    target_unit,
-                                    launch.origin,
-                                    arrive,
-                                ) {
-                                    launch_hits.push((unit.side, target, hit));
-                                }
+                                launch_hits.extend(shot.launches.iter().filter_map(|launch| {
+                                    overkill::counted(
+                                        def,
+                                        ctx.rules,
+                                        target_unit,
+                                        launch.origin,
+                                        arrive,
+                                    )
+                                    .map(|hit| (target, hit))
+                                }));
                             }
                         }
                         shots.extend(fired);
@@ -559,7 +558,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 ordered_working |= 1 << m;
             }
             units[i].mounts[m] = mount;
-            for (side, target, hit) in launch_hits {
+            let side = units[i].side;
+            for (target, hit) in launch_hits {
                 tally.add(side, target, hit);
             }
         }

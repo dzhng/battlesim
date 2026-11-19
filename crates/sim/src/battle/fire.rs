@@ -287,14 +287,16 @@ impl Battle {
             } else {
                 true
             };
-            let hit = weapons::overkill::counted(
+            if !steering {
+                continue;
+            }
+            if let Some(hit) = weapons::overkill::counted(
                 def,
                 &self.rules,
                 target_unit,
                 projectile.position,
                 round.expected_arrival_tick,
-            );
-            if let Some(hit) = hit.filter(|_| steering) {
+            ) {
                 committed.add(round.side, target, hit);
             }
         }

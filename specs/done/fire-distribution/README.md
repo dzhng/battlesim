@@ -45,13 +45,13 @@ rate of fire is not predicted.
 
 **Only accurate weapons opt in.** With misses ignored, inaccurate fire (tank
 HE shells on infantry, machine guns, AA, artillery) would hold for rounds that
-won't hit.
-The flag sits on the weapon row, not the mount, because one mount (a tank's
-cannon) carries both AP and HE. It is authored on `atgm`, `tank_ap`,
-`sead_missile` and `grenade`, so every ATGM, tank sabot, SEAD missile, grenade
-and RPG inherits it through `extends`, including the high-explosive grenade
-and general-purpose RPG, which were flagged on request with the other RPGs. Artillery and AA stay out
-because nobody flags them, not because code checks for them.
+won't hit. The flag sits on the weapon row, not the mount, because one mount
+(a tank's cannon) carries both AP and HE. It is authored on `atgm`,
+`tank_ap`, `sead_missile` and `grenade`, so every ATGM, tank sabot, SEAD
+missile, grenade and RPG inherits it through `extends`, including the
+high-explosive grenade and general-purpose RPG, which were flagged on request
+with the other RPGs. Artillery and AA stay out because nobody flags them, not
+because code checks for them.
 
 **It reads real state.** Remaining health and active-protection charges come
 from the simulation itself, not the side's knowledge. This is internal
@@ -73,6 +73,9 @@ that a player could infer a nearly dead enemy from their own crews holding.
   while its round keeps a seeker target, a launcher-guided row while its
   projectile's guidance is supported. Guidedness is read from the row, since a
   seeker round launches with launcher support off.
+- A counted round at a squad counts no more than its healthiest living
+  soldier's health: a direct hit strikes one soldier, and its blast is not
+  counted, which can only make crews over-commit.
 - A round's expected arrival is fixed at launch from the shot's time of
   flight. It is digested with the round. A shell that misses stops counting
   once its arrival passes.
@@ -96,7 +99,7 @@ that a player could infer a nearly dead enemy from their own crews holding.
 | Automatic target choice, weighted distance, engaging count, seeded factor | `crates/sim/src/weapons/choice.rs` (`select`, `engaging`, `spread_factor`, `automatic_lock`) |
 | Spread weights | `TargetingRules` in `crates/contract/src/scenario/targeting.rs`; the `targeting` section of `fixtures/rules.json` |
 | The weapon-row flag | `WeaponDefinition.avoids_overkill` in `crates/contract/src/weapons.rs` |
-| Committed fire: counted rounds, Trophy discount, remaining health, the doomed test | `crates/sim/src/weapons/overkill.rs` (`Committed`, `counted`, `arrival_tick`, `doomed`, `overkill`) |
+| Committed fire: counted rounds, the per-soldier cap, Trophy discount, remaining health, the doomed test | `crates/sim/src/weapons/overkill.rs` (`Committed`, `counted`, `arrival_tick`, `doomed`, `overkill`) |
 | Building the ledger from rounds in flight, expected arrival | `Battle::fire` and `Round.expected_arrival_tick` in `crates/sim/src/battle/fire.rs` |
 | Same-tick tally and the hold gate | `advance` in `crates/sim/src/weapons/tick.rs` |
 | Behaviour tests | `crates/sim/tests/fire_distribution.rs`, `crates/sim/tests/target_priority.rs`, unit tests in `overkill.rs` |

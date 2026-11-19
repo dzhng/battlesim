@@ -116,14 +116,16 @@ distance: farther for each other friendly unit already locked on the target,
 and scaled by one seeded draw per unit, mount and target, so crews fan out
 over targets that tie and keep a stable preference. The rules' `targeting`
 section holds both weights; a crew keeps its lock until it can no longer
-shoot or, for a flagged row, until the target is doomed. A weapon row that opts in (`avoids_overkill`) also coordinates with the
-side's [committed fire](src/weapons/overkill.rs): while the damage its side
+shoot or, for a flagged row, until the target is doomed. A weapon row that
+opts in (`avoids_overkill`) also coordinates with the side's [committed fire](src/weapons/overkill.rs): while the damage its side
 already has flying at the target, landing no later than its own round, covers
 the target's remaining health, the mount holds its shot with its aim, reload
 and turret kept, looks for another target, and fires the moment the target is
 no longer doomed. Counted rounds are the side's flagged rounds aimed at the
-unit until their expected arrival, while still steering if guided; active
-protection absorbs the earliest interceptable ones by its charges left.
+unit until their expected arrival, while still steering if guided; a round
+at a squad counts no more than its healthiest soldier's health, since a direct
+hit strikes one soldier; active protection absorbs the earliest interceptable
+ones by its charges left.
 Explicit orders and unflagged rows never hold.
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending

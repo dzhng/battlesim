@@ -19,38 +19,19 @@ pub struct Hit {
     pub interceptable: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct CountedHit {
-    arrive_tick: f64,
-    damage: f64,
-    interceptable: bool,
-    seq: u64,
-}
-
 /// Counted rounds, grouped by the side that fired and their target.
 #[derive(Clone, Debug, Default)]
 pub struct Committed {
-    hits: BTreeMap<(Side, UnitId), Vec<CountedHit>>,
-    next_seq: u64,
+    hits: BTreeMap<(Side, UnitId), Vec<Hit>>,
 }
 
 impl Committed {
-    /// Add a counted round; equal arrivals retain insertion order.
+    /// Add a counted round, kept in arrival order; the sort is stable, so
+    /// equal arrivals keep the order they were added in.
     pub fn add(&mut self, side: Side, target: UnitId, hit: Hit) {
-        let seq = self.next_seq;
-        self.next_seq = self.next_seq.wrapping_add(1);
         let list = self.hits.entry((side, target)).or_default();
-        list.push(CountedHit {
-            arrive_tick: hit.arrive_tick,
-            damage: hit.damage,
-            interceptable: hit.interceptable,
-            seq,
-        });
-        list.sort_by(|a, b| {
-            a.arrive_tick
-                .total_cmp(&b.arrive_tick)
-                .then_with(|| a.seq.cmp(&b.seq))
-        });
+        list.push(hit);
+        list.sort_by(|a, b| a.arrive_tick.total_cmp(&b.arrive_tick));
     }
 
     /// Count damage arriving by `arrive_tick` after active protection absorbs
@@ -114,7 +95,18 @@ pub fn counted(
 }
 
 /// Damage after penetration on the face the target shows the incoming round.
+/// A direct hit on a squad strikes one soldier, so it counts no more than the
+/// healthiest one's health; its blast is not counted.
 fn hit_damage(def: &WeaponDefinition, rules: &Rules, target: &Unit, from: V3) -> f64 {
+    if target.hull.is_none() {
+        let healthiest = target
+            .members
+            .iter()
+            .filter(|soldier| soldier.alive())
+            .map(|soldier| soldier.hp)
+            .fold(0.0, f64::max);
+        return def.damage.min(healthiest);
+    }
     let Some(armor) = target.armor(rules) else {
         return def.damage;
     };

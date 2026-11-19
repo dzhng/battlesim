@@ -30,6 +30,10 @@ within each group.
 
 ## Made by the agent, low risk
 
+- A round at a squad counts at most its healthiest soldier's health, and its
+  blast not at all (found in the closing review: before, one missile's full
+  damage covered a wounded squad it could only thin by one).
+
 - Arrival ties count as landing first.
 - When only doomed targets qualify, the current lock is kept, else the first
   doomed one.
