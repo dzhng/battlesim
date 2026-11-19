@@ -264,7 +264,10 @@
               "moved_with_facing"
             ]
           },
-          "card": "Right-click and drag to choose which way they face when they arrive: drag toward the village."
+          "card": "Right-click on the ridge and drag toward the village at flag 1: the drag chooses which way they face when they get there.",
+          "marks": [
+            "ridge"
+          ]
         },
         {
           "id": "spotted",
@@ -302,6 +305,194 @@
           "highlight": [
             "command:toggle_fire_policy"
           ]
+        }
+      ]
+    },
+    {
+      "id": "crossroads",
+      "title": "The crossroads",
+      "steps": [
+        {
+          "id": "drive",
+          "line": "c3.drive",
+          "until": {
+            "beat": "carrier_at_farm"
+          },
+          "marks": [
+            "farm_wall"
+          ],
+          "card": "Select the Bradley and right-click behind the farm wall. The squad rides inside."
+        },
+        {
+          "id": "unload",
+          "line": "c3.unload",
+          "until": {
+            "beat": "squad_unloaded"
+          },
+          "highlight": [
+            "command:unload"
+          ],
+          "card": "With the Bradley selected, press {key:unload}, then click the ground behind the wall: the squad gets out there."
+        },
+        {
+          "id": "garrison",
+          "line": "c3.garrison",
+          "until": {
+            "beat": "squad_garrisoned"
+          },
+          "marks": [
+            "farm"
+          ],
+          "card": "Select the squad and right-click the farmhouse to put them inside. Walls stop bullets that open ground doesn't."
+        },
+        {
+          "id": "suppress",
+          "line": "c3.suppress",
+          "until": {
+            "beat": "outpost_suppressed"
+          },
+          "marks": [
+            "outpost"
+          ],
+          "card": "Select the Bradley and right-click the enemy squad to fire on it. Fire landing close suppresses infantry, even when it misses."
+        },
+        {
+          "id": "pinned",
+          "line": "c3.pinned",
+          "until": {
+            "beat": "outpost_pinned"
+          },
+          "card": "Keep firing until they're pinned: slowed, shooting badly, hugging the ground."
+        },
+        {
+          "id": "attack_move",
+          "line": "c3.attack_move",
+          "until": {
+            "beat": "squad_attack_moving"
+          },
+          "highlight": [
+            "command:attack_move"
+          ],
+          "card": "Select the squad, press {key:attack_move}, then click the crossroads at flag 1. They advance, and stop to fight whatever they meet.",
+          "marks": [
+            "crossroads"
+          ]
+        },
+        {
+          "id": "show_orders",
+          "line": "c3.show_orders",
+          "until": {
+            "ui": [
+              "show_orders"
+            ]
+          },
+          "card": "Hold {key:show_orders} to see every unit's orders at once."
+        },
+        {
+          "id": "capture",
+          "line": "c3.capture",
+          "until": {
+            "beat": "crossroads_capturing"
+          },
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Get the squad inside flag 1's ring. It starts turning yours while no enemy combat unit is in it."
+        },
+        {
+          "id": "captured",
+          "line": "c3.captured",
+          "until": {
+            "beat": "crossroads_contested"
+          },
+          "highlight": [
+            "score"
+          ],
+          "card": "Objective 1 is yours. Your victory score climbs every second you hold it."
+        },
+        {
+          "id": "contested",
+          "line": "c3.contested",
+          "until": {
+            "beat": "crossroads_held"
+          },
+          "card": "Enemy infantry is in the ring: it's contested, and nobody scores. Clear them out."
+        }
+      ]
+    },
+    {
+      "id": "steel",
+      "title": "Steel on the ridge",
+      "steps": [
+        {
+          "id": "tank",
+          "line": "c4.tank",
+          "until": {
+            "beat": "tank_seen"
+          },
+          "marks": [
+            "north_road"
+          ],
+          "card": "Enemy armour on the north road. Your Bradley can't trade blows with a tank: keep it out of the gun's way."
+        },
+        {
+          "id": "groups",
+          "line": "c4.groups",
+          "until": {
+            "ui": [
+              "group_set"
+            ]
+          },
+          "highlight": [
+            "army"
+          ],
+          "card": "Drag a box over your infantry, then press {key:group_assign} to make them group 1. Make the Bradley group 2 the same way. {key:group_recall} selects group 1 again."
+        },
+        {
+          "id": "smoke",
+          "line": "c4.smoke",
+          "until": {
+            "beat": "carrier_reversed"
+          },
+          "highlight": [
+            "command:pop_smoke"
+          ],
+          "card": "Select the Bradley, press {key:pop_smoke} to pop smoke, then reverse it out with {key:reverse_move}. Backing away keeps its thick front armour to the threat."
+        },
+        {
+          "id": "buy_at",
+          "until": {
+            "beat": "at_team_in_woods"
+          },
+          "marks": [
+            "ambush_woods"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the Javelin team. Place it at the edge of the copse west of the crossroads, and set it to hold fire with {key:toggle_fire_policy}."
+        },
+        {
+          "id": "at_team",
+          "line": "c4.at_team",
+          "until": "continue",
+          "card": "Holding fire, the team stays hidden. Let the tank drive past the copse."
+        },
+        {
+          "id": "ambush",
+          "line": "c4.ambush",
+          "until": {
+            "beat": "at_team_attacking"
+          },
+          "card": "Select the Javelin team and right-click the tank to fire on it."
+        },
+        {
+          "id": "killed",
+          "line": "c4.killed",
+          "until": {
+            "beat": "tank_destroyed"
+          },
+          "card": "Infantry beats armour from cover, and from the side."
         }
       ]
     }

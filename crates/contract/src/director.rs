@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::command::Engagement;
 use crate::ids::{Side, Tick, UnitId};
+use crate::observation::SuppressionTier;
 use crate::scenario_document::{CreditGrant, Zone};
 use crate::skirmish::{Phase, PurchaseSpec};
 
@@ -37,6 +38,10 @@ pub struct Chapter {
 pub struct Beat {
     pub id: String,
     pub when: Trigger,
+    /// A beat the chapter doesn't wait for: it answers trouble (a unit the
+    /// player needs, lost), so it fires only if that comes about.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub recovery: bool,
     /// The sides told it fired.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub audience: Vec<Side>,
@@ -78,6 +83,13 @@ pub enum Trigger {
         side: Side,
         zone: String,
     },
+    /// The objective, by its site's id, stands so.
+    Objective {
+        id: String,
+        is: ObjectiveState,
+    },
+    /// Every unit the selector names is dead, and it named at least one.
+    Destroyed(Selector),
     All(Vec<Trigger>),
     Any(Vec<Trigger>),
 }
@@ -100,6 +112,46 @@ pub enum UnitFact {
     In(String),
     /// At this fire policy.
     Engagement(Engagement),
+    /// Aboard a carrier, or garrisoned in a building.
+    Inside(Host),
+    /// Suppressed at least this much (a vehicle never is).
+    Suppression(SuppressionTier),
+    /// Its current order is an attack-move.
+    AttackMoving,
+    /// It has spent smoke it hasn't been resupplied with.
+    PoppedSmoke,
+    /// It drives backwards this tick.
+    Reversing,
+    /// Its current order is so.
+    Ordered(OrderFact),
+}
+
+/// What a unit's current order is.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum OrderFact {
+    /// To attack one of the selected units.
+    Attack(Selector),
+}
+
+/// What a unit can be inside.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Host {
+    Carrier,
+    Building,
+}
+
+/// How an objective stands.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectiveState {
+    /// Held by the side, and not contested.
+    OwnedBy(Side),
+    /// The side is taking it.
+    Capturing(Side),
+    /// Both sides have combat units in its ring.
+    Contested,
 }
 
 /// What a beat does when it fires.
@@ -142,6 +194,21 @@ pub enum DirectedOrder {
     AttackGround(String),
     /// Take this fire policy.
     Engage(Engagement),
+    /// Carriers set their squads down where they stand.
+    Unload,
+    /// Squads step into the building nearest the zone's centre, within it.
+    Occupy(String),
+    /// Attack-move to the zone's centre.
+    AttackMoveTo(String),
+    /// Drive home by the side's road in and leave the battle.
+    Withdraw,
+    /// Pop smoke where it stands.
+    PopSmoke,
+    /// Back up to the zone's centre, front to the threat.
+    ReverseTo(String),
+    /// Attack the first living unit the selector names, if the side
+    /// identifies it.
+    Attack(Selector),
 }
 
 /// A scenario's solution: beats, in the director's own terms, that play its
@@ -186,6 +253,7 @@ impl Director {
         zones: &BTreeMap<String, Zone>,
         forces: &BTreeMap<String, UnitId>,
         players: &[crate::players::Player],
+        objectives: &[String],
     ) -> Result<(), String> {
         let mut chapters = std::collections::BTreeSet::new();
         let mut earlier = std::collections::BTreeSet::new();
@@ -199,6 +267,7 @@ impl Director {
                     zones,
                     forces,
                     players,
+                    objectives,
                     earlier: &earlier,
                 };
                 names
@@ -221,6 +290,7 @@ struct Names<'a> {
     zones: &'a BTreeMap<String, Zone>,
     forces: &'a BTreeMap<String, UnitId>,
     players: &'a [crate::players::Player],
+    objectives: &'a [String],
     earlier: &'a std::collections::BTreeSet<String>,
 }
 
@@ -264,11 +334,22 @@ impl Names<'_> {
                 self.selector(who)?;
                 match are {
                     UnitFact::In(zone) => self.zone(zone),
-                    UnitFact::Engagement(_) => Ok(()),
+                    UnitFact::Ordered(OrderFact::Attack(target)) => self.selector(target),
+                    UnitFact::Engagement(_)
+                    | UnitFact::Inside(_)
+                    | UnitFact::Suppression(_)
+                    | UnitFact::AttackMoving
+                    | UnitFact::PoppedSmoke
+                    | UnitFact::Reversing => Ok(()),
                 }
             }
-            Trigger::Identifies { who, .. } => self.selector(who),
+            Trigger::Identifies { who, .. } | Trigger::Destroyed(who) => self.selector(who),
             Trigger::ContactIn { zone, .. } => self.zone(zone),
+            Trigger::Objective { id, .. } => self
+                .objectives
+                .contains(id)
+                .then_some(())
+                .ok_or(format!("no objective {id:?}")),
             Trigger::All(all) | Trigger::Any(all) => all.iter().try_for_each(|t| self.trigger(t)),
         }
     }
@@ -277,10 +358,16 @@ impl Names<'_> {
             Action::Order { units, order } => {
                 self.selector(units)?;
                 match order {
-                    DirectedOrder::MoveTo(zone) | DirectedOrder::AttackGround(zone) => {
-                        self.zone(zone)
-                    }
-                    DirectedOrder::Engage(_) => Ok(()),
+                    DirectedOrder::MoveTo(zone)
+                    | DirectedOrder::AttackGround(zone)
+                    | DirectedOrder::Occupy(zone)
+                    | DirectedOrder::AttackMoveTo(zone)
+                    | DirectedOrder::ReverseTo(zone) => self.zone(zone),
+                    DirectedOrder::Attack(target) => self.selector(target),
+                    DirectedOrder::Engage(_)
+                    | DirectedOrder::Unload
+                    | DirectedOrder::Withdraw
+                    | DirectedOrder::PopSmoke => Ok(()),
                 }
             }
             Action::Grant { player, .. }

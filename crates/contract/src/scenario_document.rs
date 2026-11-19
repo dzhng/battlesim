@@ -186,7 +186,9 @@ impl ScenarioDocument {
             .enumerate()
             .map(|(i, name)| (name.clone(), UnitId(i as u32)))
             .collect();
-        self.director.admit(&self.zones, &forces, &self.players)?;
+        let objectives: Vec<String> = self.sites.objectives.iter().map(|o| o.id.clone()).collect();
+        self.director
+            .admit(&self.zones, &forces, &self.players, &objectives)?;
         for chapter in &self.director.chapters {
             for beat in &chapter.beats {
                 for action in &beat.then {

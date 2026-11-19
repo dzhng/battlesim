@@ -122,6 +122,11 @@ def nh90(v):
     mats["canopy"] = flat_paint("nh90_glass", (.011, .023, .028), rough=.14, grime=0,
                                coverage=("blended", .30), role="glass")
     fitted_airframe(v, "nh90", mats)
+    # The donor is an operational transport with its aft ramp lowered. The
+    # roster card shows the aircraft in transit, so close that aperture with a
+    # seated, painted ramp panel and a shallow perimeter seam.
+    box("nh90_rear_ramp_closed", (.28, 2.02, 1.38), (-2.34, 0, .86),
+        mats["paint"], v.hull, bevel=.07, rot=(0, -.12, 0))
     for station in ("nose_L", "nose_R", "main_L", "main_R"):
         tyre = bpy.data.objects[f"tyre_{station}_LOD0"]
         corners = [Vector(corner) for corner in tyre.bound_box]

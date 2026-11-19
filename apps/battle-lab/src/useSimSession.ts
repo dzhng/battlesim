@@ -175,6 +175,7 @@ export function useSimSession({
             // session is replaced (for example by uploading a replay), start a
             // fresh worker rather than sending init through the closed connection.
             connect: generation === 0 && !replay ? prepared?.connect : undefined,
+            resume: generation === 0 && !replay ? prepared?.resume : undefined,
           }));
     let warm = !plan;
     const operation = startSessionStartup(

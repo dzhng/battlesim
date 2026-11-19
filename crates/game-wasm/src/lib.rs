@@ -9,7 +9,7 @@ use contract::templates::{BuildingTemplateDescriptor, TemplateGeometryCatalog};
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, fire_round, predicted_path, Aim, ArcKind, Body, BodyId, FlightConfig,
+    advance_projectiles, fire_round, solved_timed_path, Aim, ArcKind, Body, BodyId, FlightConfig,
     FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
@@ -380,13 +380,16 @@ impl FlightLab {
                 serde_json::json!({ "fired": false, "reason": "out_of_reach" })
             }
             Err(NoSolution::Blocked { arc, point, .. }) => {
-                let path = predicted_path(
+                let path = solved_timed_path(
                     &self.config,
                     &profile,
                     aim.origin,
-                    arc.velocity,
+                    &arc,
                     arc.time_of_flight_s,
-                );
+                )
+                .into_iter()
+                .map(|(point, _)| point)
+                .collect::<Vec<_>>();
                 serde_json::json!({
                     "fired": false,
                     "reason": "blocked",
