@@ -119,7 +119,7 @@ fn the_window_and_frame_params_are_the_browsers() {
         let height = case["height"].as_f64().unwrap();
         let scale = metres_per_pixel(case["fov_y"].as_f64().unwrap(), height);
         assert_eq!(scale, case["scale"].as_f64().unwrap(), "case {k} scale");
-        let w = window(eye, case["lowest"].as_f64().unwrap(), scale, &rules);
+        let w = window(eye, case["ground"].as_f64().unwrap(), scale, &rules);
         let want = &case["window"];
         assert_eq!(
             [

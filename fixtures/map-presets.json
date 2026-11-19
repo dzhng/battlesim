@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-22",
+  "revision": "layout-presets-24",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -153,6 +153,23 @@
       "reuse_m": { "country_road": 600, "dirt_track": 1200 },
       "worth_m": 800
     }
+  },
+  "hills": {
+    "types": {
+      "open": { "chance": 1.0, "pairs_per_km2": 0.25 },
+      "mixed": { "chance": 0.6, "pairs_per_km2": 0.12 }
+    },
+    "group_radius_m": [250, 500],
+    "rises": [6, 12],
+    "radius_m": [180, 500],
+    "peak_grade": [0.035, 0.06],
+    "max_height_m": 30.0,
+    "settlement_gap_m": 100,
+    "river_gap_m": 120,
+    "swamp_gap_m": 80,
+    "bridge_gap_m": 160,
+    "objective_gap_m": 60,
+    "attempts": 60
   },
   "swamps": {
     "chance": { "open": 0.45, "mixed": 0.35, "metro": 0.2 },

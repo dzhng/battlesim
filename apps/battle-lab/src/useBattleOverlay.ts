@@ -55,7 +55,10 @@ export function useBattleOverlay(
     const lanes = s.skirmish
       ? lanesOf(gameWasm, JSON.stringify(s.skirmish.sites), s.players ?? []).entries
       : [];
-    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side) };
+    return {
+      size: s.map.size,
+      drawn: battleOverlayScenario(s, lanes, side),
+    };
   }, [scenario, side]);
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.

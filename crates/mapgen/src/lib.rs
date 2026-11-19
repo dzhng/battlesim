@@ -12,6 +12,7 @@ pub mod layout;
 pub mod open_country;
 pub mod parcels;
 mod plan;
+pub mod relief;
 mod skirmish;
 pub mod street_props;
 
@@ -594,7 +595,7 @@ pub(crate) fn materialize(
         fog_cell_m: request.plan.fog_cell_m,
         height_grid_m: request.plan.height_grid_m,
         slope_cutoff_deg: request.plan.slope_cutoff_deg,
-        relief: Vec::new(),
+        relief: request.plan.relief.clone(),
         rivers: request.plan.rivers.clone(),
         surfaces: request.plan.surfaces.clone(),
         bridges: Vec::new(),

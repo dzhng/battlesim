@@ -52,7 +52,7 @@ export async function run(ctx) {
     const prepared = window.__lab.route.prepared();
     return { entry: prepared.start.at, size: prepared.size };
   });
-  // Your road in paints its lane's number behind its chevrons; pulled out,
+  // Your road in paints its lane's number behind its beacons; pulled out,
   // Blue's other road shows its own.
   await shoot(ctx, page, "entry-lane", entry, 160);
   await shoot(ctx, page, "entry-lanes-far", entry, 900);

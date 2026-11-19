@@ -221,11 +221,18 @@ pub(super) struct Coverage<'a> {
     physical: Vec<bool>,
     witnessed: Vec<bool>,
     points: Vec<Point>,
+    /// Per point, for a bare crest (`relief.rs`) rather than foliage, the
+    /// height every eye and hidden target must stay below.
+    crests: Vec<Option<f64>>,
     index: Grid,
+    /// Per circular observer, its far cell's distance and the spread of
+    /// the nearest native ray about a witness bearing (`sample_box`).
     far_samples: Vec<(f64, f64)>,
     /// Physical witness reach reserves following fog steps. Every corner
     /// of the complete clipped rectangle must fit inside it.
     pub reach: f64,
+    /// Relief's own witness-by-witness margin; none on flat land.
+    relief: Option<relief::Sight>,
 }
 
 impl<'a> Coverage<'a> {
@@ -269,20 +276,23 @@ impl<'a> Coverage<'a> {
             .circular_ground_observers()
             .map(|u| u.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m))
             .fold(physics.fog_target_height_m, f64::max);
+        // The lowest eye, for an eye looking down (`relief.rs`).
+        let eye_low = physics
+            .circular_ground_observers()
+            .map(|u| u.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m))
+            .fold(eye, f64::min);
         let high = map.bridges.iter().map(|b| b.deck_z).fold(0., f64::max);
-        // Generated land has no relief. Each river and swamp can only lower
-        // it; summing each possible fall is conservative even for overlap.
-        if !map.relief.is_empty() {
-            return Err("ground-sight coverage does not support relief yet".into());
-        }
-        let low = map
+        // Each river and swamp can only lower the land; summing each
+        // possible fall is conservative even for overlap. Relief is held
+        // witness by witness (`relief.rs`).
+        let river_low = map
             .rivers
             .iter()
             .map(|r| {
                 r.surface_z().min(0.) - r.samples().iter().map(|p| p.depth_m).fold(0., f64::max)
             })
-            .sum::<f64>()
-            - map.swamps.iter().map(|s| s.depth_m).fold(0., f64::max);
+            .sum::<f64>();
+        let low = river_low - map.swamps.iter().map(|s| s.depth_m).fold(0., f64::max);
         let tree = physics.catalog.props().by_id(&physics.forests.tree).body;
         let rule = physics.forests.rule;
         if low + rule.canopy_height_m <= high + eye {
@@ -299,7 +309,7 @@ impl<'a> Coverage<'a> {
             // The nearest native ray differs from the witness bearing by
             // at most half an angular step. This bounds either coordinate
             // of its far endpoint relative to the exact witness bearing.
-            far_samples.push((far, 2. * far * libm::sin(delta / 4.) + diagonal));
+            far_samples.push((far, libm::sin(delta / 4.)));
             // Three neighbouring rays must stop before any sample could enter
             // the central ray's far cell. Every other ray stays more than that
             // cell's diagonal from its chosen sample, even at another radius.
@@ -345,9 +355,20 @@ impl<'a> Coverage<'a> {
             physical: vec![false; count],
             witnessed: vec![false; nx * ny],
             points: Vec::new(),
+            crests: Vec::new(),
             index: Grid::new(map.size, cell),
             far_samples,
             reach,
+            relief: (!map.relief.is_empty()).then(|| {
+                relief::Sight::new(
+                    map,
+                    river_low,
+                    bank_margin,
+                    [eye_low, eye],
+                    rule.canopy_height_m,
+                    count,
+                )
+            }),
         };
         c.queries.work.spend(count as u64 * 3);
         // Tall physical parts on flat supporting ground also contribute to
@@ -390,6 +411,9 @@ impl<'a> Coverage<'a> {
                         0.,
                     ) {
                         c.occupied[y * nx + x] = true;
+                        if let Some(r) = c.relief.as_mut() {
+                            r.note_body(y * nx + x, bottom + 2. * b.half_extents[2]);
+                        }
                         // Keep a metre inside the real body so the continuous
                         // physical sight claim does not rest on a raster edge.
                         c.physical[y * nx + x] = body_contains(
@@ -407,6 +431,7 @@ impl<'a> Coverage<'a> {
             c.stamp_forest(i, f, None)?;
         }
         c.note_patches(0, 0, nx - 1, ny - 1);
+        c.note_crests();
         c.queries.work.check()?;
         Ok(c)
     }
@@ -561,7 +586,10 @@ impl<'a> Coverage<'a> {
         points
     }
     fn commit_patches(&mut self, points: Vec<(usize, Point)>) {
-        for (k, p) in points {
+        self.commit_witnesses(points.into_iter().map(|(k, p)| (k, p, None)).collect());
+    }
+    fn commit_witnesses(&mut self, points: Vec<(usize, Point, Option<f64>)>) {
+        for (k, p, crest) in points {
             if !self.index.insert_charged(
                 [p[0], p[1], p[0], p[1]],
                 self.points.len() as u32,
@@ -570,6 +598,7 @@ impl<'a> Coverage<'a> {
                 return;
             }
             self.points.push(p);
+            self.crests.push(crest);
             self.witnessed[k] = true;
         }
     }
@@ -579,7 +608,13 @@ impl<'a> Coverage<'a> {
 
     /// The whole rectangle shares a physical patch and an isolated *in-map*
     /// far fog cell. At a boundary, an outward-only patch cannot earn this.
+    /// A witness asked about here is foliage, standing or proposed.
     pub(super) fn admits(&self, witness: Point, low: Point, high: Point) -> bool {
+        self.admits_as(witness, low, high, None)
+    }
+
+    /// `admits`, for a witness that is a bare crest of height `crest`.
+    fn admits_as(&self, witness: Point, low: Point, high: Point, crest: Option<f64>) -> bool {
         if !self.queries.work.spend(1) {
             return false;
         }
@@ -618,21 +653,67 @@ impl<'a> Coverage<'a> {
             let upper = b / libm::hypot(b, if b > 0. { closest } else { furthest });
             [lower, upper]
         });
-        self.far_samples.iter().all(|(distance, margin)| {
-            [0, 1].into_iter().all(|i| {
-                self.queries.work.spend(1)
-                    && low[i] + distance * direction[i][0] >= *margin
-                    && high[i] + distance * direction[i][1] <= self.queries.size[i] - margin
-            })
+        if let Some(crest) = crest {
+            return self.crest_admits(crest, far, low, high, &direction);
+        }
+        self.far_samples.iter().all(|&(distance, spread)| {
+            self.queries.work.spend(1) && self.on_map(low, high, &direction, distance, spread)
+        }) && self.relief_admits(witness, low, high, &direction)
+    }
+
+    /// Every native sample `distance` out along a bearing of `direction`
+    /// from `low..high` falls on the map (`sample_box`).
+    fn on_map(
+        &self,
+        low: Point,
+        high: Point,
+        direction: &[[f64; 2]; 2],
+        distance: f64,
+        spread: f64,
+    ) -> bool {
+        let margin = self.margin(distance, spread);
+        [0, 1].into_iter().all(|i| {
+            low[i] + distance * direction[i][0] >= margin
+                && high[i] + distance * direction[i][1] <= self.queries.size[i] - margin
         })
+    }
+
+    fn margin(&self, distance: f64, spread: f64) -> f64 {
+        2. * distance * spread + core::f64::consts::SQRT_2 * self.cell
+    }
+
+    /// Where the native sample `distance` out along any bearing of
+    /// `direction` from `low..high` can fall: the exact bearing's point,
+    /// widened by the nearest ray's spread about it and a cell's diagonal.
+    fn sample_box(
+        &self,
+        low: Point,
+        high: Point,
+        direction: &[[f64; 2]; 2],
+        distance: f64,
+        spread: f64,
+    ) -> [f64; 4] {
+        let margin = self.margin(distance, spread);
+        [
+            low[0] + distance * direction[0][0] - margin,
+            low[1] + distance * direction[1][0] - margin,
+            high[0] + distance * direction[0][1] + margin,
+            high[1] + distance * direction[1][1] + margin,
+        ]
     }
 
     pub fn covered(&self, low: Point, high: Point) -> bool {
         let p = scale(add(low, high), 0.5);
         let reach = self.reach;
+        // No crest below the rectangle's own land can hide anything from it.
+        let ground = self.highest(low, high);
         self.index.any_charged(
             [p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach],
-            |i| self.admits(self.points[i as usize], low, high),
+            |i| {
+                let crest = self.crests[i as usize];
+                crest.is_none_or(|c| c > ground)
+                    && self.admits_as(self.points[i as usize], low, high, crest)
+            },
             || self.queries.work.spend(1),
         )
     }
@@ -657,125 +738,44 @@ impl<'a> Coverage<'a> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn physics() -> GenerationPhysics {
-        GenerationPhysics::from_rules_json(&sim::fixtures::test_rules().to_string()).unwrap()
-    }
-    fn map(size: f64, bounds: [f64; 4]) -> MapDefinition {
-        serde_json::from_value(serde_json::json!({
-            "size":[size,size], "fog_cell_m":8., "height_grid_m":4., "slope_cutoff_deg":35.,
-            "forests":[{"shape":{"kind":"polygon","ring":[
-                [bounds[0],bounds[1]],[bounds[2],bounds[1]],
-                [bounds[2],bounds[3]],[bounds[0],bounds[3]]
-            ]}}], "props":[],"surfaces":[],"relief":[],"buildings":[],"bridges":[]
-        }))
-        .unwrap()
-    }
-
-    #[test]
-    fn the_current_twenty_kilometre_forest_profile_fits_the_proof_envelope() {
-        let physics = physics();
-        let map = map(20_000., [0., 0., 20_000., 20_000.]);
-        let c = Coverage::new(&map, &physics, 100.).unwrap();
-        for p in [[50., 50.], [10_050., 10_050.], [19_950., 19_950.]] {
-            assert!(c.covered(sub(p, [50., 50.]), add(p, [50., 50.])));
-        }
-        c.check().unwrap();
-        eprintln!(
-            "20km full-forest charged structural work={} witnesses={}",
-            PROOF_OPERATIONS - c.queries.work.0.get(),
-            c.points.len()
-        );
-    }
-
-    #[test]
-    fn whole_rectangle_reach_uses_its_furthest_corner() {
-        let mut physics = physics();
-        physics.forests.rule.trunk_spacing_m = 9.;
-        physics.forests.rule.trunk_jitter = 0.;
-        physics.forests.rule.canopy_radius_m = 12.;
-        let map = map(2_000., [999.5, 999.5, 1008.5, 1008.5]);
-        let c = Coverage::new(&map, &physics, 100.).unwrap();
-        assert!(c.covered([954., 604.], [1054., 704.]));
-        // Its centre is within reach, but its far corner is not.
-        assert!(!c.covered([954., 584.], [1054., 704.]));
-    }
-
-    #[test]
-    fn an_outward_only_patch_cannot_certify_an_in_bounds_fog_cut() {
-        let mut physics = physics();
-        physics.forests.rule.trunk_spacing_m = 9.;
-        physics.forests.rule.trunk_jitter = 0.;
-        physics.forests.rule.canopy_radius_m = 12.;
-        let map = map(2_000., [7.5, 999.5, 16.5, 1008.5]);
-        let c = Coverage::new(&map, &physics, 100.).unwrap();
-        assert_eq!(c.points, vec![[12., 1004.]]);
-        // The only foliage is west of this eye. Its attenuated rays leave
-        // the map before stopping, so it supplies no in-bounds dark bit.
-        assert!(!c.covered([112., 1004.], [112., 1004.]));
-    }
-
-    #[test]
-    fn edited_spacing_is_refused_before_the_shared_sampler_can_expand_it() {
-        let mut physics = physics();
-        physics.forests.rule.trunk_spacing_m = 1e-9;
-        let map = map(2_000., [900., 900., 1_100., 1_100.]);
-        let error = Coverage::new(&map, &physics, 100.).err().unwrap();
-        assert!(error.contains("operation envelope"), "{error}");
-    }
-
-    #[test]
-    fn a_three_cell_witness_keeps_its_far_bit_dark_across_native_ray_phases() {
-        let mut physics = physics();
-        physics.forests.rule.trunk_spacing_m = 9.;
-        physics.forests.rule.trunk_jitter = 0.;
-        physics.forests.rule.canopy_radius_m = 12.;
-        let map = map(2_000., [999.5, 999.5, 1008.5, 1008.5]);
-        let c = Coverage::new(&map, &physics, 100.).unwrap();
-        assert_eq!(c.points, vec![[1004., 1004.]]);
-        let rules: contract::scenario::Rules =
-            serde_json::from_value(sim::fixtures::test_rules()).unwrap();
-        let mut rules = rules;
-        rules.forests = physics.forests.clone();
-        let world = sim::world::WorldGeometry::new(&map, &rules);
-        let jeep = rules.catalog.by_id("test_jeep");
-        let sight = sim::sight::Sight {
-            forward: 0.,
-            shape: jeep.sensors.sight_shape,
-            range: jeep.sensors.ground_m,
-        };
-        let rays = (libm::ceil(TAU * sight.max_range() / map.fog_cell_m) as usize).max(64);
-        let far = libm::floor(sight.range / map.fog_cell_m) * map.fog_cell_m;
-        let delta = TAU / rays as f64;
-        let mut grid = sim::visibility::OcclusionGrid::new(&world, map.fog_cell_m);
-        for radial in 0..32 {
-            let distance = c.reach - radial as f64 * map.fog_cell_m / 32.;
-            for r in 0..rays {
-                for phase in [0., 0.5] {
-                    let angle = (r as f64 + phase) * delta;
-                    let at = sub(c.points[0], scale(direction(angle), distance));
-                    let eye = sim::math::v3(at[0], at[1], rules.physics.eye_m(jeep));
-                    let mut field = grid.field();
-                    sim::visibility::sweep(
-                        &world,
-                        &mut grid,
-                        &rules.sensors,
-                        eye,
-                        &sight,
-                        &mut field,
-                    );
-                    let nearest = libm::round(angle / delta) * delta;
-                    let end = add(at, scale(direction(nearest), far));
-                    assert!(
-                        !field.visible(end[0], end[1]),
-                        "far cell refilled at ray {r} phase {phase}, reach {}",
-                        c.reach
-                    );
-                }
-            }
-        }
-    }
+/// Refuse presets whose ground-sight proof could not fit its operation
+/// envelope, before any layout is drawn.
+pub(crate) fn admit_coverage(
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+    physics: &contract::generation_physics::GenerationPhysics,
+) -> Result<(), Vec<Diagnostic>> {
+    let range = physics.circular_range_m().map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidPhysicalRules,
+            feature: None,
+            location: "$.rules".into(),
+            message,
+        }]
+    })?;
+    preflight(
+        [request.extent_m(); 2],
+        presets.terrain.fog_cell_m,
+        presets.open_country.sight.cell_m,
+        range,
+    )
+    .and_then(|()| {
+        tree_line_work(
+            presets.open_country.tree_lines.length_m[1],
+            presets.open_country.tree_lines,
+        )
+        .map(|_| ())
+    })
+    .map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::GenerationFailed,
+            feature: Some("ground_sight".into()),
+            location: "$.presets.open_country.sight.cell_m".into(),
+            message,
+        }]
+    })
 }
+
+mod relief;
+#[cfg(test)]
+mod tests;

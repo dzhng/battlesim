@@ -115,6 +115,9 @@ fn hiding_marks_keeps_new_knowledge_and_restores_the_material() {
             trampled: [1.0; 4],
             relief: [1.0; 4],
             grass: [1.0; 4],
+            tracks_mottle: [1.0; 4],
+            tread: [1.0; 4],
+            rut_shape: [1.0; 4],
         },
     );
     scars.apply(&gpu.queue, &upload(u32::MAX));

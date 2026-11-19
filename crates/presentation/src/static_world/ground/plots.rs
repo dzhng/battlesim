@@ -24,6 +24,9 @@ pub struct Plot {
     pub across: [f64; 2],
     /// Convex outline, counter-clockwise, flat `[x0, y0, x1, y1, …]`.
     pub outline: Vec<f64>,
+    /// Whether a verge grows along its edges: a field's, never a hill's
+    /// meadow, so no field edge runs over a hillside.
+    pub edged: bool,
 }
 
 /// Floats per node: the cut's unit normal and offset, then the children.
@@ -164,6 +167,9 @@ fn road_cuts(poly: &[f64], a: [f64; 2], b: [f64; 2], short_chord: f64, share: f6
 /// The grain a piece is cut on: its heading, depth and whether it's a tract.
 type Grain = (f64, usize, bool);
 
+/// Ground higher than this is a hill's (only relief raises the land).
+const HILL_PLOT_M: f64 = 1.0;
+
 struct Split<'a> {
     rules: &'a FieldRules,
     biome: &'a Biome,
@@ -246,32 +252,46 @@ impl Split<'_> {
 
     /// The ground round a building is the settlement's own, and the land
     /// round that its surround, where no crop is drilled; a swamp floods the
-    /// ground its look names.
-    fn pick_kind(&mut self, centre: [f64; 2]) -> usize {
-        if let Some(ground) = self.water.flooded(centre[0], centre[1]) {
-            if let Some(p) = self.biome.plots.iter().position(|p| p.name == ground) {
-                return p;
-            }
-        }
-        if self.near_building(centre, libm::pow(self.rules.yard_m, 2.0), true) {
-            return self.out.settlement;
-        }
-        if self.near_building(centre, libm::pow(self.rules.settlement_m, 2.0), false) {
-            return self.surround;
-        }
-        let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
-        let mut roll = self.rng.sample() * total;
-        for (k, p) in self.biome.plots.iter().enumerate() {
-            roll -= p.weight;
-            if roll < 0.0 {
-                return k;
-            }
-        }
-        self.biome.plots.len() - 1
+    /// ground its look names; on a hill (any corner or the middle above
+    /// `HILL_PLOT_M`) it is the surround's meadow, never a drilled crop.
+    /// Its kind, and whether it is edged: every plot is, but on a hill.
+    fn pick_kind(&mut self, poly: &[f64]) -> (usize, bool) {
+        let centre = centroid(poly);
+        let grid = &self.source.grid;
+        let on_hill = grid.nx >= 2
+            && grid.ny >= 2
+            && std::iter::once(centre)
+                .chain(poly.as_chunks::<2>().0.iter().copied())
+                .any(|p| grid.height(p[0], p[1]) > HILL_PLOT_M);
+        let flooded = self
+            .water
+            .flooded(centre[0], centre[1])
+            .and_then(|ground| self.biome.plots.iter().position(|p| p.name == ground));
+        let kind = if let Some(p) = flooded {
+            p
+        } else if self.near_building(centre, libm::pow(self.rules.yard_m, 2.0), true) {
+            self.out.settlement
+        } else if on_hill
+            || self.near_building(centre, libm::pow(self.rules.settlement_m, 2.0), false)
+        {
+            self.surround
+        } else {
+            let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
+            let mut roll = self.rng.sample() * total;
+            self.biome
+                .plots
+                .iter()
+                .position(|p| {
+                    roll -= p.weight;
+                    roll < 0.0
+                })
+                .unwrap_or(self.biome.plots.len() - 1)
+        };
+        (kind, !on_hill)
     }
 
     fn leaf(&mut self, poly: Vec<f64>, heading: f64) -> f64 {
-        let kind = self.pick_kind(centroid(&poly));
+        let (kind, edged) = self.pick_kind(&poly);
         let palette = &self.biome.palettes[&self.biome.plots[kind].palette];
         let base = &palette[(self.rng.sample() * palette.len() as f64).floor() as usize];
         let jitter = self.rules.colour_jitter;
@@ -293,6 +313,7 @@ impl Split<'_> {
             colour,
             across,
             outline: poly,
+            edged,
         });
         -(self.out.plots.len() as f64)
     }
