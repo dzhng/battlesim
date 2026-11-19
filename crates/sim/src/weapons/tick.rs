@@ -7,6 +7,74 @@ use super::*;
 /// observed enemy to hold its attention.
 const IDLE_TURRET_RESET_S: f64 = 15.0;
 
+/// Candidate targeting, assessed before any soldier works a gun this tick.
+pub(super) struct MountPlan {
+    pub(super) stationary: bool,
+    pub(super) idle_reason: ActionReason,
+    pub(super) resolved: Option<Resolved>,
+    pub(super) assessment: Option<Result<Ready, ActionReason>>,
+    pub(super) kind: Option<usize>,
+}
+
+pub(super) fn preferred_mount(
+    unit: &Unit,
+    member: usize,
+    specs: &[MountSpec],
+    weapons: &[Weapon],
+    rules: &Rules,
+    plans: &[Option<MountPlan>],
+    moving: bool,
+) -> Option<usize> {
+    let eligible = |m: usize| {
+        candidates(unit, &unit.mounts[m], &specs[unit.mounts[m].spec]).any(|k| k == member)
+    };
+    let available =
+        |m: usize| plans[m].as_ref().is_some_and(|p| !(moving && p.stationary)) && eligible(m);
+    let useful = |m: usize| {
+        plans[m].as_ref().is_some_and(|p| {
+            p.assessment.is_some_and(|a| {
+                a.is_ok_and(|ready| {
+                    p.resolved.is_some_and(|r| {
+                        r.worth(
+                            &weapons[specs[unit.mounts[m].spec].kinds[ready.kind]].def,
+                            rules,
+                        )
+                    })
+                })
+            })
+        })
+    };
+    let assigned = |m: usize| !specs[unit.mounts[m].spec].squad && available(m);
+    let default = |m: usize| {
+        available(m)
+            && specs[unit.mounts[m].spec]
+                .kinds
+                .iter()
+                .any(|&k| weapons[k].def.default)
+    };
+    let mounts = || 0..unit.mounts.len();
+    mounts()
+        .find(|&m| assigned(m) && unit.mounts[m].support.is_some())
+        .or_else(|| mounts().find(|&m| assigned(m) && useful(m)))
+        .or_else(|| {
+            mounts().find(|&m| {
+                default(m)
+                    && plans[m]
+                        .as_ref()
+                        .is_some_and(|p| p.assessment.is_some_and(|a| a.is_ok()))
+            })
+        })
+        .or_else(|| {
+            mounts().find(|&m| {
+                assigned(m)
+                    && unit.mounts[m].cycles.iter().any(|c| {
+                        c.needs_reload(weapons, &unit.mounts[m].ammo, &specs[unit.mounts[m].spec])
+                    })
+            })
+        })
+        .or_else(|| mounts().find(|&m| default(m)))
+}
+
 fn select_active(
     unit: &mut Unit,
     specs: &[MountSpec],

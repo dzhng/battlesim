@@ -65,6 +65,7 @@ mod maps;
 mod move_admission;
 mod movement;
 mod movement_scenarios;
+mod muzzles;
 mod navigation;
 mod objectives;
 mod order_markers;

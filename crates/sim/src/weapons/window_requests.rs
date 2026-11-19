@@ -4,9 +4,10 @@
 use contract::command::Engagement;
 use contract::observation::ActionReason;
 
+use super::tick::{preferred_mount, MountPlan};
 use super::{
-    assess, candidates, choose_lock, compatible, permitted, preferred_kind, preferred_mount,
-    resolve_for, Assessed, FireContext, Mount, MountPlan, MountSpec, Ready, Resolved, Target,
+    assess, candidates, choose_lock, compatible, permitted, preferred_kind, resolve_for, Assessed,
+    FireContext, Mount, MountSpec, Ready, Resolved, Target,
 };
 use crate::math::V3;
 use crate::units::Unit;
