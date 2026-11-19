@@ -608,3 +608,38 @@ fn each_bands_sight_is_the_units_own_and_zero_is_blind() {
         }
     }
 }
+
+#[test]
+fn an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre() {
+    // A radar report rounds its range to 100 m: the tank's radar stands
+    // 2,050 m from the receiver, so its contact centres 50 m away from it.
+    // The jeep's anti-radiation missile, fired into that contact, homes on
+    // the radar itself; a round fired at the area alone would land clear.
+    let rules = receiver_rules(3000.0, "sead_missile");
+    let mut b = battle_of(
+        &rules,
+        [2400.0, 400.0],
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_tank", "position": [2150, 260], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_supply", "position": [100, 260] }
+        ]),
+    );
+    let hp = |b: &Battle| b.observe(Side::Red).own.first().map_or(0.0, |t| t.hp);
+    let full = hp(&b);
+    for _ in 0..600 {
+        b.step();
+        if hp(&b) < full {
+            break;
+        }
+    }
+    assert!(
+        b.observe(Side::Blue).identified.is_empty(),
+        "blue never sees the tank"
+    );
+    assert!(
+        shots(&b, UnitId(0)) > 0,
+        "the jeep fires into the radar contact"
+    );
+    assert!(hp(&b) < full, "the missile strikes the radar it rode");
+}

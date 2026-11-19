@@ -211,6 +211,10 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
+  const told = useMemo(
+    () => new Set(observation?.scenario?.beats.map((b) => b.beat)),
+    [observation?.scenario],
+  );
   const coached = useCoach(
     input ? (coach ?? null) : null,
     observation?.scenario ?? null,
@@ -348,6 +352,7 @@ export function BattleView({
             <CoachPanel
               doc={coach}
               view={coached.view}
+              told={told}
               onContinue={coached.dismiss}
               speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
             />

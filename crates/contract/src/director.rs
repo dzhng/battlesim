@@ -90,6 +90,15 @@ pub enum Trigger {
     },
     /// Every unit the selector names is dead, and it named at least one.
     Destroyed(Selector),
+    /// `player` has `purchase` on its way, not yet on the field.
+    Pending {
+        player: String,
+        purchase: PurchaseSpec,
+    },
+    /// `side` holds a contact its radar receivers found.
+    RadarContact {
+        side: Side,
+    },
     All(Vec<Trigger>),
     Any(Vec<Trigger>),
 }
@@ -128,6 +137,10 @@ pub enum UnitFact {
     Deployed,
     /// Being replenished, repaired or reinforced by a supply vehicle now.
     Serviced,
+    /// In the air.
+    Airborne,
+    /// On the field: a purchase that arrived, or a carried squad set down.
+    Arrived,
 }
 
 /// What a unit's current order is.
@@ -217,6 +230,8 @@ pub enum DirectedOrder {
     Attack(Selector),
     /// Set up where it stands (a unit that deploys).
     Deploy,
+    /// Attack the contact the ordering side holds that meets the zone.
+    AttackContactIn(String),
 }
 
 /// A scenario's solution: beats, in the director's own terms, that play its
@@ -337,7 +352,8 @@ impl Names<'_> {
                     .then_some(())
                     .ok_or("a beat's delay is a time from it".into())
             }
-            Trigger::Bought { player, .. } => self.player(player),
+            Trigger::Bought { player, .. } | Trigger::Pending { player, .. } => self.player(player),
+            Trigger::RadarContact { .. } => Ok(()),
             Trigger::Units { who, are } => {
                 self.selector(who)?;
                 match are {
@@ -351,7 +367,9 @@ impl Names<'_> {
                     | UnitFact::PoppedSmoke
                     | UnitFact::Reversing
                     | UnitFact::Deployed
-                    | UnitFact::Serviced => Ok(()),
+                    | UnitFact::Serviced
+                    | UnitFact::Airborne
+                    | UnitFact::Arrived => Ok(()),
                 }
             }
             Trigger::Identifies { who, .. } | Trigger::Destroyed(who) => self.selector(who),
@@ -373,7 +391,8 @@ impl Names<'_> {
                     | DirectedOrder::AttackGround(zone)
                     | DirectedOrder::Occupy(zone)
                     | DirectedOrder::AttackMoveTo(zone)
-                    | DirectedOrder::ReverseTo(zone) => self.zone(zone),
+                    | DirectedOrder::ReverseTo(zone)
+                    | DirectedOrder::AttackContactIn(zone) => self.zone(zone),
                     DirectedOrder::Attack(target) => self.selector(target),
                     DirectedOrder::Engage(_)
                     | DirectedOrder::Unload

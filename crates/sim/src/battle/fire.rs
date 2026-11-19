@@ -2,6 +2,7 @@
 //! support them, then every mount acting.
 
 use super::*;
+use contract::observation::ContactSource;
 
 /// Where a round in flight came from, for consequences and visibility.
 #[derive(Clone, Copy, Debug)]
@@ -187,10 +188,26 @@ impl Battle {
                     let aim = unit.position + v3(0.0, 0.0, unit.aim_height(&self.rules));
                     Some((aim, unit.flight_velocity()))
                 }
-                // A contact id is its firing side's own.
-                Target::Contact(id) => self.knowledge[side.index()]
-                    .contact(id)
-                    .map(|c| (c.center, v3(0.0, 0.0, 0.0))),
+                // A contact id is its firing side's own. An anti-radiation
+                // seeker rides a radar contact's beam to the radar itself,
+                // wherever it stands, while it lives; the side learns nothing.
+                Target::Contact(id) => self.knowledge[side.index()].contact(id).map(|c| {
+                    let anti_radiation = self.arsenal.weapons[self.rounds[&projectile].weapon]
+                        .def
+                        .anti_radiation;
+                    let radar = (self.units.get(c.emitter.0 as usize))
+                        .filter(|u| {
+                            u.on_field() && u.unit_type(&self.rules).capabilities.radar_emitter
+                        })
+                        .filter(|_| anti_radiation && c.source == ContactSource::Radar);
+                    match radar {
+                        Some(u) => (
+                            u.position + v3(0.0, 0.0, u.aim_height(&self.rules)),
+                            u.flight_velocity(),
+                        ),
+                        None => (c.center, v3(0.0, 0.0, 0.0)),
+                    }
+                }),
                 Target::Round(round) => self
                     .projectiles
                     .get(round.id)

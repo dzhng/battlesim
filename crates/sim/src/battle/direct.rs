@@ -42,7 +42,13 @@ impl Battle {
                 at + (after_s * f64::from(self.rules.tick_hz)).ceil() as Tick <= self.tick
             }),
             Trigger::Phase(phase) => self.skirmish.as_ref().is_some_and(|s| s.phase == *phase),
-            Trigger::Bought { player, purchase } => self.has_bought(player, purchase),
+            Trigger::Bought { player, purchase } => {
+                self.pending(player, purchase) || self.owns(player, purchase)
+            }
+            Trigger::Pending { player, purchase } => self.pending(player, purchase),
+            Trigger::RadarContact { side } => self.knowledge[side.index()]
+                .all_contacts()
+                .any(|c| c.source == contract::observation::ContactSource::Radar),
             Trigger::Units { who, are } => {
                 self.selected(run, who).any(|unit| self.is(run, unit, are))
             }
@@ -106,6 +112,8 @@ impl Battle {
                     .is_some_and(|(left, c)| left.charges < c.capacity)
             }
             UnitFact::Reversing => unit.reversing,
+            UnitFact::Airborne => unit.airborne(),
+            UnitFact::Arrived => unit.on_field(),
             UnitFact::Deployed => unit.deployment.as_ref().is_some_and(|d| d.fully_deployed()),
             UnitFact::Serviced => unit.service == contract::observation::ServiceStatus::Serving,
             UnitFact::Ordered(OrderFact::AttackGround(zone)) => match unit.orders.front() {
@@ -169,26 +177,31 @@ impl Battle {
         })
     }
 
-    /// Whether `player` has `purchase` on its way or on the field.
-    fn has_bought(&self, player: &str, purchase: &PurchaseSpec) -> bool {
-        let Some(offer) = self.offered(purchase) else {
+    /// Whether `player` has `purchase` reserved and on its way.
+    fn pending(&self, player: &str, purchase: &PurchaseSpec) -> bool {
+        let (Some(offer), Some(skirmish)) = (self.offered(purchase), &self.skirmish) else {
             return false;
         };
-        let Some(skirmish) = &self.skirmish else {
-            return false;
-        };
-        let pending = skirmish.player_index(player).is_some_and(|index| {
+        skirmish.player_index(player).is_some_and(|index| {
             skirmish.players[index]
                 .reservations
                 .iter()
                 .any(|r| r.data.kind == offer.kind && r.data.carrier == offer.carrier)
-        });
+        })
+    }
+
+    /// Whether `player` has `purchase`'s units alive (both, for a carried
+    /// purchase).
+    fn owns(&self, player: &str, purchase: &PurchaseSpec) -> bool {
+        let Some(offer) = self.offered(purchase) else {
+            return false;
+        };
         let owns = |kind| {
             self.units
                 .iter()
                 .any(|u| u.alive() && u.kind == kind && u.owner.as_deref() == Some(player))
         };
-        pending || (owns(offer.kind) && offer.carrier.is_none_or(owns))
+        owns(offer.kind) && offer.carrier.is_none_or(owns)
     }
 
     /// A purchase by unit type.
@@ -231,6 +244,25 @@ impl Battle {
                         },
                         DirectedOrder::Withdraw => Order::Refund { units },
                         DirectedOrder::PopSmoke => Order::PopSmoke { units },
+                        DirectedOrder::AttackContactIn(zone) => {
+                            let zone = &run.setup.zones[zone];
+                            let Some(contact) =
+                                self.knowledge[side.index()].all_contacts().find(|c| {
+                                    libm::hypot(
+                                        c.center.x - zone.center[0],
+                                        c.center.y - zone.center[1],
+                                    ) <= zone.radius_m + c.radius
+                                })
+                            else {
+                                run.refusals
+                                    .push((beat.to_owned(), OrderError::UnknownTarget));
+                                continue;
+                            };
+                            Order::Attack {
+                                units,
+                                target: TargetRef::Contact { id: contact.id },
+                            }
+                        }
                         DirectedOrder::Deploy => Order::SetDeployment {
                             units,
                             deployed: true,

@@ -6,6 +6,7 @@ import { CommandBindings } from "@web/battle/input/commandBindings";
 import {
   cardParts,
   coachView,
+  linesBetween,
   validateCoach,
   type CoachDocument,
   type ScenarioOutline,
@@ -172,4 +173,23 @@ test("every shipped coach fits its scenario's director", () => {
     }
   }
   expect(checked).toBeGreaterThan(0);
+});
+
+test("a step's line is spoken as it appears, or, if it reacts, as its gate is met", () => {
+  const ask = { id: "ask", card: "", line: "go", until: { beat: "went" } } as const;
+  const react = {
+    id: "react",
+    card: "",
+    line: "gone",
+    reacts: true,
+    until: { beat: "went" },
+  } as const;
+  const after = { id: "after", card: "", line: "next", until: "continue" } as const;
+  expect(linesBetween(null, ask, new Set())).toEqual(["go"]);
+  // A reacting step says nothing as it appears...
+  expect(linesBetween(ask, react, new Set())).toEqual([]);
+  // ...its line comes as its gate is met, before the next step's own.
+  expect(linesBetween(react, after, new Set(["went"]))).toEqual(["gone", "next"]);
+  // A step a closing chapter dropped never had its gate met: no reaction.
+  expect(linesBetween(react, after, new Set())).toEqual(["next"]);
 });

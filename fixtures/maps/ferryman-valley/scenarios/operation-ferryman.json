@@ -119,7 +119,7 @@
     "tank": {
       "side": "red",
       "owner": "red-1",
-      "kind": "eastern_t_14_armata_main_battle_tank",
+      "kind": "eastern_t_72_t_72b3_2016",
       "position": [
         794.0,
         214.0
@@ -140,6 +140,22 @@
       ],
       "yaw": -1.57,
       "engagement": "return_fire_only"
+    },
+    "sam": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_buk_buk_m3_medium_range_air_defense",
+      "position": [
+        150.0,
+        205.0
+      ],
+      "yaw": -0.8,
+      "engagement": "return_fire_only",
+      "condition": {
+        "spent": {
+          "aa_medium": 99
+        }
+      }
     }
   },
   "opening_credits": {
@@ -1105,6 +1121,266 @@
                   }
                 }
               ]
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sky",
+        "beats": [
+          {
+            "id": "sky_opens",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "offer": {
+                  "player": "blue-1",
+                  "purchases": [
+                    {
+                      "variant": "fim_92_stinger_team"
+                    },
+                    {
+                      "variant": "us_ah_1z_viper_attack_helicopter"
+                    },
+                    {
+                      "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                    },
+                    {
+                      "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                    }
+                  ]
+                }
+              },
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "to_cover": [
+                      {
+                        "variant": "fim_92_stinger_team"
+                      },
+                      {
+                        "variant": "us_ah_1z_viper_attack_helicopter"
+                      },
+                      {
+                        "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                      },
+                      {
+                        "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "grant": {
+                  "player": "red-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "eastern_mi_8_hip_mi_8amtsh"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "buy": {
+                  "player": "red-1",
+                  "purchase": {
+                    "variant": "eastern_mi_8_hip_mi_8amtsh"
+                  },
+                  "at": "crossroads"
+                }
+              }
+            ]
+          },
+          {
+            "id": "heli_seen",
+            "when": {
+              "identifies": {
+                "side": "blue",
+                "who": {
+                  "bought": {
+                    "player": "red-1",
+                    "variant": "eastern_mi_8_hip_mi_8amtsh"
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "air_defence_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fim_92_stinger_team"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "heli_down",
+            "when": {
+              "destroyed": {
+                "bought": {
+                  "player": "red-1",
+                  "variant": "eastern_mi_8_hip_mi_8amtsh"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "air_defence_replaced",
+            "when": {
+              "destroyed": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "fim_92_stinger_team"
+                }
+              }
+            },
+            "recovery": true,
+            "audience": [
+              "blue"
+            ],
+            "then": [
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "fim_92_stinger_team"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "own_heli_up",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ah_1z_viper_attack_helicopter"
+                  }
+                },
+                "are": "airborne"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "jet_on_its_way",
+            "when": {
+              "pending": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "jet_arrived",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "jet_on_its_way"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                      }
+                    },
+                    "are": "arrived"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "jet_attacking",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                  }
+                },
+                "are": {
+                  "ordered": {
+                    "attack_ground": "bridge"
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "sead_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "radar_found",
+            "when": {
+              "radar_contact": {
+                "side": "blue"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "sam_down",
+            "when": {
+              "destroyed": {
+                "force": "sam"
+              }
             },
             "audience": [
               "blue"

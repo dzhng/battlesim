@@ -39,8 +39,12 @@ export interface CoachStep {
   /** What the card says; `{key:<command>}` and `{camera:<axis>}` name the
    *  keys from their owners. */
   card: string;
-  /** The narration line spoken with it, by id. */
+  /** The narration line spoken with it, by id: as the step appears, or,
+   *  for a step that `reacts`, as its gate is met. */
   line?: string;
+  /** Its line answers its gate ("They're pinned") rather than asking for
+   *  it, so it's spoken when the gate is met, before the next step's. */
+  reacts?: boolean;
   /** What finishes it: a beat the player's side is told, every one of these
    *  UI signals since its chapter opened, or the player's own Continue. */
   until: { beat: string } | { ui: UiSignal[] } | "continue";
@@ -182,4 +186,23 @@ export function coachView(doc: CoachDocument, progress: CoachProgress): CoachVie
         : step.until.ui.every((signal) => progress.signals.has(signal))));
   const index = chapter.steps.findIndex((step) => !done(step));
   return index < 0 ? null : { chapter, step: chapter.steps[index], index };
+}
+
+/** The lines to speak, in order, as the coach moves from step `left` to
+ *  step `shown`: the left step's reaction, if its gate was met (a step a
+ *  closing chapter dropped says nothing), then the shown step's own line,
+ *  unless it waits to react. */
+export function linesBetween(
+  left: CoachStep | null,
+  shown: CoachStep | null,
+  told: ReadonlySet<string>,
+): string[] {
+  const met =
+    left?.reacts &&
+    left.line &&
+    (typeof left.until !== "object" || !("beat" in left.until) || told.has(left.until.beat));
+  return [
+    ...(met && left?.line ? [left.line] : []),
+    ...(shown?.line && !shown.reacts ? [shown.line] : []),
+  ];
 }
