@@ -39,6 +39,7 @@ mod entries;
 mod entry_reach;
 mod exact_numbers;
 mod finite_ammo;
+mod fire_distribution;
 mod fire_through;
 mod fixed_wing_flight;
 mod flares;

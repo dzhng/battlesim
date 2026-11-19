@@ -37,6 +37,7 @@ fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
     };
@@ -94,6 +95,7 @@ fn known_infantry_bore_turns_toward_us_from_the_observed_center() {
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
     };
@@ -148,6 +150,7 @@ fn known_return_fire_threat_requires_a_clear_physical_trajectory() {
             arsenal: battle.arsenal(),
             rules: &setup.rules,
             tick: 0,
+            seed: 5,
             knowledge: &knowledge,
             rounds: &[],
         };
@@ -208,6 +211,7 @@ fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_cha
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
     };
@@ -267,6 +271,7 @@ fn reach_is_judged_where_the_round_meets_its_target_before_the_line_of_fire() {
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
     };

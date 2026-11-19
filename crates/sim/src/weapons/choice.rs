@@ -5,7 +5,7 @@ use super::*;
 /// Automatic choice (W06, W09, W10), in order: an identified target some kind can
 /// damage, ranked first by whether a loaded seeker row engages it, then by
 /// known return-fire threat, then the share of the mount's
-/// damage its facing armour lets through, then value, distance and observed
+/// damage its facing armour lets through, then weighted distance and observed
 /// id; for the unlimited default gun, the nearest
 /// identified target it cannot hurt; and only with no identified enemy in
 /// reach (`enemy_in_reach`), the nearest area for general-purpose kinds. A
@@ -34,7 +34,19 @@ pub(super) fn select(
                 && def.engages(target.layer(), Some(class)).is_some()
         })
     };
-    let mut ranked: Vec<(bool, bool, f64, u32, f64, u32, UnitId)> = knowledge
+    let weighted_distance = |target: &Unit, position: V3, id: UnitId| {
+        let engaged = engaging(units, unit, id);
+        body_distance(position, here)
+            * (1.0 + ctx.rules.targeting.engaged_distance_penalty * engaged as f64)
+            * spread_factor(
+                ctx.seed,
+                unit.id,
+                mount.spec,
+                target.id,
+                ctx.rules.targeting.distance_spread,
+            )
+    };
+    let mut ranked: Vec<(bool, bool, f64, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
         .map(|(u, t)| {
             let target = &units[u.0 as usize];
@@ -42,8 +54,7 @@ pub(super) fn select(
                 seeker_target(target),
                 return_fire_threat(ctx, unit, target.kind, t),
                 share_through(ctx, unit, mount, spec, target),
-                target.unit_type(ctx.rules).cost,
-                body_distance(t.position, here),
+                weighted_distance(target, t.position, u),
                 t.id.0,
                 u,
             )
@@ -53,13 +64,12 @@ pub(super) fn select(
         b.0.cmp(&a.0)
             .then(b.1.cmp(&a.1))
             .then(b.2.total_cmp(&a.2))
-            .then(b.3.cmp(&a.3))
-            .then(a.4.total_cmp(&b.4))
-            .then(a.5.cmp(&b.5))
+            .then(a.3.total_cmp(&b.3))
+            .then(a.4.cmp(&b.4))
     });
     let mut by_distance: Vec<(f64, u32, UnitId)> = ranked
         .iter()
-        .map(|&(_, _, _, _, d, id, u)| (d, id, u))
+        .map(|&(_, _, _, d, id, u)| (d, id, u))
         .collect();
     by_distance.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
     let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, units, mount, spec) {
@@ -74,7 +84,7 @@ pub(super) fn select(
 
     let stages = ranked
         .iter()
-        .map(|&(_, _, _, _, _, _, u)| (Target::Unit(u), true))
+        .map(|&(_, _, _, _, _, u)| (Target::Unit(u), true))
         .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)))
         .chain(areas.iter().map(|&(_, c)| (Target::Contact(c), true)));
     let mut reason = None;
@@ -99,6 +109,33 @@ pub(super) fn select(
         }
     }
     (None, reason.unwrap_or(ActionReason::NoCompatibleTarget))
+}
+
+/// How many other units of the chooser's side have a mount locked on `target`.
+fn engaging(units: &[Unit], choosing: &Unit, target: UnitId) -> u32 {
+    units
+        .iter()
+        .filter(|other| other.id != choosing.id && other.side == choosing.side)
+        .filter(|other| {
+            other.mounts.iter().any(|mount| {
+                mount
+                    .lock
+                    .as_ref()
+                    .is_some_and(|lock| lock.target == Target::Unit(target))
+            })
+        })
+        .count() as u32
+}
+
+/// One seeded draw per (unit, mount, target), never per tick, so a crew's
+/// preference between equal targets holds still.
+fn spread_factor(seed: u64, unit: UnitId, mount: usize, target: UnitId, spread: f64) -> f64 {
+    let key = seed
+        ^ u64::from(unit.0).rotate_left(11)
+        ^ (mount as u64).rotate_left(29)
+        ^ u64::from(target.0).rotate_left(47);
+    let mut rng = contract::random::Rng::new(contract::random::mix(key));
+    1.0 + spread * (2.0 * rng.unit() - 1.0)
 }
 
 /// The largest share of its damage any of the mount's loaded kinds gets

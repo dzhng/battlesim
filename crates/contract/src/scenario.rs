@@ -298,6 +298,8 @@ impl Armor {
 
 mod sensors;
 pub use sensors::{RadarReport, SensorRules};
+mod targeting;
+pub use targeting::TargetingRules;
 
 /// How far a unit sees by direction, as multipliers of its ground range:
 /// dead ahead, abeam and astern. `sim::sight` owns how it eases between them.
@@ -345,6 +347,7 @@ pub struct Rules {
     pub guided: crate::ballistics::GuidedRules,
     pub launch: LaunchRules,
     pub sensors: SensorRules,
+    pub targeting: TargetingRules,
     /// The one forest rule (Q16, Q-G8b).
     pub forests: ForestRules,
     /// The weapon rows, `extends` resolved (`weapons::resolve_weapons`).

@@ -275,6 +275,7 @@ impl Battle {
                     arsenal: &self.arsenal,
                     rules: &self.rules,
                     tick: self.tick,
+                    seed: self.seed,
                     knowledge: &self.knowledge,
                     rounds: &rounds,
                 }

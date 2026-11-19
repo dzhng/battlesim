@@ -41,8 +41,8 @@ fn automatic_acquisition_prefers_a_damaging_threat_over_harmless_value() {
 }
 
 #[test]
-fn threatening_targets_use_authored_price_before_distance() {
-    for (tank_cost, at_cost, expected) in [(1000, 100, "test_tank"), (100, 1000, "test_at")] {
+fn threatening_targets_use_distance_after_return_fire_priority() {
+    for (tank_cost, at_cost) in [(1000, 100), (100, 1000)] {
         let mut setup = scenario_with(
             &map(json!([])),
             json!([
@@ -68,7 +68,7 @@ fn threatening_targets_use_authored_price_before_distance() {
             .observe(Side::Blue)
             .identified
             .iter()
-            .find(|e| e.kind == common::unit_kind(expected))
+            .find(|e| e.kind == common::unit_kind("test_at"))
             .unwrap()
             .id;
         assert_eq!(
@@ -79,7 +79,7 @@ fn threatening_targets_use_authored_price_before_distance() {
 }
 
 #[test]
-fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
+fn a_launcher_without_return_fire_reach_loses_threat_priority() {
     for (minimum, maximum) in [(300.0, 1800.0), (0.0, 100.0)] {
         let mut setup = scenario_with(
             &map(json!([])),
@@ -92,8 +92,6 @@ fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
             json!([]),
         );
         let mut authored = rules();
-        sim::fixtures::patch_catalog(&mut authored, "units", "test_tank", json!({"cost":100}));
-        sim::fixtures::patch_catalog(&mut authored, "units", "test_at", json!({"cost":1000}));
         authored["weapons"]["atgm"]["min_range_m"] = json!(minimum);
         common::json_ground_reach(&mut authored["weapons"]["atgm"], maximum);
         setup.rules = serde_json::from_value(authored).unwrap();
@@ -114,10 +112,10 @@ fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
 }
 
 #[test]
-fn equal_threat_and_price_use_distance_then_stable_observed_id() {
+fn equal_threat_uses_distance_then_stable_observed_id() {
     for (second, nearest) in [(json!([250, 340]), true), (json!([300, 340]), false)] {
-        let mut b = battle(
-            json!([]),
+        let mut setup = scenario_with(
+            &map(json!([])),
             json!([
                 {"side":"blue","kind":"test_tank","position":[100,300]},
                 {"side":"red","kind":"test_tank","position":[300,260],"engagement":"return_fire_only"},
@@ -126,6 +124,9 @@ fn equal_threat_and_price_use_distance_then_stable_observed_id() {
             json!([]),
             json!([]),
         );
+        // Without the seeded spread, an exact tie falls to the observed id.
+        setup.rules.targeting.distance_spread = 0.0;
+        let mut b = Battle::new(&setup, 5);
         run(&mut b, 3);
         let mut observed = b.observe(Side::Blue).identified.clone();
         observed.sort_by_key(|u| u.id);
@@ -138,7 +139,7 @@ fn equal_threat_and_price_use_distance_then_stable_observed_id() {
 }
 
 #[test]
-fn each_weapon_takes_the_costliest_target_it_can_damage() {
+fn each_weapon_takes_a_target_it_can_damage() {
     // Blue tank faces a red tank and a red rifle squad.
     let mut b = battle(
         json!([]),
@@ -209,9 +210,9 @@ fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
 
 #[test]
 fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
-    // The costlier red squad walks out of rifle range but stays identified by
-    // blue's scout; the rifles take the nearer scout-class target instead of
-    // holding a loaded round on the unreachable one (W07).
+    // The nearer red squad walks out of rifle range but stays identified by
+    // blue's scout; the rifles take the remaining scout-class target instead
+    // of holding a loaded round on the unreachable one (W07).
     let scripts = json!([{ "tick": 1, "side": "red", "order":
         { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 300], "route": "shortest" } }]);
     let mut setup = scenario_with(
@@ -219,8 +220,8 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
         json!([
             { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
             { "side": "blue", "kind": "test_recon", "position": [100, 340] },
-            { "side": "red", "kind": "test_rifle", "position": [690, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "test_recon", "position": [400, 420], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [200, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [100, 590], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -230,6 +231,8 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
     let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
     rifle.damage = 0.0;
     rifle.near_miss_suppression = 0.0;
+    setup.rules.targeting.distance_spread = 0.0;
+    setup.rules.targeting.engaged_distance_penalty = 0.0;
     let mut b = Battle::new(&setup, 5);
     let handle = |b: &Battle, kind: &str| {
         b.observe(Side::Blue)
@@ -245,7 +248,7 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
         Some(TargetRef::Identified { id: squad })
     );
     let mut switched = false;
-    for _ in 0..1200 {
+    for _ in 0..10000 {
         b.step();
         if mount(&b, Side::Blue, 0, 0).target
             == handle(&b, "test_recon").map(|id| TargetRef::Identified { id })

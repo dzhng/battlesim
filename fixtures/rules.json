@@ -72,6 +72,7 @@
     "min_sight_gap_m": 0.5,
     "radar_report": { "bearing_step_deg": 5, "range_step_m": 100, "min_radius_m": 50 }
   },
+  "targeting": { "engaged_distance_penalty": 0.5, "distance_spread": 0.1 },
   "ricochet": {
     "speed_kept": 0.6,
     "scatter_deg": 12,

@@ -251,6 +251,7 @@ pub struct FireContext<'a> {
     pub arsenal: &'a Arsenal,
     pub rules: &'a Rules,
     pub tick: Tick,
+    pub seed: u64,
     pub knowledge: &'a [SideKnowledge; 3],
     /// The interceptable rounds in flight.
     pub rounds: &'a [IncomingRound],
