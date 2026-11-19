@@ -1,5 +1,5 @@
 //! Every shipped scenario with a solution, played by it to its end: each
-//! chapter opens in turn, every beat fires, no order the solution or the
+//! chapter opens in turn, every beat but a recovery fires, no order the solution or the
 //! director gives is refused, and the replay is the battle. Then its latest
 //! chapter restarts, resumed from that replay, and its beats fire again. It
 //! names no scenario and pins nothing about one; a change that breaks a
@@ -45,7 +45,11 @@ fn every_scenario_plays_through_by_its_solution() {
             let run = battle.director().unwrap();
             let unfired: Vec<_> = chapters
                 .iter()
-                .flat_map(|c| c.beats.iter().map(move |b| format!("{}.{}", c.id, b.id)))
+                .flat_map(|c| {
+                    // A recovery beat answers trouble the solution avoids.
+                    (c.beats.iter().filter(|b| !b.recovery))
+                        .map(move |b| format!("{}.{}", c.id, b.id))
+                })
                 .filter(|at| run.fired_at(at.split('.').nth(1).unwrap()).is_none())
                 .collect();
             assert!(
@@ -109,19 +113,18 @@ fn restarts(
         chapter.id,
         started.elapsed().as_secs_f64()
     );
+    let beats: Vec<_> = chapter.beats.iter().filter(|b| !b.recovery).collect();
     let fired = |battle: &Battle| {
-        chapter
-            .beats
-            .iter()
+        (beats.iter())
             .filter(|b| battle.director().unwrap().fired_at(&b.id).is_some())
             .count()
     };
-    while resumed.tick() < played.tick() && fired(&resumed) < chapter.beats.len() {
+    while resumed.tick() < played.tick() && fired(&resumed) < beats.len() {
         resumed.step();
     }
     assert_eq!(
         fired(&resumed),
-        chapter.beats.len(),
+        beats.len(),
         "{id}/{name}: chapter {}'s beats fire again after a restart",
         chapter.id
     );

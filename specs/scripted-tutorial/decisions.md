@@ -525,3 +525,45 @@ hills session was told what the valley needs.
     view. That depends on where the contact falls, and a scripted camera move
     before it would teach less than seeing the real jump.
 
+## Slice 14
+
+- **Vocabulary added** (agent): facts `popped_smoke` (fewer charges than the
+  unit carries), `reversing` (the drive the sim already publishes),
+  `ordered: {attack: <selector>}` (the unit's current order); trigger
+  `destroyed` (every unit the selector names is dead, and it named one).
+  This is a trigger, not the spec's unit fact, because a fact reads the
+  living. Also directed orders `pop_smoke`, `reverse_to`, and `attack` (by
+  the handle the ordering side identifies the target by; refused when it
+  doesn't), and a beat's `recovery` flag.
+- **A recovery beat isn't waited for** (agent): a chapter closes when its
+  other beats fired, and the walkthrough doesn't demand them. Solution beats
+  that answer a recovery are flagged too. A recovery beat fires once.
+  `director_facts` proves the not-waiting and the grant on a loss, on test
+  units, which stands in for R8's "AT team dies before the tank".
+- **The tank holds fire until it advances** (agent, by the walkthrough). At
+  fire at will it shelled everything in view from the north road while the
+  AT team walked six minutes in, killing the squad and the team's launcher
+  man. It now waits on the road holding fire, and comes down past the copse
+  firing once the team is in place, so it drives into the ambush ("let the
+  tank come to them").
+- **The ambush is at the copse's east edge** (`ambush_woods` moved to
+  (716, 806), radius 10): from the copse's middle the team couldn't see the
+  road.
+- **The AT team is bought, not placed** (story): offered and granted when the
+  chapter opens, and a coach step (without a line) asks for it before
+  Lantern's "We have an anti-tank team in the woods" plays.
+- **Groups need one signal, not two** (agent): a UI step waits on a signal,
+  not a count of them. The card asks for two groups.
+- **Group keys come from their owner** (`FirstGroupKeys` in
+  `controlGroups.ts`), read by the coach's `{key:group_assign}` and
+  `{key:group_recall}`. The card names group 1's keys rather than a range,
+  which read as one odd key (critique).
+- **The army ring blends into the tray** (critique, not changed): its corner
+  brackets fall on the tray panel's own. Ringing single cards needs per-card
+  anchors, which no step needs yet.
+- **Found and fixed: setting a control group never told the coach**
+  (`group_set` was declared in slice 09 but never emitted). The scene's
+  chapter 4 step caught it.
+- **The solution's tripwire went from 10 to 20 minutes**: the AT team's walk
+  alone takes six.
+

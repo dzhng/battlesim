@@ -5,7 +5,7 @@
 
 use super::*;
 use contract::director::{
-    Action, DirectedOrder, Host, ObjectiveState, Selector, Trigger, UnitFact,
+    Action, DirectedOrder, Host, ObjectiveState, OrderFact, Selector, Trigger, UnitFact,
 };
 use contract::observation::SuppressionTier;
 use contract::scenario_document::{credits_covering, CreditGrant};
@@ -68,6 +68,10 @@ impl Battle {
                     ObjectiveState::Contested => o.contested,
                 })
             }),
+            Trigger::Destroyed(who) => {
+                let mut named = self.named(run, who).peekable();
+                named.peek().is_some() && named.all(|unit| !unit.alive())
+            }
             Trigger::All(all) => all.iter().all(|t| self.holds(run, t)),
             Trigger::Any(any) => any.iter().any(|t| self.holds(run, t)),
         }
@@ -95,6 +99,20 @@ impl Battle {
             UnitFact::AttackMoving => {
                 matches!(unit.orders.front(), Some(UnitOrder::AttackMove(_)))
             }
+            UnitFact::PoppedSmoke => {
+                let carried = unit.unit_type(&self.rules).capabilities.smoke.as_ref();
+                unit.smoke
+                    .zip(carried)
+                    .is_some_and(|(left, c)| left.charges < c.capacity)
+            }
+            UnitFact::Reversing => unit.reversing,
+            UnitFact::Ordered(OrderFact::Attack(target)) => match unit.orders.front() {
+                Some(UnitOrder::Attack {
+                    target: Target::Unit(id),
+                    ..
+                }) => self.selected(run, target).any(|t| t.id == *id),
+                _ => false,
+            },
         }
     }
 
@@ -121,18 +139,24 @@ impl Battle {
         run: &'a DirectorRun,
         who: &'a Selector,
     ) -> impl Iterator<Item = &'a Unit> {
+        self.named(run, who).filter(|unit| unit.alive())
+    }
+
+    /// Every unit `who` names, living or dead.
+    fn named<'a>(
+        &'a self,
+        run: &'a DirectorRun,
+        who: &'a Selector,
+    ) -> impl Iterator<Item = &'a Unit> {
         let kind = match who {
             Selector::Bought { variant, .. } => self.rules.catalog.index(variant),
             Selector::Force(_) => None,
         };
-        self.units.iter().filter(move |unit| {
-            unit.alive()
-                && match who {
-                    Selector::Force(name) => run.setup.forces.get(name) == Some(&unit.id),
-                    Selector::Bought { player, .. } => {
-                        unit.owner.as_deref() == Some(player.as_str()) && Some(unit.kind) == kind
-                    }
-                }
+        self.units.iter().filter(move |unit| match who {
+            Selector::Force(name) => run.setup.forces.get(name) == Some(&unit.id),
+            Selector::Bought { player, .. } => {
+                unit.owner.as_deref() == Some(player.as_str()) && Some(unit.kind) == kind
+            }
         })
     }
 
@@ -197,6 +221,31 @@ impl Battle {
                             into: None,
                         },
                         DirectedOrder::Withdraw => Order::Refund { units },
+                        DirectedOrder::PopSmoke => Order::PopSmoke { units },
+                        DirectedOrder::ReverseTo(zone) => Order::Move {
+                            units,
+                            gesture: 0,
+                            goal: point(zone),
+                            route: contract::command::RoutePolicy::Shortest,
+                            direction: contract::command::MoveDirection::Reverse,
+                            facing: None,
+                        },
+                        DirectedOrder::Attack(target) => {
+                            // By the handle the ordering side knows it by.
+                            let known = &self.knowledge[side.index()];
+                            let Some(track) = self
+                                .selected(run, target)
+                                .find_map(|target| known.track(target.id))
+                            else {
+                                run.refusals
+                                    .push((beat.to_owned(), OrderError::UnknownTarget));
+                                continue;
+                            };
+                            Order::Attack {
+                                units,
+                                target: TargetRef::Identified { id: track.id },
+                            }
+                        }
                         DirectedOrder::AttackMoveTo(zone) => Order::AttackMove {
                             units,
                             gesture: 0,

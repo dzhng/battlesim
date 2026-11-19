@@ -38,6 +38,10 @@ pub struct Chapter {
 pub struct Beat {
     pub id: String,
     pub when: Trigger,
+    /// A beat the chapter doesn't wait for: it answers trouble (a unit the
+    /// player needs, lost), so it fires only if that comes about.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub recovery: bool,
     /// The sides told it fired.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub audience: Vec<Side>,
@@ -84,6 +88,8 @@ pub enum Trigger {
         id: String,
         is: ObjectiveState,
     },
+    /// Every unit the selector names is dead, and it named at least one.
+    Destroyed(Selector),
     All(Vec<Trigger>),
     Any(Vec<Trigger>),
 }
@@ -112,6 +118,20 @@ pub enum UnitFact {
     Suppression(SuppressionTier),
     /// Its current order is an attack-move.
     AttackMoving,
+    /// It has spent smoke it hasn't been resupplied with.
+    PoppedSmoke,
+    /// It drives backwards this tick.
+    Reversing,
+    /// Its current order is so.
+    Ordered(OrderFact),
+}
+
+/// What a unit's current order is.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum OrderFact {
+    /// To attack one of the selected units.
+    Attack(Selector),
 }
 
 /// What a unit can be inside.
@@ -182,6 +202,13 @@ pub enum DirectedOrder {
     AttackMoveTo(String),
     /// Drive home by the side's road in and leave the battle.
     Withdraw,
+    /// Pop smoke where it stands.
+    PopSmoke,
+    /// Back up to the zone's centre, front to the threat.
+    ReverseTo(String),
+    /// Attack the first living unit the selector names, if the side
+    /// identifies it.
+    Attack(Selector),
 }
 
 /// A scenario's solution: beats, in the director's own terms, that play its
@@ -307,13 +334,16 @@ impl Names<'_> {
                 self.selector(who)?;
                 match are {
                     UnitFact::In(zone) => self.zone(zone),
+                    UnitFact::Ordered(OrderFact::Attack(target)) => self.selector(target),
                     UnitFact::Engagement(_)
                     | UnitFact::Inside(_)
                     | UnitFact::Suppression(_)
-                    | UnitFact::AttackMoving => Ok(()),
+                    | UnitFact::AttackMoving
+                    | UnitFact::PoppedSmoke
+                    | UnitFact::Reversing => Ok(()),
                 }
             }
-            Trigger::Identifies { who, .. } => self.selector(who),
+            Trigger::Identifies { who, .. } | Trigger::Destroyed(who) => self.selector(who),
             Trigger::ContactIn { zone, .. } => self.zone(zone),
             Trigger::Objective { id, .. } => self
                 .objectives
@@ -331,10 +361,13 @@ impl Names<'_> {
                     DirectedOrder::MoveTo(zone)
                     | DirectedOrder::AttackGround(zone)
                     | DirectedOrder::Occupy(zone)
-                    | DirectedOrder::AttackMoveTo(zone) => self.zone(zone),
-                    DirectedOrder::Engage(_) | DirectedOrder::Unload | DirectedOrder::Withdraw => {
-                        Ok(())
-                    }
+                    | DirectedOrder::AttackMoveTo(zone)
+                    | DirectedOrder::ReverseTo(zone) => self.zone(zone),
+                    DirectedOrder::Attack(target) => self.selector(target),
+                    DirectedOrder::Engage(_)
+                    | DirectedOrder::Unload
+                    | DirectedOrder::Withdraw
+                    | DirectedOrder::PopSmoke => Ok(()),
                 }
             }
             Action::Grant { player, .. }

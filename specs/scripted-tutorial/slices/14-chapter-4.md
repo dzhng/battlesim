@@ -1,5 +1,11 @@
 # 14 Chapter 4: Steel on the ridge
 
+**Status: shipped 2026-11-19.** Chapter 4's beats (with the first recovery),
+forces, zones, solution and coach steps; its vocabulary; `group_set` emitted.
+Evidence: `director_facts` (smoke, reverse, an attack on a named unit, a
+recovery beat); the walkthrough plays chapter 4 and starts there; the scene
+plays its groups step. Deviations: [decisions.md](../decisions.md#slice-14).
+
 **Unlocks:** armour facing, smoke and reverse, an AT ambush from hold fire, and
 control groups. See [story.md](../story.md#chapter-4-steel-on-the-ridge). It
 follows the chapter slice shape in [13](13-chapter-3.md#shape-of-every-chapter-slice-1317).

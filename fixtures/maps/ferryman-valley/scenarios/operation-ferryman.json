@@ -115,6 +115,20 @@
         }
       },
       "engagement": "return_fire_only"
+    },
+    "tank": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_t_14_armata_main_battle_tank",
+      "position": [
+        794.0,
+        214.0
+      ],
+      "yaw": 1.57,
+      "engagement": "return_fire_only",
+      "condition": {
+        "hp": 100.0
+      }
     }
   },
   "opening_credits": {
@@ -186,10 +200,10 @@
     },
     "ambush_woods": {
       "center": [
-        698.0,
+        716.0,
         806.0
       ],
-      "radius_m": 30.0
+      "radius_m": 10.0
     },
     "far_treeline": {
       "center": [
@@ -605,6 +619,249 @@
             },
             "audience": [
               "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "steel",
+        "beats": [
+          {
+            "id": "tank_rolls",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "offer": {
+                  "player": "blue-1",
+                  "purchases": [
+                    {
+                      "variant": "fgm_148_javelin_team"
+                    }
+                  ]
+                }
+              },
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "tank"
+                  },
+                  "order": {
+                    "move_to": "north_road"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "tank_seen",
+            "when": {
+              "identifies": {
+                "side": "blue",
+                "who": {
+                  "force": "tank"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "carrier_smoked",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "are": "popped_smoke"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "carrier_reversed",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "carrier_smoked"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m2_bradley_ifv_m2a4"
+                      }
+                    },
+                    "are": "reversing"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "at_team_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fgm_148_javelin_team"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "at_team_in_woods",
+            "when": {
+              "all": [
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    },
+                    "are": {
+                      "in": "ambush_woods"
+                    }
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    },
+                    "are": {
+                      "engagement": "return_fire_only"
+                    }
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "tank_advances",
+            "when": {
+              "fired": {
+                "beat": "at_team_in_woods"
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "tank"
+                  },
+                  "order": {
+                    "engage": "fire_at_will"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "tank"
+                  },
+                  "order": {
+                    "move_to": "crossroads"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "at_team_attacking",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "fgm_148_javelin_team"
+                  }
+                },
+                "are": {
+                  "ordered": {
+                    "attack": {
+                      "force": "tank"
+                    }
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "tank_destroyed",
+            "when": {
+              "destroyed": {
+                "force": "tank"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "at_team_replaced",
+            "when": {
+              "destroyed": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "fgm_148_javelin_team"
+                }
+              }
+            },
+            "recovery": true,
+            "audience": [
+              "blue"
+            ],
+            "then": [
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    ]
+                  }
+                }
+              }
             ]
           }
         ]

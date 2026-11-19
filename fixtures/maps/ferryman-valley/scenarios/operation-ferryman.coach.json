@@ -419,6 +419,82 @@
           "card": "Enemy infantry is in the ring: it's contested, and nobody scores. Clear them out."
         }
       ]
+    },
+    {
+      "id": "steel",
+      "title": "Steel on the ridge",
+      "steps": [
+        {
+          "id": "tank",
+          "line": "c4.tank",
+          "until": {
+            "beat": "tank_seen"
+          },
+          "marks": [
+            "north_road"
+          ],
+          "card": "Enemy armour on the north road. Your Bradley can't trade blows with a tank: keep it out of the gun's way."
+        },
+        {
+          "id": "groups",
+          "line": "c4.groups",
+          "until": {
+            "ui": [
+              "group_set"
+            ]
+          },
+          "highlight": [
+            "army"
+          ],
+          "card": "Drag a box over your infantry, then press {key:group_assign} to make them group 1. Make the Bradley group 2 the same way. {key:group_recall} selects group 1 again."
+        },
+        {
+          "id": "smoke",
+          "line": "c4.smoke",
+          "until": {
+            "beat": "carrier_reversed"
+          },
+          "highlight": [
+            "command:pop_smoke"
+          ],
+          "card": "Select the Bradley, press {key:pop_smoke} to pop smoke, then reverse it out with {key:reverse_move}. Backing away keeps its thick front armour to the threat."
+        },
+        {
+          "id": "buy_at",
+          "until": {
+            "beat": "at_team_in_woods"
+          },
+          "marks": [
+            "ambush_woods"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the Javelin team. Place it at the edge of the copse west of the crossroads, and set it to hold fire with {key:toggle_fire_policy}."
+        },
+        {
+          "id": "at_team",
+          "line": "c4.at_team",
+          "until": "continue",
+          "card": "Holding fire, the team stays hidden. Let the tank drive past the copse."
+        },
+        {
+          "id": "ambush",
+          "line": "c4.ambush",
+          "until": {
+            "beat": "at_team_attacking"
+          },
+          "card": "Select the Javelin team and right-click the tank to fire on it."
+        },
+        {
+          "id": "killed",
+          "line": "c4.killed",
+          "until": {
+            "beat": "tank_destroyed"
+          },
+          "card": "Infantry beats armour from cover, and from the side."
+        }
+      ]
     }
   ]
 }

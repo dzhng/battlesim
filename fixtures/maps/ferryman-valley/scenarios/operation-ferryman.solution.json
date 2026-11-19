@@ -1,5 +1,5 @@
 {
-  "max_minutes": 10,
+  "max_minutes": 20,
   "chapters": [
     {
       "id": "briefing",
@@ -237,6 +237,211 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "steel",
+      "beats": [
+        {
+          "id": "buy_javelins",
+          "when": {
+            "fired": {
+              "beat": "tank_rolls"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fgm_148_javelin_team"
+                },
+                "at": "ambush_woods"
+              }
+            }
+          ]
+        },
+        {
+          "id": "squad_holds",
+          "when": "chapter_opens",
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "rifle_squad"
+                  }
+                },
+                "order": {
+                  "engage": "return_fire_only"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "javelins_hold",
+          "when": {
+            "units": {
+              "who": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "fgm_148_javelin_team"
+                }
+              },
+              "are": {
+                "engagement": "fire_at_will"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "fgm_148_javelin_team"
+                  }
+                },
+                "order": {
+                  "engage": "return_fire_only"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "javelins_hold_again",
+          "when": {
+            "all": [
+              {
+                "fired": {
+                  "beat": "at_team_replaced"
+                }
+              },
+              {
+                "units": {
+                  "who": {
+                    "bought": {
+                      "player": "blue-1",
+                      "variant": "fgm_148_javelin_team"
+                    }
+                  },
+                  "are": {
+                    "engagement": "fire_at_will"
+                  }
+                }
+              }
+            ]
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "fgm_148_javelin_team"
+                  }
+                },
+                "order": {
+                  "engage": "return_fire_only"
+                }
+              }
+            }
+          ],
+          "recovery": true
+        },
+        {
+          "id": "smoke_out",
+          "when": {
+            "fired": {
+              "beat": "tank_seen"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": "pop_smoke"
+              }
+            }
+          ]
+        },
+        {
+          "id": "back_out",
+          "when": {
+            "fired": {
+              "beat": "carrier_smoked"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "reverse_to": "farm_wall"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "spring_it",
+          "when": {
+            "fired": {
+              "beat": "tank_advances",
+              "after_s": 5
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "fgm_148_javelin_team"
+                  }
+                },
+                "order": {
+                  "attack": {
+                    "force": "tank"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "rebuy_javelins",
+          "when": {
+            "fired": {
+              "beat": "at_team_replaced"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fgm_148_javelin_team"
+                },
+                "at": "ambush_woods"
+              }
+            }
+          ],
+          "recovery": true
         }
       ]
     }

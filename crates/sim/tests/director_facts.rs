@@ -19,7 +19,16 @@ fn battle(forces: Value, zones: Value, chapters: Value) -> Battle {
         doc["zones"][name] = zone.clone();
     }
     doc["director"] = json!({ "chapters": chapters });
-    let mut b = Battle::new(&resolve(doc, rules_with(|_| {})).unwrap(), 9);
+    // The smoke tank joins the roster for the facts about smoke.
+    let rules = rules_with(|fixture| {
+        sim::fixtures::patch_catalog(
+            fixture,
+            "units",
+            "test_smoke_tank",
+            json!({"roster":{"factions":["us"],"category":"veh","family_name":"Test","variant":"Smoke"}}),
+        );
+    });
+    let mut b = Battle::new(&resolve(doc, rules).unwrap(), 9);
     blue(&mut b, Order::Ready);
     b
 }
@@ -125,4 +134,88 @@ fn a_squad_under_fire_is_suppressed() {
         ]}]),
     );
     until(&mut b, "suppressed", 60);
+}
+
+#[test]
+fn smoke_popped_a_reverse_and_an_attack_on_a_named_unit_are_facts() {
+    // A smoke tank faces red's tank (forces number by name: "smoker", "tank").
+    let mut b = battle(
+        json!({"smoker": {"side":"blue","owner":"blue-1","kind":"test_smoke_tank","position":[150.0,150.0],
+                          "yaw":0.6,"engagement":"return_fire_only"},
+               "tank": {"side":"red","owner":"red-1","kind":"test_tank","position":[260.0,180.0],
+                        "yaw":3.0,"engagement":"return_fire_only"}}),
+        json!({}),
+        json!([{"id":"one","beats":[
+            {"id":"smoked","when":{"units":{"who":{"force":"smoker"},"are":"popped_smoke"}}},
+            {"id":"backing","when":{"units":{"who":{"force":"smoker"},"are":"reversing"}}},
+            {"id":"targeted","when":{"units":{"who":{"force":"smoker"},"are":{"ordered":{"attack":{"force":"tank"}}}}}}
+        ]}]),
+    );
+    b.step();
+    assert_eq!(fired(&b, "smoked"), None);
+    blue(
+        &mut b,
+        Order::PopSmoke {
+            units: vec![UnitId(0)],
+        },
+    );
+    until(&mut b, "smoked", 2);
+    blue(
+        &mut b,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 2,
+            goal: [110.0, 125.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Reverse,
+            facing: None,
+        },
+    );
+    until(&mut b, "backing", 10);
+    // The tank, by the handle blue identifies it by.
+    let tank = b.observe(Side::Blue).identified[0].id;
+    blue(
+        &mut b,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: contract::command::TargetRef::Identified { id: tank },
+        },
+    );
+    until(&mut b, "targeted", 2);
+}
+
+#[test]
+fn a_recovery_beat_answers_a_loss_and_is_not_waited_for() {
+    let chapters = |rifles_hold: &str| {
+        (
+            json!({"rifles": {"side":"blue","owner":"blue-1","kind":"test_rifle","position":[230.0,170.0],
+                              "engagement": rifles_hold}}),
+            json!([
+                {"id":"one","beats":[
+                    {"id":"started","when":{"phase":"active"}},
+                    {"id":"replace","recovery":true,"when":{"destroyed":{"force":"rifles"}},
+                     "then":[{"grant":{"player":"blue-1","credits":{"exactly":500}}}]}
+                ]},
+                {"id":"two","beats":[{"id":"next","when":"chapter_opens"}]}
+            ]),
+        )
+    };
+    // Nothing is lost: the next chapter opens without the recovery beat.
+    let (forces, director) = chapters("return_fire_only");
+    let mut quiet = battle(forces, json!({}), director);
+    until(&mut quiet, "next", 5);
+    assert_eq!(fired(&quiet, "replace"), None);
+    // The rifles fire on red's tank beside them and die. A recovery beat
+    // answers only while its chapter is open, so this chapter waits on the
+    // loss itself.
+    let (forces, mut director) = chapters("fire_at_will");
+    director[0]["beats"][0] = json!({"id":"started","when":{"destroyed":{"force":"rifles"}}});
+    let mut lost = battle(forces, json!({}), director);
+    let wallet = |b: &Battle| b.observe(Side::Blue).skirmish.as_ref().unwrap().players[0].credits;
+    let before = wallet(&lost);
+    until(&mut lost, "replace", 120);
+    assert!(
+        wallet(&lost) >= before + 500.0,
+        "the loss is answered with credits"
+    );
 }

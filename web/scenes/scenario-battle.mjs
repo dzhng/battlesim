@@ -272,7 +272,11 @@ async function perform(page, card, signal) {
     await page.waitForTimeout(100);
     await page.mouse.up({ button: "right" });
   } else if (signal === "contact_focus") await page.keyboard.press(`Key${keys[0]}`);
-  else if (signal === "show_orders") {
+  else if (signal === "group_set") {
+    // Select a unit, then the group key the card names.
+    await page.locator('[data-hud-anchor="army"] button:not([disabled])').first().click();
+    await page.keyboard.press(keys[0].replace("Ctrl", "Control").replace(/\+(\d)$/, "+Digit$1"));
+  } else if (signal === "show_orders") {
     // The card names the key to hold.
     await page.keyboard.down(keys[0]);
     await page.waitForTimeout(500);
