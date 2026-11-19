@@ -10,6 +10,7 @@ import * as wasm from "@wasm/game_wasm.js";
 import config from "@fixtures/generated-battle.json";
 import { TEST_RULES } from "./catalog";
 import { generationRequest } from "../src/maps/source";
+import { PreparationRefused, prepare } from "../src/battle/prepare/prepare";
 import { browserTestServer } from "./support/browserServer";
 
 // No GPU device or drawing: this tests the real worker ownership boundary.
@@ -39,17 +40,46 @@ test("a preparation worker becomes the battle authority and replays its commands
         ),
       ]),
     ) as { presets: string; templates: string };
-    wasm.initSync({
+    const { memory } = wasm.initSync({
       module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
     });
-    const map = generationRequest(
-      wasm,
-      { type: "open", size: "small", seed: "1", profile: "skirmish" },
-      documents,
-      config.limits,
-    );
+    const rules = JSON.stringify(TEST_RULES);
+    const players = [
+      { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ] as const;
+    // Which seeds prepare belongs to the generator: the first small open map
+    // that does.
+    let map: ReturnType<typeof generationRequest> | undefined;
+    for (let seed = 1; seed <= 10 && !map; seed++) {
+      const asked = generationRequest(
+        wasm,
+        { type: "open", size: "small", seed: String(seed), profile: "skirmish" },
+        documents,
+        config.limits,
+      );
+      const request = {
+        map_source: { kind: "generated" as const, request: asked },
+        players: [...players],
+        battle_seed: 1,
+      };
+      map = await prepare(wasm, memory, request, { ...documents, rules }).then(
+        ({ world }) => (world.free(), asked),
+        (error: unknown) => {
+          if (!(error instanceof PreparationRefused)) throw error;
+          return undefined;
+        },
+      );
+    }
+    if (!map) throw new Error("no small open map prepared");
     const result = await page.evaluate(
-      async ({ documents, map, rules, root }) => {
+      async ({ documents, map, players, rules, root }) => {
         // Keep browser imports outside Vitest's server-side import rewriting.
         const importModule = new Function("url", "return import(url)");
         const { applyHudTheme } = await importModule(`${root}/battle/present/hudTheme.ts`);
@@ -67,22 +97,7 @@ test("a preparation worker becomes the battle authority and replays its commands
             type: "prepare",
             request: {
               map_source: { kind: "generated", request: map },
-              players: [
-                {
-                  id: "blue-1",
-                  side: "blue",
-                  faction: "us",
-                  controller: "human",
-                  human_capable: true,
-                },
-                {
-                  id: "red-1",
-                  side: "red",
-                  faction: "eastern",
-                  controller: "active_ai",
-                  human_capable: false,
-                },
-              ],
+              players,
               battle_seed: 1,
             },
             documents: { ...documents, rules },
@@ -278,7 +293,8 @@ test("a preparation worker becomes the battle authority and replays its commands
       {
         documents,
         map,
-        rules: JSON.stringify(TEST_RULES),
+        players,
+        rules,
         root: `/@fs/${fileURLToPath(new URL("../src", import.meta.url))}`,
       },
     );
