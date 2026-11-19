@@ -444,6 +444,9 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
     a rotor's disc is not its airframe's size). A tail rotor is the same
     rotor turned on its side (`rot`). `tips` paints the blade tips that
     marking colour (a strike warning), where the photos show it."""
+    # Blade paint varies little across the chord. Keep the airfoil stations
+    # and spend vertex colour samples along the span at a coarser interval.
+    mats["blade"]["paint_edge_scale"] = 4.0
     node = empty(f"rotor_{name}", loc=loc, parent=parent, rot=rot)
     if mast:
         cyl(f"rotor_{name}_mast", hub * 0.42, mast, (0, 0, -mast / 2), "Z", mats["dark"], node, seg=12, lods=MID)
@@ -463,11 +466,15 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
         a = phase + math.tau * k / blades
         ca, sa = math.cos(a), math.sin(a)
         # The blade along its own +X from the hub, its leading edge forward of the axis.
-        root, out = hub * 0.9, radius
+        root, out = hub * (1.70 if swash else 0.9), radius
         dz = -(out - root) * math.sin(droop)
         sec = [(chord / 2, root, 0.0, chord, chord * thick), (chord / 2 + 0.03, (root + out) / 2, dz / 2 - 0.0, chord,
                                                               chord * thick * 0.9),
                (tip / 2 + 0.08, out, dz, tip, tip * thick * 0.8)]
+        if swash:
+            sec[0] = (chord * .17, root, 0, chord * .34, hub * .21)
+            sec.insert(1, (chord * .46, root + chord, -chord * math.sin(droop),
+                           chord * .92, chord * thick))
         # surface() sweeps chords along -X: lay the blade on Y, then turn it to its bearing.
         surface(f"blade_{name}_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
                 rot=(0, 0, a - math.pi / 2))
@@ -478,18 +485,30 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
                                                tip + 0.008, tip * thick * 0.9),
                                               (tip / 2 + 0.004, out + 0.01, dz, tip + 0.008, tip * thick * 0.9)],
                     mark(mats, tips), node, rot=(0, 0, a - math.pi / 2), lods=NEAR)
-        box(f"rotor_{name}_cuff_{k}", (hub * 1.4, chord * 0.85, chord * thick * 1.5),
-            (ca * (root + hub * 0.7), sa * (root + hub * 0.7), 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01,
-            lods=NEAR)
-        box(f"rotor_{name}_grip_{k}", (hub * 1.1, chord * 0.7, hub * 0.4),
-            (ca * hub * 1.2, sa * hub * 1.2, 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01, lods=MID)
         if swash:
-            # The pitch link from the swashplate's rim up to the blade's horn,
-            # just ahead of the grip.
+            # Leave daylight between the arms of the head. The narrow grip
+            # widens around its bearing, then meets the blade's flared cuff.
+            body(f"rotor_{name}_grip_{k}",
+                 [(1.93*hub, .12*chord, -.07*hub, .07*hub),
+                  (1.70*hub, .20*chord, -.15*hub, .15*hub),
+                  (1.32*hub, .23*chord, -.22*hub, .22*hub),
+                  (1.10*hub, .13*chord, -.13*hub, .13*hub),
+                  (.78*hub, .17*chord, -.18*hub, .18*hub)],
+                 mats["dark"], node, seg=12, rot=(0, 0, a), steps=(1, 1, 1, 1))
+            cyl(f"rotor_{name}_bearing_{k}", hub*.145, hub*.09,
+                (ca*hub*1.34, sa*hub*1.34, hub*.235), "Z", mats["steel"], node,
+                seg=10, bevel=.004, lods=NEAR)
             ha = a + 0.35
-            line(f"rotor_{name}_link_{k}", (math.cos(ha) * hub * 0.7, math.sin(ha) * hub * 0.7, swash_z),
-                 (math.cos(ha) * hub * 1.0, math.sin(ha) * hub * 1.0, -hub * 0.1), mats["steel"], node, width=0.04,
-                 height=0.04, lods=NEAR)
+            line(f"rotor_{name}_link_{k}", (math.cos(ha)*hub*.7, math.sin(ha)*hub*.7, swash_z),
+                 (ca*hub*1.30-sa*chord*.17, sa*hub*1.30+ca*chord*.17, -hub*.10),
+                 mats["steel"], node, width=.040, height=.040, lods=NEAR)
+        else:
+            box(f"rotor_{name}_cuff_{k}", (hub*1.4, chord*.85, chord*thick*1.5),
+                (ca*(root+hub*.7), sa*(root+hub*.7), 0), mats["dark"], node,
+                rot=(0, 0, a), bevel=.01, lods=NEAR)
+            box(f"rotor_{name}_grip_{k}", (hub*1.1, chord*.7, hub*.4),
+                (ca*hub*1.2, sa*hub*1.2, 0), mats["dark"], node,
+                rot=(0, 0, a), bevel=.01, lods=MID)
     return node
 
 
@@ -662,6 +681,15 @@ def rotorcraft_crash(v, lifting=("main",), **crash_kw):
     broken = sorted({(r, int(o.name.split("_")[2])) for r in lifting for o in bpy.data.objects
                      if o.name.startswith(f"blade_{r}_")}, key=lambda b: (lifting.index(b[0]), b[1]))
     crash(v, blades_broken=tuple(broken), **crash_kw)
+    # Crash deformation needs a fine grid while it bends the shell. Collapse
+    # shallow bends after the tail break and dents have taken their final shape.
+    from wreckage import parts
+    for panel in parts("fuselage", "tail_", "wing_", "nacelle", "boom", "nose"):
+        if panel.name.endswith(("LOD0", "LOD1")) and len(panel.data.polygons) > 256:
+            reduction = panel.modifiers.new("warped airframe panels", "DECIMATE")
+            reduction.ratio = 0.20
+            bpy.context.view_layer.objects.active = panel
+            bpy.ops.object.modifier_apply(modifier=reduction.name)
     thrown = empty("debris_blades", parent=v.root)
     for o in list(bpy.data.objects):
         if o.name.startswith("litter_blade_") and o.parent == v.root:

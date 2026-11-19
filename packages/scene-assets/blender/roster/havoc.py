@@ -55,10 +55,7 @@ def build(variant, v):
     for i in range(13):
         angle = math.pi * i / 12
         width = .35 * math.sin(angle)
-        # Seat the shallow housing on the mast post.  The donor's top
-        # assembly is compact, so its lower crown must meet the post rather
-        # than float above it.
-        sections.append((3.315 + .37 * math.cos(angle), width, 4.30 - width*.58, 4.30 + width*.58))
+        sections.append((3.315 + .37 * math.cos(angle), width, 4.50 - width*.58, 4.50 + width*.58))
     A.body("mast_radar", sections, radome, hull, seg=20)
     A.markings(v, [
         ("insignia", dict(kind="ru_star", centre=(-3.6, 1, 2.01), normal=(0, 1, 0), up=(0, 0, 1),

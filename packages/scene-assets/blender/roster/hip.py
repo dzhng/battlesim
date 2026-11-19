@@ -1,89 +1,126 @@
-"""Mi-8AMTSh, from assets/references/mi_8_hip/.
+"""Transport airframe adapted for the Mi-8AMTSh with service camouflage, a formed nose radome, an open cabin, external stations and animated rotors."""
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/hip.py -- [--wreck]
-
-What the photos settle: the long rounded cabin with its glazed nose and
-blister side windows, two engines side by side on the roof ahead of the
-gearbox with their exhausts out the flanks, the long tail boom rising to
-the tail pylon with the three-blade tail rotor on its right, a small
-stabilator, the clamshell doors at the rear, fixed tricycle gear; the
-AMTSh's outriggers with rocket pods, the armour plates and the exhaust
-suppressors. Army camouflage.
-
-Built to the catalog frame, from published figures (rotorcraft rule:
-fuselage length without blades, width over the outrigger stores, height to
-the top of the rotor head): 18.17 x 5.6 x 4.76 m.
-
-The gun swung out of the forward left door is the `door` mount's HMG rig;
-the outriggers' pods are the airframe's art (its card fields the gun alone).
-"""
+import bpy
 import math
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
-from vehicle_parts import MID  # noqa: E402
+from aircraft_donor import fitted_airframe
+from parts import box, flat_paint, rest_on_ground
+from vehicle_export import run, rig
 
-# The door gun's elevation on its pintle, degrees.
-DOOR_PITCH_DEG = (-60.0, 20.0)
-SPEC = dict(
-    fuselage=[(9.08, 0.0, 1.35, 1.35), (8.7, 0.7, 0.75, 2.05, 1.35, 2.2), (7.6, 1.05, 0.55, 2.6, 1.45, 2.8),
-              (5.6, 1.18, 0.5, 2.85, 1.55, 3.5), (0.0, 1.18, 0.5, 2.85, 1.55, 3.5), (-1.9, 1.05, 0.7, 2.8, 1.7, 3.0),
-              (-2.6, 0.45, 1.6, 2.6, 2.05, 2.4), (-7.6, 0.24, 1.95, 2.5, 2.2, 2.2), (-8.6, 0.24, 2.0, 3.6, 2.3),
-              (-9.08, 0.2, 2.2, 3.6, 2.6)],
-    bodies=[("fuselage_roof", [(6.0, 0.0, 2.85, 2.85), (5.2, 0.8, 2.7, 3.45, 2.95, 3.0), (-0.6, 0.8, 2.7, 3.55, 3.0, 3.0),
-                               (-1.6, 0.0, 2.9, 2.9)])],
-    canopy=dict(x_front=8.95, x_back=7.0, sill=1.15, top=2.6, half_width=1.02, peak=0.9, bows=(8.5, 7.8), tail=0.9),
-    stab=[(-7.6, 0.25, 2.1, 0.9, 0.1), (-7.7, 1.4, 2.1, 0.7, 0.06)],
-    wing=[(1.4, 1.15, 1.8, 0.9, 0.1), (1.3, 2.6, 1.85, 0.8, 0.08)],
-    gear=[dict(name="nose", x=6.4, y=0.0, top=0.8, radius=0.3, width=0.18, wheels=2, spread=0.34),
-          dict(name="main_L", x=-0.4, y=2.0, top=1.1, radius=0.4, width=0.25),
-          dict(name="main_R", x=-0.4, y=-2.0, top=1.1, radius=0.4, width=0.25)],
-    pylons=[((1.2, 1.7, 1.75), 0.7, 0.2), ((1.2, 2.45, 1.8), 0.7, 0.2)],
-    stores=[("pod", (1.1, 1.7, 1.33), 1.7, 0.25), ("pod", (1.1, 2.45, 1.38), 1.7, 0.25)],
-)
-# How far forward the airframe's parts (placed in their drawing's frame)
-# move to centre on the hull box.
-AFT_M = 0.047
+
+def cabin_interior(m, h):
+    """Give the open troop door a readable floor and fold-down bench."""
+    rest = flat_paint("hip_cabin_canvas", (0.28, 0.26, 0.20), rough=.78, grime=.04, role="fabric")
+    box("hip_cabin_floor", (2.35, 2.05, .08), (4.05, 0, 1.00), m["dark"], h, bevel=.025, lods=A.MID)
+    box("hip_cabin_bench", (1.08, .56, .22), (4.80, .92, 1.38), rest, h, bevel=.035, lods=A.MID)
+    box("hip_cabin_bench_back", (.12, .56, .56), (5.25, .92, 1.68), rest, h, bevel=.035, lods=A.MID)
+    for index, x in enumerate((4.18, 4.78)):
+        A.line(f"hip_bench_leg_{index}", (x + .32, .92, 1.04), (x + .32, .92, 1.32), m["gear"], h,
+               width=.065, height=.065, lods=A.MID)
+        A.line(f"hip_bench_wall_brace_{index}", (x, .92, 1.38), (x, 1.04, 1.38), m["steel"], h,
+               width=.055, height=.055, lods=A.MID)
+        box(f"hip_bench_wall_mount_{index}", (.16, .11, .22), (x, 1.08, 1.38), rest, h,
+            bevel=.02, lods=A.MID)
 
 
 def build(variant, v):
-    m = A.jet(v, SPEC)
+    m = A.fit(v)
     hull = v.hull
-    for side, k in ((1, "L"), (-1, "R")):
-        cyl(f"nacelle_{k}_intake", 0.3, 0.1, (5.7, side * 0.45, 3.1), "X", m["black"], hull, seg=14, lods=MID)
-        box(f"exhaust_{k}", (0.8, 0.5, 0.45), (2.2, side * 1.0, 3.1), m["nozzle"], hull, rot=(0, 0, side * 0.6),
-            lods=MID)
-        for j in range(5):
-            cyl(f"blister_{k}_{j}", 0.24, 0.06, (4.6 - j * 1.1, side * 1.18, 1.85), "Y", m["glass"], hull, seg=14,
-                lods=MID)
-        box(f"armour_{k}", (1.2, 0.05, 0.9), (7.0, side * 1.15, 1.45), m["paint"], hull, bevel=0.02, lods=MID)
-        box(f"clamshell_seam_{k}", (0.03, 0.04, 1.8), (-1.85, side * 0.6, 1.6), m["dark"], hull, lods=MID)
-        # The outrigger struts to the stores.
-        box(f"outrigger_strut_{k}", (0.12, 1.4, 0.1), (1.3, side * 1.7, 1.5), m["dark"], hull, rot=(side * 0.3, 0, 0))
-    cyl("mast", 0.22, 0.9, (0.3, 0, 3.95), "Z", m["dark"], hull, seg=12)
-    A.rotor("main", (0.3, 0, 4.5), 10.65, 5, 0.52, m, hull, hub=0.48, mast=0.0, droop=0.03, phase=0.2)
-    A.rotor("tail", (-8.75, -0.32, 3.25), 1.95, 3, 0.3, m, hull, hub=0.18, mast=0.0, droop=0.0,
-            rot=(math.pi / 2, 0, 0), thick=0.12)
-    box("tail_pylon", (0.9, 0.36, 1.4), (-8.55, 0, 2.95), m["paint"], hull, bevel=0.04, rot=(0, -0.3, 0))
-    A.blade_antenna("antenna_belly", (-1.0, 0, 0.55), 0.3, m, hull, down=True)
-    A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.15, gun="kord")
-
-    # The VVS's red star on the boom, a red bort number on the nose.
-    A.markings(v, [
-        ("insignia", dict(kind="ru_star", centre=(-5.0, 1.2, 2.25), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
-        ("text", dict(text="52", height=0.5, centre=(6.0, 1.2, 1.8), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
-    ])
-    # The airframe as drawn runs off the frame's middle; the frame (and the
-    # mounts' pivots in it) is centred on the hull box.
-    v.hull.location.x += AFT_M
+    m["canopy"] = flat_paint(
+        "hip_laminated_glass",
+        (0.011, 0.025, 0.030),
+        rough=0.14,
+        grime=0,
+        coverage=("blended", 0.36),
+        role="glass",
+    )
+    m["radome"] = flat_paint("hip_radome", (0.064, 0.076, 0.052), rough=0.68, grime=0.04, role="paint")
+    fitted_airframe(v, "mi_8_hip", m)
+    if not v.wreck:
+        cabin_interior(m, hull)
+    A.rotor("main", (3.51, 0.012, 4.51), 10.65, 5, 0.52, m, hull, hub=0.48, mast=0.72, droop=0.03, phase=0.2)
+    A.rotor(
+        "tail",
+        (-8.88, 0.64, 3.99),
+        1.95,
+        3,
+        0.30,
+        m,
+        hull,
+        hub=0.18,
+        mast=0.36,
+        droop=0,
+        rot=(-math.pi / 2, 0, 0),
+        thick=0.12,
+    )
+    for side in (-1, 1):
+        A.line(
+            "main_gear_brace_" + str(side),
+            (2.56, side * 2.31, 0.48),
+            (3.07, side * 1.31, 1.72),
+            m["gear"],
+            hull,
+            width=0.072,
+            height=0.072,
+            lods=A.MID,
+        )
+        A.line(
+            "store_rack_" + str(side),
+            (0.60, side * 1.22, 1.62),
+            (0.60, side * 2.49, 1.41),
+            m["dark"],
+            hull,
+            width=0.10,
+            height=0.10,
+            lods=A.MID,
+        )
+        for i, y in enumerate((1.82, 2.45)):
+            A.pylon("station_" + str(side) + "_" + str(i), (0.60, side * y, 1.36), 0.69, 0.20, m, hull)
+            A.store("pod_" + str(side) + "_" + str(i), "pod", (0.60, side * y, 1.09), 1.54, 0.24, m, hull)
+    A.door_guns(v, rig(v.frame, v.root), m, (-60, 20), inboard=0.15, gun="kord")
+    A.markings(
+        v,
+        [
+            (
+                "insignia",
+                dict(
+                    kind="ru_star",
+                    centre=(-3.42, 0.7, 2.54),
+                    normal=(0, 1, 0),
+                    up=(0, 0, 1),
+                    size=0.32,
+                    onto=("fuselage_Material_2460",),
+                ),
+            ),
+            (
+                "text",
+                dict(
+                    text="52",
+                    height=0.26,
+                    centre=(7.26, 1.45, 1.54),
+                    normal=(0, 1, 0),
+                    up=(0, 0, 1),
+                    onto=("fuselage",),
+                    colour="red",
+                ),
+            ),
+        ],
+    )
 
 
 def wreck(variant, v):
     A.rotorcraft_crash(v, tail_x=-3.4, tail_yaw=0.35, tail_drop=0.08, seed=8)
+    # The pinned transport includes the wheels in its shell. Settle the
+    # collapsed undercarriage onto its nearest contact after the tail break.
+    bpy.context.view_layer.update()
+    lowest = min((part.matrix_world @ vertex.co).z for part in v.hull.children_recursive
+                 if part.type == "MESH" and part.name.endswith("LOD0") for vertex in part.data.vertices)
+    v.root.location.z -= lowest - .004
+    rest_on_ground(.004)
 
 
 run("hip", "russian_helicopter_camo", build, wreck, references="assets/references/mi_8_hip/references.json")

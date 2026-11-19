@@ -12,7 +12,7 @@ from aircraft_parts import (body, canopy, fin, fit, gear, intake, nav_lights, no
                             pitot, pylon, round_intake, store)
 from aircraft_canopy import bubble_canopy  # noqa: E402
 from aircraft_skin import skin  # noqa: E402
-from parts import TEXTURED  # noqa: E402
+from parts import TEXTURED, flat_paint  # noqa: E402
 from textures_air import jet_finish  # noqa: E402
 
 
@@ -56,6 +56,12 @@ def jet(v, spec):
     fixed-wing airframe's paint is a jet's (`textures_air.jet_finish`),
     whatever its scheme; a rotorcraft keeps the scheme's satin."""
     m, hull = fit(v), v.hull
+    finish = spec.get("canopy_finish")
+    if finish:
+        m["canopy"] = flat_paint(
+            finish["name"], finish["tint"], rough=finish["rough"], grime=0,
+            coverage=("blended", finish["coverage"]), role="glass"
+        )
     if fixed_wing(v):
         TEXTURED[m["paint"].name] = jet_finish(TEXTURED[m["paint"].name])
     if "skin" in spec:
