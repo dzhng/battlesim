@@ -36,7 +36,7 @@ SPEC = dict(
     # The Alligator's two-seat canopy is broad and shallow, with a distinct
     # windscreen bow and a second bow over the rear seat.  A high, continuous
     # bubble loses the side-by-side cockpit's characteristic stepped profile.
-    canopy_finish=dict(name="ka52_canopy_glass", tint=(0.012, 0.024, 0.030), rough=0.16, coverage=0.46),
+    canopy_finish=dict(name="ka52_canopy_glass", tint=(0.018, 0.034, 0.044), rough=0.16, coverage=0.82),
     wing=[(1.4, 0.95, 1.9, 1.7, 0.22), (1.2, 3.5, 1.86, 1.4, 0.14)],
     stab=[(-5.6, 0.3, 2.05, 1.1, 0.12), (-5.7, 1.9, 2.05, 0.9, 0.08)],
     fins=[dict(root_x=-5.2, root_z=2.25, height=1.2, root_chord=1.5, tip_chord=1.0, sweep_m=0.6, thick=0.16),
@@ -89,12 +89,14 @@ def side_by_side_canopy(m, hull):
     box("ka52_canopy_center_bow", (.10, .07, .78), (5.73, 0, 1.98), m["canopy_frame"], hull,
         bevel=.02, rot=(0, -.34, 0), lods=MID)
     for side, suffix in ((1, "L"), (-1, "R")):
-        box(f"ka52_canopy_front_post_{suffix}", (.08, .07, .82), (5.78, side * .48, 2.00),
+        box(f"ka52_canopy_front_post_{suffix}", (.08, .07, .82), (5.78, side * .86, 2.00),
             m["canopy_frame"], hull, bevel=.02, rot=(0, -.30, 0), lods=MID)
     box("ka52_canopy_forward_bow", (.08, 1.02, .08), (5.72, 0, 2.34), m["canopy_frame"], hull,
         bevel=.02, lods=MID)
     box("ka52_canopy_rear_bow", (.08, .92, .08), (4.48, 0, 2.28), m["canopy_frame"], hull,
         bevel=.02, lods=MID)
+    box("ka52_canopy_forward_sill", (.08, 1.02, .08), (5.98, 0, 1.60), m["canopy_frame"], hull,
+        bevel=.02, rot=(0, -.10, 0), lods=MID)
     box("ka52_cockpit_deck", (1.75, 1.55, .42), (4.82, 0, 1.34), m["cockpit"], hull,
         bevel=.03, lods=MID)
 
