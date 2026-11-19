@@ -1,5 +1,13 @@
 # 10 Lantern's comms panel and narration
 
+**Status: shipped 2026-11-19.** `voices.json`'s `narration` section and its
+takes in the lock; `generate narration` over the `bento` CLI
+(`packages/battle-audio/tools/generate/{bento,narration}.ts`); the narration
+player and `BattleAudio.narrate`; `CoachPanel` as the comms panel. Evidence:
+`web/tests/narrationGenerator.test.ts`, `web/tests/coach.test.ts` (every
+spoken line has a take), the `scenario-battle` scene (the pack and a take are
+served; panel shots). Deviations: [decisions.md](../decisions.md#slice-10).
+
 **Unlocks:** the coach speaks. Lantern's portrait plays each step's line as a
 radio transmission, and the takes come through the same judged voice pipeline
 as unit voices.
@@ -9,8 +17,8 @@ as unit voices.
 - Voice: ElevenLabs shared library **Eryn**, `wa4sQVgbDDzUDEzJwch3`, model
   `eleven_v3`.
 - Portrait: [assets/portraits/lantern.png](../assets/portraits/lantern.png).
-- Script and review takes: [assets/narration/](../assets/narration/) (58
-  lines, all passing speech-to-text).
+- Script and review takes: 58 lines, all passing speech-to-text (now the raw
+  masters under `assets/source/audio/voices/narration/lantern/`).
 - Animation: a still portrait with comms effects (an audio-driven signal bar, a
   little scan flicker), not lip-sync.
 
@@ -19,8 +27,7 @@ as unit voices.
 - **A narration set in the voice catalog.** `fixtures/voices.json` (or its
   narration section; the shape is decided against `voiceCatalog.ts`) gains a
   speaker `lantern` with its library `voice_id` and lines by id. Ids are the
-  coach `line` ids. Text lives here once; [script.json](../assets/narration/script.json)
-  is retired into it.
+  coach `line` ids. Text lives here once; the draft script was retired into it.
 - **The same lock, verdicts and packs.** A take's raw master goes to
   `assets/source/audio/voices/narration/lantern/` with its provenance
   (generator, model, voice, seed, date). Its verdict carries the hash of the

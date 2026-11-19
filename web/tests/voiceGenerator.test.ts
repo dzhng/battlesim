@@ -69,6 +69,7 @@ function catalog(): VoiceCatalog {
     },
     assignments: {},
     retakes: {},
+    narration: { speakers: {}, lines: {} },
   } as unknown as VoiceCatalog;
 }
 const profiles = (compression = 4): VoiceProfiles => ({

@@ -7482,5 +7482,250 @@
     "fr_attack_helicopter_pilot/lead/board/steady/1": 3,
     "ru_tank_crew/lead/board/stressed/0": 1,
     "ru_tank_crew/lead/board/stressed/1": 1
+  },
+  "narration": {
+    "speakers": {
+      "lantern": {
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "model": "eleven_v3",
+        "seed": 7,
+        "processing": "voice-earpiece",
+        "description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear."
+      }
+    },
+    "lines": {
+      "c1.open": {
+        "speaker": "lantern",
+        "text": "Ferryman, this is Lantern. Dawn is breaking over the valley. Before anyone moves, take a good look at the ground."
+      },
+      "c1.camera_pan": {
+        "speaker": "lantern",
+        "text": "Slide the map around. Get a feel for how far it runs."
+      },
+      "c1.camera_turn": {
+        "speaker": "lantern",
+        "text": "Now turn the view, and tilt it. Hills hide things. Look at them from more than one side."
+      },
+      "c1.camera_zoom": {
+        "speaker": "lantern",
+        "text": "Pull right back and see the whole valley. Then come in close."
+      },
+      "c1.objectives": {
+        "speaker": "lantern",
+        "text": "Those numbered flags are what this fight is about. Hold them, and the score runs our way. First side to the top wins."
+      },
+      "c1.entry": {
+        "speaker": "lantern",
+        "text": "This is our road in. Everything we buy arrives here. The enemy comes in from the far side."
+      },
+      "c1.credits": {
+        "speaker": "lantern",
+        "text": "Command has given us a budget. That's what we have to spend, and it keeps growing while the battle runs."
+      },
+      "c1.buy_recon": {
+        "speaker": "lantern",
+        "text": "Open reinforcements and buy us some eyes. Scouts first."
+      },
+      "c1.place": {
+        "speaker": "lantern",
+        "text": "Place them where you want them to go. Once the battle starts, they drive there from our road."
+      },
+      "c1.buy_carrier": {
+        "speaker": "lantern",
+        "text": "Now a rifle squad, riding in its carrier. One purchase, two units."
+      },
+      "c1.orders_not_units": {
+        "speaker": "lantern",
+        "text": "Nothing is on the field yet. Those are orders, not units. When the battle starts, they drive in from the road."
+      },
+      "c1.start": {
+        "speaker": "lantern",
+        "text": "Start the battle when you're ready. If the clock runs out first, it starts anyway."
+      },
+      "c2.arrive": {
+        "speaker": "lantern",
+        "text": "Here they come. Click the scouts to take command. Or use their card along the bottom."
+      },
+      "c2.move": {
+        "speaker": "lantern",
+        "text": "See the treeline on the ridge? Send the scouts up there."
+      },
+      "c2.facing": {
+        "speaker": "lantern",
+        "text": "Good. Now face them toward the village. Drag the order out to set where they look."
+      },
+      "c2.spotted": {
+        "speaker": "lantern",
+        "text": "Contact. Enemy outpost in the village. When you see a name in red, we can see them clearly."
+      },
+      "c2.gunfire": {
+        "speaker": "lantern",
+        "text": "Gunfire, across the river. We can't see who's shooting, but we heard it. That red patch is a contact. Something is out there."
+      },
+      "c2.jump": {
+        "speaker": "lantern",
+        "text": "Jump the camera to the contact. Then bring it back."
+      },
+      "c2.hidden": {
+        "speaker": "lantern",
+        "text": "Your scouts are hidden in those trees. Keep them that way. Tell them to hold fire unless they're fired on. A scout that shoots is a scout that's seen."
+      },
+      "c3.drive": {
+        "speaker": "lantern",
+        "text": "The carrier's up next. Take the squad down to that stone wall by the farm."
+      },
+      "c3.unload": {
+        "speaker": "lantern",
+        "text": "Let them out behind the wall. Nobody fights from inside the carrier."
+      },
+      "c3.garrison": {
+        "speaker": "lantern",
+        "text": "That farmhouse makes a fine fighting position. Put the squad inside."
+      },
+      "c3.suppress": {
+        "speaker": "lantern",
+        "text": "There's a squad dug in at the crossroads. Put the carrier's gun on them. Keep their heads down."
+      },
+      "c3.pinned": {
+        "speaker": "lantern",
+        "text": "They're pinned. Pinned soldiers move slowly and shoot badly. This is your moment."
+      },
+      "c3.attack_move": {
+        "speaker": "lantern",
+        "text": "Out of the farmhouse and forward. Advance, and fight as you go. Use the walls."
+      },
+      "c3.show_orders": {
+        "speaker": "lantern",
+        "text": "Hold it down and you see every order at once: the routes, where everyone ends up, and how much cover each soldier will have."
+      },
+      "c3.capture": {
+        "speaker": "lantern",
+        "text": "The crossroads is clear. Stand inside the ring, and the flag turns ours, as long as nobody else is in it."
+      },
+      "c3.captured": {
+        "speaker": "lantern",
+        "text": "Objective one is ours. Every second we hold it, the score climbs."
+      },
+      "c3.contested": {
+        "speaker": "lantern",
+        "text": "Enemy squad pushing back in. With both sides in the ring, it's contested, and nobody scores. Clear them out."
+      },
+      "c4.tank": {
+        "speaker": "lantern",
+        "text": "Armour on the north road! Enemy tank. Your carrier can't trade blows with that."
+      },
+      "c4.groups": {
+        "speaker": "lantern",
+        "text": "Before it gets busy: make your infantry one group, and your vehicles another. One key brings each of them back."
+      },
+      "c4.smoke": {
+        "speaker": "lantern",
+        "text": "Pop smoke on the carrier and back out. Reverse, don't turn. Keep the thick armour toward the threat."
+      },
+      "c4.at_team": {
+        "speaker": "lantern",
+        "text": "We have an anti-tank team in the woods, holding fire. Let the tank come to them."
+      },
+      "c4.ambush": {
+        "speaker": "lantern",
+        "text": "Now! Order the attack on that tank."
+      },
+      "c4.killed": {
+        "speaker": "lantern",
+        "text": "Tank down. An ambush from cover. That's how infantry beats steel."
+      },
+      "c5.credits": {
+        "speaker": "lantern",
+        "text": "Our budget grows while we hold ground. Time to spend it."
+      },
+      "c5.supply": {
+        "speaker": "lantern",
+        "text": "Buy a supply truck, and bring it up behind the farm."
+      },
+      "c5.deploy": {
+        "speaker": "lantern",
+        "text": "Set it up. Anything that stops nearby gets ammunition, repairs, and fresh soldiers for the ones we've lost."
+      },
+      "c5.resupply": {
+        "speaker": "lantern",
+        "text": "Bring your battered units in. They get patched up even while they fight."
+      },
+      "c5.mortar": {
+        "speaker": "lantern",
+        "text": "Something is hiding in that far treeline. We can't see it, but we can shell it. Buy a mortar, and fire on the ground there."
+      },
+      "c5.mortar_done": {
+        "speaker": "lantern",
+        "text": "Whatever was in there won't be bothering us now."
+      },
+      "c6.helicopter": {
+        "speaker": "lantern",
+        "text": "Rotors! Enemy helicopter, coming in low."
+      },
+      "c6.air_defence": {
+        "speaker": "lantern",
+        "text": "Get air defence up, and bring it down."
+      },
+      "c6.helicopter_down": {
+        "speaker": "lantern",
+        "text": "Splash one. Good shooting."
+      },
+      "c6.own_helicopter": {
+        "speaker": "lantern",
+        "text": "Our turn. Buy a helicopter. It lifts off from our edge straight away."
+      },
+      "c6.jet": {
+        "speaker": "lantern",
+        "text": "Command is offering us a jet. Jets take a while to arrive. Watch its card count down."
+      },
+      "c6.jet_attack": {
+        "speaker": "lantern",
+        "text": "A jet never stops. Send it in to attack, and it makes passes: in, fire, out, and around again. Mind its fuel. When it runs low, it heads home."
+      },
+      "c6.radar": {
+        "speaker": "lantern",
+        "text": "There's an air-defence site on that hill, and we can't see it. It's hunting our aircraft. A radar-hunting jet will find it."
+      },
+      "c6.radar_found": {
+        "speaker": "lantern",
+        "text": "There. A radar contact. We don't know exactly where it is, but we know the area. Fire into it."
+      },
+      "c6.radar_down": {
+        "speaker": "lantern",
+        "text": "Their radar's gone quiet. The sky is ours."
+      },
+      "c7.push": {
+        "speaker": "lantern",
+        "text": "Ferryman, the bridge and the hill are all that's left. Take them. Your call how."
+      },
+      "c7.contested": {
+        "speaker": "lantern",
+        "text": "They're fighting us for that flag. While it's contested, nobody scores."
+      },
+      "c7.score": {
+        "speaker": "lantern",
+        "text": "Watch the bar up top. Ours fills from the left, theirs from the right. First to the middle wins."
+      },
+      "c7.victory": {
+        "speaker": "lantern",
+        "text": "Every flag is ours. Total control. Outstanding work, Ferryman."
+      },
+      "c7.guide": {
+        "speaker": "lantern",
+        "text": "If you want a refresher on anything, the guide is in the menu. Lantern out."
+      },
+      "any.retry": {
+        "speaker": "lantern",
+        "text": "Not quite. Let's run that again."
+      },
+      "any.unit_lost": {
+        "speaker": "lantern",
+        "text": "We lost one. It happens. Keep your head."
+      },
+      "any.take_your_time": {
+        "speaker": "lantern",
+        "text": "Take your time. Nothing moves until you're ready."
+      }
+    }
   }
 }

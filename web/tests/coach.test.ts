@@ -1,18 +1,26 @@
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
+import { CAMERA_KEYS } from "@packages/renderer-core/src/cameraController";
+import { CommandBindings } from "@web/battle/input/commandBindings";
 import {
-  cardText,
+  cardParts,
   coachView,
   validateCoach,
   type CoachDocument,
   type ScenarioOutline,
 } from "@web/battle/coach/coach";
 import type { UiSignal } from "@web/battle/input/uiSignals";
+import voices from "@fixtures/voices.json";
+
+const NARRATION = (
+  voices as unknown as { narration: { lines: Record<string, { speaker: string }> } }
+).narration;
 
 /** A two-chapter coach over an invented director. */
 const DOC: CoachDocument = {
   title: "Test",
+  speaker: { id: "hq", name: "HQ", post: "Base", portrait: "/hq.jpg" },
   chapters: [
     {
       id: "one",
@@ -89,9 +97,18 @@ test("a coach that disagrees with its director is refused by step", () => {
 });
 
 test("a card names keys from their owners", () => {
-  expect(cardText("press {key:unknown}")).toBe("press {key:unknown}");
-  expect(cardText("press {key:toggle_fire_policy}")).not.toContain("{");
-  expect(cardText("turn {camera:turn}")).not.toContain("{");
+  expect(cardParts("press {key:unknown}")).toEqual(["press {key:unknown}"]);
+  const [words, policy] = cardParts("press {key:toggle_fire_policy}");
+  expect(words).toBe("press ");
+  expect(policy).toEqual({ keys: [CommandBindings.toggle_fire_policy.label] });
+  // A camera axis shows each of its letter keys, as many as bind it.
+  const turn = Object.keys(CAMERA_KEYS).filter(
+    (code) => code.startsWith("Key") && CAMERA_KEYS[code][0] === "turn",
+  );
+  expect(cardParts("turn {camera:turn}")).toEqual([
+    "turn ",
+    { keys: expect.arrayContaining(turn.map((c) => c.slice(3))) },
+  ]);
 });
 
 /** A scenario document's outline, as the page may know it. */
@@ -118,6 +135,10 @@ test("every shipped coach fits its scenario's director", () => {
       const scenario = JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8"));
       const human = scenario.players.find((p: { controller: string }) => p.controller === "human");
       expect(validateCoach(doc, outlineOf(scenario), human.side), `${map}/${name}`).toEqual([]);
+      // Every line a step speaks is its speaker's in the narration catalog.
+      const spoken = doc.chapters.flatMap((c) => c.steps.flatMap((s) => (s.line ? [s.line] : [])));
+      for (const line of spoken)
+        expect(NARRATION.lines[line]?.speaker, `${map}/${name} line ${line}`).toBe(doc.speaker.id);
       checked++;
     }
   }

@@ -1,4 +1,5 @@
 import { camera_listener, Presentation } from "@wasm/renderer_browser";
+import { Narration } from "./voices/narration";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
 import {
@@ -46,6 +47,7 @@ interface BattleGraph {
   readonly sink: WebAudioSink;
   readonly frame: SoundFrame;
   readonly voices: BattleVoices;
+  readonly narration: Narration;
   shouts: ShoutPool | null;
   state: "preparing" | "ready" | { kind: "failed"; message: string };
 }
@@ -83,6 +85,7 @@ export class BattleAudio {
       sink,
       frame: new SoundFrame(this.options, sink),
       voices: new BattleVoices(sink, this.options.presentation.voices),
+      narration: new Narration(sink),
       shouts: null,
       state: "preparing",
     };
@@ -126,6 +129,12 @@ export class BattleAudio {
   loadVoices(sets: Iterable<string>) {
     void this.graph?.voices.want(sets);
   }
+  /** Speak an authored scenario's narration line; its length in seconds,
+   *  or null before sound starts or for a line with no judged take. */
+  narrate(speaker: string, line: string): Promise<number | null> {
+    return this.graph?.narration.say(speaker, line) ?? Promise.resolve(null);
+  }
+
   /** Enemy unit kinds the side identifies: from the first sight of a kind,
    *  the set it speaks with (`speakers`) loads, in the background. */
   identified(kinds: Iterable<string>) {

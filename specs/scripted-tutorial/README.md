@@ -21,11 +21,11 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–09 shipped (probes, Guide, directed seats,
+*Status 2026-11-19: slices 00–10 shipped (probes, Guide, directed seats,
 scenario map, scenario document, scenario battle, director, published
-progress, walkthrough with chapters 1–2, coach core). Next:
-[slice 10 (Lantern's comms panel)](slices/10-lantern-comms.md); [12 (restart)](slices/12-chapter-restart.md)
-does not depend on it.*
+progress, walkthrough with chapters 1–2, coach core, Lantern's voice and comms
+panel). Next: [slice 11 (coach direction: camera tour, marks, Tutorial tile)](slices/11-coach-direction.md);
+[12 (restart)](slices/12-chapter-restart.md) does not depend on it.*
 
 Read **Contracts** and **One owner per concept** below before touching code;
 every slice inherits them. The scenario document lives in

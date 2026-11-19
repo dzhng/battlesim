@@ -1,5 +1,11 @@
 {
   "title": "Operation Ferryman",
+  "speaker": {
+    "id": "lantern",
+    "name": "Lantern",
+    "post": "HQ",
+    "portrait": "/portraits/lantern.jpg"
+  },
   "chapters": [
     {
       "id": "briefing",

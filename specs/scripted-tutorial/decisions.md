@@ -33,11 +33,9 @@ records the decisions it had to make that the plan didn't, with the reason.
   any line can be re-rendered later in the same voice.
 - **58 lines** were rendered in the `armata` workspace with `eleven_v3`, seed 7.
   Every take passed a speech-to-text check word for word; the only differences
-  were spellings like armour/armor and treeline/tree line. They are review takes
-  in [assets/narration/takes](assets/narration/takes); slice 10 brings them into
-  the voice pipeline. The scratch tools that rendered them (render.sh,
-  check.sh) are in `throwaway/tutorial-assets/narration/`, and slice 10
-  replaces them with the pipeline's own generator.
+  were spellings like armour/armor and treeline/tree line. Slice 10 imported them
+  into the voice pipeline as raw masters, and its generator replaced the
+  scratch tools that rendered them.
 - **Lines carry intent, never keys or numbers** (see [story.md](story.md)). A
   spoken key name would go stale with a rebinding; a spoken number with a
   retune.
@@ -338,3 +336,42 @@ hills session was told what the valley needs.
 - **`pause` steps wait for slice 11** (agent), with the camera tour they serve.
 - **The coach panel's unprimed critique waits for slice 10's comms look**
   (agent): this slice's panel is the plain card that slice restyles.
+
+## Slice 10
+
+- **Narration is a section of `voices.json`, not a unit set** (agent):
+  `narration.speakers` (library `voice_id`, model, seed, processing profile)
+  and `narration.lines` by coach line id. Its takes share the units' lock
+  (`narration/<speaker>/<line>`), cache keys, verdicts and pack rule, so one
+  pipeline judges every voice.
+- **Bento carries narration only; Duet stays for unit voices** (agent). The
+  spec said the Duet path goes, but unit voices still need Voice Design, which
+  Bento's proxy refuses. Retiring Duet waits until unit design has another
+  route.
+- **Lantern goes through `voice-earpiece`, not a radio profile** (agent, by
+  ear): `voice-radio-light` mixes a tank-engine bed under the voice, which
+  reads as a crew member, not HQ.
+- **The 58 review takes were imported and judged ok by the agent** after each
+  passed speech-to-text word for word. The user can listen in the sound
+  workbench and mark any take bad. A bad verdict drops it from the pack, and
+  `retakes` buys it again.
+- **No caption of the spoken line** (agent): the card already says what to do,
+  with the keys. A second block of near-identical text made the panel read like
+  a chat log.
+- **The signal bar runs for the take's length** (agent), not from its live
+  level: there's no analyser node for one animation. It's hidden when nothing
+  plays.
+- **A newer line replaces the one speaking**, as on a radio net (agent).
+- **Ducking unit chatter under a line moves to slice 13** (agent). Narration
+  and chatter share the voices bus, and holding chatter means a hold in the
+  Rust chatter arbitration. Chapters 1–2 have no combat chatter under a line,
+  and chapter 3 is the first that does.
+- **The panel puts the card beside the portrait** (agent, after an unprimed
+  critique): keys as tabs (the guide's key style, shared), each pair in
+  keyboard order (W/S, A/D), the chapter title dimmed at the right of the
+  name line, the portrait monochrome in the HUD accent behind visible scan
+  lines, and the panel flush with the HUD's top edge.
+- **Panel shots cover the briefing over open fields at the default zoom**
+  (agent). The fog, smoke and far-zoom variants come with slice 11's camera
+  tour, which frames those views on purpose.
+

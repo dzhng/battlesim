@@ -124,8 +124,14 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
-      coach={({ sim }) =>
-        coachDoc && <CoachPanel doc={coachDoc} scenario={sim.observation?.scenario ?? null} />
+      coach={({ sim, audio }) =>
+        coachDoc && (
+          <CoachPanel
+            doc={coachDoc}
+            scenario={sim.observation?.scenario ?? null}
+            speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
+          />
+        )
       }
       diagnostics={() => ({
         /** What the preparation worker made: the scenario, the map's

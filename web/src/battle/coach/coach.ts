@@ -18,6 +18,9 @@ import type { ScenarioView } from "../sim/observationView";
 export interface CoachDocument {
   /** What the loading screen and the pause menu call the scenario. */
   title: string;
+  /** Who speaks the steps' lines: their narration speaker, the name and
+   *  post the card shows, and their portrait. */
+  speaker: { id: string; name: string; post: string; portrait: string };
   /** One per director chapter, in the same order and with the same ids. */
   chapters: CoachChapter[];
 }
@@ -81,27 +84,41 @@ export function validateCoach(
   return problems;
 }
 
+/** Letter keys as a keyboard reads them, so a pair shows as W/S and A/D. */
+const KEYBOARD = "QWERTYUIOPASDFGHJKLZXCVBNM";
+
 /** The keys a placeholder names, as the card shows them; null for none. */
-function keyText(kind: "key" | "camera", name: string): string | null {
+function keyText(kind: "key" | "camera", name: string): string[] | null {
   if (kind === "key") {
     const held: Record<string, string> = {
       show_orders: ShowOrdersBinding.label,
       contact_focus: ContactFocusBinding.label,
     };
-    return held[name] ?? CommandBindings[name as KeyCommand]?.label ?? null;
+    const label = held[name] ?? CommandBindings[name as KeyCommand]?.label;
+    return label ? [label] : null;
   }
   const keys = Object.entries(CAMERA_KEYS)
     .filter(([code, [axis]]) => axis === name && code.startsWith("Key"))
-    .map(([code]) => code.slice(3));
-  return keys.length ? keys.join("/") : null;
+    .map(([code]) => code.slice(3))
+    .sort((a, b) => KEYBOARD.indexOf(a) - KEYBOARD.indexOf(b));
+  return keys.length ? keys : null;
 }
 
-/** A card's text with its keys filled in. */
-export function cardText(card: string): string {
-  return card.replace(
-    /\{(key|camera):([a-z_]+)\}/g,
-    (whole, kind: "key" | "camera", name: string) => keyText(kind, name) ?? whole,
-  );
+/** A card's words, and the keys it names in their place. */
+export type CardPart = string | { keys: string[] };
+
+/** A card's text with its keys filled in, as parts the panel draws. */
+export function cardParts(card: string): CardPart[] {
+  const parts: CardPart[] = [];
+  let at = 0;
+  for (const found of card.matchAll(/\{(key|camera):([a-z_]+)\}/g)) {
+    const keys = keyText(found[1] as "key" | "camera", found[2]);
+    if (!keys) continue;
+    parts.push(card.slice(at, found.index), { keys });
+    at = found.index + found[0].length;
+  }
+  parts.push(card.slice(at));
+  return parts.filter((part) => part !== "");
 }
 
 /** What the coach has heard since the open chapter opened, and what the

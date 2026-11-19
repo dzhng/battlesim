@@ -2270,32 +2270,123 @@ html {
     flex-basis: 34px;
   }
 }
-/* The tutorial's coach: one transient instruction card at the left, under
-   the menu's height, in the HUD's own glass and accent. */
+/* The tutorial's coach, a transmission: its speaker's portrait beside what
+   they say, one transient card at the top left, flush with the screen's top
+   edge like the HUD's other panels. */
 .hud-coach {
   position: fixed;
-  top: 76px;
-  left: 16px;
+  top: 10px;
+  left: 12px;
   z-index: 4;
   box-sizing: border-box;
-  width: min(320px, calc(100vw - 32px));
-  padding: 10px 14px 12px;
+  width: min(380px, calc(100vw - 24px));
+  padding: 10px 14px 12px 10px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.hud-coach-body {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+.hud-coach-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.hud-coach-name {
+  color: rgb(var(--hud-text));
+  font: 700 11px/1.2 var(--hud-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 .hud-coach-chapter {
-  color: rgb(var(--hud-accent));
+  margin-left: auto;
+  color: rgb(var(--hud-dim));
   font: 700 10px/1.2 var(--hud-font);
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 .hud-coach-card {
   margin: 0;
-  color: rgb(var(--hud-text));
-  font-size: 12.5px;
+  color: #fff;
+  font-size: 13.5px;
   line-height: 1.45;
 }
-.hud-coach-continue {
+/* A key in the card, as a pair or a single key: the guide's key tabs. */
+.hud-coach-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+.hud-panel button.hud-coach-continue {
   align-self: flex-end;
+  width: auto;
+  padding-inline: 18px;
+}
+/* The portrait in the HUD's accent: the photo's light over the accent, behind
+   scan lines and a vignette that read at normal size. */
+.hud-coach-portrait {
+  position: relative;
+  flex: none;
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgb(var(--hud-accent) / 0.55);
+  background: rgb(var(--hud-accent));
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.25);
+}
+.hud-coach-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.15);
+  mix-blend-mode: luminosity;
+}
+.hud-coach-portrait::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.35) 2px 3px),
+    radial-gradient(closest-side, transparent 60%, rgb(0 0 0 / 0.55));
+}
+/* Five bars that run while a line plays, and are gone when it ends. */
+.hud-coach-signal {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 10px;
+  visibility: hidden;
+}
+.hud-coach-signal[data-speaking] {
+  visibility: visible;
+}
+.hud-coach-signal i {
+  width: 3px;
+  height: 3px;
+  background: rgb(var(--hud-accent));
+  animation: hud-coach-signal 0.6s ease-in-out infinite alternate;
+}
+.hud-coach-signal i:nth-child(2) {
+  animation-delay: -0.15s;
+}
+.hud-coach-signal i:nth-child(3) {
+  animation-delay: -0.4s;
+}
+.hud-coach-signal i:nth-child(4) {
+  animation-delay: -0.25s;
+}
+.hud-coach-signal i:nth-child(5) {
+  animation-delay: -0.5s;
+}
+@keyframes hud-coach-signal {
+  from {
+    height: 3px;
+  }
+  to {
+    height: 10px;
+  }
 }

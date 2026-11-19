@@ -50,10 +50,21 @@ async function coach(ctx, page) {
   const card = page.getByRole("complementary", { name: "Coach" });
   const first = await card.innerText();
   ctx.check("the coach opens the briefing", first.length > 0, first);
+  await snapshot(ctx, page, "coach-continue.png");
   await card.getByRole("button", { name: "Continue" }).click();
   const second = await card.innerText();
   ctx.check("Continue moves the coach on", second !== first, second);
   await snapshot(ctx, page, "coach.png");
+  const served = await page.evaluate(async () => {
+    const pack = await (await fetch("/audio/voices/narration/lantern/pack.json")).json();
+    const take = await fetch(pack.lines[0].url);
+    return { lines: pack.lines.length, take: take.status, type: take.headers.get("content-type") };
+  });
+  ctx.check(
+    "the narrator's pack and its takes are served",
+    served.lines > 0 && served.take === 200,
+    JSON.stringify(served),
+  );
   const panStep = await card.textContent();
   await page.mouse.click(640, 400);
   await page.keyboard.down("KeyW");

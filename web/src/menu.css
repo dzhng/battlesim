@@ -357,7 +357,9 @@
 .menu-guide strong {
   color: #fff;
 }
-.menu-guide kbd {
+/* A key named in text: the guide's and the coach's. */
+.menu-guide kbd,
+.hud-coach-keys kbd {
   display: inline-block;
   padding: 0 5px;
   font: 700 10.5px var(--hud-font);

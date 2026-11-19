@@ -44,3 +44,8 @@ after blue captures it, to teach Contested.
 
 **Delegated:** exact `UnitCondition` values (lopsided, not tuned toward a stat),
 zone outlines.
+
+**Also owned here (moved from 10):** a narration line ducks unit chatter. This
+is the first chapter with combat chatter under Lantern's lines. Narration and
+chatter share the voices bus, so the chatter's arbitration holds new lines (or
+dips them) while a narration line plays. The mix owner sets how much.

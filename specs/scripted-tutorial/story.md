@@ -3,8 +3,8 @@
 The tutorial's content design, approved by the user on 2026-11-19. Each chapter
 slice turns one chapter below into data: director beats in the scenario
 document, coach steps, solution beats and forces. Each chapter's spoken lines
-are already written and recorded in [assets/narration](assets/narration/) (line
-ids match the `line` column). This file says *what happens*; the slices say how
+are written and recorded: their text is the `narration` section of
+`fixtures/voices.json` (line ids match the `line` column). This file says *what happens*; the slices say how
 it is built.
 
 Rules for every chapter:
