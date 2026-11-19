@@ -7,16 +7,33 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from aircraft_donor import fitted_airframe
-from parts import flat_paint
+from parts import box, flat_paint
+from vehicle_parts import MID
 from vehicle_export import run, rig
 
 
 def build(variant, v):
     m = A.fit(v)
     hull = v.hull
-    m["canopy"] = m["glass"]
+    # The donor has separate cockpit and cabin panes. Keep the shared glass
+    # role, but give these armored windows a controlled blue-grey tint and
+    # enough coverage for the crew and seat silhouettes to read through them.
+    m["canopy"] = flat_paint("hind_laminated_glass", (0.014, 0.022, 0.028), rough=0.16,
+                             grime=0, coverage=("blended", 0.52), role="glass")
     fitted_airframe(v, "mi_24_mi_35_hind", m)
     if not v.wreck:
+        # The donor canopy is the shell. These restrained interior pieces sit
+        # below its sills so the tandem cockpit reads as occupied through the
+        # glazing instead of as a black cavity.
+        for label, x, z in (("front", 5.91, 1.49), ("rear", 7.48, 1.08)):
+            box(f"cockpit_seat_{label}", (0.18, 0.46, 0.62), (x, 0, z), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.12, 0), lods=MID)
+            box(f"cockpit_headrest_{label}", (0.16, 0.34, 0.20), (x - 0.05, 0, z + 0.38), m["black"], hull,
+                bevel=0.018, lods=MID)
+            box(f"cockpit_coaming_{label}", (0.42, 0.62, 0.12), (x + 0.30, 0, z + 0.32), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.08, 0), lods=MID)
+            box(f"cockpit_panel_{label}", (0.05, 0.48, 0.16), (x + 0.50, 0, z + 0.27), m["dark"], hull,
+                bevel=0.012, rot=(0, -0.18, 0), lods=MID)
         for name, x, z in (("gunner", 7.48, 1.08), ("pilot", 5.91, 1.49)):
             v.crew.append(
                 (

@@ -24,7 +24,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from aircraft_donor import fitted_airframe  # noqa: E402
-from parts import cyl, flat_paint  # noqa: E402
+from parts import box, cyl, flat_paint  # noqa: E402
+from vehicle_parts import MID  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The 2A42's elevation in its chin mount, degrees, and its stroke.
@@ -34,9 +35,24 @@ GUN_STROKE_M = 0.08
 def build(variant, v):
     m = A.fit(v)
     hull = v.hull
-    m["canopy"] = m["glass"]
+    # Keep the donor's framed panes while using the same controlled glass
+    # finish as the other attack helicopters, so cockpit depth survives close
+    # views without turning the windows into black holes.
+    m["canopy"] = flat_paint("havoc_laminated_glass", (0.014, 0.022, 0.028), rough=0.16,
+                             grime=0, coverage=("blended", 0.52), role="glass")
     fitted_airframe(v, "mi_28_havoc", m)
     if not v.wreck:
+        # Keep the donor glazing, but give each tandem station a visible seat,
+        # headrest, coaming and instrument panel behind it.
+        for label, x, z in (("front", 5.35, 1.55), ("rear", 4.25, 1.48)):
+            box(f"cockpit_seat_{label}", (0.18, 0.46, 0.62), (x, 0, z), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.12, 0), lods=MID)
+            box(f"cockpit_headrest_{label}", (0.16, 0.34, 0.20), (x - 0.05, 0, z + 0.38), m["black"], hull,
+                bevel=0.018, lods=MID)
+            box(f"cockpit_coaming_{label}", (0.42, 0.62, 0.12), (x + 0.28, 0, z + 0.31), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.08, 0), lods=MID)
+            box(f"cockpit_panel_{label}", (0.05, 0.48, 0.16), (x + 0.48, 0, z + 0.26), m["dark"], hull,
+                bevel=0.012, rot=(0, -0.18, 0), lods=MID)
         for name, x, z in (("pilot", 5.35, 1.55), ("gunner", 4.25, 1.48)):
             v.crew.append((name, hull, (x, 0, z),
                            ((x + .28, .14, z + .22), (x + .28, -.14, z + .22)),
@@ -49,7 +65,7 @@ def build(variant, v):
     # fixed to the mast and remains facing forward as the blades turn.
     A.rotor("main", (3.315, 0, 3.74), 8.6, 5, 0.58, m, hull, hub=.44, mast=.33,
             droop=.03, phase=.3)
-    cyl("mast_radar_post", .18, .30, (3.315, 0, 3.96), "Z", m["dark"], hull, seg=12)
+    cyl("mast_radar_post", .18, .65, (3.315, 0, 4.20), "Z", m["dark"], hull, seg=12)
     radome = m["paint"]
     sections = []
     for i in range(13):
