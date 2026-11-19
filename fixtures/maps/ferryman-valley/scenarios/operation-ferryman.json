@@ -127,8 +127,19 @@
       "yaw": 1.57,
       "engagement": "return_fire_only",
       "condition": {
-        "hp": 100.0
+        "hp": 10.0
       }
+    },
+    "treeline": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rpg_team_rpg_7",
+      "position": [
+        1180.0,
+        684.0
+      ],
+      "yaw": -1.57,
+      "engagement": "return_fire_only"
     }
   },
   "opening_credits": {
@@ -200,10 +211,10 @@
     },
     "ambush_woods": {
       "center": [
-        716.0,
+        741.0,
         806.0
       ],
-      "radius_m": 10.0
+      "radius_m": 8.0
     },
     "far_treeline": {
       "center": [
@@ -253,6 +264,20 @@
         1284.0
       ],
       "radius_m": 25.0
+    },
+    "supply_point": {
+      "center": [
+        1000.0,
+        1325.0
+      ],
+      "radius_m": 30.0
+    },
+    "west_lane": {
+      "center": [
+        700.0,
+        620.0
+      ],
+      "radius_m": 30.0
     }
   },
   "director": {
@@ -785,10 +810,25 @@
                     "force": "tank"
                   },
                   "order": {
-                    "engage": "fire_at_will"
+                    "move_to": "west_lane"
                   }
                 }
-              },
+              }
+            ]
+          },
+          {
+            "id": "tank_turns",
+            "when": {
+              "units": {
+                "who": {
+                  "force": "tank"
+                },
+                "are": {
+                  "in": "west_lane"
+                }
+              }
+            },
+            "then": [
               {
                 "order": {
                   "units": {
@@ -862,6 +902,212 @@
                   }
                 }
               }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "keep_running",
+        "beats": [
+          {
+            "id": "supplies_offered",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "offer": {
+                  "player": "blue-1",
+                  "purchases": [
+                    {
+                      "variant": "us_m977_hemtt_general_resupply"
+                    },
+                    {
+                      "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                    }
+                  ]
+                }
+              },
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "to_cover": [
+                      {
+                        "variant": "us_m977_hemtt_general_resupply"
+                      },
+                      {
+                        "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "supply_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_m977_hemtt_general_resupply"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "supply_deployed",
+            "when": {
+              "all": [
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m977_hemtt_general_resupply"
+                      }
+                    },
+                    "are": "deployed"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m977_hemtt_general_resupply"
+                      }
+                    },
+                    "are": {
+                      "in": "supply_point"
+                    }
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "unit_serviced",
+            "when": {
+              "any": [
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m2_bradley_ifv_m2a4"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "rifle_squad"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_army_scouts_light_patrol"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "mortar_firing",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                  }
+                },
+                "are": {
+                  "ordered": {
+                    "attack_ground": "far_treeline"
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "treeline_broken",
+            "when": {
+              "units": {
+                "who": {
+                  "force": "treeline"
+                },
+                "are": {
+                  "suppression": "suppressed"
+                }
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "treeline"
+                  },
+                  "order": "withdraw"
+                }
+              }
+            ]
+          },
+          {
+            "id": "treeline_gone",
+            "when": {
+              "any": [
+                {
+                  "destroyed": {
+                    "force": "treeline"
+                  }
+                },
+                {
+                  "fired": {
+                    "beat": "treeline_broken",
+                    "after_s": 3
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
             ]
           }
         ]

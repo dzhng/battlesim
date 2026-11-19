@@ -124,6 +124,10 @@ pub enum UnitFact {
     Reversing,
     /// Its current order is so.
     Ordered(OrderFact),
+    /// Set up, all the way (a unit that deploys).
+    Deployed,
+    /// Being replenished, repaired or reinforced by a supply vehicle now.
+    Serviced,
 }
 
 /// What a unit's current order is.
@@ -132,6 +136,8 @@ pub enum UnitFact {
 pub enum OrderFact {
     /// To attack one of the selected units.
     Attack(Selector),
+    /// To fire on ground inside the zone.
+    AttackGround(String),
 }
 
 /// What a unit can be inside.
@@ -209,6 +215,8 @@ pub enum DirectedOrder {
     /// Attack the first living unit the selector names, if the side
     /// identifies it.
     Attack(Selector),
+    /// Set up where it stands (a unit that deploys).
+    Deploy,
 }
 
 /// A scenario's solution: beats, in the director's own terms, that play its
@@ -335,12 +343,15 @@ impl Names<'_> {
                 match are {
                     UnitFact::In(zone) => self.zone(zone),
                     UnitFact::Ordered(OrderFact::Attack(target)) => self.selector(target),
+                    UnitFact::Ordered(OrderFact::AttackGround(zone)) => self.zone(zone),
                     UnitFact::Engagement(_)
                     | UnitFact::Inside(_)
                     | UnitFact::Suppression(_)
                     | UnitFact::AttackMoving
                     | UnitFact::PoppedSmoke
-                    | UnitFact::Reversing => Ok(()),
+                    | UnitFact::Reversing
+                    | UnitFact::Deployed
+                    | UnitFact::Serviced => Ok(()),
                 }
             }
             Trigger::Identifies { who, .. } | Trigger::Destroyed(who) => self.selector(who),
@@ -367,7 +378,8 @@ impl Names<'_> {
                     DirectedOrder::Engage(_)
                     | DirectedOrder::Unload
                     | DirectedOrder::Withdraw
-                    | DirectedOrder::PopSmoke => Ok(()),
+                    | DirectedOrder::PopSmoke
+                    | DirectedOrder::Deploy => Ok(()),
                 }
             }
             Action::Grant { player, .. }

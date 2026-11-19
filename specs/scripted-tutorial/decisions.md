@@ -540,15 +540,19 @@ hills session was told what the valley needs.
   that answer a recovery are flagged too. A recovery beat fires once.
   `director_facts` proves the not-waiting and the grant on a loss, on test
   units, which stands in for R8's "AT team dies before the tank".
-- **The tank holds fire until it advances** (agent, by the walkthrough). At
-  fire at will it shelled everything in view from the north road while the
-  AT team walked six minutes in, killing the squad and the team's launcher
-  man. It now waits on the road holding fire, and comes down past the copse
-  firing once the team is in place, so it drives into the ambush ("let the
-  tank come to them").
-- **The ambush is at the copse's east edge** (`ambush_woods` moved to
-  (716, 806), radius 10): from the copse's middle the team couldn't see the
-  road.
+- **The tank comes to the ambush holding fire** (agent, by the walkthrough,
+  revised in slice 15). At fire at will it shelled everything in view from the
+  north road while the AT team walked six minutes in. Then it spotted the
+  team at the copse first and shot it. Now it waits on the north road and
+  advances holding fire. It swings through `west_lane`, north of the copse,
+  in the team's view, then turns for the crossroads.
+- **The ambush stands just outside the copse, facing north** (`ambush_woods`
+  at (741, 806)). From inside the trees the Javelin's flight path was
+  blocked, and its launcher needs its own sight line. A probe of the map's
+  sight lines showed the copse's edge sees north and north-west, and almost
+  none of the north road.
+- **The tank is worn to 10 hull points** (lopsided): a Javelin that hits head
+  on does partial damage, so any hit kills it.
 - **The AT team is bought, not placed** (story): offered and granted when the
   chapter opens, and a coach step (without a line) asks for it before
   Lantern's "We have an anti-tank team in the woods" plays.
@@ -566,4 +570,21 @@ hills session was told what the valley needs.
   chapter 4 step caught it.
 - **The solution's tripwire went from 10 to 20 minutes**: the AT team's walk
   alone takes six.
+
+## Slice 15
+
+- **Vocabulary added** (agent): facts `deployed` and `serviced` (being
+  replenished, repaired or reinforced now, the supply owner's published
+  status); `ordered: {attack_ground: <zone>}`; the grant `to_cover` (only
+  the wallet's shortfall; as opening credits it is `covering`, since an empty
+  wallet's shortfall is the whole price); the directed order `deploy`.
+- **The treeline team is an RPG team** (agent): hidden in `far_treeline` on
+  return fire only. Once suppressed it withdraws, which is the "done"
+  beat's other way out.
+- **A unit serviced is any of the fleet the player has** (Bradley, squad,
+  scouts, Javelins), so whichever unit the player brings in counts.
+- **Adding a force reshuffles the battle** (found): forces take unit ids by
+  name, so the treeline team moved every bought unit's id and the seeded
+  outcomes with them. Chapter 4's ambush, which had passed by luck, failed
+  until it was rebuilt on sight lines (above).
 
