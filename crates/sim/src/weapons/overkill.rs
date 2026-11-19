@@ -11,6 +11,7 @@ use crate::math::V3;
 use crate::units::Unit;
 use crate::weapons::{FireContext, MountSpec, Ready, Target};
 
+/// One counted round: when it should land and what it should do there.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Hit {
     pub arrive_tick: f64,
@@ -91,8 +92,29 @@ fn squad_hp(members: &[crate::units::Soldier]) -> f64 {
         .sum()
 }
 
+/// The tick a round fired now lands, from its time of flight.
+pub fn arrival_tick(tick: contract::ids::Tick, time_of_flight_s: f64, tick_hz: u32) -> f64 {
+    tick as f64 + time_of_flight_s * f64::from(tick_hz)
+}
+
+/// A round of `def` counted against `target`, coming from `from` and landing
+/// at `arrive_tick`; none for a row that doesn't avoid overkill.
+pub fn counted(
+    def: &WeaponDefinition,
+    rules: &Rules,
+    target: &Unit,
+    from: V3,
+    arrive_tick: f64,
+) -> Option<Hit> {
+    def.avoids_overkill.then(|| Hit {
+        arrive_tick,
+        damage: hit_damage(def, rules, target, from),
+        interceptable: def.interceptable,
+    })
+}
+
 /// Damage after penetration on the face the target shows the incoming round.
-pub fn hit_damage(def: &WeaponDefinition, rules: &Rules, target: &Unit, from: V3) -> f64 {
+fn hit_damage(def: &WeaponDefinition, rules: &Rules, target: &Unit, from: V3) -> f64 {
     let Some(armor) = target.armor(rules) else {
         return def.damage;
     };
@@ -126,7 +148,7 @@ pub(super) fn overkill(
             ctx.committed,
             side,
             &units[target.0 as usize],
-            ctx.tick as f64 + ready.time_of_flight_s * f64::from(ctx.rules.tick_hz),
+            arrival_tick(ctx.tick, ready.time_of_flight_s, ctx.rules.tick_hz),
         )
 }
 

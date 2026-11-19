@@ -51,6 +51,9 @@ fn identical_launchers_have_their_own_rounds_reload_and_guidance() {
         1,
         |r| {
             r["weapons"]["atgm"]["ammo"] = json!(2);
+            // Both launchers fire at one tank: this is about each keeping its
+            // own rounds and guidance, not about holding a covered kill.
+            r["weapons"]["atgm"]["avoids_overkill"] = json!(false);
             sim::fixtures::patch_catalog(
                 r,
                 "units",

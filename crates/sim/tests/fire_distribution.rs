@@ -22,6 +22,9 @@ fn map() -> Value {
 
 fn rules() -> Value {
     let mut rules = common::scenario_rules();
+    // The spread tests own their weights: one engaging unit outweighs the
+    // widest seeded draw, so the expected choices hold for any seed.
+    rules["targeting"] = json!({"engaged_distance_penalty": 0.5, "distance_spread": 0.1});
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

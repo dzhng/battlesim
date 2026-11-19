@@ -277,9 +277,6 @@ impl Battle {
                 continue;
             }
             let def = &self.arsenal.weapons[round.weapon].def;
-            if !def.avoids_overkill {
-                continue;
-            }
             let Some(projectile) = self.projectiles.get(*id) else {
                 continue;
             };
@@ -290,21 +287,15 @@ impl Battle {
             } else {
                 true
             };
-            if steering {
-                committed.add(
-                    round.side,
-                    target,
-                    weapons::overkill::Hit {
-                        arrive_tick: round.expected_arrival_tick,
-                        damage: weapons::overkill::hit_damage(
-                            def,
-                            &self.rules,
-                            target_unit,
-                            projectile.position,
-                        ),
-                        interceptable: def.interceptable,
-                    },
-                );
+            let hit = weapons::overkill::counted(
+                def,
+                &self.rules,
+                target_unit,
+                projectile.position,
+                round.expected_arrival_tick,
+            );
+            if let Some(hit) = hit.filter(|_| steering) {
+                committed.add(round.side, target, hit);
             }
         }
         // Windows change between choosing them and firing, so each step
@@ -380,8 +371,11 @@ impl Battle {
                             _ => None,
                         },
                         layer,
-                        expected_arrival_tick: self.tick as f64
-                            + shot.time_of_flight_s * self.rules.tick_hz as f64,
+                        expected_arrival_tick: weapons::overkill::arrival_tick(
+                            self.tick,
+                            shot.time_of_flight_s,
+                            self.rules.tick_hz,
+                        ),
                     },
                 );
                 // A guided round is supported by the mount that launched it.

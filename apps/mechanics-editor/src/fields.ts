@@ -525,7 +525,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "avoids_overkill",
       "Avoids overkill",
       "Impact & suppression",
-      "Automatic fire holds while this side's rounds already flying at the target will destroy it first, and these rounds count toward that. Explicit orders still fire.",
+      "Automatic fire holds while this side's rounds already flying or launched this tick at the target will destroy it first, and this row's rounds count toward that. Explicit orders still fire.",
       { kind: "boolean" },
     ),
     field(

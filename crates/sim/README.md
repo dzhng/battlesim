@@ -116,7 +116,7 @@ distance: farther for each other friendly unit already locked on the target,
 and scaled by one seeded draw per unit, mount and target, so crews fan out
 over targets that tie and keep a stable preference. The rules' `targeting`
 section holds both weights; a crew keeps its lock until it can no longer
-shoot. A weapon row that opts in (`avoids_overkill`) also coordinates with the
+shoot or, for a flagged row, until the target is doomed. A weapon row that opts in (`avoids_overkill`) also coordinates with the
 side's [committed fire](src/weapons/overkill.rs): while the damage its side
 already has flying at the target, landing no later than its own round, covers
 the target's remaining health, the mount holds its shot with its aim, reload

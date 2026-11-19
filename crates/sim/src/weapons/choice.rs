@@ -6,8 +6,8 @@ use super::*;
 /// damage, ranked first by whether a loaded seeker row engages it, then by
 /// known return-fire threat, then the share of the mount's
 /// damage its facing armour lets through, then weighted distance and observed
-/// id; for the unlimited default gun, the nearest
-/// identified target it cannot hurt; and only with no identified enemy in
+/// id; for the unlimited default gun, the identified target it cannot hurt
+/// at the least weighted distance; and only with no identified enemy in
 /// reach (`enemy_in_reach`), the nearest area for general-purpose kinds. A
 /// weapon with a finite supply never fires at what it cannot hurt. Only a
 /// target the mount could shoot now qualifies; otherwise the first obstacle
@@ -123,11 +123,13 @@ pub(super) fn select(
     (fallback, reason.unwrap_or(ActionReason::NoCompatibleTarget))
 }
 
-/// How many other units of the chooser's side have a mount locked on `target`.
+/// How many other units of the chooser's side, on the field, have a mount
+/// locked on `target`. A dead or riding unit keeps its last lock but engages
+/// nothing.
 fn engaging(units: &[Unit], choosing: &Unit, target: UnitId) -> u32 {
     units
         .iter()
-        .filter(|other| other.id != choosing.id && other.side == choosing.side)
+        .filter(|other| other.id != choosing.id && other.side == choosing.side && other.on_field())
         .filter(|other| {
             other.mounts.iter().any(|mount| {
                 mount

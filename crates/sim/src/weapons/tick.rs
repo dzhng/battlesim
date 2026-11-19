@@ -509,29 +509,25 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                             rng,
                             &mut leaned,
                         );
-                        if let Some(shot) = &fired {
+                        if let Some((shot, Target::Unit(target))) =
+                            fired.as_ref().map(|shot| (shot, shot.target))
+                        {
                             let def = &ctx.arsenal.weapons[shot.weapon].def;
-                            if def.avoids_overkill {
-                                if let Target::Unit(target) = shot.target {
-                                    let target_unit = &units[target.0 as usize];
-                                    for launch in &shot.launches {
-                                        launch_hits.push((
-                                            unit.side,
-                                            target,
-                                            overkill::Hit {
-                                                arrive_tick: ctx.tick as f64
-                                                    + shot.time_of_flight_s
-                                                        * ctx.rules.tick_hz as f64,
-                                                damage: overkill::hit_damage(
-                                                    def,
-                                                    ctx.rules,
-                                                    target_unit,
-                                                    launch.origin,
-                                                ),
-                                                interceptable: def.interceptable,
-                                            },
-                                        ));
-                                    }
+                            let arrive = overkill::arrival_tick(
+                                ctx.tick,
+                                shot.time_of_flight_s,
+                                ctx.rules.tick_hz,
+                            );
+                            for launch in &shot.launches {
+                                let target_unit = &units[target.0 as usize];
+                                if let Some(hit) = overkill::counted(
+                                    def,
+                                    ctx.rules,
+                                    target_unit,
+                                    launch.origin,
+                                    arrive,
+                                ) {
+                                    launch_hits.push((unit.side, target, hit));
                                 }
                             }
                         }
