@@ -2941,7 +2941,7 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        5.2,
+        4.5,
         1.2,
         1.5
       ]
@@ -3329,7 +3329,7 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        5.168,
+        4.5,
         1.25,
         1.65
       ]

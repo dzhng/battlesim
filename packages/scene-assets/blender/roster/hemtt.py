@@ -14,7 +14,8 @@ under it, and the folded materials-handling crane at its rear end; the load
 under a lashed tarp. Cab interior as the dark glass shows it: the dash and
 the seat backs.
 
-Built to the catalog frame (hull 10.4 x 2.4 x 3.0 m): nothing here moves it.
+Built from the 10.4 x 2.4 x 3.0 m reference proportions. The exporter scales
+the longitudinal frame to the catalog envelope; nothing here moves it.
 The load and the crane's folded boom reach the box's top.
 """
 import math
@@ -29,7 +30,7 @@ import running_gear as RG  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import apply_hull_scale, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -63,6 +64,7 @@ def build(variant, v):
         HF.mudflap(f"front_mudflap_{s}", (1.20, side * WHEEL_Y, BED_FLOOR - 0.10), (0.42, 0.50), m, hull)
     cab(v)
     bed(v)
+    apply_hull_scale(hull, v.length / 10.4)
 
 
 def cab(v):
