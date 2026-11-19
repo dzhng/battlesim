@@ -184,3 +184,179 @@ fn a_bare_crest_hides_a_cell_from_every_eye_it_certifies() {
         "crests certify only {certified} hillside eyes"
     );
 }
+
+/// A map `size` across with one relief feature and square copses.
+fn rise_with_copses(size: f64, relief: serde_json::Value, copses: &[[f64; 4]]) -> MapDefinition {
+    let forests: Vec<_> = copses
+        .iter()
+        .map(|b| {
+            serde_json::json!({"shape":{"kind":"polygon","ring":[
+                [b[0],b[1]],[b[2],b[1]],[b[2],b[3]],[b[0],b[3]]
+            ]}})
+        })
+        .collect();
+    serde_json::from_value(serde_json::json!({
+        "size":[size,size], "fog_cell_m":8., "height_grid_m":4., "slope_cutoff_deg":35.,
+        "forests":forests, "props":[],"surfaces":[],"buildings":[],"bridges":[],
+        "relief":[relief]
+    }))
+    .unwrap()
+}
+
+/// Physics whose copses stamp whole witness patches.
+fn dense_physics() -> GenerationPhysics {
+    let mut physics = physics();
+    physics.forests.rule.trunk_spacing_m = 9.;
+    physics.forests.rule.trunk_jitter = 0.;
+    physics.forests.rule.canopy_radius_m = 12.;
+    physics
+}
+
+/// Hand `each` what every circular ground observer at `at` sees, by the
+/// simulation's own sweep, and its range.
+fn sweeps(
+    map: &MapDefinition,
+    physics: &GenerationPhysics,
+    at: Point,
+    mut each: impl FnMut(&dyn Fn(Point) -> bool, f64),
+) {
+    let mut rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
+    rules.forests = physics.forests.clone();
+    let world = sim::world::WorldGeometry::new(map, &rules);
+    let mut grid = sim::visibility::OcclusionGrid::new(&world, map.fog_cell_m);
+    let ground = world.height_at(at[0], at[1]).unwrap();
+    for unit in physics.circular_ground_observers() {
+        let sight = sim::sight::Sight {
+            forward: 0.,
+            shape: unit.sensors.sight_shape,
+            range: unit.sensors.ground_m,
+        };
+        let eye = ground + unit.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m);
+        let mut field = grid.field();
+        let eye = sim::math::v3(at[0], at[1], eye);
+        sim::visibility::sweep(&world, &mut grid, &rules.sensors, eye, &sight, &mut field);
+        each(&|p: Point| field.visible(p[0], p[1]), sight.range);
+    }
+}
+
+/// An eye on a summit, above every treetop round it, looks down into a
+/// copse at the rise's foot: the simulation counts the copse against every
+/// ray that samples it below its canopy, so the copse hides what lies
+/// beyond. Every eye on and round the summit that the copse certifies keeps
+/// a far cell dark, on the map at the edge of its sight, in the
+/// simulation's own sweep; without the copse the summit is not certified.
+#[test]
+fn a_summit_looks_down_into_a_copse_that_hides_the_ground_beyond() {
+    let physics = dense_physics();
+    let (size, summit) = (2_400., [1_200., 1_200.]);
+    let rise = serde_json::json!({"kind":"ridge","center":summit,"peak_m":24.,"radius_m":420.});
+    let near = |c: &Coverage, at: Point| c.covered(sub(at, [1., 1.]), add(at, [1., 1.]));
+    let bare = rise_with_copses(size, rise.clone(), &[]);
+    assert!(!near(
+        &Coverage::new(&bare, &physics, 100.).unwrap(),
+        summit
+    ));
+    let map = rise_with_copses(size, rise, &[[1_560., 1_170., 1_600., 1_230.]]);
+    let c = Coverage::new(&map, &physics, 100.).unwrap();
+    assert!(
+        near(&c, summit),
+        "the summit is not certified by the copse below it"
+    );
+    let cell = map.fog_cell_m;
+    let n = (size / cell) as usize;
+    let mut certified = 0;
+    for radius in [0., 40., 90., 150.] {
+        for step in 0..16 {
+            let at = add(summit, scale(direction(TAU * step as f64 / 16.), radius));
+            if !near(&c, at) {
+                continue;
+            }
+            certified += 1;
+            sweeps(&map, &physics, at, |visible, range| {
+                let far = libm::floor(range / cell) * cell;
+                let dark = (0..n * n).any(|k| {
+                    let p = [((k % n) as f64 + 0.5) * cell, ((k / n) as f64 + 0.5) * cell];
+                    (distance(p, at) - far).abs() <= cell && !visible(p)
+                });
+                assert!(dark, "every far cell of {at:?} is seen");
+            });
+        }
+    }
+    assert!(
+        certified >= 16,
+        "the copse certifies only {certified} eyes on the summit"
+    );
+}
+
+/// A flat top's brow, a little below an eye standing back from it, lifts
+/// every ray over a copse on the plain below, so the simulation never
+/// counts the copse and sees the plain beyond it: the copse certifies no
+/// such eye.
+#[test]
+fn a_brow_lifts_the_sight_over_a_copse_below_it() {
+    let physics = dense_physics();
+    let (size, middle) = (2_400., [1_200., 1_200.]);
+    let top = serde_json::json!({
+        "kind":"mesa","rect":[1_174.,1_174.,52.,52.],"height_m":24.,"side_degrees":30.
+    });
+    let copse = [1_330., 1_170., 1_350., 1_230.];
+    let map = rise_with_copses(size, top, &[copse]);
+    let c = Coverage::new(&map, &physics, 100.).unwrap();
+    assert!(!c.covered(sub(middle, [1., 1.]), add(middle, [1., 1.])));
+    // The plain straight on past the copse, at the edge of sight, is seen.
+    let cell = map.fog_cell_m;
+    sweeps(&map, &physics, middle, |visible, range| {
+        let far = libm::floor(range / cell) * cell - cell;
+        assert!(
+            visible([middle[0] + far, middle[1]]),
+            "the copse hides the plain beyond it"
+        );
+    });
+}
+
+/// A copse between a valley and a taller rise behind it hides the rise's
+/// face: across the level valley floor every ray samples the copse below
+/// its canopy, so the simulation counts it whatever stands beyond. Without
+/// the copse the face is open; with it, every eye over the valley keeps a
+/// far cell dark, on the map at the edge of its sight, in the simulation's
+/// own sweep.
+#[test]
+fn a_copse_hides_the_face_of_a_taller_rise_behind_it() {
+    let physics = physics();
+    let valley = [[700., 975.], [750., 1_025.]];
+    let rise = serde_json::json!({
+        "kind":"ridge","center":[1_220., 1_000.],"peak_m":25.,"radius_m":200.
+    });
+    let bare = rise_with_copses(2_000., rise.clone(), &[]);
+    assert!(
+        !Coverage::new(&bare, &physics, 100.)
+            .unwrap()
+            .covered(valley[0], valley[1]),
+        "the rise's face is open to the valley"
+    );
+    let map = rise_with_copses(2_000., rise, &[[765., 960., 805., 1_040.]]);
+    let c = Coverage::new(&map, &physics, 100.).unwrap();
+    assert!(
+        c.covered(valley[0], valley[1]),
+        "the copse does not hide the rise's face"
+    );
+    let cell = map.fog_cell_m;
+    let n = (2_000. / cell) as usize;
+    for j in 0..=4 {
+        for i in 0..=4 {
+            let at = [
+                valley[0][0] + (valley[1][0] - valley[0][0]) * i as f64 / 4.,
+                valley[0][1] + (valley[1][1] - valley[0][1]) * j as f64 / 4.,
+            ];
+            sweeps(&map, &physics, at, |visible, range| {
+                let far = libm::floor(range / cell) * cell;
+                let dark = (0..n * n).any(|k| {
+                    let p = [((k % n) as f64 + 0.5) * cell, ((k / n) as f64 + 0.5) * cell];
+                    (distance(p, at) - far).abs() <= cell && !visible(p)
+                });
+                assert!(dark, "every far cell of {at:?} is seen");
+            });
+        }
+    }
+}

@@ -276,6 +276,11 @@ impl<'a> Coverage<'a> {
             .circular_ground_observers()
             .map(|u| u.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m))
             .fold(physics.fog_target_height_m, f64::max);
+        // The lowest eye, for an eye looking down (`relief.rs`).
+        let eye_low = physics
+            .circular_ground_observers()
+            .map(|u| u.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m))
+            .fold(eye, f64::min);
         let high = map.bridges.iter().map(|b| b.deck_z).fold(0., f64::max);
         // Each river and swamp can only lower the land; summing each
         // possible fall is conservative even for overlap. Relief is held
@@ -359,7 +364,7 @@ impl<'a> Coverage<'a> {
                     map,
                     river_low,
                     bank_margin,
-                    eye,
+                    [eye_low, eye],
                     rule.canopy_height_m,
                     count,
                 )

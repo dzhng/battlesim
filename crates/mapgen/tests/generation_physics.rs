@@ -18,7 +18,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         preset_revision: definitions.revision,
         seed: 1.into(),
         template_catalog_hash: catalogue.hash().into(),
-        map_type: MapType::Open,
+        map_type: MapType::Metro,
         size: MapSize::Medium,
         entries_per_side: 1,
         profile: contract::generation::GenerationProfile::Standard,
@@ -39,8 +39,10 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         }
     };
     let before = build(&rules);
-    // Eye height is part of physical sight. This tiny change leaves the
-    // construction geometry alone, but cannot leave its input identity alone.
+    // Eye height is part of physical sight. On a city's flat ground this
+    // tiny change leaves the construction geometry alone, but cannot leave
+    // its input identity alone. (On hills the lowest eye decides which woods
+    // the ground-sight certificate needs, so there it may move them.)
     rules["physics"]["infantry_eye_m"] = serde_json::json!(1.61);
     let after = build(&rules);
     assert_eq!(before.identity.map_hash, after.identity.map_hash);
