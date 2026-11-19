@@ -1,0 +1,125 @@
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { expect, test } from "vitest";
+import {
+  cardText,
+  coachView,
+  validateCoach,
+  type CoachDocument,
+  type ScenarioOutline,
+} from "@web/battle/coach/coach";
+import type { UiSignal } from "@web/battle/input/uiSignals";
+
+/** A two-chapter coach over an invented director. */
+const DOC: CoachDocument = {
+  title: "Test",
+  chapters: [
+    {
+      id: "one",
+      title: "One",
+      steps: [
+        { id: "hello", card: "Hello", until: "continue" },
+        { id: "look", card: "Look", until: { ui: ["camera_rotate", "camera_tilt"] } },
+        { id: "bought", card: "Buy", until: { beat: "bought" } },
+      ],
+    },
+    { id: "two", title: "Two", steps: [{ id: "go", card: "Go", until: { beat: "arrived" } }] },
+  ],
+};
+const OUTLINE: ScenarioOutline = {
+  chapters: [
+    {
+      id: "one",
+      beats: [
+        { id: "bought", audience: ["blue"] },
+        { id: "secret", audience: ["red"] },
+      ],
+    },
+    { id: "two", beats: [{ id: "arrived", audience: ["blue"] }] },
+  ],
+  zones: {},
+};
+
+const view = (
+  chapter: string | null,
+  beats: string[] = [],
+  signals: UiSignal[] = [],
+  dismissed: string[] = [],
+) =>
+  coachView(DOC, {
+    scenario:
+      chapter === null ? null : { chapter, beats: beats.map((beat) => ({ beat, tick: 1 })) },
+    signals: new Set(signals),
+    dismissed: new Set(dismissed),
+  })?.step.id ?? null;
+
+test("the coach shows the open chapter's first step not yet done", () => {
+  expect(view("one")).toBe("hello");
+  // Continue is the player's; a UI step needs every signal it names.
+  expect(view("one", [], [], ["hello"])).toBe("look");
+  expect(view("one", [], ["camera_rotate"], ["hello"])).toBe("look");
+  expect(view("one", [], ["camera_rotate", "camera_tilt"], ["hello"])).toBe("bought");
+  // A beat step is done by the publication alone.
+  expect(view("one", ["bought"], ["camera_rotate", "camera_tilt"], ["hello"])).toBeNull();
+});
+
+test("a chapter the director closed takes its unfinished steps with it", () => {
+  expect(view("two")).toBe("go");
+  expect(view("two", ["arrived"])).toBeNull();
+  // No scenario, or one past its last chapter: no coach.
+  expect(view(null)).toBeNull();
+  expect(view("after")).toBeNull();
+});
+
+test("a coach that disagrees with its director is refused by step", () => {
+  expect(validateCoach(DOC, OUTLINE, "blue")).toEqual([]);
+  const waitingOnRed: CoachDocument = {
+    ...DOC,
+    chapters: [
+      {
+        ...DOC.chapters[0],
+        steps: [{ id: "x", card: "{key:nowhere}", until: { beat: "secret" } }],
+      },
+      DOC.chapters[1],
+    ],
+  };
+  const problems = validateCoach(waitingOnRed, OUTLINE, "blue");
+  expect(problems.map((p) => p.split(":")[0])).toEqual(["one.x", "one.x"]);
+  expect(validateCoach({ ...DOC, chapters: [DOC.chapters[1]] }, OUTLINE, "blue")).toHaveLength(1);
+});
+
+test("a card names keys from their owners", () => {
+  expect(cardText("press {key:unknown}")).toBe("press {key:unknown}");
+  expect(cardText("press {key:toggle_fire_policy}")).not.toContain("{");
+  expect(cardText("turn {camera:turn}")).not.toContain("{");
+});
+
+/** A scenario document's outline, as the page may know it. */
+const outlineOf = (scenario: {
+  director?: { chapters: { id: string; beats: { id: string; audience?: string[] }[] }[] };
+  zones?: ScenarioOutline["zones"];
+}): ScenarioOutline => ({
+  chapters: (scenario.director?.chapters ?? []).map((c) => ({
+    id: c.id,
+    beats: c.beats.map((b) => ({ id: b.id, audience: b.audience ?? [] })),
+  })),
+  zones: scenario.zones ?? {},
+});
+
+test("every shipped coach fits its scenario's director", () => {
+  const maps = join(import.meta.dirname, "../../fixtures/maps");
+  let checked = 0;
+  for (const map of readdirSync(maps)) {
+    const dir = join(maps, map, "scenarios");
+    if (!existsSync(dir)) continue;
+    for (const file of readdirSync(dir).filter((f) => f.endsWith(".coach.json"))) {
+      const name = file.slice(0, -".coach.json".length);
+      const doc = JSON.parse(readFileSync(join(dir, file), "utf8")) as CoachDocument;
+      const scenario = JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8"));
+      const human = scenario.players.find((p: { controller: string }) => p.controller === "human");
+      expect(validateCoach(doc, outlineOf(scenario), human.side), `${map}/${name}`).toEqual([]);
+      checked++;
+    }
+  }
+  expect(checked).toBeGreaterThan(0);
+});

@@ -1,5 +1,12 @@
 # 09 Coach core
 
+**Status: shipped 2026-11-19.** `web/src/battle/coach/` (`coach.ts`: document,
+validator, `coachView`, `cardText`; `CoachPanel.tsx`), `web/src/battle/input/uiSignals.ts`
+and its emit points, `BattleView`'s `coach` slot, `loadScenarioCoach`, and
+`operation-ferryman.coach.json` for chapters 1–2. Evidence: `web/tests/coach.test.ts`;
+the `scenario-battle` scene (the coach opens, Continue moves it on, a real
+camera pan finishes the pan step). Deviations: [decisions.md](../decisions.md#slice-09).
+
 **Unlocks:** chapters 1–2 coached in the real battle, with a plain text panel.
 The look and the voice come in 10, and the camera tour, marks and highlights in
 11.

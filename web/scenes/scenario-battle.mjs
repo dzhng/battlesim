@@ -40,4 +40,29 @@ export async function run(ctx) {
     JSON.stringify(shown),
   );
   await snapshot(ctx, page, "shop.png");
+  await page.keyboard.press("Escape");
+  await coach(ctx, page);
+}
+
+/** The coach's card: the briefing's first step waits on the player's
+ *  Continue, the next on the camera moving. */
+async function coach(ctx, page) {
+  const card = page.getByRole("complementary", { name: "Coach" });
+  const first = await card.innerText();
+  ctx.check("the coach opens the briefing", first.length > 0, first);
+  await card.getByRole("button", { name: "Continue" }).click();
+  const second = await card.innerText();
+  ctx.check("Continue moves the coach on", second !== first, second);
+  await snapshot(ctx, page, "coach.png");
+  const panStep = await card.textContent();
+  await page.mouse.click(640, 400);
+  await page.keyboard.down("KeyW");
+  await page.waitForTimeout(400);
+  await page.keyboard.up("KeyW");
+  await page.waitForFunction(
+    (before) => document.querySelector("[aria-label=Coach]")?.textContent !== before,
+    panStep,
+    { timeout: 10000 },
+  );
+  ctx.check("panning the camera finishes the pan step", true, await card.innerText());
 }

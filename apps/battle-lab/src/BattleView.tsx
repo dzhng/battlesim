@@ -71,6 +71,7 @@ export function BattleView({
   cameraConfig,
   status,
   menu,
+  coach,
   diagnostics,
   cover,
   onLoadStage,
@@ -112,6 +113,8 @@ export function BattleView({
   status: (session: BattleSession) => ReactNode;
   /** The route's own pause menu items. */
   menu?: (session: BattleSession) => ReactNode;
+  /** An authored scenario's coach, over the battle while it is played. */
+  coach?: (session: BattleSession) => ReactNode;
   /** Route-specific lab probes, merged into the shared ones. */
   diagnostics?: (session: BattleSession) => Record<string, unknown>;
   /** A loading screen shown over the view until the battle is playable. */
@@ -318,6 +321,7 @@ export function BattleView({
           </div>
         )}
         <MenuButton onOpen={() => pause.show(true)} />
+        {input && coach?.(session)}
         {cameraReplay.pilot && (
           <ReplayCameraButton
             following={cameraReplay.following}

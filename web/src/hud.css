@@ -2270,3 +2270,32 @@ html {
     flex-basis: 34px;
   }
 }
+/* The tutorial's coach: one transient instruction card at the left, under
+   the menu's height, in the HUD's own glass and accent. */
+.hud-coach {
+  position: fixed;
+  top: 76px;
+  left: 16px;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hud-coach-chapter {
+  color: rgb(var(--hud-accent));
+  font: 700 10px/1.2 var(--hud-font);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.hud-coach-card {
+  margin: 0;
+  color: rgb(var(--hud-text));
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.hud-coach-continue {
+  align-self: flex-end;
+}

@@ -61,8 +61,8 @@ start, so **Start battle** is the player's own choice.
 | The flags | continue | `c1.objectives` | Camera tour over objectives 1–3 (a reel). |
 | Our road | continue | `c1.entry` | Tour ends on `entry`. |
 | Credits | continue | `c1.credits` | Highlight the wallet. |
-| Buy scouts | beat: recon purchased | `c1.buy_recon` | The shop offers only this chapter's cards. Highlight the shop button, then the card. |
-| Place with facing | ui: placed with facing | `c1.place` | |
+| Buy scouts | ui: shop opened | `c1.buy_recon` | The shop offers only this chapter's cards. Highlight the shop button, then the card. |
+| Place | beat: recon purchased | `c1.place` | A placement is the purchase: the unit drives there once the battle starts. |
 | Buy the squad in its carrier | beat: carrier purchase made | `c1.buy_carrier` | One purchase, two units. |
 | Orders, not units | continue | `c1.orders_not_units` | Highlight the greyed cards. |
 | Start | beat: battle started | `c1.start` | Highlight Start battle. |

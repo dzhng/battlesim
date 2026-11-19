@@ -14,6 +14,9 @@ import { BattleClock } from "../battleStatus";
 import { BattleView } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import { gameCamera } from "../gameCamera";
+import { CoachPanel } from "@web/battle/coach/CoachPanel";
+import type { CoachDocument } from "@web/battle/coach/coach";
+import { loadScenarioCoach } from "@web/maps/browser";
 
 type Stage = PrepareStage | "world" | "renderer";
 const STAGES: (LoadingStage & { id: Stage })[] = [
@@ -42,6 +45,15 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
   const [failure, setFailure] = useState<LoadingFailure | null>(null);
   const { map, name } = scenario;
+  const [coachDoc, setCoachDoc] = useState<CoachDocument | null>(null);
+  useEffect(() => {
+    let live = true;
+    // A scenario without a coach plays without one.
+    void loadScenarioCoach(map, name).then((doc) => live && setCoachDoc(doc));
+    return () => {
+      live = false;
+    };
+  }, [map, name]);
 
   useEffect(() => {
     setMatchLighting({ preset: resolveLighting(DEFAULT_LIGHTING, map), seed: map });
@@ -112,6 +124,9 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
+      coach={({ sim }) =>
+        coachDoc && <CoachPanel doc={coachDoc} scenario={sim.observation?.scenario ?? null} />
+      }
       diagnostics={() => ({
         /** What the preparation worker made: the scenario, the map's
          *  identity and counts, and what each stage cost. */

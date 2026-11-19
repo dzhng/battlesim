@@ -315,3 +315,26 @@ hills session was told what the valley needs.
 - **The zones live only in the scenario document** (agent): the spec's
   ferryman-zones.json asset is deleted, since it had drifted; the valley
   picture keeps the original layout for review.
+
+## Slice 09
+
+- **The page never loads the scenario document** (agent): it holds red's
+  forces. The coach reads only the published progress. The coach-against-
+  director check runs as a test over the shipped files (`web/tests/coach.test.ts`),
+  not at run time, and the page-side outline (C9's `ScenarioPublic`) waits
+  for slice 11's marks, its first runtime reader.
+- **UI signals come from where each act happens** (agent): camera pan, turn,
+  tilt and zoom from the viewport's one camera entry (`steer`, by what the
+  step changed); selection and show-orders from the unit control's state;
+  a move with facing from its one order sender (`issue`); the shop opening
+  from the picker's state; contact focus from the viewport's jump.
+- **Contact focus's key joins the bindings** (`ContactFocusBinding`, N), so the
+  viewport, the Guide and the coach read it from one place (agent; the viewport
+  had it hard-coded).
+- **Placing a purchase sets no facing** (found while writing chapter 1's
+  steps): the drag only turns the ghost, and a purchase carries no facing. The
+  `c1.place` line promised one; it was re-worded ("they drive there from our
+  road") and re-recorded, and the place step now waits on the purchase itself.
+- **`pause` steps wait for slice 11** (agent), with the camera tour they serve.
+- **The coach panel's unprimed critique waits for slice 10's comms look**
+  (agent): this slice's panel is the plain card that slice restyles.

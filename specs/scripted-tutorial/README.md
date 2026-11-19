@@ -21,10 +21,10 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–08 shipped (probes, Guide, directed seats,
+*Status 2026-11-19: slices 00–09 shipped (probes, Guide, directed seats,
 scenario map, scenario document, scenario battle, director, published
-progress, walkthrough with chapters 1–2). Next:
-[slice 09 (coach core)](slices/09-coach-core.md); [12 (restart)](slices/12-chapter-restart.md)
+progress, walkthrough with chapters 1–2, coach core). Next:
+[slice 10 (Lantern's comms panel)](slices/10-lantern-comms.md); [12 (restart)](slices/12-chapter-restart.md)
 does not depend on it.*
 
 Read **Contracts** and **One owner per concept** below before touching code;
@@ -63,7 +63,7 @@ TODO:
 - [x] [06](slices/06-director.md) Director: contract and runtime
 - [x] [07](slices/07-published-progress.md) Director progress published to its audience
 - [x] [08](slices/08-walkthrough.md) Walkthrough harness and chapters 1–2 directed
-- [ ] [09](slices/09-coach-core.md) Coach core: document, derivation, UI signals, plain panel
+- [x] [09](slices/09-coach-core.md) Coach core: document, derivation, UI signals, plain panel
 - [ ] [10](slices/10-lantern-comms.md) Lantern's comms panel and narration through the voice pipeline
 - [ ] [11](slices/11-coach-direction.md) Camera tour, world marks, HUD highlights; Tutorial tile cutover
 - [ ] [12](slices/12-chapter-restart.md) Chapter restart by replay

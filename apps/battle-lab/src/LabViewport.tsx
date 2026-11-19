@@ -39,8 +39,7 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
-import { focusStep, type FocusTarget } from "@web/battle/input/contactFocus";
-import { isGameKey } from "@web/battle/input/keyGuard";
+import { listenContactFocus } from "@web/battle/input/contactFocus";
 import type { Project } from "@web/battle/present/readouts";
 import { highAirCanvas } from "./highAirCanvas";
 import { gameCamera } from "./gameCamera";
@@ -67,6 +66,7 @@ import { pickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { detailScales, testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
 import { ViewportSubmittedView } from "./viewportSubmittedView";
+import { emitCameraMoves } from "@web/battle/input/uiSignals";
 
 const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
@@ -326,27 +326,15 @@ export function LabViewport({
     const steer = (intent: CameraIntent, dt: number) => {
       if (piloted || !inputEnabledRef.current) return;
       const next = controller.step(asked, intent, dt);
-      if (next !== asked) place(next);
+      if (next === asked) return;
+      emitCameraMoves(asked, next);
+      place(next);
     };
-    /** The contact last visited; null before any. */
-    let focused: Pick<FocusTarget, "id" | "evidenceTick"> | null = null;
-    /** Jump to the next (older) or previous (newer) contact; angle and zoom kept. */
-    const jumpToEvidence = (newer: boolean) => {
-      if (piloted || !inputEnabledRef.current) return;
-      const targets = focusTargetsRef.current ?? [];
-      const index = focusStep(targets, focused, newer);
-      const target = index < 0 ? undefined : targets[index];
-      if (!target) return;
-      focused = target;
-      centerOn(target.target);
-    };
-    window.addEventListener(
-      "keydown",
-      (e) => {
-        if (e.code !== "KeyN" || !isGameKey(e)) return;
-        jumpToEvidence(e.shiftKey);
-      },
-      { signal },
+    listenContactFocus(
+      signal,
+      () => focusTargetsRef.current ?? [],
+      () => piloted || !inputEnabledRef.current,
+      centerOn,
     );
     let dirty = true;
 

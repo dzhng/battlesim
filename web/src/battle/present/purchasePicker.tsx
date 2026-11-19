@@ -4,6 +4,7 @@ import { hudIcon } from "@packages/scene-assets/src/icons";
 import type { Vec2 } from "math";
 import { triangle2 } from "math/shapes";
 import { isTypingTarget } from "../input/keyGuard";
+import { emitUiSignal } from "../input/uiSignals";
 import { useSessionCatalog } from "../catalog/context";
 import { Icon } from "./icons";
 import { purchasePanel, type PanelRules } from "./panelRows";
@@ -83,6 +84,9 @@ export function PurchasePicker({
 }: PickerProps) {
   const viewingPlayer = player ?? match.players[0];
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (open) emitUiSignal("shop_opened");
+  }, [open]);
   const [reveal, setReveal] = useState<PurchaseLookup | null>(null);
   const seenLookup = useRef(0);
   const button = useRef<HTMLButtonElement>(null);
