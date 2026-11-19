@@ -1,5 +1,5 @@
 // An authored scenario's battle, opened by its address as the main menu's
-// Tutorial tile will: the scenario map and document prepare under this
+// Tutorial tile does: the scenario map and document prepare under this
 // build's rules, the battle opens in preparation over the player's road in,
 // and the shop offers only what the document offers, a squad only in its
 // offered ride.

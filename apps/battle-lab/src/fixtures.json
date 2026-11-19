@@ -284,7 +284,7 @@
   },
   {
     "id": "scenario-battle",
-    "route": "/battle",
+    "route": "/battle?scenario=ferryman-valley/operation-ferryman",
     "describe": "An authored scenario's battle (?scenario=<map>/<name>): its scenario map and document are prepared under this build's rules, its placed forces stand where the document puts them, its player opens with the credits the document grants, and the shop offers only what the document offers. The scene opens the tutorial's scenario, operation-ferryman on ferryman-valley.",
     "map": null,
     "catalog": "game",
