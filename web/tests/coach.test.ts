@@ -193,3 +193,35 @@ test("a step's line is spoken as it appears, or, if it reacts, as its gate is me
   // A step a closing chapter dropped never had its gate met: no reaction.
   expect(linesBetween(react, after, new Set())).toEqual(["next"]);
 });
+
+test("once every chapter closed, the last chapter's remaining steps stay", () => {
+  // The last chapter ("two") waits on "arrived"; it fired, and the director
+  // closed every chapter, so a step the player has yet to dismiss stays.
+  const closing = {
+    ...DOC,
+    chapters: [
+      DOC.chapters[0],
+      {
+        ...DOC.chapters[1],
+        steps: [...DOC.chapters[1].steps, { id: "bye", card: "Bye", until: "continue" as const }],
+      },
+    ],
+  };
+  const shown = coachView(closing, {
+    scenario: { chapter: null, beats: [{ beat: "arrived", tick: 9 }] },
+    signals: new Set(),
+    dismissed: new Set(),
+  });
+  expect(shown?.step.id).toBe("bye");
+});
+
+test("a card the story has already moved past is done, but an act still waits", () => {
+  // Chapter one's "bought" beat is told: its "hello" card (continue) comes
+  // before it, so a run that starts there skips it; "look" asks for an act.
+  const shown = coachView(DOC, {
+    scenario: { chapter: "one", beats: [{ beat: "bought", tick: 3 }] },
+    signals: new Set(),
+    dismissed: new Set(),
+  });
+  expect(shown?.step.id).toBe("look");
+});

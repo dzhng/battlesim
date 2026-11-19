@@ -17,7 +17,7 @@ use crate::command::Engagement;
 use crate::ids::{Side, Tick, UnitId};
 use crate::observation::SuppressionTier;
 use crate::scenario_document::{CreditGrant, Zone};
-use crate::skirmish::{Phase, PurchaseSpec};
+use crate::skirmish::{MatchResult, Phase, PurchaseSpec};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -99,6 +99,8 @@ pub enum Trigger {
     RadarContact {
         side: Side,
     },
+    /// The match ended so.
+    MatchResult(MatchResult),
     All(Vec<Trigger>),
     Any(Vec<Trigger>),
 }
@@ -201,6 +203,8 @@ pub enum Action {
     },
     /// Say `player` is ready to start; only a directed seat says so.
     Ready { player: String },
+    /// Give `player` back its faction's whole shop.
+    OpenShop { player: String },
 }
 
 /// An order a beat gives, in the scenario's own terms.
@@ -304,6 +308,17 @@ impl Director {
                 }
             }
         }
+        // The story ends where the match does.
+        if let Some(last) = self.chapters.last() {
+            let ends = (last.beats.iter())
+                .any(|b| !b.recovery && matches!(b.when, Trigger::MatchResult(_)));
+            if !ends {
+                return Err(format!(
+                    "director.{}: the last chapter ends on a match result",
+                    last.id
+                ));
+            }
+        }
         Ok(())
     }
 }
@@ -353,7 +368,7 @@ impl Names<'_> {
                     .ok_or("a beat's delay is a time from it".into())
             }
             Trigger::Bought { player, .. } | Trigger::Pending { player, .. } => self.player(player),
-            Trigger::RadarContact { .. } => Ok(()),
+            Trigger::RadarContact { .. } | Trigger::MatchResult(_) => Ok(()),
             Trigger::Units { who, are } => {
                 self.selector(who)?;
                 match are {
@@ -403,7 +418,8 @@ impl Names<'_> {
             }
             Action::Grant { player, .. }
             | Action::Offer { player, .. }
-            | Action::Ready { player } => self.player(player),
+            | Action::Ready { player }
+            | Action::OpenShop { player } => self.player(player),
             Action::Buy { player, at, .. } => {
                 self.player(player)?;
                 self.zone(at)

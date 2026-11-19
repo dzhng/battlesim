@@ -625,3 +625,44 @@ hills session was told what the valley needs.
   the walkthrough fails by beat if one stops working. Only the facts and
   triggers each have a test on test units.
 
+## Slice 17
+
+- **Vocabulary added** (agent): the trigger `match_result`, and the action
+  `open_shop` (the faction's whole shop back). A battle decided this tick runs
+  its director once more, so a beat answers the result on the deciding tick.
+  Nothing ticks after. Tested in `director_facts`.
+- **Admission: the last chapter ends on a match result** (slice 08's named
+  relaxation removed). Every test director gets a closing chapter, and a
+  director that doesn't end there is refused (`director` tests). The
+  walkthrough now stops when the battle ends and asserts the human side
+  won.
+- **Defenders hide off the flags and move on 30 seconds in** (agent): two worn
+  squads, holding fire until they step onto the bridge and the hill. A
+  timer rather than "as blue approaches", because no selector yet names "any
+  blue unit".
+- **Chapter 4's tank halts in the lane** (found when chapter 7's forces
+  renumbered the battle again). A Javelin gunner also carries a rifle, and
+  flips to it whenever the Javelin's shot stops assessing as good, which
+  resets his aim. Against a moving tank behind flickering cover he never
+  fired. The tank now stops 15 s in the team's view before it turns.
+  Found, not fixed: a launcher operator who flips weapons as a sight line
+  flickers never finishes aiming. That belongs to the weapon owner, not
+  this spec.
+- **The last chapter's steps outlast the battle** (agent): once every chapter
+  closed, or the battle ended, the coach keeps the last chapter's steps, so
+  the closing line plays over the result. Its panel moved to its own layer,
+  above the result's scrim and under the pause menu.
+- **A Continue card the story moved past is done** (agent): a Continue step
+  before a step whose beat was told is skipped, as a restarted or resumed run
+  finds it. A step that asks for an act still waits for the act, because
+  beats fire in any order (chapter 2's outpost is seen early).
+- **The dev loop can start on the deciding beat** (agent): a start on the
+  tick that decided the match resumes one tick earlier, which decides it
+  again. The scene shoots the Victory frame this way.
+- **The closing card docks bottom left over the result** (unprimed
+  critique): at the top left it hid the VICTORY title. Once the match ends
+  it loses its Continue, since the report's exit is the way on. The
+  critique's report findings are left to the match report's owner, outside
+  this spec: the winner's score drawn no bigger than the loser's, the event
+  log outweighing the win, and the report's plain button.
+

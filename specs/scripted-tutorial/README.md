@@ -21,9 +21,9 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–16 shipped (through chapter 6, eyes in
-the sky, with the chapters' dev loop), and merged to `staging` as each
-lands. Next: [slice 17 (chapter 7)](slices/17-chapter-7.md). Start a chapter in
+*Status 2026-11-19: slices 00–17 shipped (all seven chapters, through
+Victory, with the chapters' dev loop), and merged to `staging` as each
+lands. Next: [slice 18 (closeout)](slices/18-closeout.md). Start a chapter in
 the browser with `/battle?scenario=ferryman-valley/operation-ferryman&chapter=<id>[&beat=<id>]`.*
 
 Read **Contracts** and **One owner per concept** below before touching code;

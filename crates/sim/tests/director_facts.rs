@@ -28,6 +28,11 @@ fn battle_with(
     for (name, zone) in zones.as_object().unwrap() {
         doc["zones"][name] = zone.clone();
     }
+    let mut chapters = chapters;
+    chapters
+        .as_array_mut()
+        .unwrap()
+        .push(crate::director::closing());
     doc["director"] = json!({ "chapters": chapters });
     // The smoke tank, the supply truck and the helicopter join the roster
     // for the facts about smoke, supply and the air.
@@ -378,4 +383,33 @@ fn a_purchase_is_pending_then_arrives_and_a_helicopter_flies() {
         },
     );
     until(&mut b, "up", 30);
+}
+
+#[test]
+fn a_beat_answers_the_match_result_on_the_tick_it_is_decided() {
+    // A blue squad on each of the three objectives, red's tank holding
+    // fire: total control ends the match, and nothing ticks after.
+    let mut doc = document();
+    for (name, at) in [
+        ("a", [170.0, 120.0]),
+        ("b", [60.0, 160.0]),
+        ("c", [280.0, 60.0]),
+    ] {
+        doc["forces"][name] =
+            json!({"side":"blue","owner":"blue-1","kind":"test_rifle","position":at});
+    }
+    doc["forces"]["tank"]["engagement"] = json!("return_fire_only");
+    doc["director"] = json!({"chapters":[crate::director::closing()]});
+    let mut b = Battle::new(&resolve(doc, rules_with(|_| {})).unwrap(), 9);
+    blue(&mut b, Order::Ready);
+    let limit = b.tick() + 600 * u64::from(b.rules().tick_hz);
+    while !b.finished() {
+        assert!(b.tick() < limit, "blue takes total control");
+        b.step();
+    }
+    assert_eq!(
+        fired(&b, "won"),
+        Some(b.tick()),
+        "the beat answers the deciding tick"
+    );
 }

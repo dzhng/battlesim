@@ -761,6 +761,172 @@
           ]
         }
       ]
+    },
+    {
+      "id": "push",
+      "beats": [
+        {
+          "id": "buy_team_one",
+          "when": {
+            "fired": {
+              "beat": "shop_open"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                },
+                "at": "crossroads"
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_team_two",
+          "when": {
+            "fired": {
+              "beat": "buy_team_one"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                },
+                "at": "crossroads"
+              }
+            }
+          ]
+        },
+        {
+          "id": "go_bridge",
+          "when": {
+            "all": [
+              {
+                "fired": {
+                  "beat": "buy_team_two"
+                }
+              },
+              {
+                "units": {
+                  "who": {
+                    "bought": {
+                      "player": "blue-1",
+                      "variant": "us_m2_bradley_ifv_m2a4"
+                    }
+                  },
+                  "are": {
+                    "in": "crossroads"
+                  }
+                }
+              }
+            ]
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "bridge"
+                }
+              }
+            },
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ah_1z_viper_attack_helicopter"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "bridge"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "let_out_bridge",
+          "when": {
+            "units": {
+              "who": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "us_m2_bradley_ifv_m2a4"
+                }
+              },
+              "are": {
+                "in": "bridge"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": "unload"
+              }
+            }
+          ]
+        },
+        {
+          "id": "go_hill",
+          "when": {
+            "objective": {
+              "id": "bridge",
+              "is": {
+                "owned_by": "blue"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ah_1z_viper_attack_helicopter"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "hill"
+                }
+              }
+            },
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "rifle_squad"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "hill"
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

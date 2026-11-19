@@ -172,19 +172,29 @@ export interface CoachView {
 }
 
 /** The step showing now: the first of the open chapter's steps not yet done,
- *  or none once the chapter's steps are all done or the scenario has ended.
- *  A chapter the director has closed is gone, done or not. */
+ *  or none once the chapter's steps are all done. A chapter the director has
+ *  closed is gone, done or not, except the last: once every chapter closed,
+ *  its steps stay, so the story's closing words outlast the battle. */
 export function coachView(doc: CoachDocument, progress: CoachProgress): CoachView | null {
-  const chapter = doc.chapters.find((c) => c.id === progress.scenario?.chapter);
+  const open = progress.scenario?.chapter;
+  const chapter = open === null ? doc.chapters.at(-1) : doc.chapters.find((c) => c.id === open);
   if (!chapter) return null;
   const told = new Set(progress.scenario?.beats.map((b) => b.beat));
-  const done = (step: CoachStep) =>
+  const beaten = (step: CoachStep) =>
+    typeof step.until === "object" && "beat" in step.until && told.has(step.until.beat);
+  // A Continue step before one whose beat the story already told is behind
+  // it, as a restarted or resumed run finds a card it never showed; a step
+  // that asks for an act still waits for the act, since beats fire in any
+  // order.
+  const behind = chapter.steps.reduce((last, step, at) => (beaten(step) ? at : last), -1);
+  const done = (step: CoachStep, at: number) =>
+    (at < behind && step.until === "continue") ||
     progress.dismissed.has(step.id) ||
-    (step.until !== "continue" &&
-      ("beat" in step.until
-        ? told.has(step.until.beat)
-        : step.until.ui.every((signal) => progress.signals.has(signal))));
-  const index = chapter.steps.findIndex((step) => !done(step));
+    beaten(step) ||
+    (typeof step.until === "object" &&
+      "ui" in step.until &&
+      step.until.ui.every((signal) => progress.signals.has(signal)));
+  const index = chapter.steps.findIndex((step, at) => !done(step, at));
   return index < 0 ? null : { chapter, step: chapter.steps[index], index };
 }
 

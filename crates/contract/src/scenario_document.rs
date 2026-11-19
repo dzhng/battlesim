@@ -207,7 +207,10 @@ impl ScenarioDocument {
                         Action::Buy {
                             player, purchase, ..
                         } => check_purchases(&at, player, std::slice::from_ref(purchase))?,
-                        Action::Grant { .. } | Action::Order { .. } | Action::Ready { .. } => {}
+                        Action::Grant { .. }
+                        | Action::Order { .. }
+                        | Action::Ready { .. }
+                        | Action::OpenShop { .. } => {}
                     }
                 }
             }

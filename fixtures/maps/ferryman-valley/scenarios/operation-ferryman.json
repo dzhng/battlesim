@@ -156,6 +156,40 @@
           "aa_medium": 99
         }
       }
+    },
+    "bridge_guard": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rifle_squad",
+      "position": [
+        800.0,
+        240.0
+      ],
+      "yaw": 1.57,
+      "engagement": "return_fire_only",
+      "condition": {
+        "casualties": 4,
+        "spent": {
+          "rpg_general": 99
+        }
+      }
+    },
+    "hill_guard": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rifle_squad",
+      "position": [
+        150.0,
+        170.0
+      ],
+      "yaw": 1.57,
+      "engagement": "return_fire_only",
+      "condition": {
+        "casualties": 4,
+        "spent": {
+          "rpg_general": 99
+        }
+      }
     }
   },
   "opening_credits": {
@@ -833,7 +867,7 @@
             ]
           },
           {
-            "id": "tank_turns",
+            "id": "tank_halts",
             "when": {
               "units": {
                 "who": {
@@ -842,6 +876,15 @@
                 "are": {
                   "in": "west_lane"
                 }
+              }
+            }
+          },
+          {
+            "id": "tank_turns",
+            "when": {
+              "fired": {
+                "beat": "tank_halts",
+                "after_s": 15
               }
             },
             "then": [
@@ -1380,6 +1423,107 @@
             "when": {
               "destroyed": {
                 "force": "sam"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "push",
+        "beats": [
+          {
+            "id": "shop_open",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "open_shop": {
+                  "player": "blue-1"
+                }
+              }
+            ]
+          },
+          {
+            "id": "defenders_stand",
+            "when": {
+              "fired": {
+                "beat": "shop_open",
+                "after_s": 30
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "bridge_guard"
+                  },
+                  "order": {
+                    "engage": "fire_at_will"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "bridge_guard"
+                  },
+                  "order": {
+                    "move_to": "bridge"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "hill_guard"
+                  },
+                  "order": {
+                    "engage": "fire_at_will"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "hill_guard"
+                  },
+                  "order": {
+                    "move_to": "hill"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "flag_contested",
+            "when": {
+              "any": [
+                {
+                  "objective": {
+                    "id": "bridge",
+                    "is": "contested"
+                  }
+                },
+                {
+                  "objective": {
+                    "id": "hill",
+                    "is": "contested"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "won",
+            "when": {
+              "match_result": {
+                "kind": "winner",
+                "side": "blue"
               }
             },
             "audience": [

@@ -46,6 +46,10 @@ impl Battle {
                 self.pending(player, purchase) || self.owns(player, purchase)
             }
             Trigger::Pending { player, purchase } => self.pending(player, purchase),
+            Trigger::MatchResult(result) => self
+                .skirmish
+                .as_ref()
+                .is_some_and(|s| s.objectives.result == Some(*result)),
             Trigger::RadarContact { side } => self.knowledge[side.index()]
                 .all_contacts()
                 .any(|c| c.source == contract::observation::ContactSource::Radar),
@@ -369,6 +373,13 @@ impl Battle {
                 self.order_for(run, beat, &player, order);
             }
             Action::Ready { player } => self.order_for(run, beat, &player, Order::Ready),
+            Action::OpenShop { player } => {
+                if let Some(skirmish) = &mut self.skirmish {
+                    if let Some(index) = skirmish.player_index(&player) {
+                        skirmish.open_shop(index);
+                    }
+                }
+            }
             Action::Offer { player, purchases } => {
                 let offers: Vec<_> = purchases.iter().filter_map(|p| self.offered(p)).collect();
                 if let Some(skirmish) = &mut self.skirmish {

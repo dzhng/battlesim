@@ -680,6 +680,54 @@
           "card": "Select the Growler and right-click inside the radar contact. Its missiles ride the radar's beam down."
         }
       ]
+    },
+    {
+      "id": "push",
+      "title": "The push",
+      "steps": [
+        {
+          "id": "take",
+          "line": "c7.push",
+          "until": "continue",
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Take the bridge (flag 2) and the hill (flag 3). The shop is open again: buy what you need for it."
+        },
+        {
+          "id": "fighting",
+          "line": "c7.contested",
+          "reacts": true,
+          "until": {
+            "beat": "flag_contested"
+          },
+          "card": "Push into the flags. A flag held by nobody turns to whoever stands in its ring alone."
+        },
+        {
+          "id": "score",
+          "line": "c7.score",
+          "until": "continue",
+          "highlight": [
+            "score"
+          ],
+          "card": "Your score fills the bar from the left, theirs from the right; the first to the middle wins. Holding every flag at once wins outright."
+        },
+        {
+          "id": "victory",
+          "line": "c7.victory",
+          "reacts": true,
+          "until": {
+            "beat": "won"
+          },
+          "card": "Take every flag and hold them all at once."
+        },
+        {
+          "id": "guide",
+          "line": "c7.guide",
+          "until": "continue",
+          "card": "The Guide is in the menu: press Esc any time to look something up."
+        }
+      ]
     }
   ]
 }
