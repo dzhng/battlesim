@@ -157,8 +157,15 @@ result as it lands, polling briefly, and keep test renders small.
   close-ups, at the tier the player sees.
 - **Fetching references.** Wikimedia refuses clients without a descriptive
   user agent, and serves its SVG drawings as PNG renders on request.
-- **Silent budgets.** Triangles add up against the catalog's load limit. A
+- **Silent budgets.** Every unit class has a triangle budget per tier
+  (`UNIT_ART` in the scene-assets `unitArt.ts`), and textures add up against
+  the catalog's load limit. Give a body script's author (Argon) its class's
+  budget, and simplify a model that goes over rather than raising it. A
   failed commit hook can leave LFS files as pointers.
+- **Invisible bevels cost the most triangles.** A rounded bevel a few
+  millimetres wide shows at no zoom, but on hundreds of small boxes (slats,
+  bolts, grille bars) it can be a third of a model. The tell is one part,
+  made of many identical small pieces, outweighing the hull.
 - **A shape pushed after the build reads as an add-on.** A post-step that
   moves vertices toward a target (sweeping a front back to a line) flattens
   what it clamps, and the result reads as a box with something stuck on it.

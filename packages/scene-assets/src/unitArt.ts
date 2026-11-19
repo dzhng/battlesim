@@ -56,8 +56,8 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
     bundle_bytes: 24 * 1024 * 1024,
     textures: 48,
   },
+  // Its tier_triangles are `default`'s.
   tracked_heavy: {
-    tier_triangles: [95000, 40000, 16000, 5000],
     bundle_bytes: 48_000_000,
     textures: 64,
   },
