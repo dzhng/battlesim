@@ -1553,6 +1553,14 @@
       "kick": {"hull": 0, "soldier": 1},
       "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 1.9, "far_m": 900}, "blast": {"gain": 2.3, "far_m": 900}, "flight": {"gain": 0.52}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.24}
     },
+    "sam_heavy": {
+      "tracer": {"zoom_boost": 2, "tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 14, "width_m": 0.5, "min_px": 6}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 24, "width_m": 0.12, "min_px": 3, "share": 0.4}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 8, "radius_m": 10}, "smoke": {"albedo": [0.86, 0.86, 0.87], "ribbon": 0.5, "opacity": 0.3, "size_m": [0.55, 3.2], "life_s": 8, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 0.9}},
+      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 38, "size_m": 0.35, "tongue_m": 0.8, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 9, "radius_m": 7, "duration_s": 0.08, "forward_m": 0.3}},
+      "impact": {"scale": 1.2, "surfaces": {}},
+      "blast": 1,
+      "kick": {"hull": 0, "soldier": 1},
+      "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 2.1, "far_m": 1000}, "blast": {"gain": 2.5, "far_m": 1000}, "flight": {"gain": 0.6}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.5}
+    },
     "bomb": {
       "tracer": {"zoom_boost": 2, "tail_s": 0.06, "tail_m": [2, 40], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 8, "width_m": 0.4, "min_px": 5}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 20, "width_m": 0.1, "min_px": 2.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}, "smoke": {"albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1}},
       "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
