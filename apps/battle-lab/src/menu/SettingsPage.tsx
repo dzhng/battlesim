@@ -23,10 +23,28 @@ export function SettingsPage() {
       <DiagnosticsControls />
       <details>
         <summary>Asset credits</summary>
-        {[birdCredits[0], ...h1Credits, ...nh90Credits, ...hindCredits, ...hipCredits, ...apacheCredits, ...blackHawkCredits, ...z20Credits, ...havocCredits, tigerCredits[0]].map((model) => (
+        {[
+          birdCredits[0],
+          ...h1Credits,
+          ...nh90Credits,
+          ...hindCredits,
+          ...hipCredits,
+          ...apacheCredits,
+          ...blackHawkCredits,
+          ...z20Credits,
+          ...havocCredits,
+          tigerCredits[0],
+        ].map((model) => (
           <p key={model.glb}>
-            <a href={model.source}>{model.title}</a> by {model.creator}.{" "}
-            <a href={model.license_url}>{model.license}</a>. {model.adaptation}
+            {/* Credits leave the game, so they open beside it. */}
+            <a href={model.source} target="_blank" rel="noreferrer">
+              {model.title}
+            </a>{" "}
+            by {model.creator}.{" "}
+            <a href={model.license_url} target="_blank" rel="noreferrer">
+              {model.license}
+            </a>
+            . {model.adaptation}
           </p>
         ))}
       </details>
