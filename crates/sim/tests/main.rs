@@ -61,6 +61,7 @@ mod hull_guns;
 mod junction_turns;
 mod kerbside;
 mod launch_clearance;
+mod launcher_operators;
 mod lean;
 mod maps;
 mod move_admission;

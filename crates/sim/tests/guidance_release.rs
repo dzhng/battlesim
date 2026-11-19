@@ -8,7 +8,8 @@ use serde_json::json;
 use sim::battle::Battle;
 
 use crate::common::{self, Commander};
-use crate::guidance::{ambush, horizontal, missile, move_to, own, until_launch};
+use crate::guidance::{ambush, missile, move_to, own, until_launch};
+use crate::launcher_operators::horizontal;
 
 #[test]
 fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {

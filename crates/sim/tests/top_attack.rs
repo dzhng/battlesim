@@ -6,7 +6,8 @@
 
 use crate::common as c;
 use crate::common::*;
-use crate::guidance::{horizontal, missile, move_to, own, quick, until_launch};
+use crate::guidance::{missile, move_to, own, quick, until_launch};
+use crate::launcher_operators::horizontal;
 use contract::ballistics::{TopAttack, WeaponBallistics};
 use contract::ids::Side;
 use contract::random::Rng;
