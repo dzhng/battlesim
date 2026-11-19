@@ -25,6 +25,12 @@ produces commands, and [presentation](src/battle/present/) reads admitted observ
 through Rust's one admission path. Their listing policy, saved-map identity and
 categories are explained in [fixtures](../fixtures/README.md#saved-maps).
 
+[The coach](src/battle/coach/) teaches an authored scenario as it is played: a
+pure function of the side's published progress (`coachView`), the UI acts the
+player made, and what they dismissed, so a restart re-derives it. The page's
+input owners emit those acts on one bus ([UI signals](src/battle/input/uiSignals.ts));
+the simulation never sees them.
+
 The [benchmark](src/battle/benchmark/README.md) measures the actual simulation and
 renderer with a declared workload and camera tour. A route selection or successful
 startup alone does not prove its performance budget.

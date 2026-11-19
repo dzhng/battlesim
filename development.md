@@ -144,7 +144,12 @@ the one list of deliberate hard-coded rules:
   decides; human identity and once-per-person grants belong to the server;
 - the skirmish AI and the scripted encounter defender choose their behaviour by
   role tags (logistics, artillery, recon, AT, MBT). They are opponents'
-  playbooks, not rules of the battle.
+  playbooks, not rules of the battle. A directed AI seat decides nothing: an
+  authored scenario's director moves its units, and they fight at their own
+  engagement;
+- a beat a director fires is authored story, not physics: it triggers on what
+  the battle knows and acts through the battle's own owners (an order, a grant,
+  an offer), never by placing or removing a unit.
 
 ## Check ladder
 

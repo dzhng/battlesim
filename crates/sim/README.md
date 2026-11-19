@@ -68,7 +68,9 @@ in forest.
 Sight into ground, low air and high air is authored independently on each unit.
 [Sensors](../contract/src/catalog/sensors.rs) owns the band lookup; zero air reach
 means blind. Radar emission is an independent signature read by receivers and
-anti-radiation weapons, with no sight override or body-based range table.
+anti-radiation weapons, with no sight override or body-based range table. An
+anti-radiation seeker fired into a radar contact homes on the radar behind it
+while that radar lives; any other round aimed at the contact aims at its area.
 Radar refreshes renew one opaque area per emitter. They update the bearing,
 range and evidence lifetime while retaining the sampled area centre until the
 emitter leaves that area, so a stationary report does not jump on each tick.
@@ -166,7 +168,18 @@ units are, what a side knows, the phase) while its chapter is open, and acting
 through the battle's own owners: an order to a `DirectedAi` seat's units through
 the same path fixed scripts use (`apply_authored_order`, unrecorded since a
 replay reruns the director), a grant into a wallet, an offer into a shop. It runs
-before orders apply each tick, and its state is in the digest.
+before orders apply each tick, and once more on the tick the match is decided,
+so a beat can answer the result; its state is in the digest. A chapter closes
+when its beats have fired, except a recovery beat, which answers trouble only if
+it comes; the last chapter ends on the match's result.
+
+A recorded battle resumes at a tick (`Battle::resume`): its replay, cut there,
+replays with nothing published, and the battle goes on live, its record
+continuing from the prefix. It refuses when an active AI played before the tick
+(its memory is not in the digest) or the battle had ended. A scenario's chapter
+restart resumes the playing battle at the chapter's opening, and the chapters'
+dev loop starts a solved scenario where a chapter opens or a beat fires
+(`Battle::chapter_start`), with its human-capable seats handed back.
 
 [The skirmish AI](src/skirmish_ai/) plays one player from its side's
 observation, and everything it decides is an ordinary command. A unit of its
