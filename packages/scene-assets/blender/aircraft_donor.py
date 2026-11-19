@@ -50,7 +50,7 @@ def fitted_airframe(v, family, mats, skip_parts=()):
             removed = []
             for face in mesh.faces:
                 centre = face.calc_center_median()
-                if -3.25 < centre.x < -0.78 and centre.z < 1.82 and abs(centre.y) < 2.05:
+                if -3.25 < centre.x < 0.50 and centre.z < 1.82 and abs(centre.y) < 2.05:
                     removed.append(face)
             if removed:
                 bmesh.ops.delete(mesh, geom=removed, context='FACES')
