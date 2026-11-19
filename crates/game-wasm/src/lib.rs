@@ -628,8 +628,7 @@ impl BattleHandle {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         sim::admit(&setup.rules).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle =
-            Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
+        let battle = Battle::from_replay(&setup, &replay).map_err(js_error)?;
         Ok(BattleHandle {
             battle,
             publishers: Publishers::new(),
@@ -646,8 +645,7 @@ impl BattleHandle {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         sim::admit(&setup.rules).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle = Battle::resume(&setup, &replay, tick as u64)
-            .map_err(|e| JsError::new(&e.to_string()))?;
+        let battle = Battle::resume(&setup, &replay, tick as u64).map_err(js_error)?;
         Ok(BattleHandle {
             battle,
             publishers: Publishers::new(),

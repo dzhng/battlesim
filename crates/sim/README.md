@@ -165,13 +165,18 @@ otherwise, and published so the shop shows only those). Its
 [director](src/director.rs) is the scenario's rules of progression: chapters of
 beats, each firing once when its trigger holds on authoritative facts (where
 units are, what a side knows, the phase) while its chapter is open, and acting
-through the battle's own owners: an order to a `DirectedAi` seat's units through
-the same path fixed scripts use (`apply_authored_order`, unrecorded since a
-replay reruns the director), a grant into a wallet, an offer into a shop. It runs
+through the battle's own owners: a `DirectedAi` seat's orders and purchases
+through the paths a player's take (orders by `apply_authored_order`, the path
+fixed scripts use, unrecorded since a replay reruns the director), a grant into
+a wallet, an offer into a shop or the whole shop back. It runs
 before orders apply each tick, and once more on the tick the match is decided,
 so a beat can answer the result; its state is in the digest. A chapter closes
 when its beats have fired, except a recovery beat, which answers trouble only if
-it comes; the last chapter ends on the match's result.
+it comes, and a solution's beat; the last chapter ends on the match's result.
+Every side is told which chapter is open; a beat is published, with the tick it
+fired, only to the sides in its `audience`, and the publication's layout names
+chapters and beats, so the page never spells an id. A replay is pinned to its
+director, so an edited story refuses an old record.
 
 A recorded battle resumes at a tick (`Battle::resume`): its replay, cut there,
 replays with nothing published, and the battle goes on live, its record
@@ -296,11 +301,12 @@ A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
 never game content), loaded by `fixtures::test_rules`, and adds a fake unit when
 it needs a shape they lack; it never names or walks the faction roster, which
 grows every day. The rules fixture carries no ground: a test that needs a map
-asks for a saved `test` map by name (`fixtures::with_map`, which refuses a
-`capture` map), builds an analytic one, or generates one from a seed. An analytic map's
+asks for a saved `test` map by name (`fixtures::with_map`, which refuses any
+other category), builds an analytic one, or generates one from a seed. An analytic map's
 buildings come from the generator's one template catalogue, so a test garrisons,
 shells and walks round the buildings a battle places. A test that needs the roster says why (the roster's own
-resolution, a roster model's fit, the menu reel).
+resolution, a roster model's fit, the menu reel, a shipped scenario played or
+placed by its own document).
 What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
 checks), so loading it is its check.

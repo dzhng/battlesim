@@ -1,5 +1,6 @@
 //! Every shipped scenario with a solution, played by it to its end: each
-//! chapter opens in turn, every beat but a recovery fires, the human side
+//! chapter opens in turn, every story beat but a recovery fires (the
+//! solution's own beats are its means, not the story), the human side
 //! wins, no order the solution or the director gives is refused, and the
 //! replay is the battle. Then its latest chapter restarts, resumed from that
 //! replay, and its beats fire again. It names no scenario and pins nothing
@@ -50,10 +51,10 @@ fn every_scenario_plays_through_by_its_solution() {
                 .iter()
                 .flat_map(|c| {
                     // A recovery beat answers trouble the solution avoids.
-                    (c.beats.iter().filter(|b| !b.recovery))
+                    (c.beats.iter())
+                        .filter(|b| !b.recovery && run.fired_at(&b.id).is_none())
                         .map(move |b| format!("{}.{}", c.id, b.id))
                 })
-                .filter(|at| run.fired_at(at.split('.').nth(1).unwrap()).is_none())
                 .collect();
             assert!(
                 unfired.is_empty(),

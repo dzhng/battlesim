@@ -104,8 +104,8 @@ impl PreparedWorld {
     ) -> Result<BattleHandle, JsError> {
         let setup = self.scenario(scenario_json)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle = Battle::from_prepared_replay(&setup, &replay, self.prepared)
-            .map_err(|e| JsError::new(&e.to_string()))?;
+        let battle =
+            Battle::from_prepared_replay(&setup, &replay, self.prepared).map_err(js_error)?;
         Ok(BattleHandle {
             battle,
             publishers: Publishers::new(),
@@ -123,7 +123,7 @@ impl PreparedWorld {
         let setup = self.scenario(scenario_json)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
         let battle = Battle::resume_prepared(&setup, &replay, tick as u64, self.prepared)
-            .map_err(|e| JsError::new(&e.to_string()))?;
+            .map_err(js_error)?;
         Ok(BattleHandle {
             battle,
             publishers: Publishers::new(),

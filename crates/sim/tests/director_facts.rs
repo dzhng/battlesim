@@ -11,17 +11,19 @@ use sim::battle::Battle;
 
 /// The sample scenario with `forces` added and `chapters` as its director.
 fn battle(forces: Value, zones: Value, chapters: Value) -> Battle {
-    battle_with(forces, zones, chapters, |_| {})
+    battle_with(forces, zones, chapters, |_| {}, |_| {})
 }
 
-/// `battle`, with the test rules patched first.
+/// `battle`, with the scenario document and the test rules patched first.
 fn battle_with(
     forces: Value,
     zones: Value,
     chapters: Value,
+    patch_document: impl FnOnce(&mut Value),
     patch: impl FnOnce(&mut Value),
 ) -> Battle {
     let mut doc = document();
+    patch_document(&mut doc);
     for (name, force) in forces.as_object().unwrap() {
         doc["forces"][name] = force.clone();
     }
@@ -283,17 +285,20 @@ fn a_deployed_truck_services_a_worn_squad_and_fire_on_ground_is_ordered() {
 
 #[test]
 fn a_top_up_grant_adds_only_the_shortfall() {
-    let grant = |to_cover: bool| {
-        let credits = if to_cover {
-            json!({"to_cover":[{"variant":"test_rifle"}]})
-        } else {
-            json!({"covering":[{"variant":"test_rifle"}]})
-        };
-        let mut b = battle(
+    // The wallet after a grant, from an opening wallet of `opening` credits
+    // (the scenario's own when none).
+    let grant = |credits: Value, opening: Option<u64>| {
+        let mut b = battle_with(
             json!({}),
             json!({}),
             json!([{"id":"one","beats":[{"id":"grant","when":"chapter_opens",
                 "then":[{"grant":{"player":"blue-1","credits":credits}}]}]}]),
+            |doc| {
+                if let Some(opening) = opening {
+                    doc["opening_credits"]["blue-1"] = json!({ "exactly": opening });
+                }
+            },
+            |_| {},
         );
         let wallet =
             |b: &Battle| b.observe(Side::Blue).skirmish.as_ref().unwrap().players[0].credits;
@@ -301,14 +306,53 @@ fn a_top_up_grant_adds_only_the_shortfall() {
         until(&mut b, "grant", 1);
         (before, wallet(&b))
     };
-    // The opening wallet already covers a rifle squad and its ride.
-    let (before, covered) = grant(false);
+    let rifle = || json!([{"variant":"test_rifle"}]);
+    // The scenario's opening wallet already covers a rifle squad.
+    let (before, covered) = grant(json!({ "covering": rifle() }), None);
     assert!(covered > before, "covering adds the price");
-    let (before, topped) = grant(true);
+    let (before, topped) = grant(json!({ "to_cover": rifle() }), None);
     assert_eq!(
         topped, before,
         "a wallet that already covers it gets nothing"
     );
+    // An empty wallet is topped up by the whole price.
+    let (_, from_empty) = grant(json!({ "covering": rifle() }), Some(0));
+    let (empty, topped) = grant(json!({ "to_cover": rifle() }), Some(0));
+    assert_eq!(empty, 0.0);
+    assert_eq!(topped, from_empty, "a short wallet gets the shortfall");
+}
+
+#[test]
+fn a_unit_withdrawn_is_not_destroyed() {
+    // The player sends the rifles home; a loss would be answered, and the
+    // chapter stays open on a beat that never fires.
+    let mut b = battle(
+        json!({"rifles": {"side":"blue","owner":"blue-1","kind":"test_rifle","position":[60.0,60.0],
+                          "engagement":"return_fire_only"},
+               "tank": {"side":"red","owner":"red-1","kind":"test_tank","position":[260.0,180.0],
+                        "yaw":3.0,"engagement":"return_fire_only"}}),
+        json!({}),
+        json!([{"id":"one","beats":[
+            {"id":"never","when":{"objective":{"id":"west","is":{"owned_by":"red"}}}},
+            {"id":"lost","recovery":true,"when":{"destroyed":{"force":"rifles"}}}
+        ]}]),
+    );
+    let rifles = |b: &Battle| b.observe(Side::Blue).own.iter().any(|u| u.id == UnitId(0));
+    blue(
+        &mut b,
+        Order::Refund {
+            units: vec![UnitId(0)],
+        },
+    );
+    let limit = b.tick() + u64::from(120 * b.rules().tick_hz);
+    while rifles(&b) {
+        assert!(b.tick() < limit, "the rifles never left");
+        b.step();
+    }
+    for _ in 0..b.rules().tick_hz {
+        b.step();
+    }
+    assert_eq!(fired(&b, "lost"), None, "leaving the battle is no loss");
 }
 
 #[test]
@@ -321,6 +365,7 @@ fn a_radar_contact_is_the_finding_sides_alone() {
             {"id":"blue_finds","when":{"radar_contact":{"side":"blue"}}},
             {"id":"red_finds","recovery":true,"when":{"radar_contact":{"side":"red"}}}
         ]}]),
+        |_| {},
         |fixture| {
             sim::fixtures::patch_catalog(
                 fixture,

@@ -65,26 +65,33 @@ fn a_directed_seat_takes_no_client_orders() {
 }
 
 #[test]
-fn a_directed_seat_never_holds_preparation_open() {
-    let mut setup = transport_skirmish_setup();
-    let skirmish = setup.skirmish.as_mut().unwrap();
-    skirmish.rules.preparation_s = 600;
-    setup.players[1].controller = ControllerKind::DirectedAi;
-    let mut battle = Battle::new(&setup, 53);
-    assert!(battle
-        .accept(side_command(Side::Blue, 1, Order::Ready))
-        .error
-        .is_none());
-    battle.step();
-    battle.step();
-    let phase = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .map(|view| view.phase);
+fn a_directed_seat_no_person_may_take_never_holds_preparation_open() {
+    // Red is directed; `human_capable` says whether a person could take it.
+    let phase_after_blue_readies = |red_human_capable: bool| {
+        let mut setup = transport_skirmish_setup();
+        let skirmish = setup.skirmish.as_mut().unwrap();
+        skirmish.rules.preparation_s = 600;
+        setup.players[1].controller = ControllerKind::DirectedAi;
+        setup.players[1].human_capable = red_human_capable;
+        let mut battle = Battle::new(&setup, 53);
+        assert!(battle
+            .accept(side_command(Side::Blue, 1, Order::Ready))
+            .error
+            .is_none());
+        battle.step();
+        battle.step();
+        battle
+            .observe(Side::Blue)
+            .skirmish
+            .as_ref()
+            .map(|view| view.phase)
+    };
     assert_eq!(
-        phase,
+        phase_after_blue_readies(false),
         Some(Phase::Active),
         "the human's ready starts the battle long before the countdown"
     );
+    // A person's seat the director plays (a solution) says ready itself,
+    // as the person would.
+    assert_eq!(phase_after_blue_readies(true), Some(Phase::Preparation));
 }

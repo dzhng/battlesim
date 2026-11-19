@@ -27,8 +27,9 @@ it overrides no rule.
 [Players](src/players.rs) are the one player list a scenario, skirmish and
 preparation request share: a player's id is its identity in authoring, links
 and commands, while its place in the list, `PlayerIndex`, is what digests and
-publications carry. One validator admits every list; an authored scenario may
-seat a Neutral player, a skirmish only combatants with one faction a side.
+publications carry. One validator admits every list; a scenario-builder bundle may
+seat a Neutral player, while a skirmish (an authored scenario is one) seats only
+combatants with one faction a side.
 [The size rule](src/skirmish_sizes.rs) is the one reader of the authored
 skirmish sizes: how many players a side seats decides the smallest map and
 the roads each side enters by.

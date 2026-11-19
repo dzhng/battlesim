@@ -174,6 +174,15 @@ fn a_director_naming_what_its_scenario_lacks_is_refused_by_beat() {
         {"grant":{"player":"nobody","credits":{"exactly":1}}}]}]}])
     )
     .contains("nobody"));
+    // A unit type is a card its player buys, wherever the story names one.
+    assert!(refused(beat(
+        json!({"units":{"who":{"bought":{"player":"blue-1","variant":"no_such_card"}},"are":"arrived"}})
+    ))
+    .contains("no_such_card"));
+    assert!(refused(beat(
+        json!({"pending":{"player":"blue-1","purchase":{"variant":"test_tank"}}})
+    ))
+    .contains("test_tank"));
     // The story ends where the match does.
     let mut doc = document();
     doc["director"] = json!({"chapters":[{"id":"c","beats":[{"id":"b","when":"chapter_opens"}]}]});
@@ -224,4 +233,50 @@ fn a_beat_is_published_by_name_only_to_its_audience() {
     // A battle with no director publishes no scenario.
     let plain = Battle::new(&resolve(document(), rules_with(|_| {})).unwrap(), 7);
     assert!(read_back(&plain, Side::Blue)["scenario"].is_null());
+}
+
+#[test]
+fn a_solutions_beats_never_hold_a_chapter_open() {
+    // The solution's part waits on something that never comes; the story's
+    // own beat is enough to move on, as when a person plays the seat.
+    let doc = directed(json!([
+        {"id":"one","beats":[{"id":"opens","when":"chapter_opens"}]},
+        {"id":"two","beats":[{"id":"next","when":"chapter_opens"}]}
+    ]));
+    let solution = serde_json::from_value(json!({"max_minutes": 1.0, "chapters": [
+        {"id":"one","beats":[{"id":"play","when":{"objective":{"id":"west","is":{"owned_by":"red"}}}}]}
+    ]}))
+    .unwrap();
+    let document: contract::scenario_document::ScenarioDocument =
+        serde_json::from_value(doc).unwrap();
+    let solved = document.with_solution(solution).unwrap();
+    let map = sim::maps::load("geometry").unwrap().definition;
+    let setup = solved
+        .on(map, rules_with(|_| {}), &sim::skirmish::starter_rules())
+        .unwrap();
+    let mut b = Battle::new(&setup, 7);
+    for _ in 0..3 {
+        b.step();
+    }
+    assert!(fired(&b, "next").is_some(), "chapter two opened");
+    assert_eq!(fired(&b, "play"), None);
+}
+
+#[test]
+fn a_replay_plays_only_the_story_it_was_recorded_with() {
+    let story = |beat: &str| {
+        resolve(
+            directed(json!([{"id":"one","beats":[{"id":beat,"when":"chapter_opens"}]}])),
+            rules_with(|_| {}),
+        )
+        .unwrap()
+    };
+    let mut b = Battle::new(&story("told"), 7);
+    b.step();
+    let replay = b.replay();
+    assert!(Battle::from_replay(&story("told"), &replay).is_ok());
+    assert!(
+        Battle::from_replay(&story("retold"), &replay).is_err(),
+        "an edited story is another battle"
+    );
 }

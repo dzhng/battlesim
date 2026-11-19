@@ -117,9 +117,7 @@ impl Battle {
         {
             battle.apply_controller(&transition);
         }
-        if !cut.controller_transitions.is_empty() {
-            battle.controller_transitions = cut.controller_transitions;
-        }
+        battle.controller_transitions = cut.controller_transitions;
         battle.script_trace = cut.script_trace;
         battle.replay_script_trace.clear();
         Ok(battle)
@@ -135,24 +133,30 @@ fn remembering_ai(setup: &ScenarioDefinition, replay: &Replay, tick: Tick) -> Op
     if setup.opponent.is_some() {
         return Some("the opponent".to_owned());
     }
-    // A replay without transitions (an older record) names its controllers
-    // once, for the whole battle.
-    let legacy = replay.controller_transitions.is_empty();
-    let initial = setup.players.iter().map(|p| (&p.id, &p.controller)).chain(
-        replay
-            .controllers
-            .iter()
-            .filter(|_| legacy)
-            .map(|(id, c)| (id, c)),
-    );
-    let changed = replay
-        .controller_transitions
-        .iter()
-        .filter(|t| t.tick < tick)
-        .map(|t| (&t.player, &t.controller));
-    initial
-        .chain(changed)
-        .find(|(_, controller)| **controller == ControllerKind::ActiveAi)
+    // Each seat's controller and the tick it took over. A record with no
+    // controller changes (a battle without a skirmish, or nobody changed)
+    // names its controllers once, for the whole battle.
+    let mut seats: BTreeMap<&String, (&ControllerKind, Tick)> = (setup.players.iter())
+        .map(|p| (&p.id, (&p.controller, 0)))
+        .collect();
+    if replay.controller_transitions.is_empty() {
+        seats.extend(replay.controllers.iter().map(|(id, c)| (id, (c, 0))));
+    }
+    // An active AI played if it held a seat through a tick before `tick`; a
+    // change takes effect before its tick runs.
+    let played = |(controller, since): (&ControllerKind, Tick), until: Tick| {
+        *controller == ControllerKind::ActiveAi && since < until
+    };
+    for change in (replay.controller_transitions.iter()).filter(|t| t.tick < tick) {
+        if let Some(&held) = seats.get(&change.player) {
+            if played(held, change.tick) {
+                return Some(change.player.clone());
+            }
+        }
+        seats.insert(&change.player, (&change.controller, change.tick));
+    }
+    (seats.into_iter())
+        .find(|&(_, held)| played(held, tick))
         .map(|(player, _)| player.clone())
 }
 

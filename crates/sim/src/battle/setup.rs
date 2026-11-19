@@ -188,15 +188,14 @@ impl Battle {
         if let Some(skirmish) = battle.skirmish.as_mut() {
             // A scenario's narrowed shops, by unit type (its resolver checked
             // every name is a card its player's faction buys).
-            let kind = |id: &str| battle.rules.catalog.index(id).expect("an admitted card");
             for (player, offered) in &skirmish.setup.offered.clone() {
                 let index = skirmish.player_index(player).expect("an admitted player");
                 skirmish.offers[index] = Some(
                     offered
                         .iter()
-                        .map(|o| contract::skirmish::OfferedPurchase {
-                            kind: kind(&o.variant),
-                            carrier: o.carrier.as_deref().map(kind),
+                        .map(|o| {
+                            contract::skirmish::OfferedPurchase::of(&battle.rules.catalog, o)
+                                .expect("an admitted card")
                         })
                         .collect(),
                 );

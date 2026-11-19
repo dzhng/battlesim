@@ -60,35 +60,21 @@ impl MatchRules {
         patch: &serde_json::Map<String, serde_json::Value>,
     ) -> Result<MatchRules, String> {
         let mut document = serde_json::to_value(self).map_err(|e| e.to_string())?;
-        let fields = document
-            .as_object_mut()
-            .expect("match rules serialize as an object");
-        for (key, value) in patch {
-            // Optional rules are left out when unset, so the struct's own
-            // field list, not the serialized one, says what may be patched.
-            if !MATCH_RULE_FIELDS.contains(&key.as_str()) {
-                return Err(format!("{key}: not a match rule"));
+        // A key the rules lack is refused by name when they are read back;
+        // an optional rule left out of the base may still be patched in.
+        (document.as_object_mut())
+            .expect("match rules serialize as an object")
+            .extend(patch.clone());
+        serde_json::from_value(document).map_err(|e| {
+            // The refusal of a key the rules lack starts with that key.
+            let e = e.to_string();
+            match (patch.keys()).find(|key| e.contains(&format!("unknown field `{key}`"))) {
+                Some(key) => format!("{key}: {e}"),
+                None => e,
             }
-            fields.insert(key.clone(), value.clone());
-        }
-        serde_json::from_value(document).map_err(|e| e.to_string())
+        })
     }
 }
-
-/// Every field of [`MatchRules`], in its declaration order.
-const MATCH_RULE_FIELDS: [&str; 11] = [
-    "credits_per_minute",
-    "starting_minutes",
-    "preparation_s",
-    "max_units",
-    "dispatch_interval_s",
-    "capture_s",
-    "majority_s",
-    "victory_score",
-    "all_objectives_victory",
-    "max_players_per_side",
-    "upkeep",
-];
 
 fn all_objectives_victory() -> bool {
     true
@@ -279,6 +265,19 @@ pub struct OfferedPurchase {
     pub kind: TypeIndex,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carrier: Option<TypeIndex>,
+}
+
+impl OfferedPurchase {
+    /// `purchase` by unit type in `catalog`, if both its names are types.
+    pub fn of(catalog: &crate::catalog::Catalog, purchase: &PurchaseSpec) -> Option<Self> {
+        Some(Self {
+            kind: catalog.index(&purchase.variant)?,
+            carrier: match &purchase.carrier {
+                Some(carrier) => Some(catalog.index(carrier)?),
+                None => None,
+            },
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -7,7 +7,7 @@ use super::*;
 use contract::director::{
     Action, DirectedOrder, Host, ObjectiveState, OrderFact, Selector, Trigger, UnitFact,
 };
-use contract::observation::SuppressionTier;
+use contract::observation::{ContactSource, SuppressionTier};
 use contract::scenario_document::{credits_covering, CreditGrant};
 use contract::skirmish::{OfferedPurchase, PurchaseSpec};
 
@@ -52,7 +52,7 @@ impl Battle {
                 .is_some_and(|s| s.objectives.result == Some(*result)),
             Trigger::RadarContact { side } => self.knowledge[side.index()]
                 .all_contacts()
-                .any(|c| c.source == contract::observation::ContactSource::Radar),
+                .any(|c| c.source == ContactSource::Radar),
             Trigger::Units { who, are } => {
                 self.selected(run, who).any(|unit| self.is(run, unit, are))
             }
@@ -63,10 +63,9 @@ impl Battle {
             }
             Trigger::ContactIn { side, zone } => {
                 let zone = &run.setup.zones[zone];
-                self.knowledge[side.index()].all_contacts().any(|c| {
-                    libm::hypot(c.center.x - zone.center[0], c.center.y - zone.center[1])
-                        <= zone.radius_m + c.radius
-                })
+                self.knowledge[side.index()]
+                    .all_contacts()
+                    .any(|c| meets(zone, c))
             }
             Trigger::Objective { id, is } => self.skirmish.as_ref().is_some_and(|skirmish| {
                 let views = skirmish
@@ -78,9 +77,10 @@ impl Battle {
                     ObjectiveState::Contested => o.contested,
                 })
             }),
+            // Killed, not withdrawn: a unit that left the battle wasn't lost.
             Trigger::Destroyed(who) => {
                 let mut named = self.named(run, who).peekable();
-                named.peek().is_some() && named.all(|unit| !unit.alive())
+                named.peek().is_some() && named.all(|unit| !unit.alive() && !unit.retired)
             }
             Trigger::All(all) => all.iter().all(|t| self.holds(run, t)),
             Trigger::Any(any) => any.iter().any(|t| self.holds(run, t)),
@@ -183,23 +183,22 @@ impl Battle {
 
     /// Whether `player` has `purchase` reserved and on its way.
     fn pending(&self, player: &str, purchase: &PurchaseSpec) -> bool {
-        let (Some(offer), Some(skirmish)) = (self.offered(purchase), &self.skirmish) else {
-            return false;
-        };
-        skirmish.player_index(player).is_some_and(|index| {
-            skirmish.players[index]
-                .reservations
-                .iter()
-                .any(|r| r.data.kind == offer.kind && r.data.carrier == offer.carrier)
-        })
+        let skirmish = self
+            .skirmish
+            .as_ref()
+            .expect("a director's battle is a skirmish");
+        let index = skirmish.player_index(player).expect("an admitted player");
+        let offer = self.purchase(purchase);
+        skirmish.players[index]
+            .reservations
+            .iter()
+            .any(|r| r.data.kind == offer.kind && r.data.carrier == offer.carrier)
     }
 
     /// Whether `player` has `purchase`'s units alive (both, for a carried
     /// purchase).
     fn owns(&self, player: &str, purchase: &PurchaseSpec) -> bool {
-        let Some(offer) = self.offered(purchase) else {
-            return false;
-        };
+        let offer = self.purchase(purchase);
         let owns = |kind| {
             self.units
                 .iter()
@@ -208,16 +207,9 @@ impl Battle {
         owns(offer.kind) && offer.carrier.is_none_or(owns)
     }
 
-    /// A purchase by unit type.
-    fn offered(&self, purchase: &PurchaseSpec) -> Option<OfferedPurchase> {
-        let kind = |id: &str| self.rules.catalog.index(id);
-        Some(OfferedPurchase {
-            kind: kind(&purchase.variant)?,
-            carrier: match &purchase.carrier {
-                Some(carrier) => Some(kind(carrier)?),
-                None => None,
-            },
-        })
+    /// An admitted purchase by unit type.
+    fn purchase(&self, purchase: &PurchaseSpec) -> OfferedPurchase {
+        OfferedPurchase::of(&self.rules.catalog, purchase).expect("an admitted card")
     }
 
     fn act(&mut self, run: &mut DirectorRun, beat: &str, action: Action) {
@@ -249,14 +241,14 @@ impl Battle {
                         DirectedOrder::Withdraw => Order::Refund { units },
                         DirectedOrder::PopSmoke => Order::PopSmoke { units },
                         DirectedOrder::AttackContactIn(zone) => {
+                            // A ground contact (what an attack takes), a
+                            // radar's report first.
                             let zone = &run.setup.zones[zone];
-                            let Some(contact) =
-                                self.knowledge[side.index()].all_contacts().find(|c| {
-                                    libm::hypot(
-                                        c.center.x - zone.center[0],
-                                        c.center.y - zone.center[1],
-                                    ) <= zone.radius_m + c.radius
-                                })
+                            let known = &self.knowledge[side.index()];
+                            let Some(contact) = known
+                                .all_contacts()
+                                .filter(|c| meets(zone, c) && known.ground_contact(c.id).is_some())
+                                .min_by_key(|c| c.source != ContactSource::Radar)
                             else {
                                 run.refusals
                                     .push((beat.to_owned(), OrderError::UnknownTarget));
@@ -320,12 +312,12 @@ impl Battle {
                             direction: contract::command::MoveDirection::Forward,
                             facing: None,
                         },
+                        // Admission puts the point on the ground.
                         DirectedOrder::AttackGround(zone) => {
                             let [x, y] = point(zone);
-                            let z = self.world.height_at(x, y).unwrap_or(0.0);
                             Order::Attack {
                                 units,
-                                target: TargetRef::Ground { point: [x, y, z] },
+                                target: TargetRef::Ground { point: [x, y, 0.0] },
                             }
                         }
                         DirectedOrder::Engage(engagement) => Order::SetEngagement {
@@ -343,20 +335,16 @@ impl Battle {
                 let covering = |purchases: &[PurchaseSpec]| {
                     credits_covering(&self.rules.catalog, purchases).expect("admitted purchases")
                 };
-                let Some(skirmish) = &mut self.skirmish else {
-                    return;
+                let (credits, top_up) = match credits {
+                    CreditGrant::Exactly(credits) => (credits, false),
+                    CreditGrant::Covering(purchases) => (covering(&purchases), false),
+                    CreditGrant::ToCover(purchases) => (covering(&purchases), true),
                 };
-                let Some(index) = skirmish.player_index(&player) else {
-                    return;
-                };
-                match credits {
-                    CreditGrant::Exactly(credits) => skirmish.grant(index, credits),
-                    CreditGrant::Covering(purchases) => {
-                        skirmish.grant(index, covering(&purchases));
-                    }
-                    CreditGrant::ToCover(purchases) => {
-                        skirmish.top_up(index, covering(&purchases));
-                    }
+                let (skirmish, index) = self.seat(&player);
+                if top_up {
+                    skirmish.top_up(index, credits);
+                } else {
+                    skirmish.grant(index, credits);
                 }
             }
             Action::Buy {
@@ -374,19 +362,13 @@ impl Battle {
             }
             Action::Ready { player } => self.order_for(run, beat, &player, Order::Ready),
             Action::OpenShop { player } => {
-                if let Some(skirmish) = &mut self.skirmish {
-                    if let Some(index) = skirmish.player_index(&player) {
-                        skirmish.open_shop(index);
-                    }
-                }
+                let (skirmish, index) = self.seat(&player);
+                skirmish.open_shop(index);
             }
             Action::Offer { player, purchases } => {
-                let offers: Vec<_> = purchases.iter().filter_map(|p| self.offered(p)).collect();
-                if let Some(skirmish) = &mut self.skirmish {
-                    if let Some(index) = skirmish.player_index(&player) {
-                        skirmish.offer(index, &offers);
-                    }
-                }
+                let offers: Vec<_> = purchases.iter().map(|p| self.purchase(p)).collect();
+                let (skirmish, index) = self.seat(&player);
+                skirmish.offer(index, &offers);
             }
         }
     }
@@ -399,13 +381,8 @@ impl Battle {
         if self.controller(player) != Some(&ControllerKind::DirectedAi) {
             return;
         }
-        let Some(side) = self
-            .skirmish
-            .as_ref()
-            .and_then(|s| s.player_index(player).map(|i| s.players[i].side))
-        else {
-            return;
-        };
+        let (skirmish, index) = self.seat(player);
+        let side = skirmish.players[index].side;
         if let Err(refusal) = self.apply_authored_order(side, Some(player.to_owned()), order, false)
         {
             run.refusals.push((beat.to_owned(), refusal));
@@ -413,6 +390,24 @@ impl Battle {
     }
 }
 
+impl Battle {
+    /// An admitted player's seat in the director's skirmish.
+    fn seat(&mut self, player: &str) -> (&mut crate::skirmish::Skirmish, usize) {
+        let skirmish = self
+            .skirmish
+            .as_mut()
+            .expect("a director's battle is a skirmish");
+        let index = skirmish.player_index(player).expect("an admitted player");
+        (skirmish, index)
+    }
+}
+
 fn inside(zone: &contract::scenario_document::Zone, at: V2) -> bool {
     libm::hypot(at.x - zone.center[0], at.y - zone.center[1]) <= zone.radius_m
+}
+
+/// Whether the contact's area meets the zone.
+fn meets(zone: &contract::scenario_document::Zone, contact: &crate::knowledge::Contact) -> bool {
+    let [x, y] = zone.center;
+    libm::hypot(contact.center.x - x, contact.center.y - y) <= zone.radius_m + contact.radius
 }
