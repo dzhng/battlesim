@@ -11,7 +11,7 @@ cards, the painted-on decals and the nose's pitot boom (thicker than dressing
 may stand off the frame, and absent from the photos), turns the nose to +x,
 scales the airframe to the catalog's 13.65 m and centres it there, grounds
 the wheels, and joins one object per material, each with its
-`material_role`, its textures at the game's 1024 px.
+`material_role`, its textures at the game's 1024 px (the stores' at 512).
 """
 import math
 import sys
@@ -79,9 +79,14 @@ for (name, material), pieces in joined.items():
     lo = [min(v.co[i] for v in data.vertices) for i in range(3)]
     hi = [max(v.co[i] for v in data.vertices) for i in range(3)]
     print(name, len(data.polygons), "faces from", [round(c, 3) for c in lo], "to", [round(c, 3) for c in hi])
+# The game's textures are at most 1024 px; the stores' small pods and
+# launchers read the same at 512 and cost a quarter of the catalog load.
+stores_images = {node.image.name for node in bpy.data.materials["ka52_weapons_co"].node_tree.nodes
+                 if node.type == 'TEX_IMAGE'}
 for image in bpy.data.images:
-    if max(image.size) > 1024:
-        image.scale(*(min(1024, side) for side in image.size))
+    cap = 512 if image.name in stores_images else 1024
+    if max(image.size) > cap:
+        image.scale(*(min(cap, side) for side in image.size))
         image.pack()
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_extras=True, export_yup=True,
                           export_animations=False, export_skins=False)
