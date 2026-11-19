@@ -182,7 +182,7 @@ def nh90(v):
     A.markings(v, [
         ("insignia", dict(kind="it", centre=(-3.6, .9, 2.15), normal=(0, 1, 0), up=(0, 0, 1),
                           size=.24, onto=("fuselage",))),
-        ("text", dict(text="ESERCITO", height=.19, centre=(-2.42, 1.12, 2.13), normal=(0, 1, 0),
+        ("text", dict(text="ESERCITO", height=.12, centre=(-4.45, 1.12, 2.3), normal=(0, 1, 0),
                       up=(0, 0, 1), onto=("fuselage",), colour="black")),
     ])
 
