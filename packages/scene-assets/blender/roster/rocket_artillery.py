@@ -292,12 +292,14 @@ def build(variant, v):
         tornado_s(v)
 
     if ident in M270:
-        articulate_launcher(v, (-3.21, 0, 1.38), 35, ("gun_body_",), ("turret_body_",), mount="gun")
+        articulate_launcher(v, (-3.21, 0, 1.38), 35, ("gun_body_",), ("turret_body_",), mount="gun",
+                            pitch_with_deploy=True)
     elif ident.startswith("eastern_bm_21"):
         articulate_launcher(v, (-2.78, 0, 2.15), 24, ("grad_", "tube_"),
                             ("cradle_plate_", "sector_gear_", "launcher_turntable", "elevating_ram"), mount="gun", pitch_with_deploy=True)
     elif ident.startswith("eastern_9k515"):
-        articulate_launcher(v, (-3.4, 0, 2.25), 30, ("smerch_", "tube_band_"), (), mount="gun")
+        articulate_launcher(v, (-3.4, 0, 2.25), 30, ("smerch_", "tube_band_"), (), mount="gun",
+                            pitch_with_deploy=True)
 
 
 def wreck(variant, v):

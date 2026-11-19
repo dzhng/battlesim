@@ -186,11 +186,12 @@ def build(variant, v):
      "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger}[variant["id"]](v)
     if variant["id"] == "eastern_pantsir_pantsir_sm":
         articulate_launcher(v, (-1.6, 0, 2.6), 22, ("missile_", "gun_", "muzzle_", "ammo_"),
-                            ("module_ring", "module_body", "module_hatch", "module_ladder", "search_radar", "tracking_radar", "eo_"))
+                            ("module_ring", "module_body", "module_hatch", "module_ladder", "search_radar", "tracking_radar", "eo_"),
+                            pitch_with_deploy=True)
     else:
         articulate_launcher(v, (-0.8, -1.0, boxer.ROOF + 0.5), 25, ("missile_",),
                             ("turret_", "radar_panel_", "radar_frame_", "gun_", "kce_", "eo_", "smoke_1", "smoke_-1",
-                             "dressing_antenna_turret"))
+                             "dressing_antenna_turret"), pitch_with_deploy=True)
 
 
 def wreck(variant, v):
