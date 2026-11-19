@@ -16,7 +16,7 @@ import { audioMix } from "@web/audioMix";
 import { shippedRules } from "@web/shippedRules";
 import { FakeSink } from "./soundSink";
 import { standInPresentationRecordings } from "./soundStandIns";
-import { testWeaponLooks } from "./weaponLooks";
+import { appearanceOf, testWeaponLooks } from "./weaponLooks";
 
 export const HZ = 30;
 export const DT = 1 / HZ;
@@ -34,7 +34,7 @@ export const AUDIO: AudioMix = {
 };
 export const documents = testWeaponLooks();
 export const shot = (kind: keyof typeof shippedRules.weapons) =>
-  documents.looks.weapon_looks[shippedRules.weapons[kind].appearance].sound;
+  documents.looks.weapon_looks[appearanceOf(kind)].sound;
 
 /** A publication as the presentation hears it: what the effects read, and
  *  the launches it shows (the presentation derives them; here, given). */
