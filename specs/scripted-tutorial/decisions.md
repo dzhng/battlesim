@@ -277,3 +277,15 @@ hills session was told what the valley needs.
 - **Identification reads the side's track** (known within its grace), not
   "seen this very tick" (agent), because the director runs early in the tick,
   before this tick's sensing.
+
+## Slice 07
+
+- **A published beat is its place among the director's beats** (agent). The
+  publication writer has no director, so `ScenarioView.beats` holds
+  `(place, tick)`, and the layout's `beats` and `chapters` tables name them.
+  The reader gives the page names: `scenario: { chapter, beats: [{beat, tick}] }`,
+  with `chapter` null once every chapter has closed.
+- **Every side knows the open chapter; only the audience hears a beat**
+  (agent, from C7). Header words `scenarioChapter` (−1 without a director) and
+  `beatCount`, and a `beats` group. A battle without a director publishes no
+  scenario. The parity fixtures were re-blessed once more for the layout.

@@ -84,20 +84,19 @@ impl DirectorRun {
         self.fired[c][b]
     }
 
-    /// Every beat that has fired, in chapter order, with its tick and the
-    /// sides told.
-    pub fn fired(&self) -> impl Iterator<Item = (&Beat, Tick)> {
-        self.setup
+    /// Every beat that has fired, in chapter order: its place among all the
+    /// director's beats, the beat and its tick.
+    pub fn fired(&self) -> impl Iterator<Item = (u32, &Beat, Tick)> {
+        let beats = self
+            .setup
             .chapters
             .iter()
-            .zip(&self.fired)
-            .flat_map(|(chapter, fired)| {
-                chapter
-                    .beats
-                    .iter()
-                    .zip(fired)
-                    .filter_map(|(beat, at)| at.map(|at| (beat, at)))
-            })
+            .flat_map(|chapter| &chapter.beats);
+        let ticks = self.fired.iter().flatten();
+        beats
+            .zip(ticks)
+            .enumerate()
+            .filter_map(|(place, (beat, at))| at.map(|at| (place as u32, beat, at)))
     }
 
     pub fn chapter(&self) -> usize {

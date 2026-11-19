@@ -719,6 +719,9 @@ pub struct AirframeStrike {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ObservationFrame {
     pub skirmish: Option<crate::skirmish::SkirmishView>,
+    /// An authored scenario's progress as this side is told it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scenario: Option<crate::director::ScenarioView>,
     pub tick: Tick,
     pub own: Vec<OwnUnit>,
     /// Enemies identified by any friendly sensor (team-shared).

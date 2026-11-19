@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::command::Engagement;
-use crate::ids::{Side, UnitId};
+use crate::ids::{Side, Tick, UnitId};
 use crate::scenario_document::{CreditGrant, Zone};
 use crate::skirmish::{Phase, PurchaseSpec};
 
@@ -133,6 +133,17 @@ pub enum DirectedOrder {
     AttackGround(String),
     /// Take this fire policy.
     Engage(Engagement),
+}
+
+/// An authored scenario's progress as one side is told it: the open chapter
+/// (every side knows it) and the beats this side is in the audience of, with
+/// the tick each fired. A beat is its place among all the director's beats,
+/// in chapter order; the publication's layout names it.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ScenarioView {
+    /// The open chapter's place; past the last once every chapter closed.
+    pub chapter: u32,
+    pub beats: Vec<(u32, Tick)>,
 }
 
 /// A director as a battle runs it: its chapters, and the names they use

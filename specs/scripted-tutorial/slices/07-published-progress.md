@@ -1,5 +1,12 @@
 # 07 Published progress
 
+**Status: shipped 2026-11-19.** `ObservationFrame.scenario`, the `beats`
+group, `scenarioChapter` and `beatCount` header words, the `chapters` and
+`beats` layout tables, the reader's `Scenario` view and the browser's
+`ScenarioView`. Evidence: `director::a_beat_is_published_by_name_only_to_its_audience`;
+publication tests after a re-bless; the web decoder tests. Deviations:
+[decisions.md](../decisions.md#slice-07).
+
 **Unlocks:** the page learns the open chapter and the beats its own side was told,
 through the same visibility path as everything else.
 

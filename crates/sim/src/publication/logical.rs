@@ -112,6 +112,8 @@ pub(super) fn pack_record(
         frame.smoke_clouds.len() as f32,
         frame.flares.len() as f32,
         offers(frame).count() as f32,
+        frame.scenario.as_ref().map_or(-1.0, |s| s.chapter as f32),
+        frame.scenario.as_ref().map_or(0, |s| s.beats.len()) as f32,
     ]);
     for u in &frame.own {
         let [deploy_progress, deploy_target] = deployment::cells(u.deployment);
@@ -575,6 +577,13 @@ pub(super) fn pack_record(
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
+    for &(beat, tick) in frame.scenario.iter().flat_map(|s| &s.beats) {
+        let [lo, hi] = limbs(tick as u32);
+        out.extend([beat as f32, lo, hi]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -740,6 +749,10 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.smoke_clouds.len(), SMOKE_CLOUD_FIELDS.len())?;
     add(frame.flares.len(), FLARE_FIELDS.len())?;
     add(offers(frame).count(), OFFER_FIELDS.len())?;
+    add(
+        frame.scenario.as_ref().map_or(0, |s| s.beats.len()),
+        BEAT_FIELDS.len(),
+    )?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)

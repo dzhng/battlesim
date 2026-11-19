@@ -21,9 +21,9 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–06 shipped (probes, Guide, directed seats,
-scenario map, scenario document, scenario battle, director). Next:
-[slice 07 (published progress)](slices/07-published-progress.md).*
+*Status 2026-11-19: slices 00–07 shipped (probes, Guide, directed seats,
+scenario map, scenario document, scenario battle, director, published
+progress). Next: [slice 08 (walkthrough)](slices/08-walkthrough.md).*
 
 Read **Contracts** and **One owner per concept** below before touching code;
 every slice inherits them. The scenario document lives in
@@ -59,7 +59,7 @@ TODO:
 - [x] [04](slices/04-scenario-document.md) Scenario document, its resolver and the placement check
 - [x] [05](slices/05-scenario-battle.md) Scenario battle playable: address, preparation, offered shop, covering grants
 - [x] [06](slices/06-director.md) Director: contract and runtime
-- [ ] [07](slices/07-published-progress.md) Director progress published to its audience
+- [x] [07](slices/07-published-progress.md) Director progress published to its audience
 - [ ] [08](slices/08-walkthrough.md) Walkthrough harness and chapters 1–2 directed
 - [ ] [09](slices/09-coach-core.md) Coach core: document, derivation, UI signals, plain panel
 - [ ] [10](slices/10-lantern-comms.md) Lantern's comms panel and narration through the voice pipeline

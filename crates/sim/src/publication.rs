@@ -96,7 +96,7 @@ const POSE_FIELDS: [&str; 8] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 47] = [
+const HEADER: [&str; 49] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -144,6 +144,8 @@ const HEADER: [&str; 47] = [
     "smokeCloudCount",
     "flareCount",
     "offerCount",
+    "scenarioChapter",
+    "beatCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -221,6 +223,9 @@ const FLARE_FIELDS: [&str; 6] = ["ax", "ay", "az", "bx", "by", "bz"];
 /// A narrowed shop's purchase: its owner among the side's players, its unit
 /// type and the carrier a squad is bought in (-1 for none).
 const OFFER_FIELDS: [&str; 3] = ["owner", "kind", "carrier"];
+/// A scenario beat the side was told of: its place among the director's
+/// beats (the layout's `beats` table) and the tick it fired.
+const BEAT_FIELDS: [&str; 3] = ["beat", "firedLo", "firedHi"];
 const GRIND_FIELDS: [&str; 5] = ["x", "y", "z", "headingX", "headingY"];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
@@ -422,6 +427,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("smokeClouds", "smokeCloudCount", &SMOKE_CLOUD_FIELDS),
     rows("flares", "flareCount", &FLARE_FIELDS),
     rows("offers", "offerCount", &OFFER_FIELDS),
+    rows("beats", "beatCount", &BEAT_FIELDS),
 ];
 
 const LEAN_FIELDS: [&str; 3] = ["side", "x", "y"];
@@ -636,7 +642,7 @@ fn encode_delivery(
 }
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 24;
+pub const GROUPS: usize = 25;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

@@ -654,6 +654,14 @@ export type MatchEventView =
       } | null;
     };
 
+/** An authored scenario's progress as one side is told it: the open chapter
+ *  (null once every chapter has closed) and the beats this side was told of,
+ *  with the tick each fired. */
+export interface ScenarioView {
+  chapter: string | null;
+  beats: { beat: string; tick: number }[];
+}
+
 export interface ObservationView {
   tick: number;
   own: OwnUnitView[];
@@ -677,6 +685,8 @@ export interface ObservationView {
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
   skirmish: SkirmishView | null;
+  /** An authored scenario's progress as this side is told it. */
+  scenario: ScenarioView | null;
   fog: VisibilityView;
   /** Which patch of the side's learned ground this publication carried
    *  (the presentation applies its runs: `LearnedGround`). */

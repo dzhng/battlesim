@@ -167,3 +167,48 @@ fn a_director_naming_what_its_scenario_lacks_is_refused_by_beat() {
     )
     .contains("nobody"));
 }
+
+/// `side`'s publication, read back as the page reads it.
+fn read_back(battle: &Battle, side: Side) -> Value {
+    let words = sim::publication::Publisher::new()
+        .publish(battle, side)
+        .unwrap()
+        .iter()
+        .map(|w| w.to_bits())
+        .collect::<Vec<_>>();
+    let decoded = sim::publication::reader::Reader::new(&sim::publication::layout_json(battle))
+        .unwrap()
+        .decode(&words)
+        .unwrap()
+        .unwrap();
+    serde_json::to_value(&decoded).unwrap()
+}
+
+#[test]
+fn a_beat_is_published_by_name_only_to_its_audience() {
+    let mut b = battle(json!([
+        {"id":"briefing","beats":[{"id":"told","when":"chapter_opens","audience":["blue"]}]},
+        {"id":"next","beats":[{"id":"quiet","when":{"fired":{"beat":"told","after_s":60}}}]}
+    ]));
+    b.step();
+    b.step();
+    let blue = read_back(&b, Side::Blue);
+    let red = read_back(&b, Side::Red);
+    assert_eq!(
+        blue["scenario"]["chapter"],
+        json!("next"),
+        "every side knows the chapter"
+    );
+    assert_eq!(red["scenario"]["chapter"], json!("next"));
+    let told = &blue["scenario"]["beats"];
+    assert_eq!(told.as_array().unwrap().len(), 1);
+    assert_eq!(told[0]["beat"], json!("told"));
+    assert_eq!(
+        red["scenario"]["beats"],
+        json!([]),
+        "a side outside the audience hears nothing"
+    );
+    // A battle with no director publishes no scenario.
+    let plain = Battle::new(&resolve(document(), rules_with(|_| {})).unwrap(), 7);
+    assert!(read_back(&plain, Side::Blue)["scenario"].is_null());
+}
