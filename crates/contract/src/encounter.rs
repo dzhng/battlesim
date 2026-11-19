@@ -630,6 +630,7 @@ impl EncounterSetup {
             victory: None,
             opponent: Some(self.opponent),
             encounter: Some(self.encounter),
+            director: None,
         }
     }
 }

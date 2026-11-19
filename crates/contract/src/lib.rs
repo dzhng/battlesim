@@ -8,6 +8,7 @@ pub mod bundle;
 pub mod catalog;
 pub mod command;
 pub mod curve;
+pub mod director;
 pub mod encounter;
 pub mod forest;
 pub mod generation;

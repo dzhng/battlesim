@@ -60,6 +60,7 @@ impl PreparedWorld {
             victory: None,
             opponent: None,
             encounter: None,
+            director: None,
         })
         .map_err(js_error)
     }

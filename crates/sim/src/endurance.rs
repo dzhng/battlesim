@@ -293,6 +293,7 @@ fn scenario_in_arena(
         victory: None,
         opponent: None,
         encounter: None,
+        director: None,
     })
 }
 

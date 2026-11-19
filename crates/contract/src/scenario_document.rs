@@ -15,8 +15,10 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::catalog::{Catalog, Faction};
+use crate::director::{Action, Director, DirectorSetup};
 use crate::encounter::SkirmishSites;
 use crate::identity::Seed;
+use crate::ids::UnitId;
 use crate::map::MapDefinition;
 use crate::players::Player;
 use crate::scenario::{Rules, ScenarioDefinition, UnitSetup};
@@ -49,6 +51,9 @@ pub struct ScenarioDocument {
     /// The named places the scenario's story talks about.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub zones: BTreeMap<String, Zone>,
+    /// The rules of the scenario's progression: chapters of beats.
+    #[serde(default)]
+    pub director: Director,
 }
 
 /// Credits a scenario hands a player.
@@ -153,6 +158,34 @@ impl ScenarioDocument {
                 return Err(format!("zones.{name}: a circle on the map"));
             }
         }
+        // Forces take unit ids in name order, as the battle numbers them.
+        let forces: BTreeMap<String, UnitId> = self
+            .forces
+            .keys()
+            .enumerate()
+            .map(|(i, name)| (name.clone(), UnitId(i as u32)))
+            .collect();
+        self.director.admit(&self.zones, &forces, &self.players)?;
+        for chapter in &self.director.chapters {
+            for beat in &chapter.beats {
+                for action in &beat.then {
+                    let at = format!("director.{}.{}", chapter.id, beat.id);
+                    match action {
+                        Action::Offer { player, purchases }
+                        | Action::Grant {
+                            player,
+                            credits: CreditGrant::Covering(purchases),
+                        } => check_purchases(&at, player, purchases)?,
+                        Action::Grant { .. } | Action::Order { .. } => {}
+                    }
+                }
+            }
+        }
+        let director = (!self.director.chapters.is_empty()).then_some(DirectorSetup {
+            chapters: self.director.chapters,
+            zones: self.zones,
+            forces,
+        });
         let skirmish: SkirmishSetup = serde_json::from_value(serde_json::json!({
             "rules": match_rules,
             "sites": self.sites,
@@ -172,6 +205,7 @@ impl ScenarioDocument {
             victory: None,
             opponent: None,
             encounter: None,
+            director,
         };
         setup.validate_player_contract()?;
         Ok(setup)

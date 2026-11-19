@@ -14,7 +14,7 @@ use sim::math::v2;
 
 /// The test rules, with the test rifle sold to `us` and the test tank to
 /// `eastern`, so a scenario can field them as roster cards.
-fn rules_with(patch: impl FnOnce(&mut Value)) -> Rules {
+pub(crate) fn rules_with(patch: impl FnOnce(&mut Value)) -> Rules {
     let mut fixture = sim::fixtures::test_rules();
     for (kind, faction) in [
         ("test_rifle", "us"),
@@ -35,7 +35,7 @@ fn rules_with(patch: impl FnOnce(&mut Value)) -> Rules {
 /// A small scenario on the geometry test map: a human blue player, a
 /// directed red one with a tank, and blue's opening credits covering a
 /// rifle squad in its carrier.
-fn document() -> Value {
+pub(crate) fn document() -> Value {
     json!({
         "battle_seed": "7",
         "players": [
@@ -64,7 +64,7 @@ fn document() -> Value {
     })
 }
 
-fn resolve(
+pub(crate) fn resolve(
     document: Value,
     rules: Rules,
 ) -> Result<contract::scenario::ScenarioDefinition, String> {

@@ -354,6 +354,7 @@ fn market_town_column() -> ScenarioDefinition {
         scripts: Vec::new(),
         opponent: None,
         encounter: None,
+        director: None,
         ..assault
     }
 }

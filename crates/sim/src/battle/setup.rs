@@ -156,6 +156,7 @@ impl Battle {
             team_memory: std::array::from_fn(|_| crate::skirmish_ai::TeamMemory::default()),
             team_tuning: crate::skirmish_ai::team::TeamTuning::shipped(),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
+            director: setup.director.clone().map(DirectorRun::new),
             encounter: None,
             pending: Vec::new(),
             accepted: Vec::new(),

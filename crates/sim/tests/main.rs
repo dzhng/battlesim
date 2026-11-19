@@ -30,6 +30,7 @@ mod damage;
 mod deployment;
 mod destruction;
 mod directed_ai;
+mod director;
 mod distances_3d;
 mod dogfight;
 mod door_guns;

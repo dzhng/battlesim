@@ -112,6 +112,7 @@ fn returns_home(rules: &Rules, (lane, objective, share): (usize, usize, f64)) ->
         victory: None,
         opponent: None,
         encounter: None,
+        director: None,
     };
     let mut battle = sim::battle::Battle::from_prepared(&setup, SEED, prepared);
     let purchase = Order::purchase(TRUCK, spot);

@@ -1,5 +1,14 @@
 # 06 Director: contract and runtime
 
+**Status: shipped 2026-11-19.** `contract::director` (types and `Director::admit`),
+`ScenarioDocument.director`, `ScenarioDefinition.director: DirectorSetup`,
+`sim::director::DirectorRun` and `Battle::direct` (battle/direct.rs),
+`Battle::apply_authored_order`, `Skirmish::{grant, offer}`. Evidence:
+`crates/sim/tests/director.rs` (chapter order, a fact however reached, a cue
+moving only a directed seat's units, unrecorded and replayed digest for
+digest, grant and offer, refusals by beat). Deviations:
+[decisions.md](../decisions.md#slice-06).
+
 **Unlocks:** scenario progression as part of the battle's rules: chapters,
 beats, red cues, grants and offers. It is deterministic, digested, and runs the
 same live and in replay.

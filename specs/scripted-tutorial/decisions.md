@@ -249,3 +249,31 @@ hills session was told what the valley needs.
 - **The Ferryman document offers chapter 1's two purchases** (scouts; a rifle
   squad in a Bradley), and the opening credits cover exactly them: the
   battle opens with 390 CR at today's prices.
+
+## Slice 06
+
+- **One `Director` type, carried resolved by name** (agent). The setup carries
+  `DirectorSetup { chapters, zones, forces: name → UnitId }`, and the battle
+  looks names up at run time, so there is no parallel "resolved director" type.
+  `Director::admit` refuses at `ScenarioDocument::on` any name no zone, force,
+  player or earlier beat answers to.
+- **The vocabulary is chapters 1–2's** (agent): triggers `chapter_opens`,
+  `fired {beat, after_s}`, `phase`, `bought {player, purchase}`,
+  `units {who, are: in | engagement}`, `identifies {side, who}`,
+  `contact_in {side, zone}`, `all`, `any`; selectors `force` and
+  `bought {player, variant}`; actions `order` (`move_to`, `attack_ground`,
+  `engage`), `grant`, `offer`. The spec's `Knows` became the two concrete
+  triggers `identifies` and `contact_in`, because a contact is an area, not a
+  unit. Its `Hidden` fact is left out; no gate needs it, since the story's
+  hidden step waits on return fire.
+- **The director runs before orders apply** (agent), just ahead of fixed
+  scripts, so a cue's order applies on the tick its beat fires.
+- **`apply_authored_order` is the one authored-order path** (agent). The fixed
+  scripts' survivor filter and admission moved into it; fixed scripts call it
+  with no player, the director with the owning player (a skirmish needs one).
+- **An order for a seat that isn't directed is skipped silently, not refused**
+  (agent): when a person plays blue, the walkthrough's solution beats are
+  inert by design.
+- **Identification reads the side's track** (known within its grace), not
+  "seen this very tick" (agent), because the director runs early in the tick,
+  before this tick's sensing.

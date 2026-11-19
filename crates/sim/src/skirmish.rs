@@ -295,6 +295,21 @@ impl Skirmish {
             .and_then(Option::as_ref)
             .is_none_or(|offered| offered.contains(&purchase))
     }
+    /// Add `credits` to `player`'s wallet: a scenario's grant.
+    pub fn grant(&mut self, player: usize, credits: u64) {
+        self.players[player].wallet += credits * CREDIT_SCALE;
+    }
+    /// Add `purchases` to `player`'s narrowed shop; a shop nobody narrowed
+    /// already sells them.
+    pub fn offer(&mut self, player: usize, purchases: &[OfferedPurchase]) {
+        if let Some(offered) = &mut self.offers[player] {
+            for purchase in purchases {
+                if !offered.contains(purchase) {
+                    offered.push(*purchase);
+                }
+            }
+        }
+    }
     pub fn player_index(&self, id: &str) -> Option<usize> {
         self.players.iter().position(|p| p.id == id)
     }
