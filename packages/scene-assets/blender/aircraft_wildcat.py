@@ -74,7 +74,7 @@ def fit_wildcat(hull, m):
         box("pilot_seat_" + suffix, (.24, .50, .68), (3.68, side*.42, 1.61),
             m["cockpit"], hull, bevel=.06, lods=MID)
     glazing = flat_paint("wildcat_glazing", (.010, .020, .028), rough=.16, grime=0,
-                         role="glass")
+                         coverage=("blended", .62), role="glass")
     shell = bpy.data.objects["fuselage_LOD0"]
     lower_panes = []
     for side in (-1, 1):
