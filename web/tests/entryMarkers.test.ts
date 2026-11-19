@@ -1,7 +1,7 @@
 import { shippedRules } from "@web/shippedRules";
 // @vitest-environment node
 // A side's players share its roads in, and a purchase may arrive by any of
-// them, so every road in of the viewer's side carries its chevrons, and no
+// them, so every road in of the viewer's side carries its beacons, and no
 // road in of the other side does. Each also paints its lane's number nearer
 // the edge, and a unit's marks draw over it.
 import { readFileSync } from "node:fs";
@@ -112,7 +112,7 @@ const inward = (road: P, [x, y]: P) =>
 const aside = (road: P, [x, y]: P) =>
   -(x - road[0]) * Math.sin(BLUE_IN) + (y - road[1]) * Math.cos(BLUE_IN);
 
-test("every road in of the viewer's side carries chevrons, and the other side's none", () => {
+test("every road in of the viewer's side carries beacons, and the other side's none", () => {
   const blue = marching("blue");
   for (const road of BLUE_ROADS)
     expect(near(blue, road).length, `blue road at ${road}`).toBeGreaterThan(0);
@@ -122,23 +122,23 @@ test("every road in of the viewer's side carries chevrons, and the other side's 
     expect(near(red, road).length, `red road at ${road}`).toBeGreaterThan(0);
 });
 
-test("each road in paints its lane's number between the edge and its chevrons", () => {
+test("each road in paints its lane's number between the edge and its beacons", () => {
   for (const road of BLUE_ROADS) {
     const marks = near(marching("blue"), road);
-    // Past the outline's overhang behind the chevrons' arms, a still mark
+    // Past the outline's overhang behind the beacons' arms, a still mark
     // nearer the edge than every pulsing chevron is the number.
-    const chevrons = Math.min(...marks.filter((v) => v.pulses).map((v) => inward(road, v.at)));
-    const number = marks.filter((v) => !v.pulses && inward(road, v.at) < chevrons - 2.5);
+    const beacons = Math.min(...marks.filter((v) => v.pulses).map((v) => inward(road, v.at)));
+    const number = marks.filter((v) => !v.pulses && inward(road, v.at) < beacons - 2.5);
     expect(number.length, `blue road at ${road}`).toBeGreaterThan(0);
   }
 });
 
-test("each road's chevrons march straight in along it, not toward the map's centre", () => {
+test("each road's beacons march straight in along it, not toward the map's centre", () => {
   // Both roads run straight in, well to either side of the map's centre:
-  // their chevrons stay within a chevron's spread of the road's own line.
+  // their beacons stay within a beacon's spread of the road's own line.
   for (const road of BLUE_ROADS) {
-    const chevrons = near(marching("blue"), road).filter((v) => v.pulses);
-    const widest = Math.max(...chevrons.map((v) => Math.abs(aside(road, v.at))));
+    const beacons = near(marching("blue"), road).filter((v) => v.pulses);
+    const widest = Math.max(...beacons.map((v) => Math.abs(aside(road, v.at))));
     expect(widest, `blue road at ${road}`).toBeLessThan(8);
   }
 });

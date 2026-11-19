@@ -88,6 +88,9 @@ const STANDING_RING: Record<ObjectiveStanding, Rgba> = {
   enemy: [...gameHud.enemy, 1],
   neutral: gameZone,
 };
+/** Entry roads use a restrained blue field marking. The neutral keyline in
+ * the marker keeps it legible over terrain without adding a second blue. */
+const ENTRY_MARKER_BLUE: readonly [number, number, number] = [0.34, 0.62, 0.76];
 
 /** What the overlay draws from the scenario itself. */
 export interface BattleOverlayScenario {
@@ -545,7 +548,7 @@ export function battleOverlayParts(
   });
   const aircraft = aircraftLayer(units, o, z, stroke);
   const deployments = scenario.deployments.map((marker) =>
-    buildDeploymentMarker(marker, z, gameOrderStyle, gameHud.accent, { stroke }),
+    buildDeploymentMarker(marker, z, gameOrderStyle, ENTRY_MARKER_BLUE, { stroke }),
   );
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
