@@ -55,6 +55,16 @@ def build(variant, v):
     # The photo's flat armoured glass stands tall out of the body.
     A.canopy("canopy", 7.8, 6.25, 1.62, 2.45, 0.6, m, hull, bows=(7.3, 6.8), peak=0.6, tail=0.75)
     A.canopy("canopy_glass_rear", 6.25, 4.55, 1.95, 2.98, 0.64, m, hull, bows=(5.7, 5.1), peak=0.5, tail=0.8)
+    # Tandem instrument coamings visible through the armoured glass.  They
+    # stay dark and low-profile, with a few raised display housings to give
+    # the cockpit depth at the game's close viewing tier.
+    for k, x, z, width in (("front", 7.32, 1.91, 0.42), ("rear", 5.82, 2.24, 0.46)):
+        box(f"{k}_instrument_coaming", (0.34, width, 0.20), (x, 0, z), m["dark"], hull,
+            rot=(0, -0.16, 0), bevel=0.025, lods=MID)
+        for side in (-1, 1):
+            box(f"{k}_display_{'L' if side < 0 else 'R'}", (0.10, width * 0.58, 0.035),
+                (x + 0.03, side * width * 0.42, z + 0.12), m["steel"], hull,
+                rot=(0, -0.16, 0), bevel=0.008, lods=MID)
     A.sensor_ball("sensor", (8.15, 0, 1.1), 0.32, m, hull)
     A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.28)
     for side, k in ((1, "L"), (-1, "R")):
