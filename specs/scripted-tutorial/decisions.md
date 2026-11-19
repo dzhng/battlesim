@@ -467,4 +467,3 @@ hills session was told what the valley needs.
 - **The dev loop moves to slice 13** (agent, found here): the walkthrough's
   replay belongs to the solved scenario, not the shipped one, so it can't
   resume into the player's battle. See 13's shape.
-

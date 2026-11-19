@@ -61,6 +61,7 @@ import {
   type TankOptions,
   TANK_DRAWS,
 } from "./synthetic";
+import { deployedMuzzleGolden } from "./deployedMuzzle";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
 const rig = soldierRig();
@@ -270,6 +271,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.cheek": () => soldier({ eyeY: 1.52, muzzleY: 1.49 }),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
+  "fit.deployed_muzzle": deployedMuzzleGolden,
   "fit.footprint": async () =>
     (await scenery("crate", { default: blockGlb(2) }, [1, 1, 1])).findings,
   "fit.piece": async () =>

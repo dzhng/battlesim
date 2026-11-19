@@ -147,7 +147,8 @@ def build(variant, v):
     (rwip_turret if variant["id"] == SHORAD else mortar_bay)(v)
     if variant["id"] == SHORAD:
         articulate_launcher(v, (-0.4, 0, S.ROOF + 0.56), 20, ("stinger_", "hellfire_"),
-                            ("rwip_body", "rwip_bearing", "rwip_sensor", "rwip_smoke", "rwip_thermal", "xm914_", "m240_"))
+                            ("rwip_body", "rwip_bearing", "rwip_sensor", "rwip_smoke", "rwip_thermal", "xm914_", "m240_"),
+                            pitch_with_deploy=True)
     else:
         articulate_launcher(v, (-1.85, 0, S.ROOF), 0,
                             ("bay_door_",), ("bay_hinge_", "bay_stop_"),
