@@ -22,8 +22,8 @@ pub enum ResumeError { Replay(ReplayError), AiMemory { player: String }, Beyond 
   each side's and player's sequence counters continue past the prefix, and the
   battle is live. The director reruns from setup, so its state at `tick` is
   exact.
-- **Refuses `AiMemory`** when any `Doctrine` seat played before `tick`, because
-  its memory is outside the digest. The tutorial has only human and `Directed`
+- **Refuses `AiMemory`** when any `ActiveAi` seat played before `tick`, because
+  its memory is outside the digest. The tutorial has only human and `DirectedAi`
   seats, so it always resumes exactly.
 - **The chapter's tick** comes from the published `ScenarioView`: the tick the
   chapter's opening was published.
@@ -44,7 +44,7 @@ pub enum ResumeError { Replay(ReplayError), AiMemory { player: String }, Beyond 
 - `crates/sim/tests/resume.rs` on a test map:
   - a resumed battle's digest at the tick equals the original's;
   - it then accepts a human order and diverges only by that order;
-  - resuming after a `Doctrine` seat played is refused `AiMemory`;
+  - resuming after an `ActiveAi` seat played is refused `AiMemory`;
   - resuming past the end is refused.
 - The walkthrough gains a step: after finishing, resume at chapter 2's start
   from its own replay and replay chapter 2's solution; chapter 2's beats fire

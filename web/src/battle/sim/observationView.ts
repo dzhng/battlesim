@@ -5,6 +5,7 @@
 
 import type { OrderStepKind } from "@packages/battle-renderer/src/orderSteps";
 import type { MoveDirection } from "./protocol";
+import type { ControllerKind } from "../prepare/protocol";
 
 /** The ground grid and exact tile-local run packing. */
 export interface GroundLayout {
@@ -580,7 +581,7 @@ export interface SkirmishView {
 export interface PlayerView {
   index: number;
   id: string;
-  controller: "human" | "active_ai" | "passive_ai";
+  controller: ControllerKind;
   ready: boolean;
   credits: number;
   /** The passive income this player's army now leaves it, per minute. */

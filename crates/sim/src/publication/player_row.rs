@@ -21,14 +21,7 @@ pub(super) fn player_row(player: &PlayerView) -> [f32; 8] {
         f32::from(player.index.0),
         // The browser resolves this index through the layout's playerIds table.
         player.index.0 as f32,
-        tag(
-            &[
-                ControllerKind::Human,
-                ControllerKind::ActiveAi,
-                ControllerKind::PassiveAi,
-            ],
-            &player.controller,
-        ),
+        tag(&ControllerKind::ALL, &player.controller),
         player.ready as u8 as f32,
         player.credits as f32,
         player.income_per_minute as f32,

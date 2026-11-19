@@ -12,7 +12,7 @@ and contest, taught in the battle. See [story.md](../story.md#chapter-3-the-cros
    - forces with lopsided `UnitCondition` and authored engagement;
    - zones;
    - beats (a milestone, audience blue, for every coach `beat` gate);
-   - red cues as `Directed` orders;
+   - red cues as `DirectedAi` orders;
    - recovery beats for any unit the player could lose;
    - solution beats;
    - coach steps with their `line` ids, marks, highlights and camera.

@@ -91,3 +91,41 @@ hills. The ground-sight check refuses relief, and the branch caps hills at 8 m
 until a crest counts as cover. P1 now checks for that work first and falls back
 to authored relief on the saved map, so the tutorial never blocks on it. The
 hills session was told what the valley needs.
+
+## Probes P3 and P5 (agent, 2026-11-19)
+
+- **P3: pre-placed owned units inside a skirmish are refused by contract.**
+  `ScenarioDefinition::validate_player_contract` refuses a skirmish with
+  authored units, events, scripts, an opponent or an encounter ("its players
+  buy what it fields"), because every fielded unit carries an `EnteredUnit`
+  price that the army-size taper, refunds, bounties and settlement read.
+  **Slice 04 takes the fallback:** the contract admits authored forces in a
+  skirmish when each names one of its players as owner. Events, scripts, an
+  opponent and an encounter stay refused. At setup each authored unit gets an
+  `EnteredUnit` at its **current catalog price**, charged to nobody, at tick 0.
+  Not zero: killing red's pre-placed tank should pay blue its normal bounty,
+  and red's cap and taper should count it like a bought unit.
+- **P5: not a bug.** A player's own order sequence exists only inside a
+  skirmish, and a skirmish refuses authored scripts, so a script's orders are
+  always sequenced by side. No fix, no test.
+
+## Slice 02
+
+- **`ControllerKind::DirectedAi` instead of a `Playbook` field** (agent).
+  Controller kinds already encode what an AI seat does (`ActiveAi` plays,
+  `PassiveAi` holds fire); a playbook beside them would be a second owner of one
+  question, and a seat could say "passive controller, directed playbook". So a
+  directed seat is a controller kind, and it is set the way any controller is
+  (setup, or a recorded controller transition, which is how the walkthrough
+  hands the human seat to the director). The walkthrough (C8) and restart (C11)
+  wording follow: restart refuses after an `ActiveAi` seat played.
+- **A directed seat counts as ready rather than being marked ready** (agent): a
+  derived rule (`PlayerState::is_ready`), so a seat that becomes directed
+  mid-preparation counts too, and the stored `ready` flag (in the digest) stays
+  what the seat said, so existing digests are unchanged.
+- **Battle addresses carry `d` for a directed seat** (agent): the address's
+  controller codes are typed over every controller kind. A directed seat in a
+  generated skirmish just sits and fights back; harmless, and no special case.
+- **The bundle's controller normalisation keeps any non-human seat as is**
+  (agent, a cleanup while adding the arm): one guard (an untaken human seat
+  sits passive) instead of an arm per kind.

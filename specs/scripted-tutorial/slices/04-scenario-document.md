@@ -11,7 +11,7 @@ rules and roster, plus the check that every placement is still legal.
 #[serde(deny_unknown_fields)]
 pub struct ScenarioDocument {
     pub battle_seed: u64,
-    pub players: Vec<Player>,                       // with playbooks (02)
+    pub players: Vec<Player>,                       // controllers incl. DirectedAi (02)
     pub match_rules: serde_json::Map<String, Value>, // patch over skirmish.json
     pub sites: SkirmishSites,                       // entries and objectives
     pub forces: Vec<TaggedUnit>,                    // UnitSetup + optional tag
@@ -67,7 +67,7 @@ It pins nothing about Ferryman.
 
 **Content:** `fixtures/maps/ferryman-valley/scenarios/operation-ferryman.json`:
 
-- players: blue human `us`, red `Directed` `eastern`;
+- players: blue human `us`, red `DirectedAi` `eastern`;
 - sites: one blue road, one red road, three objectives;
 - chapter 1–2 forces: `outpost` and `east_guns`;
 - the [story](../story.md) zones;

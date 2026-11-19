@@ -84,7 +84,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "hitKinds": names(&SEGMENT_HITS),
         "unitKinds": battle.rules().catalog.ids(),
         "playerIds": player_ids,
-        "controllers": names(&[ControllerKind::Human, ControllerKind::ActiveAi, ControllerKind::PassiveAi]),
+        "controllers": names(&ControllerKind::ALL),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),

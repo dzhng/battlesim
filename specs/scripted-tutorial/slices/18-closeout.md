@@ -5,13 +5,13 @@
 - **The full repository closeout run, once** (`development.md` check ladder step 3).
   First pull the LFS assets the full run needs (runtime and third-party
   audio, roster and infantry sources, scene baselines, city). No balance report
-  is needed: no rule changed beyond the offered-shop refusal, playbooks and the
+  is needed: no rule changed beyond the offered-shop refusal, the `DirectedAi` controller and the
   director, all proved by digests and tests.
 - **[review](../../../.agents/skills/review/SKILL.md)**: shape, diff and docs.
 - **Docs:**
   - `fixtures/README.md`: scenario maps and documents, coach and solution files,
     and the content-owner paragraph;
-  - `development.md`: content owners go from three to four; playbooks join the
+  - `development.md`: content owners go from three to four; the `DirectedAi` controller joins the
     opponent bullet in the game rules list;
   - `crates/sim/README.md`: the director and resume;
   - `crates/contract/README.md`: the scenario document;

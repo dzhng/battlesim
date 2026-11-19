@@ -203,6 +203,12 @@ impl PlayerState {
         }
     }
 
+    /// Whether this player lets preparation end: it said so, or its seat is
+    /// directed and so never decides it for itself.
+    pub fn is_ready(&self) -> bool {
+        self.ready || self.controller == ControllerKind::DirectedAi
+    }
+
     /// The places pending purchases hold under the unit cap: a squad bought
     /// in a carrier holds two.
     pub fn reserved_units(&self) -> u32 {
@@ -298,7 +304,7 @@ impl Skirmish {
     }
     pub fn advance(&mut self, tick: Tick, hz: u32, fielded: &[Fielded]) {
         if self.phase == Phase::Preparation {
-            if self.players.iter().all(|p| p.ready)
+            if self.players.iter().all(PlayerState::is_ready)
                 || tick >= u64::from(self.setup.rules.preparation_s) * u64::from(hz)
             {
                 self.phase = Phase::Active;
@@ -321,7 +327,7 @@ impl Skirmish {
                 index: contract::players::PlayerIndex(index as u16),
                 id: p.id.clone(),
                 controller: p.controller.clone(),
-                ready: p.ready,
+                ready: p.is_ready(),
                 credits: p.wallet as f64 / CREDIT_SCALE as f64,
                 income_per_minute: income_per_minute(&self.setup.rules, p.army(fielded.cost))
                     as f64

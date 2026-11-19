@@ -28,7 +28,7 @@ pub enum Trigger {
 pub enum UnitFact { In(String), Engagement(Engagement), Hidden, Purchased /* + later */ }
 pub enum Selector { Tag(String), Bought { player: String, variant: String } }
 pub enum Action {
-    Order { player: String, units: Selector, order: DirectedOrder }, // Directed seats only
+    Order { player: String, units: Selector, order: DirectedOrder }, // DirectedAi seats only
     Grant { player: String, credits: CreditGrant },
     Offer { player: String, add: Vec<PurchaseSpec> },
 }
@@ -52,7 +52,7 @@ the variants it needs, each proved on test units.
   to the accepted log, because replay reruns the director. The function returns
   the refusal. The director keeps a per-beat refusal list outside the digest
   (`Battle::director_refusals()`) for the walkthrough; the page never sees it.
-  An `Order` for a seat that isn't `Directed` is skipped.
+  An `Order` for a seat that isn't `DirectedAi` is skipped.
 - **State** `DirectorState { chapter, fired: Vec<Option<Tick>> }` is digested
   only when a director exists, so other digests stay unchanged. Beats arm only
   while their chapter is open. A chapter closes when its last beat fires, and
@@ -62,7 +62,7 @@ the variants it needs, each proved on test units.
   - a `Fired` names an earlier beat of the same or an earlier chapter (no
     cycles);
   - every tag, zone, objective, player and variant exists;
-  - an `Order` names a `Directed` player's units.
+  - an `Order` names a `DirectedAi` player's units.
 
   Tags, zones and grants resolve into a `ResolvedDirector` (ids and numbers
   only).
@@ -75,12 +75,12 @@ the variants it needs, each proved on test units.
 **Gates:**
 
 - `cargo test -p contract --test director`: a cycle is refused; an unknown tag,
-  zone or player is refused; an order to a non-`Directed` player is refused; a
+  zone or player is refused; an order to a non-`DirectedAi` player is refused; a
   `Fired` naming a later chapter is refused.
 - New `crates/sim/tests/director.rs` on test units and a test map:
   - beats fire in chapter order, and only while their chapter is open;
   - a state trigger holds however the state was reached;
-  - an `Order` reaches a `Directed` seat and is skipped for a human seat;
+  - an `Order` reaches a `DirectedAi` seat and is skipped for a human seat;
   - director orders are absent from `replay().accepted`, and the replay matches
     the live digest at every tick;
   - `Grant` and `Offer` change the wallet and the offer.

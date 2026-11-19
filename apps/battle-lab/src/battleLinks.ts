@@ -111,11 +111,13 @@ const CONTROLLERS: Record<string, Player["controller"]> = {
   h: "human",
   a: "active_ai",
   p: "passive_ai",
+  d: "directed_ai",
 };
 const controllerCode: Record<Player["controller"], string> = {
   human: "h",
   active_ai: "a",
   passive_ai: "p",
+  directed_ai: "d",
 };
 
 function playerParams(players: readonly Player[]): string[] {

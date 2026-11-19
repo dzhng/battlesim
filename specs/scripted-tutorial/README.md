@@ -26,7 +26,7 @@ on explicit maps later.
 Start with [slice 00 (probes)](slices/00-probes.md). Each probe can kill an
 assumption the rest of the ladder stands on, and each costs about an hour.
 Slices [01 (Guide)](slices/01-guide.md) and
-[02 (seat playbooks)](slices/02-seat-playbooks.md) don't depend on the probes
+[02 (directed seats)](slices/02-directed-seats.md) don't depend on the probes
 and may run alongside them. Read **Contracts** and **One owner per concept**
 below before touching code; every slice inherits them. Climb the check ladder
 only as far as each slice's gate says. The full run happens once, in slice 18.
@@ -52,7 +52,7 @@ TODO:
 
 - [ ] [00](slices/00-probes.md) Probes: valley map, resume cost, pre-placed owned units in a skirmish, roster coverage, script sequence bug
 - [ ] [01](slices/01-guide.md) The tutorial page becomes the Guide, reached from Esc
-- [ ] [02](slices/02-seat-playbooks.md) An AI seat names its playbook; `Directed` added
+- [ ] [02](slices/02-directed-seats.md) A `DirectedAi` controller: an AI seat the director moves
 - [ ] [03](slices/03-scenario-map.md) `scenario` map category and the Ferryman valley
 - [ ] [04](slices/04-scenario-document.md) Scenario document, its resolver and the placement check
 - [ ] [05](slices/05-scenario-battle.md) Scenario battle playable: address, preparation, offered shop, covering grants
@@ -105,17 +105,17 @@ direction of data flow are decided here.
 
 | # | Boundary | Today | After |
 |---|---|---|---|
-| C1 | `contract::players::Player` | `controller` says who commands; what an AI seat does is decided by `skirmish.is_some()` / `opponent.is_some()` checks in `Battle` | Gains `playbook: Playbook { Doctrine, Directed }`, defaulting to `Doctrine` (absent field means `Doctrine`, so every digest is unchanged). A `Directed` seat issues nothing on its own, keeps its units' authored engagement (unlike `PassiveAi`, which forces return fire), is ready from setup, and is moved only by the director. One `Battle::ai_turn` dispatches by playbook. ([02](slices/02-seat-playbooks.md)) |
+| C1 | `contract::players::ControllerKind` | `Human`, `ActiveAi` (the skirmish doctrine), `PassiveAi` (does nothing, holds return fire); two hand-written lists of them | Adds `DirectedAi`: an AI seat that issues nothing on its own, keeps its units' authored engagement, counts as ready in preparation, and is moved only by the director. `ControllerKind::ALL` is the one list the publication layout and player rows read. **Shipped** ([02](slices/02-directed-seats.md)). |
 | C2 | `contract::maps::MapCategory`, `web/src/maps/catalogue.ts` | `test`, `capture`; "no saved map is the game's" | Adds `scenario`: a reviewed battlefield that player-facing authored scenarios stand on. Labs and tests refuse it, as they refuse `capture`. `meta.json` lists `scenarios`. The content owners in `development.md` and `fixtures/README.md` go from three to four. ([03](slices/03-scenario-map.md)) |
-| C3 | Scenario document → `ScenarioDefinition` | Saved maps carry `encounters/<name>.json` (`EncounterDefinition`, with rule `overrides` for films and labs) | New `ScenarioDocument` at `fixtures/maps/<id>/scenarios/<name>.json`. It holds the battle seed, players with playbooks, a `match_rules` patch over `fixtures/skirmish.json`, sites, tagged forces, opening credits, offers, zones and the director. **It has no `overrides` field, by type**, so a shipped scenario always plays today's rules and roster. `ScenarioDocument::on(map, rules)` is its one resolver. `public()` returns what the page may know (chapters, beats with audiences, zones, objective ids, never forces). `MapCatalog::scenario` is renamed `encounter_scenario`. ([04](slices/04-scenario-document.md)) |
+| C3 | Scenario document → `ScenarioDefinition` | Saved maps carry `encounters/<name>.json` (`EncounterDefinition`, with rule `overrides` for films and labs) | New `ScenarioDocument` at `fixtures/maps/<id>/scenarios/<name>.json`. It holds the battle seed, players (red as `DirectedAi`), a `match_rules` patch over `fixtures/skirmish.json`, sites, tagged forces, opening credits, offers, zones and the director. **It has no `overrides` field, by type**, so a shipped scenario always plays today's rules and roster. `ScenarioDocument::on(map, rules)` is its one resolver. `public()` returns what the page may know (chapters, beats with audiences, zones, objective ids, never forces). `MapCatalog::scenario` is renamed `encounter_scenario`. ([04](slices/04-scenario-document.md)) |
 | C4 | Credits and the shop | Every player gets the same opening wallet, and the faction decides what is sold | `CreditGrant::{Covering(purchases), Exactly(n)}`, resolved from **current** catalog prices by one function in contract. `SkirmishSetup` gains per-player `opening_credits` and `offered`. A purchase outside an offer is refused `NotOffered` at `Skirmish::reserve_at`. The offer is published, and the purchase picker shows only offered cards. ([05](slices/05-scenario-battle.md)) |
 | C5 | Preparation and the battle address | `prepare` (skirmish request), `prepare-replay`, `prepare-bundle` | Adds a `prepare-scenario { map, name }` message and `contract::preparation::PrepareScenarioRequest`. The address is `/battle?scenario=<map>/<name>`, so the menu tile links `/battle?scenario=ferryman-valley/operation-ferryman`. `PreparationReport` carries `ScenarioPublic`. ([05](slices/05-scenario-battle.md)) |
-| C6 | The director (new) | none | `Director { chapters: [Chapter { id, beats: [Beat { id, when: Trigger, audience: [Side], then: [Action] }] }] }`. Triggers read **authoritative facts** (zones, engagement, holds, suppression tier, objectives, what a side knows, the match result), as the referee does. Actions are orders to `Directed` seats, credit grants and offer changes. Its state is digested, it runs the same live and in replay, and its orders go through one `Battle::apply_authored_order` extracted from the fixed-script path (not recorded, because replay reruns the director). ([06](slices/06-director.md)) |
+| C6 | The director (new) | none | `Director { chapters: [Chapter { id, beats: [Beat { id, when: Trigger, audience: [Side], then: [Action] }] }] }`. Triggers read **authoritative facts** (zones, engagement, holds, suppression tier, objectives, what a side knows, the match result), as the referee does. Actions are orders to `DirectedAi` seats, credit grants and offer changes. Its state is digested, it runs the same live and in replay, and its orders go through one `Battle::apply_authored_order` extracted from the fixed-script path (not recorded, because replay reruns the director). ([06](slices/06-director.md)) |
 | C7 | `ObservationFrame` and the publication | Script events are digested and never published; the page sees only `referee_view()` | Adds a header word for the open chapter and a `beats` group of `[beat, fired tick]` rows, each sent only to the sides in that beat's audience. The layout carries `chapters` and `beats` id tables. The page reads it as `ScenarioView`. ([07](slices/07-published-progress.md)) |
-| C8 | Walkthrough solution (test data) | none | `scenarios/<name>.solution.json`: beats in the director's own vocabulary that order the human player's units. At test time, `ScenarioDocument::with_solution` merges it into the director and puts the human seat under `ActiveAi` + `Directed`. There is no test-only runtime path. ([08](slices/08-walkthrough.md)) |
+| C8 | Walkthrough solution (test data) | none | `scenarios/<name>.solution.json`: beats in the director's own vocabulary that order the human player's units. At test time, `ScenarioDocument::with_solution` merges it into the director and puts the human seat under `DirectedAi`. There is no test-only runtime path. ([08](slices/08-walkthrough.md)) |
 | C9 | Coach (new, browser presentation) | none | `scenarios/<name>.coach.json`: chapters of steps. Each step has `card` (text with `{key:<command>}` placeholders resolved from `commandBindings.ts`), an optional `line` (a narration id), `until` (`beat`, `ui` or `continue`), optional marks, a camera reel and `pause`. `coachView(doc, ScenarioView, uiSignals)` is a pure function. UI signals come from one typed bus that the input owners emit into. Coach text never enters the sim, so editing a prompt moves no digest. ([09](slices/09-coach-core.md), [11](slices/11-coach-direction.md)) |
 | C10 | Narration (battle audio) | `fixtures/voices.json` holds unit voice sets; the generator designs voices through the old Duet proxy | A narration set (speaker Lantern, a library `voice_id`, lines by id) joins the same catalog, lock and judged packs. The generator's transport moves to the `bento` CLI, as scene-assets skins already use. The coach plays a step's `line` through battle audio. ([10](slices/10-lantern-comms.md)) |
-| C11 | `Battle::resume(setup, replay, tick)` (new) | `from_replay` refuses input for its whole life | Replays a prefix and then goes live, refusing `AiMemory` if a `Doctrine` seat played before `tick`, because that memory is outside the digest. Exposed in WASM and as a worker `prepare-resume` with a fresh worker. The pause menu gets "Restart chapter" in scenario battles. ([12](slices/12-chapter-restart.md)) |
+| C11 | `Battle::resume(setup, replay, tick)` (new) | `from_replay` refuses input for its whole life | Replays a prefix and then goes live, refusing `AiMemory` if an `ActiveAi` seat played before `tick`, because that memory is outside the digest. Exposed in WASM and as a worker `prepare-resume` with a fresh worker. The pause menu gets "Restart chapter" in scenario battles. ([12](slices/12-chapter-restart.md)) |
 | C12 | Menu | Tutorial tile → `/tutorial` page; pause item "Tutorial" | The Tutorial tile → the Ferryman battle address. The `/tutorial` page is deleted. The pause item and modal are "Guide" (`Guide.tsx`). ([01](slices/01-guide.md), [11](slices/11-coach-direction.md)) |
 
 ## One owner per concept
@@ -127,7 +127,7 @@ direction of data flow are decided here.
 | Portable package | `ScenarioBundle` (scenario builder) | be the tutorial's format (it freezes rules) |
 | Test and film staging on a map | `EncounterDefinition` | appear on a `scenario` map |
 | Scenario progression (chapters, beats, cues, grants, offers) | the director, in the sim | read UI state; be rerun from a recorded trace |
-| How an AI seat plays | the seat's `Playbook` | be chosen by `skirmish.is_some()`-style checks |
+| What an AI seat does | its `ControllerKind` (`ActiveAi`, `PassiveAi`, `DirectedAi`) | grow a second, overlapping behaviour field |
 | Authored orders reaching the battle | `Battle::apply_authored_order` | have a second admission path |
 | Who may buy what | the skirmish offer | be filtered in the picker by its own rule |
 | Game facts the coach waits on | director milestone beats | be judged again in TypeScript |
@@ -140,8 +140,7 @@ direction of data flow are decided here.
 | How the game is played (reference) | the Guide | be on the main menu |
 | Restarting a chapter | `Battle::resume` | snapshot or clone battle state beside the replay |
 
-**Existing duplicates this feature consolidates:** opponent dispatch moves behind
-`Playbook` (02); the fixed-script order block becomes `apply_authored_order`
+**Existing duplicates this feature consolidates:** controller kinds gain `DirectedAi` and one shared list, `ControllerKind::ALL` (02); the fixed-script order block becomes `apply_authored_order`
 (06); "scenario" stops meaning two things (`encounter_scenario`, 04); "tutorial"
 stops meaning two things (the page becomes the Guide, 01); the voice
 generator's transport becomes the `bento` CLI (10).
@@ -153,16 +152,16 @@ removal condition:
   `At(tick)` trigger. Fold them once the director ships; 46 fixture files carry
   `scripts`, so it is a mechanical rewrite of its own.
 - *The encounter `Defender`, the naive `controller_turn` and authored scripts
-  against playbooks.* Each becomes a `Playbook` arm. Remove them when the
+  against controller kinds.* Each becomes a controller kind's arm. Remove them when the
   bundle's "economy bundles carry no authored scripts" refusal can go, because a
-  seat then runs exactly one playbook.
+  seat then runs exactly one behaviour.
 - *`ScriptEvent` against beats.* Two named-event concepts. Fold them when bundles
   adopt the director.
 
 **End state ("reads as designed today").** A battle is prepared from a skirmish
 request, a replay, a bundle or a scenario document, and all four resolve to one
 `ScenarioDefinition`. Every seat has a controller (who commands) and, if it is
-AI, a playbook (what it does). A scenario's director is part of the battle's
+AI, its kind says what it does. A scenario's director is part of the battle's
 rules: digested, replayed, and publishing chapter and beats the way objectives
 publish ownership. The page coaches from published progress and its own UI
 signals, keeps its text in data, and never sees the enemy except through its
@@ -174,7 +173,7 @@ tutorial is a special case.
 ```text
 00 probes ──────────────► gates 03, 04, 12's design
 01 Guide ─────────────────────────────────────────────► 11 (tile cutover)
-02 playbooks ─────────────┐
+02 directed ──────────────┐
 03 map ─► 04 document ────┴─► 05 scenario battle ─┐
                 └─► 06 director ─► 07 progress ───┴─► 08 walkthrough (ch 1–2)
 08 ─► 09 coach core ─► 10 Lantern comms ─► 11 coach direction + tile
@@ -220,7 +219,7 @@ every later chapter is iterated by jumping straight to it.
 | R6 | Red's score ends the battle before chapter 7 | `majority_s` in the document's match patch; the walkthrough asserts the human side wins | 04 |
 | R7 | A retune flips a scripted fight | Lopsided `UnitCondition`; steps gated on actions; the walkthrough fails by beat name, never by a stat | every chapter |
 | R8 | The player soft-locks (loses the only AT team) | Recovery beats (data), plus a director test that a recovery beat re-grants | 14 |
-| R9 | The preparation countdown cuts the briefing short | The match patch; a `Directed` red seat is ready at once | 04, 05 |
+| R9 | The preparation countdown cuts the briefing short | The match patch; a `DirectedAi` red seat is ready at once | 04, 05 |
 | R10 | The coach leaks red's state | By type: coach input has no forces. The validator refuses a waited-on beat whose audience lacks the human side | 09 |
 | R11 | Narration goes stale when a mechanic or key changes | Lines carry intent only, and keys and numbers live on the card. Re-render a changed line in the same library voice | 10 |
 | R12 | Coach steps and the director drift apart (the director moves on while a UI step is still showing) | The coach drops a chapter's unfinished steps when the director opens the next chapter; a coach test covers it | 09 |

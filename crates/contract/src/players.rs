@@ -4,12 +4,29 @@ use crate::catalog::Faction;
 use crate::ids::Side;
 use serde::{Deserialize, Serialize};
 
+/// Who commands a player's units, and what an AI controller does with them.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ControllerKind {
     Human,
+    /// The battle's AI plays the seat (the skirmish doctrine).
     ActiveAi,
+    /// The seat does nothing and holds its units at return fire.
     PassiveAi,
+    /// The seat decides nothing itself: its units fight at their own
+    /// engagement, and only an authored scenario's director orders them. It
+    /// never holds a skirmish's preparation open.
+    DirectedAi,
+}
+
+impl ControllerKind {
+    /// Every controller, in the order the publication's layout names them.
+    pub const ALL: [ControllerKind; 4] = [
+        ControllerKind::Human,
+        ControllerKind::ActiveAi,
+        ControllerKind::PassiveAi,
+        ControllerKind::DirectedAi,
+    ];
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

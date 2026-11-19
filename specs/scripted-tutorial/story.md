@@ -9,7 +9,7 @@ it is built.
 
 Rules for every chapter:
 
-- **Roster units only**: `us` (blue, human) against `eastern` (red, `Directed`
+- **Roster units only**: `us` (blue, human) against `eastern` (red, a `DirectedAi`
   seat). The exact card for each role is picked in probe P4 and recorded in
   [decisions.md](decisions.md). Never a `test_*` or `capture_*` unit.
 - **Steps advance on the player's action or on a game fact, never on winning a

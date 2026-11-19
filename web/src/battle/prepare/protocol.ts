@@ -24,7 +24,7 @@ export interface PrepareBattleRequest {
   rules?: "frontline";
 }
 
-export type ControllerKind = "human" | "active_ai" | "passive_ai";
+export type ControllerKind = "human" | "active_ai" | "passive_ai" | "directed_ai";
 export interface Player {
   id: string;
   side: "blue" | "red" | "neutral";

@@ -8,15 +8,15 @@ director beats (06 vocabulary) that order the **human** player's units: buy,
 place, ready, move, set engagement. Targets are chosen only through `Knows`
 triggers, so the solution attacks only what blue has identified.
 `ScenarioDocument::with_solution(sol)` merges it into the director under the
-same admission and puts the human seat under `ActiveAi` + `Directed`. Because
-`Order` actions only reach `Directed` seats, the same beats are inert when a
+same admission and puts the human seat under `DirectedAi`. Because
+`Order` actions only reach `DirectedAi` seats, the same beats are inert when a
 person plays.
 
 **Content:** chapters 1–2 of [story.md](../story.md) as director beats in
 `operation-ferryman.json`:
 
 - a milestone beat (no actions, audience blue) for every coach `beat` gate;
-- red's `east_guns` cue: a `Directed` order to fire on ground near the village,
+- red's `east_guns` cue: a `DirectedAi` order to fire on ground near the village,
   heard by blue;
 - the chapter 2 forces worn as the story says.
 
@@ -51,4 +51,4 @@ as the baseline for R3.
 **Delegated:** the harness's step loop, and how the solution waits (always on
 facts, never on ticks).
 
-**Must stay green:** director tests, playbook tests, every digest.
+**Must stay green:** director tests, directed-seat tests, every digest.
