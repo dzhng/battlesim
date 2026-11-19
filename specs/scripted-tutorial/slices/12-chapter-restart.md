@@ -1,5 +1,14 @@
 # 12 Chapter restart
 
+**Status: shipped 2026-11-19.** `Battle::resume` (`crates/sim/src/battle/resume.rs`)
+and `ResumeError`; `BattleHandle::resume` and `PreparedWorld::into_resumed`;
+`init`'s `resume`; the session's standby (`standAt`, `restartChapter`) and the
+pause menu's "Restart chapter". Evidence: `crates/sim/tests/resume.rs`; the
+walkthrough resumes its latest chapter from its own replay, every beat fires
+again, and the resume prints its cost; the `scenario-battle` scene restarts the
+briefing (1.8 s to its first step). Deviations: [decisions.md](../decisions.md#slice-12).
+The dev loop moved to [13](13-chapter-3.md).
+
 **Unlocks:** "Restart chapter" from the Esc menu, by deterministic replay. It is
 also the dev loop for chapters 3–7: each chapter is iterated by jumping
 straight to its start.

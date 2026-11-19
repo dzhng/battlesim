@@ -35,7 +35,9 @@ and spoken line, a camera tour it flies (`useCoachTour`, a pilot that hands the
 camera back), zones it paints on the ground through the battle overlay, and HUD
 controls it rings, found by the anchor each control declares
 ([`hudAnchor`](../../web/src/battle/present/hudAnchors.ts)), never by its
-styling. [The Guide](src/Guide.tsx) is the game's reference: a live
+styling. Its pause menu restarts the open chapter: a standby battle,
+resumed from the playing battle's replay at the chapter's start in a worker of
+its own (`Battle::resume`), takes over as the session's client. [The Guide](src/Guide.tsx) is the game's reference: a live
 battle's Esc menu opens it as a modal over the paused battle that closes back to
 that menu, and no menu page shows it. It reads
 its economy and command keys from the skirmish rules and command bindings, and

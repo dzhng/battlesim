@@ -69,12 +69,14 @@ export function MenuButton({ onOpen }: { onOpen: () => void }) {
 const questions = {
   leave: { title: "Leave the battle?", back: "Stay", go: "Leave battle" },
   restart: { title: "Restart the battle?", back: "Cancel", go: "Restart battle" },
+  chapter: { title: "Restart the chapter?", back: "Cancel", go: "Restart chapter" },
 };
 
 export function PauseMenu({
   onClose,
   online = false,
   onRestart,
+  onRestartChapter,
   onLeave,
   onSettingsApply,
   onSaveReplay,
@@ -84,6 +86,9 @@ export function PauseMenu({
   online?: boolean;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
+  /** Take an authored scenario back to its open chapter's start; none
+   *  before that start is ready to restart. */
+  onRestartChapter?: () => void;
   onLeave?: () => void;
   onSettingsApply?: () => void | Promise<void>;
   onSaveReplay?: () => Promise<unknown>;
@@ -125,7 +130,9 @@ export function PauseMenu({
               <div className="hud-menu-note">
                 {online
                   ? "An AI will take command of your units."
-                  : "Progress in this battle will be lost."}
+                  : asking === "chapter"
+                    ? "Progress since the chapter began will be lost."
+                    : "Progress in this battle will be lost."}
               </div>
               <button
                 type="button"
@@ -144,7 +151,11 @@ export function PauseMenu({
                   {question.go}
                 </Link>
               ) : (
-                <button type="button" className="hud-menu-item" onClick={onRestart}>
+                <button
+                  type="button"
+                  className="hud-menu-item"
+                  onClick={asking === "chapter" ? onRestartChapter : onRestart}
+                >
                   {question.go}
                 </button>
               )}
@@ -168,6 +179,15 @@ export function PauseMenu({
                   onClick={() => setAsking("restart")}
                 >
                   Restart
+                </button>
+              )}
+              {onRestartChapter && (
+                <button
+                  type="button"
+                  className="hud-menu-item"
+                  onClick={() => setAsking("chapter")}
+                >
+                  Restart chapter
                 </button>
               )}
               {children}

@@ -633,6 +633,24 @@ impl BattleHandle {
         })
     }
 
+    /// The recorded battle replayed to `tick` with nothing published on the
+    /// way, then live (`Battle::resume`).
+    pub fn resume(
+        scenario_json: &str,
+        replay_json: &str,
+        tick: f64,
+    ) -> Result<BattleHandle, JsError> {
+        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        sim::admit(&setup.rules).map_err(js_error)?;
+        let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
+        let battle = Battle::resume(&setup, &replay, tick as u64)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(BattleHandle {
+            battle,
+            publishers: Publishers::new(),
+        })
+    }
+
     /// Accept a live order. The simulation supplies its side/player sequence stamp.
     pub fn accept_order(
         &mut self,

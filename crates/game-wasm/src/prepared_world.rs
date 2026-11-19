@@ -111,6 +111,24 @@ impl PreparedWorld {
             publishers: Publishers::new(),
         })
     }
+
+    /// The recorded battle replayed to `tick` with nothing published on the
+    /// way, then live (`Battle::resume`).
+    pub fn into_resumed(
+        self,
+        scenario_json: &str,
+        replay_json: &str,
+        tick: f64,
+    ) -> Result<BattleHandle, JsError> {
+        let setup = self.scenario(scenario_json)?;
+        let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
+        let battle = Battle::resume_prepared(&setup, &replay, tick as u64, self.prepared)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(BattleHandle {
+            battle,
+            publishers: Publishers::new(),
+        })
+    }
 }
 
 fn identity_digest<T: serde::Serialize>(value: &T) -> Result<u64, JsError> {

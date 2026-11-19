@@ -1,8 +1,9 @@
 //! Every shipped scenario with a solution, played by it to its end: each
 //! chapter opens in turn, every beat fires, no order the solution or the
-//! director gives is refused, and the replay is the battle. It names no
-//! scenario and pins nothing about one; a change that breaks a scenario's
-//! story fails here by the beat that never fired.
+//! director gives is refused, and the replay is the battle. Then its latest
+//! chapter restarts, resumed from that replay, and its beats fire again. It
+//! names no scenario and pins nothing about one; a change that breaks a
+//! scenario's story fails here by the beat that never fired.
 
 use contract::maps::MapCategory;
 use contract::scenario::Rules;
@@ -36,8 +37,9 @@ fn every_scenario_plays_through_by_its_solution() {
             while battle.director().unwrap().chapter() < chapters.len() && battle.tick() < limit {
                 let before = battle.director().unwrap().chapter();
                 battle.step();
-                if battle.director().unwrap().chapter() != before {
-                    openings.push(battle.tick());
+                let now = battle.director().unwrap().chapter();
+                if now != before {
+                    openings.push((battle.tick(), now));
                 }
             }
             let run = battle.director().unwrap();
@@ -57,7 +59,7 @@ fn every_scenario_plays_through_by_its_solution() {
                 run.refusals()
             );
             assert!(
-                openings.windows(2).all(|w| w[0] < w[1]),
+                openings.windows(2).all(|w| w[0].0 < w[1].0),
                 "chapters open in turn"
             );
             let mut replayed = Battle::from_replay(&setup, &battle.replay()).unwrap();
@@ -69,6 +71,10 @@ fn every_scenario_plays_through_by_its_solution() {
                 battle.digest(),
                 "{id}/{name}: the replay is the battle"
             );
+            // The last chapter to open, not the end of the last one.
+            if let Some(&(opened, index)) = openings.iter().rfind(|(_, i)| *i < chapters.len()) {
+                restarts(&setup, &battle, opened, &chapters[index], &id, &name);
+            }
             if let Some(dir) = std::env::var_os("WALKTHROUGH_REPLAY") {
                 let path = std::path::Path::new(&dir).join(format!("{id}-{name}.replay.json"));
                 std::fs::write(path, serde_json::to_vec(&battle.replay()).unwrap()).unwrap();
@@ -81,4 +87,41 @@ fn every_scenario_plays_through_by_its_solution() {
         }
     }
     assert!(played > 0, "the catalogue ships a scenario with a solution");
+}
+
+/// The chapter that opened at `opened`, restarted from `played`'s replay:
+/// resumed at its opening, it plays out again and every one of its beats
+/// fires again. The resume's cost prints as a loose tripwire, never a target.
+fn restarts(
+    setup: &contract::scenario::ScenarioDefinition,
+    played: &Battle,
+    opened: u64,
+    chapter: &contract::director::Chapter,
+    id: &str,
+    name: &str,
+) {
+    let started = std::time::Instant::now();
+    let mut resumed = Battle::resume(setup, &played.replay(), opened)
+        .unwrap_or_else(|e| panic!("{id}/{name}: chapter {} doesn't resume: {e}", chapter.id));
+    eprintln!(
+        "{id}/{name}: chapter {} resumed at tick {opened} in {:.1} s",
+        chapter.id,
+        started.elapsed().as_secs_f64()
+    );
+    let fired = |battle: &Battle| {
+        chapter
+            .beats
+            .iter()
+            .filter(|b| battle.director().unwrap().fired_at(&b.id).is_some())
+            .count()
+    };
+    while resumed.tick() < played.tick() && fired(&resumed) < chapter.beats.len() {
+        resumed.step();
+    }
+    assert_eq!(
+        fired(&resumed),
+        chapter.beats.len(),
+        "{id}/{name}: chapter {}'s beats fire again after a restart",
+        chapter.id
+    );
 }

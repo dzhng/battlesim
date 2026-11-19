@@ -81,6 +81,7 @@ mod publication_reader;
 mod publication_wire;
 mod purchase_preview;
 mod radar;
+mod resume;
 mod ricochet;
 mod rivers;
 mod road_journeys;

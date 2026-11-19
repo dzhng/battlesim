@@ -45,6 +45,34 @@ export async function run(ctx) {
   await snapshot(ctx, page, "shop.png");
   await page.keyboard.press("Escape");
   await coach(ctx, page);
+  await restartChapter(ctx, page);
+}
+
+/** "Restart chapter" from the pause menu takes the battle back to the open
+ *  chapter's start: the coach shows the chapter's first step again, having
+ *  forgotten what the player did in it. */
+async function restartChapter(ctx, page) {
+  const [chapter] = COACH.chapters;
+  const card = page.getByRole("complementary", { name: "Coach" });
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  const restart = page.getByRole("button", { name: "Restart chapter", exact: true });
+  await restart.waitFor({ timeout: 30000 });
+  await restart.click();
+  await page.getByRole("button", { name: "Restart chapter", exact: true }).click();
+  const asked = Date.now();
+  await page.waitForFunction(
+    (first) => document.querySelector("[aria-label=Coach]")?.getAttribute("data-step") === first,
+    chapter.steps[0].id,
+    { timeout: 60000 },
+  );
+  ctx.check(
+    "restarting the chapter brings back its first step",
+    (await card.getAttribute("data-step")) === chapter.steps[0].id,
+    `${((Date.now() - asked) / 1000).toFixed(1)} s from the confirmation`,
+  );
+  // The view draws again once its world is back.
+  await lab(page, () => window.__lab.frame());
+  await snapshot(ctx, page, "coach-restarted.png");
 }
 
 /** The coach through the briefing, step by step from its own document:

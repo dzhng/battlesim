@@ -46,6 +46,7 @@ mod purchase_preview;
 mod refusals;
 mod replay;
 mod replay_identity;
+mod resume;
 mod return_to_base;
 mod scripts;
 mod seats;
@@ -160,6 +161,7 @@ pub struct Load {
 }
 
 pub use replay::{ControllerTransition, Replay, ReplayError, ScriptTrace, ENGINE_BUILD_ID};
+pub use resume::ResumeError;
 pub use seats::{SeatError, SeatEvent};
 
 pub struct Battle {

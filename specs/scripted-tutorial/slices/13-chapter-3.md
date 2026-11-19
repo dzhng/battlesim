@@ -29,7 +29,15 @@ and contest, taught in the battle. See [story.md](../story.md#chapter-3-the-cros
 5. **`pause` steps** (from 11): the first chapter whose tour flies over a
    live battle adds the step's `pause`, holding the offline battle through
    the session's `SimClient.pause()` the way the pause menu does.
-6. **Iterate from the chapter's start** with restart's dev loop, never by
+6. **The dev loop** (moved from 12): start the browser battle at this
+   chapter's opening. The walkthrough's replay can't be resumed into the
+   shipped scenario: the solution adds beats and hands the human seat to the
+   director, so its scenario digest differs. Build the loop on the solved
+   scenario itself instead. `Battle::resume` from an empty replay plays the
+   director's solution to the chapter's tick. The seat goes back to a person
+   there, and the loop stops the solution's later beats from steering the
+   person's units (or drops the solution past the chapter).
+7. **Iterate from the chapter's start** with restart's dev loop, never by
    replaying earlier chapters by hand.
 
 ## This chapter

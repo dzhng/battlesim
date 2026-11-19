@@ -428,3 +428,43 @@ hills session was told what the valley needs.
   the coach document itself, step by step (rings, tours, marks), instead of a
   second `tutorial.mjs`.
 
+## Slice 12
+
+- **Resume is a cut replay, stepped and then let go** (agent): the log,
+  controller transitions, script trace and seat events are cut at the tick
+  and replayed. Admission already re-records each command and advances the
+  sequence counters, so the live battle's record continues from the prefix
+  without copying anything. A transition recorded at the tick applies at
+  once, as a live change made then would.
+- **What refuses `AiMemory`** (agent): an active AI seat before the tick (from
+  the setup or a transition), or an encounter opponent, whose memory is
+  outside the digest. A replay's end-of-battle `controllers` list counts only
+  for a record without transitions, because it says how the battle ended,
+  not how it began.
+- **"Past the end" means the battle had finished by the tick** (agent): a
+  replay doesn't record how long its battle ran, only when it finished.
+- **The standby is a whole second client** (agent): when the page first sees
+  a chapter, it asks the playing authority for its replay and starts a
+  worker that resumes at that publication's tick, publishing nothing.
+  "Restart chapter" hands that client to the session, the way a restart
+  hands it a fresh one, so the view and its built world stay mounted. If
+  publications batch ticks, the restart point is the first published tick
+  of the chapter, not the director's exact opening.
+- **A restart still rebuilds the page's world** (measured, not changed): the
+  battle view drops its art while a new client has no observation yet, as
+  the plain Restart always has. So a chapter restart remounts the viewport.
+  It takes 1.8 s from the confirmation to the chapter's first step in the
+  scene. The standby removes the replay's cost, not that rebuild. Keeping
+  the art across a restart is a change to battle art admission, outside
+  this spec.
+- **The coach forgets on a new run** (agent): `useCoach` keys what it heard
+  and dismissed by the session's client, so a restart re-derives the coach
+  from the publication alone.
+- **The browser check restarts the briefing** (agent): reaching chapter 2 in
+  a browser means buying through the shop. The walkthrough already proves a
+  later chapter restarts (it resumes the latest chapter from its own replay,
+  and every beat fires again).
+- **The dev loop moves to slice 13** (agent, found here): the walkthrough's
+  replay belongs to the solved scenario, not the shipped one, so it can't
+  resume into the player's battle. See 13's shape.
+

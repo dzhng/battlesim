@@ -211,7 +211,18 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
-  const coached = useCoach(input ? (coach ?? null) : null, observation?.scenario ?? null);
+  const coached = useCoach(
+    input ? (coach ?? null) : null,
+    observation?.scenario ?? null,
+    sim.client,
+  );
+  // Each chapter's start waits in a standby battle, so restarting it is a swap.
+  const chapter = coach && input ? observation?.scenario?.chapter : undefined;
+  const { standAt, latest } = sim;
+  useEffect(() => {
+    const opened = latest.current?.tick;
+    if (chapter && opened !== undefined) standAt(opened);
+  }, [chapter, standAt, latest]);
   const step = coached.view?.step ?? null;
   const tour = useCoachTour(step);
   const overlay = useBattleOverlay(session, { scenario, camera, marks: step?.marks });
@@ -395,6 +406,14 @@ export function BattleView({
               : () => {
                   pause.show(false);
                   sim.restart();
+                }
+          }
+          onRestartChapter={
+            sim.standbyAt === null
+              ? undefined
+              : () => {
+                  pause.show(false);
+                  sim.restartChapter();
                 }
           }
           onSettingsApply={() => window.__lab?.rebuild?.()}
