@@ -1,27 +1,27 @@
-// The main menu tutorial's pictures, drawn from one real skirmish: the
-// faction roster on a seeded generated map, played through the ordinary
-// picker, cursor and orders while the authority is paused, so each moment is
-// framed exactly. Stills are JPEGs; a gesture is a short silent loop, zoomed
-// in, with the cursor that makes it.
+// The Guide's pictures, drawn from one real skirmish: the faction roster on a
+// seeded generated map, played through the ordinary picker, cursor and orders
+// while the authority is paused, so each moment is framed exactly. Stills are
+// JPEGs; a gesture is a short silent loop, zoomed in, with the cursor that
+// makes it.
 //
-//   bun run --cwd web tutorial-shots              every shot
-//   bun run --cwd web tutorial-shots -- place     only the named shots
+//   bun run --cwd web guide-shots              every shot
+//   bun run --cwd web guide-shots -- place     only the named shots
 //
 // It needs what a battle needs: the WebAssembly built and the battle's LFS
 // assets fetched (assets/runtime, assets/third-party). It starts its own
 // server unless VERIFY_URL names one, and shares the GPU like a scene
 // (`lockf -k <main checkout>/throwaway/gpu.lock …`). Shots go to
-// assets/runtime/tutorial-media/, served at /tutorial-media/; frames and working files
-// to throwaway/tutorial-shots/.
+// assets/runtime/guide-media/, served at /guide-media/; frames and working files
+// to throwaway/guide-shots/.
 //
 // Moments are found by what the observation shows (a capture under way, a
 // contact beside a seen enemy), not by tick, so a rule change moves them
 // rather than breaking them; a moment that never comes fails by name. Every
 // picture shows what the seed plays and how the game drew it, so a changed
 // look, HUD, generator or rule set calls for drawing them again. Then look at
-// each one against its caption in Tutorial.tsx (captions name the kind of
-// moment, not this seed's details), and re-approve the menu scene's picture
-// of the page (`UPDATE_BASELINES=ui`), whose check also fails on a picture
+// each one against its caption in Guide.tsx (captions name the kind of
+// moment, not this seed's details), and re-approve the ui scene's pictures
+// of the Guide (`UPDATE_BASELINES=ui`), whose check also fails on a picture
 // left as an unfetched LFS pointer.
 import { execFileSync } from "node:child_process";
 import { mkdir, rm } from "node:fs/promises";
@@ -31,8 +31,8 @@ import { advance, lab, own, until } from "./scenes/_lab.mjs";
 import { unitType } from "./scenes/_units.mjs";
 
 const HERE = new URL(".", import.meta.url);
-const OUT = new URL("../assets/runtime/tutorial-media/", HERE).pathname;
-const WORK = new URL("../throwaway/tutorial-shots/", HERE).pathname;
+const OUT = new URL("../assets/runtime/guide-media/", HERE).pathname;
+const WORK = new URL("../throwaway/guide-shots/", HERE).pathname;
 const BATTLE = "/battle?type=mixed&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern";
 const VIEWPORT = { width: 1600, height: 900 };
 const SCALE = 2;

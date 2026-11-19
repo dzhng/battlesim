@@ -282,10 +282,10 @@
   max-height: calc(100dvh - 64px);
   grid-template-rows: auto minmax(0, 1fr);
 }
-/* The tutorial: a briefing read in the plate, scrolling under its Back
+/* The guide: a briefing read in the plate, scrolling under its Back
    button, its sections headed in the plate's tracked caps and its keys drawn
    as small holo keycaps. */
-.menu-tutorial {
+.menu-guide {
   display: grid;
   gap: 18px;
   min-height: 0;
@@ -299,11 +299,11 @@
   /* Body a step under full brightness, so key terms and keys stand out. */
   color: rgb(var(--hud-text) / 0.82);
 }
-.menu-tutorial section {
+.menu-guide section {
   display: grid;
   gap: 8px;
 }
-.menu-tutorial h3 {
+.menu-guide h3 {
   margin: 0;
   font: 700 13px var(--hud-font);
   letter-spacing: 0.22em;
@@ -311,17 +311,17 @@
   text-transform: uppercase;
   color: rgb(var(--hud-accent));
 }
-.menu-tutorial p {
+.menu-guide p {
   margin: 0;
 }
-.menu-tutorial ul {
+.menu-guide ul {
   gap: 6px;
 }
-.menu-tutorial li {
+.menu-guide li {
   position: relative;
   padding-left: 14px;
 }
-.menu-tutorial li::before {
+.menu-guide li::before {
   content: "";
   position: absolute;
   left: 0;
@@ -331,7 +331,7 @@
   background: rgb(var(--hud-accent));
 }
 /* A picture of the moment, its caption small and dim beneath it. */
-.menu-tutorial figure {
+.menu-guide figure {
   display: grid;
   gap: 7px;
   margin: 6px 0 12px;
@@ -349,15 +349,15 @@
 .menu-shot video {
   aspect-ratio: 16 / 9;
 }
-.menu-tutorial figcaption {
+.menu-guide figcaption {
   font-size: 12px;
   line-height: 1.45;
   color: rgb(var(--hud-text) / 0.66);
 }
-.menu-tutorial strong {
+.menu-guide strong {
   color: #fff;
 }
-.menu-tutorial kbd {
+.menu-guide kbd {
   display: inline-block;
   padding: 0 5px;
   font: 700 10.5px var(--hud-font);

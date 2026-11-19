@@ -29,18 +29,18 @@ continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
 The main menu starts fresh generated skirmishes, browses the roster and
-teaches the game: [the tutorial](src/Tutorial.tsx) reads its economy and command keys from
-the skirmish rules and command bindings, and its prose must follow the simulation's
-rules when they change. Its pictures are not hand-shot: [the tutorial shots
-tool](../../web/tutorial-shots.mjs) plays one seeded skirmish with the faction roster
-through the ordinary picker, cursor and orders, finds each moment by what the
-observation shows, and writes stills and gesture loops to the served
-`assets/runtime/tutorial-media/`. They show the game as it was drawn, so a change to
-the look, the HUD, the generator or the rules is followed by rerunning it and
-reviewing the pictures; the tool's header says how. A moment the battle no
+teaches the game. [The Guide](src/Guide.tsx) is the game's reference: a live
+battle's Esc menu opens it as a modal over the paused battle that closes back to
+that menu, and the main menu's Tutorial page shows the same content. It reads
+its economy and command keys from the skirmish rules and command bindings, and
+its prose must follow the simulation's rules when they change. Its pictures are
+not hand-shot: [the guide shots tool](../../web/guide-shots.mjs) plays one
+seeded skirmish with the faction roster through the ordinary picker, cursor and
+orders, finds each moment by what the observation shows, and writes stills and
+gesture loops to the served `assets/runtime/guide-media/`. They show the game as
+it was drawn, so a change to the look, the HUD, the generator or the rules is
+followed by rerunning it and reviewing the pictures; the tool's header says how. A moment the battle no
 longer reaches fails by name rather than shooting something else.
-The same tutorial is available from a live battle's pause menu; it opens as a
-modal over the paused battle and closes back to that menu.
 Every menu page is an address, and [the menu's pages](src/menu/pages.ts) own
 their paths, titles and tiles. Every menu address is a visit inside [one menu
 shell](src/menu/MenuShell.tsx): one plate over the backdrop, its tiles

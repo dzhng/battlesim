@@ -1049,11 +1049,11 @@ html {
   display: grid;
   gap: 6px;
 }
-.hud-veil.hud-tutorial-veil {
+.hud-veil.hud-modal-veil {
   z-index: 30;
   background: rgb(var(--hud-glass) / 0.72);
 }
-.hud-panel.hud-tutorial-modal {
+.hud-panel.hud-modal {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(760px, 100%);
@@ -1071,18 +1071,18 @@ html {
 .hud-settings-modal .hud-menu-section:last-child {
   padding-bottom: 0;
 }
-.hud-tutorial-head {
+.hud-modal-head {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
   padding-bottom: 8px;
 }
-.hud-tutorial-head .hud-menu-title {
+.hud-modal-head .hud-menu-title {
   padding-bottom: 0;
   text-align: left;
 }
-.hud-tutorial-head .hud-menu-item {
+.hud-modal-head .hud-menu-item {
   width: auto;
   white-space: nowrap;
 }

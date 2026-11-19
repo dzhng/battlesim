@@ -1,9 +1,9 @@
-// The main menu's Tutorial page: how a skirmish is played, from the plan
-// before the first shot to the last flag. The economy's numbers are read from
-// the skirmish rules and the command keys from their bindings, so the
-// guide says what the game does; the rest describes rules owned by the
+// The Guide, opened from the battle's Esc menu: how a skirmish is played,
+// from the plan before the first shot to the last flag. The economy's numbers
+// are read from the skirmish rules and the command keys from their bindings,
+// so the guide says what the game does; the rest describes rules owned by the
 // simulation (objectives, preparation, purchases) and must follow them. Its
-// pictures are drawn from a real skirmish by `web/tutorial-shots.mjs`.
+// pictures are drawn from a real skirmish by `web/guide-shots.mjs`.
 import { Fragment, type ReactNode } from "react";
 import skirmish from "@fixtures/skirmish.json";
 import { UNIT_GROUPS, type UnitGroup } from "@web/battle/present/purchaseFilter";
@@ -55,9 +55,9 @@ function Shot({
     <figure>
       <div className="hud-panel menu-shot">
         {loop ? (
-          <video src={`/tutorial-media/${name}.mp4`} autoPlay loop muted playsInline />
+          <video src={`/guide-media/${name}.mp4`} autoPlay loop muted playsInline />
         ) : (
-          <img src={`/tutorial-media/${name}.jpg`} alt="" />
+          <img src={`/guide-media/${name}.jpg`} alt="" />
         )}
       </div>
       <figcaption>{children}</figcaption>
@@ -65,9 +65,9 @@ function Shot({
   );
 }
 
-export function Tutorial() {
+export function Guide() {
   return (
-    <article className="menu-tutorial" aria-label="How to play" tabIndex={0}>
+    <article className="menu-guide" aria-label="How to play" tabIndex={0}>
       <Section title="The aim">
         <p>
           Every battle is fought over a handful of <strong>objectives</strong>: numbered capture
@@ -552,7 +552,7 @@ export function Tutorial() {
       <Section title="Pausing">
         <p>
           <kbd>Esc</kbd> (or the menu button at the top) pauses the battle. From the pause menu you
-          can resume, restart, change the sound, or return here.
+          can resume, open this guide, change the settings, restart, or leave the battle.
         </p>
       </Section>
     </article>
