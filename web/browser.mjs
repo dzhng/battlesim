@@ -1,4 +1,4 @@
-// The browser every WebGPU check draws in: scenes, tutorial shots, model
+// The browser every WebGPU check draws in: scenes, guide shots, model
 // sheets and the browser tests that need a GPU.
 //
 // It is Playwright's Chromium, except inside WSL, where it is headless Windows

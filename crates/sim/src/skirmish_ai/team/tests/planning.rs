@@ -359,6 +359,7 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
             unit_count: 0,
             cap: 30,
             pending: vec![],
+            offered: None,
         }],
         preparation_remaining_s: 0.0,
         objectives: sites

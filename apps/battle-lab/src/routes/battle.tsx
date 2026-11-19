@@ -31,6 +31,7 @@ import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
 import type { ReplayCameraTrack } from "../replayCamera";
 import { battleRequestForAsked } from "../skirmishData";
+import { ScenarioBattleView } from "./scenarioBattle";
 
 /** The generated map a request asks for. */
 const generatedChoice = (request: PrepareBattleRequest): MapChoice => request.map_source.request;
@@ -114,12 +115,14 @@ export default function Battle() {
         }}
       />
     );
-  return asked.kind === "replay" ? <SavedReplay /> : <AskedBattleView asked={asked} />;
+  if (asked.kind === "replay") return <SavedReplay />;
+  if (asked.kind === "scenario") return <ScenarioBattleView scenario={asked} />;
+  return <AskedBattleView asked={asked} />;
 }
 
 /** The request for what the address asks, pinned to this build's generator,
  *  presets and catalogue. */
-function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
+function AskedBattleView({ asked }: { asked: Extract<AskedBattle, { kind: "generated" }> }) {
   const request = useBuiltScenario(asked, (wasm, match) => battleRequestForAsked(wasm, match));
   if (!request) return null;
   if (buildFailed(request))
@@ -152,7 +155,8 @@ function SavedReplay() {
   return (
     <PreparedBattleView
       key={loaded.n}
-      request={file.battle.report.request}
+      // A saved battle is a generated one (`parseReplayFile`).
+      request={file.battle.report.request!}
       replay={file}
       onLoadReplay={setFile}
     />

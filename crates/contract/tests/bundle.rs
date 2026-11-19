@@ -231,11 +231,12 @@ fn economy_mode_refuses_authored_forces_that_the_skirmish_owner_cannot_field() {
         }))
         .unwrap(),
     );
+    // A force nobody owns is no skirmish player's to field.
     assert!(economy
         .validate()
         .unwrap_err()
         .to_string()
-        .contains("authored forces"));
+        .contains("units[0]"));
 }
 
 #[test]

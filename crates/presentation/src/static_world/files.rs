@@ -85,7 +85,7 @@ pub fn ground(
 
 /// The rules of a battle fought on saved map `map`: the game's, with the
 /// units of the map's own category (a capture map's the capture set's, a
-/// test map's the tests').
+/// test map's the tests', a scenario map's the game's).
 pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String> {
     let meta = json(&root.join("fixtures/maps").join(map).join("meta.json"))?;
     let category: MapCategory = serde_json::from_value(meta["category"].clone())
@@ -93,6 +93,7 @@ pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String
     let set = match category {
         MapCategory::Capture => sim::fixtures::CatalogSet::Capture,
         MapCategory::Test => sim::fixtures::CatalogSet::Test,
+        MapCategory::Scenario => sim::fixtures::CatalogSet::Game,
     };
     let mut fixture = sim::fixtures::rules();
     fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));

@@ -9,5 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["cursor-orders", "garrison"],
+  "scenarios": [],
   "benchmarks": []
 }

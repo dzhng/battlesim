@@ -36,6 +36,7 @@ export interface PreparedWorld {
   extents(): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
+  into_resumed(scenario: string, replay: string, tick: number): SimBattle;
   free(): void;
 }
 export interface PreparationResult {

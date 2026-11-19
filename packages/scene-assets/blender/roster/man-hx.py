@@ -12,10 +12,10 @@ under a tarp, tied down along its foot, with the tool lockers and fuel
 tank under it. Cab interior as the dark glass shows it: the dash and seat
 backs.
 
-The photos mix 4x4, 6x6 and 8x8 HX trucks (specs/done/unit-models/choices.md): the
-catalog frame (hull 10.34 x 2.5 x 3.3 m) is the HX77 8x8's length, so this
-draws eight wheels, two axles under the cab and two under the body.
-Nothing here moves the frame.
+The photos mix 4x4, 6x6 and 8x8 HX trucks (specs/done/unit-models/choices.md):
+this draws the HX77 8x8's eight wheels, two axles under the cab and two under
+the body. The exporter scales its longitudinal reference proportion to the
+catalog envelope. Nothing here moves the frame.
 """
 import math
 import os
@@ -29,7 +29,7 @@ import running_gear as RG  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import apply_hull_scale, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -49,6 +49,7 @@ def build(variant, v):
     running_gear(v)
     cab(v)
     body(v)
+    apply_hull_scale(v.hull, v.length / 10.336)
 
 
 def running_gear(v):
@@ -62,7 +63,7 @@ def running_gear(v):
             box(f"spring_{s}_{k}", (0.70, 0.10, 0.30), (x, side * 0.50, 0.83), m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (9.60, 0.14, 0.26), (-0.10, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
-        HF.mudflap(f"mudflap_{s}", (-4.80, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-4.35, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
 
 
 def cab(v):
@@ -116,19 +117,20 @@ def cab(v):
 
 def body(v):
     m, hull = v.mats, v.hull
-    length = 7.10
+    length = 7.80
     centre = 2.75 - length / 2
+    rear = centre - length / 2
     SW.cargo_bed("cargo_body", (centre, 0, BED_FLOOR), (length, 2.46, 0.62), m, hull, stakes=6, tarp=1.22)
     for side, s in ((1, "L"), (-1, "R")):
         SW.stowage_box(f"locker_{s}", (0.10, side * 0.95, 0.75), (1.20, 0.45, 0.55), m, hull,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        HF.light_with_guard(f"tail_light_{s}", (-5.15, side * 1.00, 1.20), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (rear - 0.05, side * 1.00, 1.20), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
     HF.fuel_tank("fuel_tank", (-1.20, 0.95, 1.00), 1.30, 0.30, m, hull)
-    box("rear_underrun", (0.12, 2.20, 0.14), (-5.05, 0, 0.70), m["dark"], hull, bevel=0.012)
+    box("rear_underrun", (0.12, 2.20, 0.14), (rear, 0, 0.70), m["dark"], hull, bevel=0.012)
     for side, s in ((1, "L"), (-1, "R")):
-        box(f"underrun_bracket_{s}", (0.08, 0.10, 0.35), (-5.05, side * 0.45, 0.875), m["dark"], hull, lods=MID)
-    HF.tow_hook("pintle", (-5.00, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
+        box(f"underrun_bracket_{s}", (0.08, 0.10, 0.35), (rear, side * 0.45, 0.875), m["dark"], hull, lods=MID)
+    HF.tow_hook("pintle", (rear, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
     RF.whip_pair(hull, (CAB_REAR + 0.15, 1.05, ROOF), m, height=2.0)
 
 

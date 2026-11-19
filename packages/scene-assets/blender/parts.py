@@ -225,7 +225,14 @@ def glass(name="glass"):
     """Sight glass and windows: near black and smooth, so what it shows is what it
     reflects (a pale sky at grazing angles), never a colour of its own. Opaque and
     unworn: a blended surface cannot wear."""
-    return flat_paint(name, (0.008, 0.01, 0.011), rough=0.08, grime=0, role="glass")
+    colour = (0.008, 0.01, 0.011)
+    material = flat_paint(name, colour, rough=0.08, grime=0, role="glass")
+    # Donor meshes may not carry the procedural vertex-colour albedo channel.
+    # Keep the material itself dark so those windows cannot fall back to the
+    # neutral node base colour.
+    material.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*colour, 1.0)
+    material.diffuse_color = (*colour, 1.0)
+    return material
 
 
 def track_steel(name="track", links=True, dirt=0.15):
@@ -622,8 +629,10 @@ def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_s
     for o in meshes:
         t = tier_of(o)
         mat = o.data.materials[0] if o.data.materials else None
-        if mat is not None and mat.name in PAINTS and t is not None:
-            coarse = TEXTURED_EDGE_SCALE if mat.name in TEXTURED else 1.0
+        # An atlas already carries its surface detail in UV space. Keep its
+        # authored geometry; the vertex layer only modulates it for occlusion.
+        if mat is not None and mat.name in PAINTS and mat.name not in textures.ATLASES and t is not None:
+            coarse = mat.get("paint_edge_scale", TEXTURED_EDGE_SCALE if mat.name in TEXTURED else 1.0)
             _split_long_edges(o.data, PAINT_EDGE_M[t] * paint_scale * coarse)
     dirs = _hemisphere(ao_rays)
     far = (FAR,) if any(tier_of(o) == FAR for o in meshes) else ()

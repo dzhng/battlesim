@@ -8,9 +8,10 @@
 import { MAP_ID, type MapDefinition, type MapIdentity } from "./resolve.ts";
 
 /** What a saved map is for (`contract::maps::MapCategory`): a test's own
- *  ground (tests, labs, benchmarks) or a battlefield the capture tool and menu film.
- *  Players never fight on a saved map: their battles are generated. */
-const MAP_CATEGORIES = ["test", "capture"] as const;
+ *  ground (tests, labs, benchmarks), a battlefield the capture tool and menu
+ *  film, or the fixed battlefield of a player-facing authored scenario.
+ *  Player skirmishes are generated. */
+const MAP_CATEGORIES = ["test", "capture", "scenario"] as const;
 const MAP_STATUSES = ["draft", "released", "retired"] as const;
 const MAP_SOURCES = ["imported", "generated", "authored"] as const;
 /** What kind of ground a map is: a generated map's type (`open`, `mixed`,
@@ -26,7 +27,7 @@ export type MapCharacter = (typeof MAP_CHARACTERS)[number];
 export type MapTag = (typeof MAP_TAGS)[number];
 
 export interface MapMeta {
-  /** What the map is for: a test's, or the capture set's. */
+  /** What the map is for: a test's, the capture set's, or a scenario's. */
   category: MapCategory;
   /** Drafts are listed only for developers; retired maps are not listed. */
   status: MapStatus;
@@ -44,6 +45,9 @@ export interface MapMeta {
   seed: string | null;
   /** Its saved encounters: the names under `encounters/`, in order. */
   encounters: string[];
+  /** Its authored scenarios: the names under `scenarios/`, in order. Only a
+   *  scenario map has any, and a scenario map has no encounters. */
+  scenarios: string[];
   /** The benchmarks that run on it, by name. */
   benchmarks: string[];
 }
@@ -64,6 +68,7 @@ const FIELDS = [
   "source",
   "seed",
   "encounters",
+  "scenarios",
   "benchmarks",
 ] as const satisfies readonly (keyof MapMeta)[];
 
@@ -99,7 +104,10 @@ export function validateMapMeta(id: string, value: unknown): MapMeta {
   )
     fail("size_m", "[width, height] in positive metres");
 
-  const names = (field: "tags" | "encounters" | "benchmarks", admit: (name: string) => boolean) => {
+  const names = (
+    field: "tags" | "encounters" | "scenarios" | "benchmarks",
+    admit: (name: string) => boolean,
+  ) => {
     const list = meta[field];
     if (!Array.isArray(list)) return fail(field, "a list of names");
     for (const name of list) {
@@ -111,7 +119,15 @@ export function validateMapMeta(id: string, value: unknown): MapMeta {
   };
   names("tags", (name) => (MAP_TAGS as readonly string[]).includes(name));
   names("encounters", (name) => MAP_ID.test(name));
+  names("scenarios", (name) => MAP_ID.test(name));
   names("benchmarks", (name) => MAP_ID.test(name));
+  // Encounters stage tests and films; scenarios are played. One map holds
+  // one kind.
+  const listed = (field: "encounters" | "scenarios") => (meta[field] as string[]).length > 0;
+  if (meta.category === "scenario" && listed("encounters"))
+    fail("encounters", "a scenario map carries scenarios, not encounters");
+  if (meta.category !== "scenario" && listed("scenarios"))
+    fail("scenarios", "only a scenario map carries scenarios");
 
   // A seed is a generated map's, and crosses JSON as decimal text.
   const seed = meta.seed;
@@ -142,6 +158,8 @@ export interface MapFolder {
   identity: MapIdentity;
   /** The names under `encounters/`, in order. */
   encounters: string[];
+  /** The scenario names under `scenarios/`, in order. */
+  scenarios: string[];
 }
 
 /** Every way `meta` disagrees with the map it describes; empty when the
@@ -157,6 +175,7 @@ export function checkMapFolder(id: string, meta: MapMeta, folder: MapFolder): st
   differ("size_m", meta.size_m, folder.definition.size, "the map's size is");
   differ("tags", meta.tags, mapTags(folder.definition), "the map's features are");
   differ("encounters", meta.encounters, folder.encounters, "the folder's encounters are");
+  differ("scenarios", meta.scenarios, folder.scenarios, "the folder's scenarios are");
   const { identity } = folder;
   if (identity.kind === "generated") {
     differ("source", meta.source, "generated", "SOURCES.json's identity is");

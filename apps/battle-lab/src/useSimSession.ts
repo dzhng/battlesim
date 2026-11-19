@@ -144,12 +144,21 @@ export function useSimSession({
   const openSide = useRef(side);
   openSide.current = side;
   const startup = useRef<SessionStartup | null>(null);
+  /** A battle waiting live at a chapter's start, which `restartChapter`
+   *  swaps in for the one playing; `standbyAt` is its tick. */
+  const standby = useRef<SimClient | null>(null);
+  const [standbyAt, setStandbyAt] = useState<number | null>(null);
+  const adopt = useRef<SimClient | null>(null);
 
   useEffect(() => {
     const plan = scriptedRef.current;
-    // Restart is a new battle: its fresh worker prepares the same scenario once.
+    // Restart is a new battle: its fresh worker prepares the same scenario
+    // once, or a standby already waits at the chapter's start.
+    const adopted = adopt.current;
+    adopt.current = null;
     const next =
-      !!prepared && "transport" in prepared
+      adopted ??
+      (!!prepared && "transport" in prepared
         ? createSimClient({
             transport: "remote",
             side: openSide.current,
@@ -166,7 +175,7 @@ export function useSimSession({
             // session is replaced (for example by uploading a replay), start a
             // fresh worker rather than sending init through the closed connection.
             connect: generation === 0 && !replay ? prepared?.connect : undefined,
-          });
+          }));
     let warm = !plan;
     const operation = startSessionStartup(
       next,
@@ -239,6 +248,35 @@ export function useSimSession({
   }, []);
 
   const local = client && "pause" in client ? client : null;
+  /** Ready a standby battle at `tick` of the one playing, replacing any
+   *  older one: the recorded battle replayed there in a worker of its own,
+   *  publishing nothing until it is swapped in. */
+  const standAt = useCallback(
+    (tick: number) => {
+      if (!local) return;
+      void local.replay().then((recorded) => {
+        if (adopt.current) return;
+        standby.current?.dispose();
+        standby.current = createSimClient({
+          scenario,
+          seed,
+          side: openSide.current,
+          player,
+          transport: "worker",
+          resume: { replay: recorded, tick },
+        });
+        setStandbyAt(tick);
+      });
+    },
+    [local, scenario, seed, player],
+  );
+  useEffect(
+    () => () => {
+      standby.current?.dispose();
+      standby.current = null;
+    },
+    [scenario, seed, player],
+  );
   return {
     client,
     local,
@@ -260,5 +298,15 @@ export function useSimSession({
     holdCredit,
     onViewportReady,
     restart: () => setGeneration((g) => g + 1),
+    standAt,
+    /** The tick a chapter restart would take the battle back to. */
+    standbyAt,
+    /** Play on from the standby: the battle as it stood at `standbyAt`. */
+    restartChapter: () => {
+      adopt.current = standby.current;
+      standby.current = null;
+      setStandbyAt(null);
+      if (adopt.current) setGeneration((g) => g + 1);
+    },
   };
 }

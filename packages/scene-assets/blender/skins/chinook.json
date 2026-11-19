@@ -1,0 +1,30 @@
+[
+  {
+    "variant": "europe_ch_47_chinook_hc6",
+    "glb": "assets/source/skins/chinook/bravo-november-airframe.glb",
+    "sha256": "b81b24ff6f82335a15da71c0de2f540f266c5ce04a547d31f07a6fae1e344211",
+    "creator": "mgg8 / Aviation Gazetteer",
+    "source": "https://airmuseums.co.uk/models/aircraft/boeing-chinook.glb",
+    "source_sha256": "19007d6f99228c802af826c42d958ee27ff300c764d038cac1d4200a70564114",
+    "listing": "https://sketchfab.com/3d-models/ed278aac484d4b36b1d8e23844960795",
+    "license": "CC0-1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "adaptation": "HC.6A airframe registered to the HC6 roster frame. Engine covers removed, closed ramp rebuilt along the measured aperture and cargo deck trimmed to its hinge, cabin apertures opened, geometry reduced and body maps resampled. Rotors and mounts supplied by roster rig.",
+    "texture_source_sha256": "6a46a5acc55ec682d89497ffb1ffb3165ccbc1331b8acd9ff305df45174627b2",
+    "texture_source": "https://sketchfab.com/3d-models/ed278aac484d4b36b1d8e23844960795"
+  },
+  {
+    "variant": "us_ch_47_chinook_ch_47f",
+    "glb": "assets/source/skins/chinook/ch-47f-airframe.glb",
+    "sha256": "2097c106d746710779cd0c694e569b453a282327618270595c9ee64eaefe59db",
+    "creator": "mgg8 / Aviation Gazetteer",
+    "source": "https://airmuseums.co.uk/models/aircraft/boeing-chinook.glb",
+    "source_sha256": "19007d6f99228c802af826c42d958ee27ff300c764d038cac1d4200a70564114",
+    "listing": "https://sketchfab.com/3d-models/ed278aac484d4b36b1d8e23844960795",
+    "license": "CC0-1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "adaptation": "HC.6A airframe adapted to the CH-47F roster frame. RAF serial and roundels removed and body maps regraded to US Army sand. Engine covers removed, closed ramp rebuilt along the measured aperture and cargo deck trimmed to its hinge, cabin apertures opened, geometry reduced and body maps resampled. Rotors and mounts supplied by roster rig.",
+    "texture_source_sha256": "6a46a5acc55ec682d89497ffb1ffb3165ccbc1331b8acd9ff305df45174627b2",
+    "texture_source": "https://sketchfab.com/3d-models/ed278aac484d4b36b1d8e23844960795"
+  }
+]

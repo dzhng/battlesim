@@ -165,7 +165,7 @@ export class VoiceWorkbenchStore {
 
   /** This editor changes what is said and how a voice is described, and asks for retakes. */
   private check(candidate: unknown, current: VoiceCatalog): VoiceCatalog {
-    object(candidate, ["roles", "sets", "assignments", "retakes"]);
+    object(candidate, ["roles", "sets", "assignments", "retakes", "narration"]);
     const catalog = this.validate(candidate);
     const speakers = (sets: VoiceCatalog["sets"]) =>
       Object.fromEntries(
@@ -177,7 +177,9 @@ export class VoiceWorkbenchStore {
     if (
       !equal(Object.keys(catalog.roles).sort(), Object.keys(current.roles).sort()) ||
       !equal(speakers(catalog.sets), speakers(current.sets)) ||
-      !equal(catalog.assignments, current.assignments)
+      !equal(catalog.assignments, current.assignments) ||
+      // A scenario's narration is its own catalog section, not edited here.
+      !equal(catalog.narration, current.narration)
     )
       throw new WorkbenchError("Only line text, voice descriptions and retakes are editable here");
     const known = new Set(

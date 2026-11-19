@@ -228,16 +228,13 @@ impl ScenarioBundle {
             .players
             .iter()
             .map(|player| {
-                let controller = match player.controller {
-                    ControllerKind::ActiveAi => ControllerKind::ActiveAi,
-                    ControllerKind::PassiveAi => ControllerKind::PassiveAi,
-                    ControllerKind::Human => {
-                        if active_human == Some(player.id.as_str()) {
-                            ControllerKind::Human
-                        } else {
-                            ControllerKind::PassiveAi
-                        }
+                // A human seat nobody takes this run sits passive; every
+                // other seat keeps its controller.
+                let controller = match &player.controller {
+                    ControllerKind::Human if active_human != Some(player.id.as_str()) => {
+                        ControllerKind::PassiveAi
                     }
+                    other => other.clone(),
                 };
                 (player.id.clone(), controller)
             })

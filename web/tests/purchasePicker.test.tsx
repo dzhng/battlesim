@@ -1,77 +1,35 @@
-import { shippedRules } from "@web/shippedRules";
-import { UNIT_GROUPS } from "@web/battle/present/purchaseFilter";
-import { act, cleanup, fireEvent, render as renderView, within } from "@testing-library/react";
-import { UNITS, WithTestCatalog } from "./catalog";
+import { act, cleanup, fireEvent } from "@testing-library/react";
+import { UNITS } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
-import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
+import type { UnitCard } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observationView";
-import type { PanelRules } from "@web/battle/present/panelRows";
+import {
+  APC,
+  card,
+  HELI,
+  highlighted,
+  match,
+  PLANNED,
+  render,
+  RIDES,
+  RIFLES,
+  RULES,
+  SCOUT,
+  shownNames,
+  tab,
+  TANK,
+  TEAM,
+  transportMenu,
+} from "./support/shop";
 
-/** A group tab's label, by its id: the labels are data. */
-const tab = (id: string) => UNIT_GROUPS.find((g) => g.id === id)!.label;
-
-const RULES = shippedRules as unknown as PanelRules;
-
-/** Views render under the test set, as a lab page provides it. */
-const render = (ui: Parameters<typeof renderView>[0]) =>
-  renderView(ui, { wrapper: WithTestCatalog });
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
-/** A variant of an invented family, named `<family> <variant>`. None is a
- *  catalog type, so each browses under its category's first group. */
-const card = (
-  id: string,
-  variant: string,
-  {
-    cost = 200,
-    reason = null,
-    family = "abrams",
-    family_name = "M1 Abrams",
-    category = "veh",
-  }: {
-    cost?: number;
-    reason?: string | null;
-    family?: string;
-    family_name?: string;
-    category?: UnitCategory;
-  } = {},
-): UnitCard => ({
-  id,
-  name: `${family_name} ${variant}`,
-  description: "",
-  family,
-  cost,
-  roster: { factions: ["us"], family_name, category, variant },
-  disabled_reason: reason,
-  planned_weapons: [],
-});
 const BASE = card("base", "SEP v2");
 const TROPHY = card("trophy", "SEP v2 Trophy", { cost: 520 });
-const match: SkirmishView = {
-  phase: "preparation",
-  players: [
-    {
-      index: 0,
-      id: "blue-1",
-      controller: "human",
-      ready: false,
-      credits: 1000,
-      incomePerMinute: 200,
-      unitCount: 0,
-      cap: 30,
-      pending: [],
-    },
-  ],
-  preparationRemainingS: 60,
-  scores: [0, 0],
-  result: null,
-  objectives: [],
-  report: null,
-};
 /** Renders the picker over `cards` with `player` overrides, opened on the
  *  tank tab; returns the view and its choice spy. */
 function openShop(cards: UnitCard[], player: Partial<SkirmishView["players"][0]> = {}) {
@@ -89,12 +47,6 @@ function openShop(cards: UnitCard[], player: Partial<SkirmishView["players"][0]>
   fireEvent.click(view.getByRole("tab", { name: tab("mbt") }));
   return { view, choose };
 }
-
-/** The shown cards' names, in grid order. */
-const shownNames = (view: ReturnType<typeof render>) =>
-  within(view.getByRole("tabpanel"))
-    .queryAllByRole("button")
-    .map((b) => b.getAttribute("aria-label"));
 
 test("every variant is its own card, and clicking one places exactly that variant", () => {
   const { view, choose } = openShop([BASE, TROPHY]);
@@ -382,24 +334,6 @@ test("the shop's keys do nothing while the battle is covered", () => {
   expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
 });
 
-// A squad's ride. Squads and carriers are test catalog types: a card is a
-// squad by its soldier slots and a carrier by its seats. Prices are the
-// cards' own; the APC is cheaper than the scout car though listed after it,
-// and the helicopter is listed before both though its tab comes after.
-const squad = (id: string, family_name: string, cost: number) =>
-  card(id, "Base", { family: id, family_name, category: "inf", cost });
-const ride = (id: string, family_name: string, cost: number, category: UnitCategory = "veh") =>
-  card(id, "Base", { family: id, family_name, category, cost });
-const RIFLES = squad("test_rifle", "Rifles", 100);
-const TEAM = squad("test_at", "AT Team", 150);
-const HELI = ride("test_transport_heli", "Lift Heli", 300, "hel");
-const SCOUT = ride("test_scout_car", "Scout Car", 90);
-const APC = ride("test_apc", "APC", 60);
-const TANK = ride("test_tank", "Tank", 200);
-/** Never a carrier: a planned card has no type, so no seats. */
-const PLANNED = ride("test_planned_ride", "Planned Ride", 40);
-const RIDES = [RIFLES, TEAM, HELI, SCOUT, APC, TANK, PLANNED];
-
 test("the test carriers seat the squads these tests say they do", () => {
   // The physical facts the menu's tests rest on, so a change to the test
   // units says which test it moved.
@@ -419,32 +353,9 @@ function openOn(group: string, player: Partial<SkirmishView["players"][0]> = {})
   return shop;
 }
 
-/** The open transport menu's sections, each its label and its cards'
- *  names in order; null with no menu open. */
-const transportMenu = (view: ReturnType<typeof render>) => {
-  const menu = view.queryByRole("region", { name: "Transport" });
-  return (
-    menu &&
-    within(menu)
-      .getAllByRole("group")
-      .map((g) => [
-        g.getAttribute("aria-label"),
-        within(g)
-          .getAllByRole("button")
-          .map((b) => b.getAttribute("aria-label")),
-      ])
-  );
-};
-
 /** The info cards on show, top to bottom. */
 const infoCards = (view: ReturnType<typeof render>) =>
   view.queryAllByRole("tooltip").map((t) => t.getAttribute("aria-label"));
-
-/** The menu's highlighted options. */
-const highlighted = (view: ReturnType<typeof render>) =>
-  within(view.getByRole("region", { name: "Transport" }))
-    .queryAllByRole("button", { pressed: true })
-    .map((b) => b.getAttribute("aria-label"));
 
 test("hovering a squad opens its transport menu: on foot, then each tab's carriers that seat it, cheapest first", () => {
   vi.useFakeTimers();

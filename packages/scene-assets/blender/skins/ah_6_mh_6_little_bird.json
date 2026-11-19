@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "us_ah_6_mh_6_little_bird_ah_6m",
+    "glb": "assets/source/skins/ah_6_mh_6_little_bird/service-airframe.glb",
+    "sha256": "b0aa1849120d563d7e7fff58b920dbd203f8cf133e9e7ccccad397c6ca6f7328",
+    "title": "MH-6 Little Bird [Low Poly]",
+    "creator": "Muhamad Mirza Arrafi",
+    "source": "https://sketchfab.com/3d-models/mh-6-little-bird-low-poly-d7068144bfeb4d91bde5d30755657d97",
+    "source_sha256": "6c206cdfff3e7856fdd0b5dfe0de3e4b79551373abdbb7db4173f40037f57968",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Adapted into AH-6M and MH-6M variants with separate glazing, seated crew, animated rotors, and distinct side benches and stores."
+  },
+  {
+    "variant": "us_ah_6_mh_6_little_bird_mh_6m",
+    "glb": "assets/source/skins/ah_6_mh_6_little_bird/service-airframe.glb",
+    "sha256": "b0aa1849120d563d7e7fff58b920dbd203f8cf133e9e7ccccad397c6ca6f7328",
+    "title": "MH-6 Little Bird [Low Poly]",
+    "creator": "Muhamad Mirza Arrafi",
+    "source": "https://sketchfab.com/3d-models/mh-6-little-bird-low-poly-d7068144bfeb4d91bde5d30755657d97",
+    "source_sha256": "6c206cdfff3e7856fdd0b5dfe0de3e4b79551373abdbb7db4173f40037f57968",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Adapted into AH-6M and MH-6M variants with separate glazing, seated crew, animated rotors, and distinct side benches and stores."
+  }
+]

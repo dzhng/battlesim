@@ -1,85 +1,110 @@
-"""Mi-35M, from assets/references/mi_24_mi_35_hind/.
+"""Mi-35M airframe adapted from the Mi-24. Repainted the exterior, opened and glazed the tandem cockpits, seated the landing gear and crew, and rebuilt both rotor assemblies."""
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/hind.py -- [--wreck]
-
-What the photos settle: the Hind's two bubble canopies stepped in tandem
-over a deep fuselage with the troop cabin behind them, the twin-barrel gun
-turret under the chin beside the sensor turret, engines on the roof with
-their intakes forward of the gearbox, stub wings with marked anhedral and
-three stations each plus wing-tip launchers, the long boom with the tail
-fin and the tail rotor on its left; the 35M's fixed tricycle gear and
-shortened wings. Grey.
-
-Built to the catalog frame, from published figures (rotorcraft rule:
-fuselage length without blades, width over the wing-tip launchers, height to
-the top of the rotor head): 17.5 x 5.27 x 3.97 m, the Mi-24VM's (the sources
-are in the library's gaps).
-
-The twin-barrel gun is the `chin` mount's rig, under the nose beside the
-sensor turret; the missiles on the wing-tip launchers are fixed in the hull
-(the `missiles` mount's muzzle is the right launcher's front).
-"""
 import math
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
-from vehicle_parts import MID  # noqa: E402
-
-# The GSh-23V's elevation in its chin turret, degrees, and its stroke.
-GUN_PITCH_DEG = (-40.0, 13.0)
-GUN_STROKE_M = 0.05
-SPEC = dict(
-    fuselage=[(8.75, 0.0, 1.2, 1.2), (8.4, 0.5, 0.8, 1.7, 1.2, 2.2), (7.2, 0.72, 0.6, 1.95, 1.3, 2.8),
-              (5.0, 0.95, 0.55, 2.35, 1.45, 3.2), (1.0, 1.0, 0.6, 2.6, 1.5, 3.4), (-1.6, 0.85, 0.85, 2.55, 1.65, 3.0),
-              (-3.0, 0.35, 1.6, 2.4, 1.95, 2.4), (-7.8, 0.22, 1.8, 2.3, 2.05, 2.2), (-8.75, 0.2, 1.85, 2.6, 2.1)],
-    bodies=[("fuselage_roof", [(4.4, 0.0, 2.55, 2.55), (3.8, 0.85, 2.45, 3.15, 2.7, 3.0), (-1.0, 0.85, 2.45, 3.2, 2.7, 3.0),
-                               (-2.0, 0.0, 2.6, 2.6)])],
-    wing=[(1.2, 0.9, 2.15, 1.6, 0.2), (1.0, 2.5, 1.83, 1.25, 0.12)],
-    stab=[(-7.0, 0.22, 2.0, 0.9, 0.1), (-7.1, 1.5, 2.0, 0.7, 0.06)],
-    fins=[dict(root_x=-7.2, root_z=2.25, height=1.65, root_chord=1.4, tip_chord=0.9, sweep_m=0.6, thick=0.16)],
-    gear=[dict(name="nose", x=6.4, y=0.0, top=0.75, radius=0.3, width=0.18, wheels=2, spread=0.3),
-          dict(name="main_L", x=-0.3, y=1.5, top=1.0, radius=0.38, width=0.24),
-          dict(name="main_R", x=-0.3, y=-1.5, top=1.0, radius=0.38, width=0.24)],
-    pylons=[((0.9, 1.5, 1.99), 0.8, 0.2), ((0.85, 2.05, 1.88), 0.8, 0.2)],
-    stores=[("pod", (0.8, 1.5, 1.54), 1.7, 0.25), ("pod", (0.75, 2.05, 1.43), 1.7, 0.25),
-            ("missile", (0.7, 2.46, 1.61), 1.8, 0.1)],
-)
+from aircraft_donor import fitted_airframe
+from parts import box, cyl, flat_paint
+from vehicle_parts import MID
+from vehicle_export import run, rig
 
 
 def build(variant, v):
-    m = A.jet(v, SPEC)
+    m = A.fit(v)
     hull = v.hull
-    # The photos' stepped bubbles stand well out of the body.
-    A.canopy("canopy", 8.4, 7.05, 1.4, 2.25, 0.58, m, hull, bows=(8.0, 7.6), peak=0.6, tail=0.75)
-    A.canopy("canopy_glass_rear", 7.05, 5.35, 1.8, 2.85, 0.68, m, hull, bows=(6.5, 5.9), peak=0.5, tail=0.8)
-    A.sensor_ball("sensor", (8.35, 0.35, 0.78), 0.24, m, hull)
-    A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.26, barrels=(0.07, -0.07))
-    for side, k in ((1, "L"), (-1, "R")):
-        cyl(f"nacelle_{k}_intake", 0.32, 0.12, (3.85, side * 0.48, 2.85), "X", m["black"], hull, seg=14, lods=MID)
-        box(f"exhaust_{k}", (0.9, 0.45, 0.45), (-0.6, side * 0.95, 2.85), m["nozzle"], hull, rot=(0, 0, side * 0.5),
-            lods=MID)
-        box(f"cabin_door_{k}", (1.2, 0.04, 1.0), (1.2, side * 1.0, 1.35), m["dark"], hull, lods=MID)
-        for j in range(3):
-            box(f"cabin_window_{k}_{j}", (0.3, 0.03, 0.3), (2.4 - j * 0.9, side * 1.01, 1.9), m["glass"], hull,
-                lods=MID)
-        box(f"wing_tip_launcher_{k}", (1.4, 0.18, 0.4), (0.7, side * 2.46, 1.73), m["dark"], hull, lods=MID)
-    cyl("mast", 0.22, 0.8, (0.6, 0, 3.2), "Z", m["dark"], hull, seg=12)
-    A.rotor("main", (0.6, 0, 3.67), 8.65, 5, 0.58, m, hull, hub=0.46, mast=0.0, droop=0.03, phase=0.1)
-    A.rotor("tail", (-8.55, 0.3, 3.3), 1.95, 3, 0.3, m, hull, hub=0.18, mast=0.0, droop=0.0,
-            rot=(-math.pi / 2, 0, 0), thick=0.12)
+    # The donor has separate cockpit and cabin panes. Keep the shared glass
+    # role, but give these armored windows a controlled blue-grey tint and
+    # enough coverage for the crew and seat silhouettes to read through them.
+    m["canopy"] = flat_paint("hind_laminated_glass", (0.018, 0.028, 0.034), rough=0.13,
+                             grime=0, coverage=("blended", 0.38), role="glass")
+    fitted_airframe(v, "mi_24_mi_35_hind", m, skip_parts=("cockpit",))
+    if not v.wreck:
+        # The donor canopy is the shell. These restrained interior pieces sit
+        # below its sills so the tandem cockpit reads as occupied through the
+        # glazing instead of as a black cavity.
+        for label, x, z in (("front", 5.91, 1.49), ("rear", 7.48, 1.08)):
+            box(f"cockpit_seat_{label}", (0.18, 0.46, 0.62), (x, 0, z), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.12, 0), lods=MID)
+            box(f"cockpit_headrest_{label}", (0.16, 0.34, 0.20), (x - 0.05, 0, z + 0.38), m["black"], hull,
+                bevel=0.018, lods=MID)
+            box(f"cockpit_coaming_{label}", (0.42, 0.62, 0.12), (x + 0.30, 0, z + 0.32), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.08, 0), lods=MID)
+            box(f"cockpit_panel_{label}", (0.05, 0.48, 0.16), (x + 0.50, 0, z + 0.27), m["dark"], hull,
+                bevel=0.012, rot=(0, -0.18, 0), lods=MID)
+        for name, x, z in (("gunner", 7.48, 1.08), ("pilot", 5.91, 1.49)):
+            v.crew.append(
+                (
+                    name,
+                    hull,
+                    (x, 0, z),
+                    ((x + 0.3, 0.15, z + 0.24), (x + 0.31, -0.15, z + 0.25)),
+                    ((x + 0.54, 0.15, z - 0.34), (x + 0.54, -0.15, z - 0.34)),
+                )
+            )
+    A.rotor("main", (1.83, 0.13, 3.80), 8.65, 5, 0.58, m, hull, hub=0.46, mast=0.45, droop=0.03, phase=0.10)
+    A.rotor(
+        "tail",
+        (-7.53, 0.40, 3.69),
+        1.66,
+        4,
+        0.24,
+        m,
+        hull,
+        hub=0.17,
+        mast=0.18,
+        droop=0,
+        rot=(-math.pi / 2, 0, 0),
+        thick=0.12,
+    )
+    # The Mi-35M's chin turret sits in a short armored fairing. Giving the
+    # receiver a shaped cheek keeps the twin barrels from reading as a loose
+    # tube below the nose.
+    A.body("chin_fairing", [(7.72, 0.0, 0.66, 0.66), (7.48, 0.22, 0.56, 0.92, 0.82),
+                            (7.18, 0.28, 0.58, 0.98, 0.84), (6.98, 0.18, 0.68, 0.88, 0.78)],
+           m["paint"], hull, seg=16)
+    A.chin_gun(v, rig(v.frame, v.root), m, (-40, 13), 0.05, drum=0.26, barrels=(0.07, -0.07))
+    A.markings(
+        v,
+        [
+            (
+                "insignia",
+                dict(
+                    kind="ru_star",
+                    centre=(-3.05, 1.2, 1.77),
+                    normal=(0, 1, 0),
+                    up=(0, 0, 1),
+                    size=0.39,
+                    onto=("fuselage",),
+                ),
+            ),
+            (
+                "text",
+                dict(
+                    text="51",
+                    height=0.24,
+                    centre=(4.21, 1.35, 2.55),
+                    normal=(0, 1, 0),
+                    up=(0, 0, 1),
+                    onto=("fuselage",),
+                    colour="yellow",
+                ),
+            ),
+        ],
+    )
 
-    # The VVS's red star on the boom, a red bort number on the nose.
-    A.markings(v, [
-        ("insignia", dict(kind="ru_star", centre=(-5.0, 1.2, 2.1), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
-        ("text", dict(text="21", height=0.45, centre=(5.4, 1.2, 1.65), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
-    ])
 
 def wreck(variant, v):
     A.rotorcraft_crash(v, tail_x=-3.4, tail_yaw=-0.38, tail_drop=0.08, seed=24)
 
 
-run("hind", "russian_air_grey", build, wreck, references="assets/references/mi_24_mi_35_hind/references.json")
+run(
+    "hind",
+    "russian_air_grey",
+    build,
+    wreck,
+    crew_army="eastern_emr",
+    references="assets/references/mi_24_mi_35_hind/references.json",
+)

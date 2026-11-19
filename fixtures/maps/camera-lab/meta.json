@@ -14,5 +14,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["shelling"],
+  "scenarios": [],
   "benchmarks": []
 }

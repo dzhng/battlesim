@@ -39,19 +39,21 @@
       "export": "assets/source/roster/hemtt/us_m977_hemtt_general_resupply.glb",
       "physical_authoring": {
         "body_dimensions_m": [
-          10.4,
+          9.0,
           2.4,
           3.0
         ],
         "half_extents_m": [
-          5.2,
+          4.5,
           1.2,
           1.5
         ],
         "eye_m": 2.82,
         "mounts": []
       },
-      "notes": []
+      "notes": [
+        "Runtime collision envelope shortened to 9.0 m for logistics navigation while retaining the platform's 2.4 m width and 3.0 m height."
+      ]
     }
   ],
   "dependency": "Coordinator removes mandatory fictional deploy art: stationary service, no deploy-motion nodes, no mast/outriggers invented for validation.",

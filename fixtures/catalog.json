@@ -7192,13 +7192,13 @@
             "variant": "AH-64E Guardian"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -7355,9 +7355,9 @@
             "variant": "2S19M2"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7451,9 +7451,9 @@
             "variant": "Heavy rocket artillery"
           },
           "sensors": {
-            "ground_m": 400.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 400.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7699,9 +7699,9 @@
             "variant": "BM-21 rocket artillery"
           },
           "sensors": {
-            "ground_m": 400.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 400.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7931,9 +7931,9 @@
             "variant": "BMP-3"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "main_gun",
             "sight_shape": {
               "front": 1.0,
@@ -8026,9 +8026,9 @@
             "variant": "BRM-3K"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -8220,7 +8220,7 @@
             "variant": "Buk-M3 medium-range air defense"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 2250.0,
             "low_air_m": 2250.0,
             "sight_shape": {
@@ -8588,13 +8588,13 @@
             "variant": "Ka-52M"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -8817,8 +8817,8 @@
             "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -8934,8 +8934,8 @@
             "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -9057,13 +9057,13 @@
             "variant": "Mi-8AMTSh"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -9191,13 +9191,13 @@
             "variant": "Mi-8AMTSh Supply"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -9602,7 +9602,7 @@
             "variant": "Pantsir-SM"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 2250.0,
             "low_air_m": 2250.0,
             "sight_shape": {
@@ -9692,9 +9692,9 @@
             "variant": "Chinese tracked 155 mm howitzer"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9941,7 +9941,7 @@
             "variant": "S-300PMU2 Favorit"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
@@ -10038,7 +10038,7 @@
             "variant": "S-350"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
@@ -11149,9 +11149,9 @@
             "variant": "Main battle tank"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11292,9 +11292,9 @@
             "variant": "Heavy IFV"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -11423,9 +11423,9 @@
             "variant": "T-72B3 (2016)"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11555,9 +11555,9 @@
             "variant": "T-80BVM"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11687,9 +11687,9 @@
             "variant": "T-90M Proryv"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11784,15 +11784,16 @@
             "variant": "Tigr-M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 700.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
               "side": 0.5
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -11915,9 +11916,9 @@
             "variant": "ZTQ-15 light tank"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12046,9 +12047,9 @@
             "variant": "ZTZ-99A"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12241,13 +12242,13 @@
             "variant": "Attack helicopter"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -12369,13 +12370,13 @@
             "variant": "Utility transport"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -12464,9 +12465,9 @@
             "variant": "Wheeled IFV"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12576,9 +12577,9 @@
             "variant": "Tracked reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12755,13 +12756,13 @@
             "variant": "HC4"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -12855,13 +12856,13 @@
             "variant": "AH1"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -13046,9 +13047,9 @@
             "variant": "RCT30"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13143,7 +13144,7 @@
             "variant": "Gun-and-missile air defense"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 900.0,
             "low_air_m": 900.0,
             "sight_shape": {
@@ -13234,9 +13235,9 @@
             "variant": "8×8"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13347,9 +13348,9 @@
             "variant": "Tank destroyer"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -13476,13 +13477,13 @@
             "variant": "HC6"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -13610,13 +13611,13 @@
             "variant": "HC6 Supply"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -13740,9 +13741,9 @@
             "variant": "Challenger 2 TES"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -13884,9 +13885,9 @@
             "variant": "Challenger 3"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14016,9 +14017,9 @@
             "variant": "Light tank"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14111,9 +14112,9 @@
             "variant": "CV9040C"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -14223,9 +14224,9 @@
             "variant": "Mk IV"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 600.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -14336,9 +14337,9 @@
             "variant": "Armed reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -14455,13 +14456,13 @@
             "variant": "HAD"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -14572,13 +14573,13 @@
             "variant": "UHT"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -14799,9 +14800,9 @@
             "variant": "Reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -14893,7 +14894,7 @@
             "variant": "1A2"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 2000.0,
             "low_air_m": 900.0,
             "sight_shape": {
@@ -14990,7 +14991,7 @@
             "variant": "IRIS-T SLM"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 2250.0,
             "low_air_m": 2250.0,
             "sight_shape": {
@@ -15329,9 +15330,9 @@
             "variant": "Prototype main battle tank"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15461,9 +15462,9 @@
             "variant": "XLR"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15593,9 +15594,9 @@
             "variant": "2A6"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15725,9 +15726,9 @@
             "variant": "2A7V"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15869,9 +15870,9 @@
             "variant": "2A8"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15902,7 +15903,7 @@
                 "side": 10.0
               },
               "half_extents_m": [
-                5.168,
+                4.5,
                 1.25,
                 1.65
               ],
@@ -16094,9 +16095,9 @@
             "variant": "Multiple-launch rocket system"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16327,7 +16328,7 @@
             "variant": "NASAMS 3"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
@@ -16455,13 +16456,13 @@
             "variant": "TTH"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -16587,9 +16588,9 @@
             "variant": "Level C"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -16678,9 +16679,9 @@
             "variant": "Tracked 155 mm howitzer"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17297,9 +17298,9 @@
             "variant": "Infantry fighting vehicle"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -17393,15 +17394,16 @@
             "variant": "Machine-gun scout"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 700.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
               "side": 0.5
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -18214,13 +18216,13 @@
             "variant": "Attack helicopter"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18331,13 +18333,13 @@
             "variant": "AH-6M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18459,13 +18461,13 @@
             "variant": "MH-6M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18686,13 +18688,13 @@
             "variant": "CH-47F"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18820,13 +18822,13 @@
             "variant": "CH-47F Supply"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -20009,9 +20011,9 @@
             "variant": "LAV-AT"
           },
           "sensors": {
-            "ground_m": 650.0,
+            "ground_m": 450.0,
             "high_air_m": 300.0,
-            "low_air_m": 650.0,
+            "low_air_m": 450.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -20100,9 +20102,9 @@
             "variant": "M109A7"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20230,9 +20232,9 @@
             "variant": "Light tank"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -20326,9 +20328,9 @@
             "variant": "Reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -20424,9 +20426,9 @@
             "variant": "120 mm mortar carrier"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20519,9 +20521,9 @@
             "variant": "HMG"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 700.0,
+            "low_air_m": 500.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -20616,9 +20618,9 @@
             "variant": "GMLRS"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20712,9 +20714,9 @@
             "variant": "PrSM"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20842,9 +20844,9 @@
             "variant": "SEP v2"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -20986,9 +20988,9 @@
             "variant": "SEP v2 Trophy"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -21130,9 +21132,9 @@
             "variant": "SEP v3 Trophy"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -21274,9 +21276,9 @@
             "variant": "M1E3"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -21371,9 +21373,9 @@
             "variant": "M270A2"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -21503,9 +21505,9 @@
             "variant": "M2A4"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -21619,9 +21621,9 @@
             "variant": "M3A3"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -21652,7 +21654,7 @@
                 "side": 10.0
               },
               "half_extents_m": [
-                5.2,
+                4.5,
                 1.2,
                 1.5
               ],
@@ -21944,7 +21946,7 @@
             "variant": "NASAMS 3"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 2250.0,
             "low_air_m": 2250.0,
             "sight_shape": {
@@ -22041,7 +22043,7 @@
             "variant": "Patriot PAC-3"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
@@ -22319,9 +22321,9 @@
             "variant": "M1134 ATGM"
           },
           "sensors": {
-            "ground_m": 650.0,
+            "ground_m": 450.0,
             "high_air_m": 300.0,
-            "low_air_m": 650.0,
+            "low_air_m": 450.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -22415,9 +22417,9 @@
             "variant": "M1296 Dragoon"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -22512,7 +22514,7 @@
             "variant": "Gun-and-missile air-defense vehicle"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 900.0,
             "low_air_m": 900.0,
             "sight_shape": {
@@ -22640,13 +22642,13 @@
             "variant": "Utility transport"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -22768,13 +22770,13 @@
             "variant": "UH-60M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -27301,13 +27303,13 @@
         "variant": "AH-64E Guardian"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -27602,9 +27604,9 @@
         "variant": "2S19M2"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27701,9 +27703,9 @@
         "variant": "Heavy rocket artillery"
       },
       "sensors": {
-        "ground_m": 400.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 400.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28142,9 +28144,9 @@
         "variant": "BM-21 rocket artillery"
       },
       "sensors": {
-        "ground_m": 400.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 400.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28382,9 +28384,9 @@
         "variant": "BMP-3"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "main_gun",
         "sight_shape": {
           "front": 1.0,
@@ -28480,9 +28482,9 @@
         "variant": "BRM-3K"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -28680,7 +28682,7 @@
         "variant": "Buk-M3 medium-range air defense"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 2250.0,
         "low_air_m": 2250.0,
         "sight_shape": {
@@ -29059,13 +29061,13 @@
         "variant": "Ka-52M"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29385,8 +29387,8 @@
         "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29506,8 +29508,8 @@
         "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29633,13 +29635,13 @@
         "variant": "Mi-8AMTSh"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29771,13 +29773,13 @@
         "variant": "Mi-8AMTSh Supply"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -30173,7 +30175,7 @@
         "variant": "Pantsir-SM"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 2250.0,
         "low_air_m": 2250.0,
         "sight_shape": {
@@ -30266,9 +30268,9 @@
         "variant": "Chinese tracked 155 mm howitzer"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30757,7 +30759,7 @@
         "variant": "S-300PMU2 Favorit"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
@@ -30857,7 +30859,7 @@
         "variant": "S-350"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
@@ -32092,9 +32094,9 @@
         "variant": "Main battle tank"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32239,9 +32241,9 @@
         "variant": "Heavy IFV"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32374,9 +32376,9 @@
         "variant": "T-72B3 (2016)"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32510,9 +32512,9 @@
         "variant": "T-80BVM"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32646,9 +32648,9 @@
         "variant": "T-90M Proryv"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32746,15 +32748,16 @@
         "variant": "Tigr-M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 700.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
           "side": 0.5
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -32881,9 +32884,9 @@
         "variant": "ZTQ-15 light tank"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33016,9 +33019,9 @@
         "variant": "ZTZ-99A"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33218,13 +33221,13 @@
         "variant": "Attack helicopter"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -33350,13 +33353,13 @@
         "variant": "Utility transport"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -33448,9 +33451,9 @@
         "variant": "Wheeled IFV"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -33564,9 +33567,9 @@
         "variant": "Tracked reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -33809,13 +33812,13 @@
         "variant": "HC4"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -33912,13 +33915,13 @@
         "variant": "AH1"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -34109,9 +34112,9 @@
         "variant": "RCT30"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -34209,7 +34212,7 @@
         "variant": "Gun-and-missile air defense"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 900.0,
         "low_air_m": 900.0,
         "sight_shape": {
@@ -34303,9 +34306,9 @@
         "variant": "8×8"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34420,9 +34423,9 @@
         "variant": "Tank destroyer"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34553,13 +34556,13 @@
         "variant": "HC6"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -34691,13 +34694,13 @@
         "variant": "HC6 Supply"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -34825,9 +34828,9 @@
         "variant": "Challenger 2 TES"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34973,9 +34976,9 @@
         "variant": "Challenger 3"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -35109,9 +35112,9 @@
         "variant": "Light tank"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -35207,9 +35210,9 @@
         "variant": "CV9040C"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35322,9 +35325,9 @@
         "variant": "Mk IV"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 600.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35439,9 +35442,9 @@
         "variant": "Armed reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35562,13 +35565,13 @@
         "variant": "HAD"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -35683,13 +35686,13 @@
         "variant": "UHT"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -35917,9 +35920,9 @@
         "variant": "Reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -36014,7 +36017,7 @@
         "variant": "1A2"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 2000.0,
         "low_air_m": 900.0,
         "sight_shape": {
@@ -36114,7 +36117,7 @@
         "variant": "IRIS-T SLM"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 2250.0,
         "low_air_m": 2250.0,
         "sight_shape": {
@@ -36410,9 +36413,9 @@
         "variant": "Prototype main battle tank"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36546,9 +36549,9 @@
         "variant": "XLR"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36682,9 +36685,9 @@
         "variant": "2A6"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36818,9 +36821,9 @@
         "variant": "2A7V"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36966,9 +36969,9 @@
         "variant": "2A8"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -37000,7 +37003,7 @@
             "side": 10.0
           },
           "half_extents_m": [
-            5.168,
+            4.5,
             1.25,
             1.65
           ],
@@ -37342,9 +37345,9 @@
         "variant": "Multiple-launch rocket system"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37582,7 +37585,7 @@
         "variant": "NASAMS 3"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
@@ -37714,13 +37717,13 @@
         "variant": "TTH"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -37850,9 +37853,9 @@
         "variant": "Level C"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -37944,9 +37947,9 @@
         "variant": "Tracked 155 mm howitzer"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38595,9 +38598,9 @@
         "variant": "Infantry fighting vehicle"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -38694,15 +38697,16 @@
         "variant": "Machine-gun scout"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 700.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
           "side": 0.5
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -39775,13 +39779,13 @@
         "variant": "Attack helicopter"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -39896,13 +39900,13 @@
         "variant": "AH-6M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -40028,13 +40032,13 @@
         "variant": "MH-6M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -40383,13 +40387,13 @@
         "variant": "CH-47F"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -40521,13 +40525,13 @@
         "variant": "CH-47F Supply"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -41769,9 +41773,9 @@
         "variant": "LAV-AT"
       },
       "sensors": {
-        "ground_m": 650.0,
+        "ground_m": 450.0,
         "high_air_m": 300.0,
-        "low_air_m": 650.0,
+        "low_air_m": 450.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -41863,9 +41867,9 @@
         "variant": "M109A7"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -41997,9 +42001,9 @@
         "variant": "Light tank"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42096,9 +42100,9 @@
         "variant": "Reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -42197,9 +42201,9 @@
         "variant": "120 mm mortar carrier"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -42295,9 +42299,9 @@
         "variant": "HMG"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 700.0,
+        "low_air_m": 500.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -42395,9 +42399,9 @@
         "variant": "GMLRS"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -42494,9 +42498,9 @@
         "variant": "PrSM"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -42628,9 +42632,9 @@
         "variant": "SEP v2"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42776,9 +42780,9 @@
         "variant": "SEP v2 Trophy"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42924,9 +42928,9 @@
         "variant": "SEP v3 Trophy"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -43072,9 +43076,9 @@
         "variant": "M1E3"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -43172,9 +43176,9 @@
         "variant": "M270A2"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -43308,9 +43312,9 @@
         "variant": "M2A4"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -43428,9 +43432,9 @@
         "variant": "M3A3"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -43462,7 +43466,7 @@
             "side": 10.0
           },
           "half_extents_m": [
-            5.2,
+            4.5,
             1.2,
             1.5
           ],
@@ -44013,7 +44017,7 @@
         "variant": "NASAMS 3"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 2250.0,
         "low_air_m": 2250.0,
         "sight_shape": {
@@ -44113,7 +44117,7 @@
         "variant": "Patriot PAC-3"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
@@ -44412,9 +44416,9 @@
         "variant": "M1134 ATGM"
       },
       "sensors": {
-        "ground_m": 650.0,
+        "ground_m": 450.0,
         "high_air_m": 300.0,
-        "low_air_m": 650.0,
+        "low_air_m": 450.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -44511,9 +44515,9 @@
         "variant": "M1296 Dragoon"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -44611,7 +44615,7 @@
         "variant": "Gun-and-missile air-defense vehicle"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 900.0,
         "low_air_m": 900.0,
         "sight_shape": {
@@ -44743,13 +44747,13 @@
         "variant": "Utility transport"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -44875,13 +44879,13 @@
         "variant": "UH-60M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {

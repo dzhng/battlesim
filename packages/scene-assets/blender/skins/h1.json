@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "us_ah_1z_viper_attack_helicopter",
+    "glb": "assets/source/skins/h1/cobra-fitted.glb",
+    "sha256": "2cc280e9193eda4b390d3587273766d850d987d259ff577f9f3e778bc171ebea",
+    "title": "Bell AH-1 SuperCobra",
+    "creator": "drcrazzie",
+    "source": "https://sketchfab.com/3d-models/bell-ah-1-supercobra-6ee99382b2764fa6a3d761c3d4caec43",
+    "source_sha256": "5b1b219f58b93617e355eea5fcdb10ac72753f3313163cb62c1d79d489b5e226",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Adapted to represent an AH-1Z with new four-blade rotor assemblies, glazing, Marine crew and nose sight."
+  },
+  {
+    "variant": "us_uh_1y_venom_utility_transport",
+    "glb": "assets/source/skins/h1/venom-fitted.glb",
+    "sha256": "51c69e1b18cdb68d799dd0f678f57f7f9a87cff6b9a0953708248a5f83bcf2a2",
+    "title": "Bell UH-1N Twin Huey",
+    "creator": "helijah",
+    "source": "https://sketchfab.com/3d-models/bell-uh-1n-twin-huey-90bf99ba20f948a9838623311bd83da3",
+    "source_sha256": "90fd75ebb1fc738b054d95d052254f1d6ff89058707a5d6f724a3516b49d4a8a",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Adapted to represent a UH-1Y with stretched fuselage, open cabin, Marine paint, sliding doors, new transmission fairing and four-blade rotor assemblies."
+  }
+]

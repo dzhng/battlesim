@@ -24,7 +24,10 @@ fn battle() -> Battle {
     let mut game = fixtures::rules();
     game["catalog"] = serde_json::Value::Array(fixtures::catalog_documents(CatalogSet::Test));
     let rules: Rules = serde_json::from_value(game).unwrap();
-    Battle::new(&sim::maps::scenario("air", "closing", rules).unwrap(), SEED)
+    Battle::new(
+        &sim::maps::encounter_scenario("air", "closing", rules).unwrap(),
+        SEED,
+    )
 }
 
 /// What happened, by tick, in the beat's first 30 seconds.

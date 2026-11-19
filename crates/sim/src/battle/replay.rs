@@ -89,7 +89,7 @@ impl Battle {
         })
     }
 
-    fn load_replay(
+    pub(super) fn load_replay(
         setup: &ScenarioDefinition,
         replay: &Replay,
         build: impl FnOnce() -> Self,

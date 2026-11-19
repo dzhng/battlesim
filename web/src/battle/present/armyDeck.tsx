@@ -12,6 +12,7 @@ import { Feed, useFeedValue, type FeedSource } from "@web/feed";
 import { GROUP_KEYS, type ControlGroups, type GroupKey } from "../input/controlGroups";
 import { deckSlots } from "./deckLayout";
 import { playBlink, type CardBlink } from "./fireBlink";
+import { hudAnchor } from "./hudAnchors";
 
 /** The unit a card's click selects: a rider's carrier, since a squad a
  *  carrier holds can't be ordered (D10), else the unit itself. */
@@ -249,6 +250,7 @@ export function ArmyDeck({
             style={{ gridTemplateRows: `repeat(${rows}, auto)` }}
             role="group"
             aria-label="Your units"
+            {...hudAnchor("army")}
             onMouseLeave={() => setHoveredGroup(null)}
           >
             {cards.map((unit, index) => {
