@@ -166,6 +166,13 @@ over that rectangle; testing only its center would leave gaps. Native angular an
 radial sampling margins must also leave an isolated missing far fog cell inside
 the map for every supported observer. A nearby feature outside the edge cannot
 prove interruption of an entirely open in-map circle. These conservative margins
+The land is a witness too, as it is in the simulation's sweep. A crest whose
+lowest land stands above every eye raises the horizon of each ray across it, so
+any later cell lower than the crest is hidden; a crest needs no far cell, only
+the farthest hidden one on the map. With relief, every witness earns its height
+margin for the one rectangle it is asked about, from bounds on the land's height
+([relief](src/relief.rs), [coverage relief](src/open_country/coverage/relief.rs)).
+
 are why finite infantry samples do not replace the continuous certificate.
 
 Missing coverage stages legal forest proposals near-first. A rejected proposal

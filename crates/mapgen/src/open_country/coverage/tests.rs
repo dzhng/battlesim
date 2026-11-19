@@ -111,3 +111,76 @@ fn a_three_cell_witness_keeps_its_far_bit_dark_across_native_ray_phases() {
         }
     }
 }
+
+/// Every eye a bare crest certifies has a cell the simulation's own sweep
+/// leaves dark, in range and on the map, beside a rise in the middle and
+/// one so near the edge that the far cells beyond it fall off the map; an
+/// eye on a summit, with nothing higher round it, is not certified.
+#[test]
+fn a_bare_crest_hides_a_cell_from_every_eye_it_certifies() {
+    let physics = physics();
+    let (size, middle, edge) = (2_400., [1_200., 1_200.], [2_000., 1_200.]);
+    let map: MapDefinition = serde_json::from_value(serde_json::json!({
+        "size":[size,size], "fog_cell_m":8., "height_grid_m":4., "slope_cutoff_deg":35.,
+        "forests":[], "props":[],"surfaces":[],"buildings":[],"bridges":[],
+        "relief":[
+            {"kind":"ridge","center":middle,"peak_m":24.,"radius_m":420.},
+            {"kind":"ridge","center":edge,"peak_m":20.,"radius_m":340.}
+        ]
+    }))
+    .unwrap();
+    let c = Coverage::new(&map, &physics, 100.).unwrap();
+    assert!(c.crests.iter().any(Option::is_some));
+    let mut rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
+    rules.forests = physics.forests.clone();
+    let world = sim::world::WorldGeometry::new(&map, &rules);
+    let mut grid = sim::visibility::OcclusionGrid::new(&world, map.fog_cell_m);
+    let cell = map.fog_cell_m;
+    let mut certified = 0;
+    for (center, radii) in [(middle, [140., 220., 300.]), (edge, [120., 200., 260.])] {
+        assert!(
+            !c.covered(sub(center, [1., 1.]), add(center, [1., 1.])),
+            "a summit is certified"
+        );
+        for radius in radii {
+            for step in 0..16 {
+                let at = add(center, scale(direction(TAU * step as f64 / 16.), radius));
+                if !c.covered(sub(at, [1., 1.]), add(at, [1., 1.])) {
+                    continue;
+                }
+                certified += 1;
+                let ground = world.height_at(at[0], at[1]).unwrap();
+                for unit in physics.circular_ground_observers() {
+                    let sight = sim::sight::Sight {
+                        forward: 0.,
+                        shape: unit.sensors.sight_shape,
+                        range: unit.sensors.ground_m,
+                    };
+                    let eye = ground + unit.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m);
+                    let mut field = grid.field();
+                    let eye = sim::math::v3(at[0], at[1], eye);
+                    sim::visibility::sweep(
+                        &world,
+                        &mut grid,
+                        &rules.sensors,
+                        eye,
+                        &sight,
+                        &mut field,
+                    );
+                    let reach = sight.range - cell;
+                    let n = (size / cell) as usize;
+                    let dark = (0..n * n).any(|k| {
+                        let p = [((k % n) as f64 + 0.5) * cell, ((k / n) as f64 + 0.5) * cell];
+                        distance(p, at) <= reach && !field.visible(p[0], p[1])
+                    });
+                    assert!(dark, "every cell in range of {at:?} is seen");
+                }
+            }
+        }
+    }
+    assert!(
+        certified >= 24,
+        "crests certify only {certified} hillside eyes"
+    );
+}

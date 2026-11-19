@@ -10,11 +10,27 @@
 //! hides the far cell. Heights come from per-tile bounds (`crate::relief`)
 //! over boxes grown by a height-grid diagonal, so they hold for the sampled
 //! height field's triangles too.
+//!
+//! The land is a witness of its own, as the simulation's sweep treats it:
+//! a crest block whose lowest land stands above every eye raises the
+//! horizon of each ray that crosses it, and any later cell whose highest
+//! land plus the target height stays below the crest is hidden. Every ray
+//! that can sample such a cell, `d` out on a witness bearing, passes within
+//! a cell's diagonal times `d_w / d` of the crest at its distance `d_w`, so
+//! inside the block's 1.5-cell disk, where a whole step puts one of its
+//! samples. A crest therefore needs no far cell: its hidden cell is the
+//! farthest on the map, beyond the crest, below it (`crest_admits`). Crests
+//! stand on a lattice `CREST_STRIDE` fog cells apart: one crest on a rise
+//! hides as much as many.
 use super::*;
 use crate::relief::ReliefBound;
 
 /// Tile of the relief bound.
-const TILE_M: f64 = 64.0;
+const TILE_M: f64 = 8.0;
+/// Fog cells between crest witnesses, each way.
+const CREST_STRIDE: usize = 4;
+/// Distances a crest tries for its hidden cell, from the far cell inward.
+const CREST_SAMPLES: usize = 4;
 
 pub(super) struct Sight {
     bound: ReliefBound,
@@ -95,6 +111,43 @@ impl Sight {
 }
 
 impl Coverage<'_> {
+    /// Index a crest witness wherever a 3x3 block's lowest land stands
+    /// above every eye, the least it must clear on any rectangle, with the
+    /// height every eye and target must stay below.
+    pub(super) fn note_crests(&mut self) {
+        let Some(s) = &self.relief else {
+            return;
+        };
+        let mut crests = Vec::new();
+        for y in (1..self.ny - 1).step_by(CREST_STRIDE) {
+            for x in (1..self.nx - 1).step_by(CREST_STRIDE) {
+                let k = y * self.nx + x;
+                if !self.queries.work.spend(4) {
+                    return;
+                }
+                let p = self.middle(x, y);
+                let crest = self.lowest_ground(s, p, x, y) - s.eye;
+                if !self.witnessed[k] && crest > 0. {
+                    crests.push((k, p, Some(crest)));
+                }
+            }
+        }
+        self.commit_witnesses(crests);
+    }
+
+    /// The 3x3 fog-cell block about cell `(x, y)`, grown by a triangle's
+    /// reach.
+    fn block(&self, s: &Sight, x: usize, y: usize) -> [f64; 4] {
+        let (x0, x1) = (x.saturating_sub(1), (x + 1).min(self.nx - 1));
+        let (y0, y1) = (y.saturating_sub(1), (y + 1).min(self.ny - 1));
+        [
+            x0 as f64 * self.cell - s.pad,
+            y0 as f64 * self.cell - s.pad,
+            (x1 + 1) as f64 * self.cell + s.pad,
+            (y1 + 1) as f64 * self.cell + s.pad,
+        ]
+    }
+
     /// `witness` hides a far cell of every observer in `low..high` over the
     /// relief, as the module explains; `direction` and the far samples are
     /// `admits`'s.
@@ -111,39 +164,72 @@ impl Coverage<'_> {
         if !self.queries.work.spend(8) {
             return false;
         }
-        let cell = |v: f64, n: usize| (libm::floor(v / self.cell).max(0.) as usize).min(n - 1);
-        let (x, y) = (cell(witness[0], self.nx), cell(witness[1], self.ny));
+        let (x, y) = self.cell_of(witness);
         let (x0, x1) = (x.saturating_sub(1), (x + 1).min(self.nx - 1));
         let (y0, y1) = (y.saturating_sub(1), (y + 1).min(self.ny - 1));
-        let mut top = s.canopy;
-        for j in y0..=y1 {
-            for i in x0..=x1 {
-                top = top.min(s.body_top[j * self.nx + i]);
-            }
+        let top = (y0..=y1)
+            .flat_map(|j| (x0..=x1).map(move |i| j * self.nx + i))
+            .fold(s.canopy, |top, k| top.min(s.body_top[k]));
+        let mut most = s.highest([low[0], low[1], high[0], high[1]]);
+        for &(distance, spread) in &self.far_samples {
+            most = most.max(s.highest(self.sample_box(low, high, direction, distance, spread)));
         }
-        let block = [
-            x0 as f64 * self.cell - s.pad,
-            y0 as f64 * self.cell - s.pad,
-            (x1 + 1) as f64 * self.cell + s.pad,
-            (y1 + 1) as f64 * self.cell + s.pad,
-        ];
+        self.lowest_ground(s, witness, x, y) + top > most + s.eye
+    }
+
+    /// A bare crest that every eye and hidden target must stay below
+    /// `crest`, at most `reach` from `low..high`, hides a cell of every
+    /// observer there, as the module explains.
+    pub(super) fn crest_admits(
+        &self,
+        crest: f64,
+        reach: f64,
+        low: Point,
+        high: Point,
+        direction: &[[f64; 2]; 2],
+    ) -> bool {
+        let Some(s) = &self.relief else {
+            return false;
+        };
+        if !self.queries.work.spend(8) || crest <= self.highest(low, high) {
+            return false;
+        }
+        // Past the crest's block and a whole step beyond it.
+        let nearest = reach + 4. * self.cell;
+        self.far_samples.iter().all(|&(far, spread)| {
+            nearest <= far
+                && (0..=CREST_SAMPLES).any(|k| {
+                    let distance = far - (far - nearest) * k as f64 / CREST_SAMPLES as f64;
+                    self.queries.work.spend(1)
+                        && self.on_map(low, high, direction, distance, spread)
+                        && crest
+                            > s.highest(self.sample_box(low, high, direction, distance, spread))
+                })
+        })
+    }
+
+    /// The most the land or a deck can stand over `low..high`; nothing
+    /// on flat land.
+    pub(super) fn highest(&self, low: Point, high: Point) -> f64 {
+        self.relief
+            .as_ref()
+            .map_or(0., |s| s.highest([low[0], low[1], high[0], high[1]]))
+    }
+
+    fn cell_of(&self, p: Point) -> (usize, usize) {
+        let cell = |v: f64, n: usize| (libm::floor(v / self.cell).max(0.) as usize).min(n - 1);
+        (cell(p[0], self.nx), cell(p[1], self.ny))
+    }
+
+    /// The least the land can stand over the 3x3 block about cell `(x, y)`
+    /// holding `witness`, a river or swamp beneath it included.
+    fn lowest_ground(&self, s: &Sight, witness: Point, x: usize, y: usize) -> f64 {
+        let block = self.block(s, x, y);
         let reach = libm::hypot(block[2] - block[0], block[3] - block[1]) / 2. + s.bank_margin;
         let river = self
             .queries
             .water
             .gap_charged(witness, reach, || self.queries.work.spend(1));
-        let ground =
-            s.bound.span(block)[0] + s.swamp_low + if river < reach { s.river_low } else { 0. };
-        let mut most = s.highest([low[0], low[1], high[0], high[1]]);
-        for (distance, margin) in &self.far_samples {
-            let t = [0, 1].map(|i| {
-                [
-                    low[i] + distance * direction[i][0] - margin,
-                    high[i] + distance * direction[i][1] + margin,
-                ]
-            });
-            most = most.max(s.highest([t[0][0], t[1][0], t[0][1], t[1][1]]));
-        }
-        ground + top > most + s.eye
+        s.bound.span(block)[0] + s.swamp_low + if river < reach { s.river_low } else { 0. }
     }
 }

@@ -221,7 +221,12 @@ pub(super) struct Coverage<'a> {
     physical: Vec<bool>,
     witnessed: Vec<bool>,
     points: Vec<Point>,
+    /// Per point, for a bare crest (`relief.rs`) rather than foliage, the
+    /// height every eye and hidden target must stay below.
+    crests: Vec<Option<f64>>,
     index: Grid,
+    /// Per circular observer, its far cell's distance and the spread of
+    /// the nearest native ray about a witness bearing (`sample_box`).
     far_samples: Vec<(f64, f64)>,
     /// Physical witness reach reserves following fog steps. Every corner
     /// of the complete clipped rectangle must fit inside it.
@@ -299,7 +304,7 @@ impl<'a> Coverage<'a> {
             // The nearest native ray differs from the witness bearing by
             // at most half an angular step. This bounds either coordinate
             // of its far endpoint relative to the exact witness bearing.
-            far_samples.push((far, 2. * far * libm::sin(delta / 4.) + diagonal));
+            far_samples.push((far, libm::sin(delta / 4.)));
             // Three neighbouring rays must stop before any sample could enter
             // the central ray's far cell. Every other ray stays more than that
             // cell's diagonal from its chosen sample, even at another radius.
@@ -345,6 +350,7 @@ impl<'a> Coverage<'a> {
             physical: vec![false; count],
             witnessed: vec![false; nx * ny],
             points: Vec::new(),
+            crests: Vec::new(),
             index: Grid::new(map.size, cell),
             far_samples,
             reach,
@@ -420,6 +426,7 @@ impl<'a> Coverage<'a> {
             c.stamp_forest(i, f, None)?;
         }
         c.note_patches(0, 0, nx - 1, ny - 1);
+        c.note_crests();
         c.queries.work.check()?;
         Ok(c)
     }
@@ -574,7 +581,10 @@ impl<'a> Coverage<'a> {
         points
     }
     fn commit_patches(&mut self, points: Vec<(usize, Point)>) {
-        for (k, p) in points {
+        self.commit_witnesses(points.into_iter().map(|(k, p)| (k, p, None)).collect());
+    }
+    fn commit_witnesses(&mut self, points: Vec<(usize, Point, Option<f64>)>) {
+        for (k, p, crest) in points {
             if !self.index.insert_charged(
                 [p[0], p[1], p[0], p[1]],
                 self.points.len() as u32,
@@ -583,6 +593,7 @@ impl<'a> Coverage<'a> {
                 return;
             }
             self.points.push(p);
+            self.crests.push(crest);
             self.witnessed[k] = true;
         }
     }
@@ -592,7 +603,13 @@ impl<'a> Coverage<'a> {
 
     /// The whole rectangle shares a physical patch and an isolated *in-map*
     /// far fog cell. At a boundary, an outward-only patch cannot earn this.
+    /// A witness asked about here is foliage, standing or proposed.
     pub(super) fn admits(&self, witness: Point, low: Point, high: Point) -> bool {
+        self.admits_as(witness, low, high, None)
+    }
+
+    /// `admits`, for a witness that is a bare crest of height `crest`.
+    fn admits_as(&self, witness: Point, low: Point, high: Point, crest: Option<f64>) -> bool {
         if !self.queries.work.spend(1) {
             return false;
         }
@@ -631,21 +648,67 @@ impl<'a> Coverage<'a> {
             let upper = b / libm::hypot(b, if b > 0. { closest } else { furthest });
             [lower, upper]
         });
-        self.far_samples.iter().all(|(distance, margin)| {
-            [0, 1].into_iter().all(|i| {
-                self.queries.work.spend(1)
-                    && low[i] + distance * direction[i][0] >= *margin
-                    && high[i] + distance * direction[i][1] <= self.queries.size[i] - margin
-            })
+        if let Some(crest) = crest {
+            return self.crest_admits(crest, far, low, high, &direction);
+        }
+        self.far_samples.iter().all(|&(distance, spread)| {
+            self.queries.work.spend(1) && self.on_map(low, high, &direction, distance, spread)
         }) && self.relief_admits(witness, low, high, &direction)
+    }
+
+    /// Every native sample `distance` out along a bearing of `direction`
+    /// from `low..high` falls on the map (`sample_box`).
+    fn on_map(
+        &self,
+        low: Point,
+        high: Point,
+        direction: &[[f64; 2]; 2],
+        distance: f64,
+        spread: f64,
+    ) -> bool {
+        let margin = self.margin(distance, spread);
+        [0, 1].into_iter().all(|i| {
+            low[i] + distance * direction[i][0] >= margin
+                && high[i] + distance * direction[i][1] <= self.queries.size[i] - margin
+        })
+    }
+
+    fn margin(&self, distance: f64, spread: f64) -> f64 {
+        2. * distance * spread + core::f64::consts::SQRT_2 * self.cell
+    }
+
+    /// Where the native sample `distance` out along any bearing of
+    /// `direction` from `low..high` can fall: the exact bearing's point,
+    /// widened by the nearest ray's spread about it and a cell's diagonal.
+    fn sample_box(
+        &self,
+        low: Point,
+        high: Point,
+        direction: &[[f64; 2]; 2],
+        distance: f64,
+        spread: f64,
+    ) -> [f64; 4] {
+        let margin = self.margin(distance, spread);
+        [
+            low[0] + distance * direction[0][0] - margin,
+            low[1] + distance * direction[1][0] - margin,
+            high[0] + distance * direction[0][1] + margin,
+            high[1] + distance * direction[1][1] + margin,
+        ]
     }
 
     pub fn covered(&self, low: Point, high: Point) -> bool {
         let p = scale(add(low, high), 0.5);
         let reach = self.reach;
+        // No crest below the rectangle's own land can hide anything from it.
+        let ground = self.highest(low, high);
         self.index.any_charged(
             [p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach],
-            |i| self.admits(self.points[i as usize], low, high),
+            |i| {
+                let crest = self.crests[i as usize];
+                crest.is_none_or(|c| c > ground)
+                    && self.admits_as(self.points[i as usize], low, high, crest)
+            },
             || self.queries.work.spend(1),
         )
     }

@@ -124,13 +124,13 @@ impl ReliefBound {
     }
 
     /// The least and most the relief adds anywhere in `b` (clipped to the
-    /// map): from the finest level at which the box spans at most four
+    /// map): from the finest level at which the box spans at most seven
     /// tiles a side, whose coarser tiles only widen the span.
     pub fn span(&self, b: Bounds) -> [f64; 2] {
         let level = self
             .levels
             .iter()
-            .find(|l| (b[2] - b[0]).max(b[3] - b[1]) <= 3.0 * l.tile)
+            .find(|l| (b[2] - b[0]).max(b[3] - b[1]) <= 6.0 * l.tile)
             .unwrap_or(self.levels.last().unwrap());
         let at = |v: f64, n: usize| ((v / level.tile).floor().max(0.0) as usize).min(n - 1);
         let mut out = [f64::INFINITY, f64::NEG_INFINITY];
