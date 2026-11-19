@@ -3,7 +3,8 @@
  *  (`ScenarioDocument::on` through `authored_scenario`). The page names the
  *  map and the scenario; nothing else, since the document fixes the players,
  *  the seed and the forces. */
-import { loadMap, loadScenarioDocument } from "../../maps/browser";
+import { loadMap, loadScenarioDocument, loadScenarioSolution } from "../../maps/browser";
+import type { Resume } from "../sim/protocol";
 import { MapResolveError } from "../../maps/resolve";
 import { PreparationRefused, type PreparationModule, type PreparationResult } from "./prepare";
 import type { PrepareDocuments, PrepareStage, ScenarioRequest } from "./protocol";
@@ -11,6 +12,14 @@ import type { PrepareDocuments, PrepareStage, ScenarioRequest } from "./protocol
 /** The simulation's scenario resolver, beside what preparation calls. */
 export interface ScenarioPreparationModule extends PreparationModule {
   authored_scenario(map: string, document: string, rules: string): string;
+  scenario_chapter(
+    map: string,
+    document: string,
+    solution: string,
+    rules: string,
+    chapter: string,
+    beat?: string,
+  ): string;
 }
 
 /** The sites a resolved scenario carries: where blue enters, for the camera,
@@ -44,9 +53,11 @@ export async function prepareScenario(
         message: error instanceof Error ? error.message : String(error),
       },
     ]);
-  const [map, document] = await Promise.all([
+  const { chapter } = request;
+  const [map, document, solution] = await Promise.all([
     loadMap(request.map),
     loadScenarioDocument(request.map, request.name),
+    chapter === undefined ? null : loadScenarioSolution(request.map, request.name),
   ]).catch((error: unknown) => {
     throw refused("map", request.map, error);
   });
@@ -54,14 +65,26 @@ export async function prepareScenario(
   onStage("encounter");
   let resolved: string;
   try {
-    resolved = wasm.authored_scenario(JSON.stringify(map.definition), document, documents.rules);
+    const definition = JSON.stringify(map.definition);
+    resolved =
+      solution === null || chapter === undefined
+        ? wasm.authored_scenario(definition, document, documents.rules)
+        : wasm.scenario_chapter(
+            definition,
+            document,
+            solution,
+            documents.rules,
+            chapter,
+            request.beat,
+          );
   } catch (error) {
     throw refused("encounter", `${request.map}/scenarios/${request.name}.json`, error);
   }
-  // `{"battle_seed":<n>,"scenario":<text>}`: the scenario stays the exact
-  // text a battle takes.
+  // `{"battle_seed":<n>,…,"scenario":<text>}`: the scenario stays the exact
+  // text a battle takes; a chapter's start also names where it resumes.
   const at = resolved.indexOf(',"scenario":');
-  const battleSeed = Number(JSON.parse(`${resolved.slice(0, at)}}`).battle_seed);
+  const head = JSON.parse(`${resolved.slice(0, at)}}`) as { battle_seed: number; resume?: Resume };
+  const battleSeed = Number(head.battle_seed);
   const scenario = resolved.slice(at + ',"scenario":'.length, -1);
   const world = wasm.PreparedWorld.from_scenario(scenario);
   const worldBuiltAt = now();
@@ -74,6 +97,7 @@ export async function prepareScenario(
     picture: null,
     report: {
       scenario: { ...request, battleSeed },
+      ...(head.resume && { resume: head.resume }),
       identity: map.identity,
       size: map.definition.size,
       extents: JSON.parse(world.extents()),

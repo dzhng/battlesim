@@ -37,7 +37,9 @@ controls it rings, found by the anchor each control declares
 ([`hudAnchor`](../../web/src/battle/present/hudAnchors.ts)), never by its
 styling. Its pause menu restarts the open chapter: a standby battle,
 resumed from the playing battle's replay at the chapter's start in a worker of
-its own (`Battle::resume`), takes over as the session's client. [The Guide](src/Guide.tsx) is the game's reference: a live
+its own (`Battle::resume`), takes over as the session's client. Adding `&chapter=<id>`, optionally `&beat=<id>`, to a
+scenario's address starts it there, played that far by the scenario's solution
+and handed back to the player, which is how a chapter is iterated. [The Guide](src/Guide.tsx) is the game's reference: a live
 battle's Esc menu opens it as a modal over the paused battle that closes back to
 that menu, and no menu page shows it. It reads
 its economy and command keys from the skirmish rules and command bindings, and

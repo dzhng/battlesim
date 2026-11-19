@@ -49,13 +49,15 @@ impl DirectorRun {
     }
 
     /// Close the open chapter once all its beats fired before `tick`, so the
-    /// next opens on the tick after its last beat.
+    /// next opens on the tick after its last beat. A recovery beat isn't
+    /// waited for.
     pub(crate) fn open_chapter(&mut self, tick: Tick) {
-        while self
-            .fired
-            .get(self.chapter)
-            .is_some_and(|beats| beats.iter().all(|fired| fired.is_some_and(|at| at < tick)))
-        {
+        while self.fired.get(self.chapter).is_some_and(|fired| {
+            fired
+                .iter()
+                .zip(&self.setup.chapters[self.chapter].beats)
+                .all(|(fired, beat)| beat.recovery || fired.is_some_and(|at| at < tick))
+        }) {
             self.chapter += 1;
         }
     }

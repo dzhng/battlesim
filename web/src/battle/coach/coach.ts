@@ -12,6 +12,7 @@ import {
   type KeyCommand,
 } from "../input/commandBindings";
 import { UI_SIGNALS, type UiSignal } from "../input/uiSignals";
+import { FirstGroupKeys } from "../input/controlGroups";
 import { isHudAnchor, type HudAnchor } from "../present/hudAnchors";
 import { validateReel, type Reel } from "@apps/battle-lab/src/capture/capture";
 import type { ScenarioView } from "../sim/observationView";
@@ -121,6 +122,8 @@ function keyText(kind: "key" | "camera", name: string): string[] | null {
     const held: Record<string, string> = {
       show_orders: ShowOrdersBinding.label,
       contact_focus: ContactFocusBinding.label,
+      group_assign: FirstGroupKeys.assign,
+      group_recall: FirstGroupKeys.recall,
     };
     const label = held[name] ?? CommandBindings[name as KeyCommand]?.label;
     return label ? [label] : null;

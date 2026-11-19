@@ -460,6 +460,7 @@ export function useUnitControl(
       if (action !== "recall") {
         const units = selectedUnitsRef.current.map((u) => u.id);
         setStored((current) => storeGroup(current, key, units, action === "add"));
+        if (units.length) emitUiSignal("group_set");
         return;
       }
       // A key with no group leaves the selection alone (RTS convention).

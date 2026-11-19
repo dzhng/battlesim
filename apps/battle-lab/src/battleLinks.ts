@@ -42,8 +42,9 @@ export type AskedBattle =
       lighting: string;
     })
   /** An authored scenario on a saved `scenario` map: its document fixes the
-   *  rest. */
-  | { kind: "scenario"; map: string; name: string }
+   *  rest. With `chapter`, it starts there, played by its solution (the
+   *  chapters' dev loop). */
+  | { kind: "scenario"; map: string; name: string; chapter?: string; beat?: string }
   | { kind: "replay" };
 
 /** Every parameter a battle address may hold. */
@@ -60,6 +61,8 @@ const PARAMETERS = new Set([
   "battle",
   "replay",
   "scenario",
+  "chapter",
+  "beat",
 ]);
 
 /** The regions a player may ask for: the presets' regional families. */
@@ -177,9 +180,20 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
     const address = /^[a-z0-9_-]+$/;
     if (rest.length || !address.test(map ?? "") || !address.test(name ?? ""))
       return { error: "scenario must name a map and its scenario as <map>/<name>" };
-    if ([...params.keys()].some((key) => key !== "scenario"))
-      return { error: "a scenario's battle takes no other parameter" };
-    return { kind: "scenario", map, name };
+    if ([...params.keys()].some((key) => !["scenario", "chapter", "beat"].includes(key)))
+      return { error: "a scenario's battle takes only a chapter and a beat to start at" };
+    const [chapter, beat] = [params.get("chapter"), params.get("beat")];
+    if ([chapter, beat].some((id) => id !== null && !address.test(id)))
+      return { error: "chapter and beat name the scenario's own" };
+    if (beat !== null && chapter === null)
+      return { error: "a beat is started at within its chapter" };
+    return {
+      kind: "scenario",
+      map,
+      name,
+      ...(chapter !== null && { chapter }),
+      ...(beat !== null && { beat }),
+    };
   }
   const seed = (name: string, fallback: string) => canonicalSeed(params.get(name) ?? fallback);
   const battleSeed = Number(params.get("battle") ?? DEFAULT_BATTLE_SEED);

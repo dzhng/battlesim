@@ -14,6 +14,14 @@ export type ControlGroups = ReadonlyMap<GroupKey, readonly number[]>;
 
 export type GroupAction = "assign" | "add" | "recall";
 
+/** The first group's keys for each action, as text names them
+ *  (`groupKeyPress`; every digit has its own group the same way). */
+export const FirstGroupKeys: Record<GroupAction, string> = {
+  assign: "Ctrl+1",
+  add: "Shift+1",
+  recall: "1",
+};
+
 /** What a key press asks of the groups, or null. Ctrl is this key's own
  *  modifier (Ctrl+1 is otherwise the browser's tab switch, which the battle
  *  takes), so it bypasses `isGameKey`; Cmd, Alt and auto-repeat stay the
