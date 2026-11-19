@@ -1,6 +1,6 @@
 # Fire distribution
 
-**Status:** slices 00–03 landed; 04 (authoring and closeout) next. **Updated:** 2026-11-19.
+**Status:** all slices landed; whole-spec review and close-spec remain. **Updated:** 2026-11-19.
 
 Two changes to how a crew picks and keeps its target in automatic targeting:
 
@@ -22,7 +22,9 @@ landed: target choice lives in `weapons/choice.rs` and `GroundRules` moved to
 `targeting` rules section. Slice 03 has landed: overkill runs in battle for any flagged row (rounds
 carry `expected_arrival_tick`, `Shot` carries `time_of_flight_s`, and
 `overkill::overkill` is the one check target choice and the fire gate share).
-Next: 04. Each
+Slice 04 has landed: the four root rows are flagged, the catalog regenerated,
+the closeout run and balance comparison recorded below. Next: the whole-spec
+review, then `close-spec`. Each
 slice file names its contract, seam, tests, what stays green and what you may
 decide yourself. Anything else it leaves open is a gap: record it in the
 decisions ledger below rather than inventing it silently.
@@ -49,7 +51,7 @@ TODO:
 - [x] [01](slices/01-target-spread.md) Target spread: drop the cost key, weighted distance, seeded spread.
 - [x] [02](slices/02-committed-ledger.md) The committed-fire ledger as a pure, unit-tested owner; the contract flag.
 - [x] [03](slices/03-overkill-in-play.md) Overkill in play: build the ledger, tally launches, the hold gate, reconsider.
-- [ ] [04](slices/04-author-and-closeout.md) Author the flags, regenerate, full checks, balance report, docs, close.
+- [x] [04](slices/04-author-and-closeout.md) Author the flags, regenerate, full checks, balance report, docs, close.
 
 Update this section (status, date, ticks, warnings) before you end each pass.
 
@@ -225,7 +227,28 @@ Where this ledger differs from the map, this ledger wins.
 | I6 | 03 | The hold gate sits after `Guiding` and before the garrison window check. | A held garrison reports the hold, not a window it would not use. |
 | I7 | 03 | One check, `overkill::overkill`, answers "would this flagged shot only add to a covered kill?" for target choice, reconsider and the gate. | One owner instead of three copies. |
 | I8 | 03 | When only doomed targets qualify, `select` returns the current lock if doomed, else the first doomed one, with the idle reason unchanged. | A4; the tick recomputes the shown reason from the assessment. |
+| I9 | 04 | The menu reel needs no re-record: the backdrop plays its encounter live, so it follows the rules as they are; its capture files pass `every_capture`. | There is no stored reel to move. |
+| I10 | 04 | The map generator's rules record (`fixtures/parity/map-layout/physical-rules.json`) carries the `targeting` section. | It is a whole rules document; without the section every generated map was refused. |
+| I11 | 04 | The mechanics editor lists `avoids_overkill` beside the other targeting flags; it has no rules-section editor, so `targeting` is edited in `rules.json`. | The editor edits units, weapons and soldiers only. |
 | I2 | 02 | `enemy_in_reach` and `return_fire_threat` moved into `choice.rs`. | Only target choice uses them; frees room in `weapons.rs` under the size budget. |
+
+## Closeout evidence (2026-11-19)
+
+- **Full check:** formatting, lint, the wasm build, typecheck and every Rust
+  crate's tests pass, except `native-client`'s audio tests, which refuse LFS
+  pointers (missing assets). Web: 16 files fail, every one either refusing an
+  LFS pointer, also failing on the pre-feature baseline (`battleFailure`,
+  `navigationBrowser`, `soundCatalog`, `soundWorkbenchServer`,
+  `multiplayerScreen`: assets or a local-server reset), or flaky under load
+  (`mapWorkbenchEditor`, green twice alone). The parity, editor and catalog
+  tests this feature touches pass.
+- **Balance (endurance soak, 100 a side, 10 simulated minutes, seed 1):**
+  rounds launched 7,626 → 7,298 (−4.3%); living units at 10 min 171 → 170,
+  wrecks 28 → 29, so the same killing with fewer rounds. Step instructions
+  +1.3% overall (weapons +2.9% mean, peak tick 148 M → 63 M). No retune.
+- **Battle sweep (generated maps, 4 seeds × 12 presets × 90 s):** 40 of 48
+  digests identical, rounds and survivors unchanged: the sweep's short
+  placements rarely reach a fight, so it does not measure this feature.
 
 ## Sharp edges
 

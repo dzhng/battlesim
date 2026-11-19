@@ -111,6 +111,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
+      "avoids_overkill": true,
       "resupply_rounds_per_s": 0.1,
       "appearance": "grenade",
       "round_cost": 2,
@@ -134,6 +135,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
+      "avoids_overkill": true,
       "resupply_rounds_per_s": 0.145,
       "appearance": "tank_sabot",
       "round_cost": 5,
@@ -201,6 +203,7 @@
       "structural_damage": 4
     },
     "atgm": {
+      "avoids_overkill": true,
       "resupply_rounds_per_s": 0.125,
       "appearance": "atgm",
       "round_cost": 20,
@@ -649,6 +652,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 1000, "scatter_mrad": 0.5 } }
     },
     "sead_missile": {
+      "avoids_overkill": true,
       "resupply_rounds_per_s": 0.125,
       "appearance": "sam",
       "round_cost": 40,

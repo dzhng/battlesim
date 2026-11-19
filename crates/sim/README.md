@@ -109,6 +109,23 @@ one run in which it fired; it hands off at once when nothing can act on its
 target. The last attack in a queue keeps on until its target is dead or lost
 (on the ground, for ever).
 
+[Automatic target choice](src/weapons/choice.rs) spreads fire and never
+prices it. A mount ranks what it could shoot now by seeker match, then return
+fire, then the share of damage its armour lets through, then a weighted
+distance: farther for each other friendly unit already locked on the target,
+and scaled by one seeded draw per unit, mount and target, so crews fan out
+over targets that tie and keep a stable preference. The rules' `targeting`
+section holds both weights; a crew keeps its lock until it can no longer
+shoot. A weapon row that opts in (`avoids_overkill`) also coordinates with the
+side's [committed fire](src/weapons/overkill.rs): while the damage its side
+already has flying at the target, landing no later than its own round, covers
+the target's remaining health, the mount holds its shot with its aim, reload
+and turret kept, looks for another target, and fires the moment the target is
+no longer doomed. Counted rounds are the side's flagged rounds aimed at the
+unit until their expected arrival, while still steering if guided; active
+protection absorbs the earliest interceptable ones by its charges left.
+Explicit orders and unflagged rows never hold.
+
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
 reinforcements; [the player list](../contract/src/players.rs) says who plays.
 A confirmed purchase reserves both its cost and a place under the player's unit
