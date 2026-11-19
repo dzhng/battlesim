@@ -79,7 +79,6 @@ test("deploy check asks a real lobby without a credential and reports compatibil
     await import("../../../apps/game-server/src/machines/inProcess.ts");
   const { pendingBattle } = await import("./support/pendingBattle");
   const { timerClock } = await import("./timerClock");
-  const { default: configured } = await import("../../../apps/battle-lab/src/online/server.json");
   const build = { commit, ...sourceBuildIdentity(root) };
   const lobby = createLobbyHttp(build, {
     machines: inProcessBattleMachines({
