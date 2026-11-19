@@ -24,6 +24,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_panes import panel_shell  # noqa: E402
 from parts import box, cyl, flat_paint  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
@@ -35,8 +36,6 @@ SPEC = dict(
     # The Alligator's two-seat canopy is broad and shallow, with a distinct
     # windscreen bow and a second bow over the rear seat.  A high, continuous
     # bubble loses the side-by-side cockpit's characteristic stepped profile.
-    canopy=dict(x_front=6.12, x_back=3.58, sill=1.58, top=2.54, half_width=1.01, peak=0.49,
-                bows=(5.72, 5.16, 4.52), tail=0.42, nose=0.12),
     canopy_finish=dict(name="ka52_canopy_glass", tint=(0.012, 0.024, 0.030), rough=0.16, coverage=0.46),
     wing=[(1.4, 0.95, 1.9, 1.7, 0.22), (1.2, 3.5, 1.86, 1.4, 0.14)],
     stab=[(-5.6, 0.3, 2.05, 1.1, 0.12), (-5.7, 1.9, 2.05, 0.9, 0.08)],
@@ -71,6 +70,31 @@ def service_panel_details(m, h):
                 m["panel"], h, seg=8, lods=MID)
 
 
+def side_by_side_canopy(m, hull):
+    """The Alligator's two-seat canopy uses a framed centre windscreen bow."""
+    glass = m["canopy"]
+    for side, suffix in ((1, "L"), (-1, "R")):
+        panes = [
+            [(6.08, 0, 1.60), (5.72, 0, 2.36), (5.48, side * .92, 2.34), (5.76, side * .86, 1.61)],
+            [(5.48, side * .92, 2.34), (3.72, side * .86, 2.25), (3.55, side * .93, 1.63),
+             (5.76, side * .86, 1.61)],
+        ]
+        if side < 0:
+            panes = [pane[::-1] for pane in panes]
+        panel_shell(f"ka52_canopy_glass_{suffix}", panes, glass, hull)
+        box(f"ka52_canopy_sill_{suffix}", (2.55, .07, .08), (4.82, side * .91, 1.60),
+            m["canopy_frame"], hull, bevel=.018, lods=MID)
+        box(f"ka52_canopy_rear_post_{suffix}", (.08, .07, .72), (3.64, side * .88, 1.96),
+            m["canopy_frame"], hull, bevel=.018, rot=(0, -.16, 0), lods=MID)
+    box("ka52_canopy_center_bow", (.10, .07, .78), (5.73, 0, 1.98), m["canopy_frame"], hull,
+        bevel=.02, rot=(0, -.34, 0), lods=MID)
+    for side, suffix in ((1, "L"), (-1, "R")):
+        box(f"ka52_canopy_front_post_{suffix}", (.08, .07, .82), (5.78, side * .48, 2.00),
+            m["canopy_frame"], hull, bevel=.02, rot=(0, -.30, 0), lods=MID)
+    box("ka52_cockpit_deck", (1.75, 1.55, .42), (4.82, 0, 1.34), m["cockpit"], hull,
+        bevel=.03, lods=MID)
+
+
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
@@ -79,6 +103,7 @@ def build(variant, v):
     m["panel"] = flat_paint("ka52_panel_grey", (0.072, 0.081, 0.091), rough=0.58, grime=0.03, role="paint")
     m["olive_panel"] = flat_paint("ka52_olive_panel", (0.050, 0.061, 0.056), rough=0.70, grime=0.04, role="paint")
     m["sensor_dark"] = flat_paint("ka52_sensor_dark", (0.018, 0.024, 0.030), rough=0.34, grime=0, role="paint")
+    side_by_side_canopy(m, hull)
     A.body("nose_radar", [(7.02, 0.0, 1.02, 1.02), (6.78, 0.34, 0.86, 1.30, 1.08), (6.35, 0.46, 0.84, 1.62, 1.18)],
            m["dark"], hull, seg=18)
     A.sensor_ball("sensor", (5.48, 0, 0.66), 0.31, {**m, "dark": m["sensor_dark"]}, hull, window=0.62)
