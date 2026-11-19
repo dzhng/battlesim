@@ -203,18 +203,30 @@ test("the same request prepares the same battle; another map seed another map", 
 }, 60_000);
 
 test("a map seed a JavaScript number cannot hold reaches the generator as written", async () => {
-  // 2^53 + 1: a number would round it to 2^53.
-  const { report } = await prepared(request({ ...OPEN, seed: "9007199254740993" }));
-  if (report.identity.kind !== "generated") throw new Error("a generated map was asked for");
-  expect(report.identity.generation.seed).toBe("9007199254740993");
-  // The seed a number would round it to is another outcome: another map, or
-  // a refusal by name, since which seeds prepare belongs to the generator.
-  const rounded = await prepared(request({ ...OPEN, seed: "9007199254740992" })).catch((error) => {
+  const refusedByName = (error: unknown) => {
     if (!(error instanceof PreparationRefused)) throw error;
     return undefined;
-  });
+  };
+  // An odd seed past 2^53, which a number would round to its even neighbour.
+  // Which seeds prepare belongs to the generator, so take the first that does.
+  let asked: { seed: string; report: Awaited<ReturnType<typeof prepared>>["report"] } | undefined;
+  for (let past = 1n; past < 40n && !asked; past += 2n) {
+    const seed = String(2n ** 53n + past);
+    const done = await prepared(request({ ...OPEN, seed })).catch(refusedByName);
+    if (done) asked = { seed, report: done.report };
+  }
+  if (!asked) throw new Error("no seed past 2^53 prepared");
+  const { seed, report } = asked;
+  expect(String(Number(seed))).not.toBe(seed);
+  if (report.identity.kind !== "generated") throw new Error("a generated map was asked for");
+  expect(report.identity.generation.seed).toBe(seed);
+  // The seed a number would round it to is another outcome: another map, or
+  // a refusal by name.
+  const rounded = await prepared(request({ ...OPEN, seed: BigInt(Number(seed)).toString() })).catch(
+    refusedByName,
+  );
   expect(rounded?.report.identity).not.toEqual(report.identity);
-}, 60_000);
+}, 120_000);
 
 test("a request the simulation's check refuses prepares nothing, and names the field", async () => {
   const { players: _, ...faceless } = request();
