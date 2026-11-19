@@ -9,8 +9,7 @@ import {
 } from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentationGround";
 import type { ObservationView, RefusalView } from "@web/battle/sim/observationView";
-import type { AuthorityStatus } from "@web/battle/sim/protocol";
-import type { SideName } from "@web/battle/sim/protocol";
+import type { AuthorityStatus, Resume, SideName } from "@web/battle/sim/protocol";
 
 export interface SimSessionOptions {
   scenario: string;
@@ -46,6 +45,13 @@ export interface ScriptedSim {
 }
 
 const REFUSAL_LOG = 8;
+
+/** A battle waiting at a chapter's start: where it resumes, and the chapter. */
+interface Standby {
+  client: SimClient;
+  start: Resume;
+  chapter: string;
+}
 
 interface SessionStartup {
   onViewportReady(): void;
@@ -144,11 +150,47 @@ export function useSimSession({
   const openSide = useRef(side);
   openSide.current = side;
   const startup = useRef<SessionStartup | null>(null);
-  /** A battle waiting live at a chapter's start, which `restartChapter`
-   *  swaps in for the one playing; `standbyAt` is its tick. */
-  const standby = useRef<SimClient | null>(null);
+  /** The client playing now: a replay asked of an older one comes too late. */
+  const playing = useRef<SeatClient | SimClient | null>(null);
+  /** A battle waiting live at the open chapter's start, which
+   *  `restartChapter` swaps in for the one playing; `standbyAt` is its tick,
+   *  once it stands ready. */
+  const standby = useRef<Standby | null>(null);
   const [standbyAt, setStandbyAt] = useState<number | null>(null);
-  const adopt = useRef<SimClient | null>(null);
+  const adopt = useRef<Standby | null>(null);
+  const dropStandby = useCallback(() => {
+    standby.current?.client.dispose();
+    standby.current = null;
+    setStandbyAt(null);
+  }, []);
+  /** Ready a standby at `start`, the opening of `chapter`: offered once it
+   *  stands ready, and let go if the simulation refuses it. */
+  const standFrom = (start: Resume, chapter: string) => {
+    dropStandby();
+    const waiting: Standby = {
+      client: createSimClient({
+        scenario,
+        seed,
+        side: openSide.current,
+        player,
+        transport: "worker",
+        resume: start,
+      }),
+      start,
+      chapter,
+    };
+    standby.current = waiting;
+    waiting.client.ready.then(
+      () => {
+        if (standby.current === waiting) setStandbyAt(start.tick);
+      },
+      () => {
+        if (standby.current === waiting) dropStandby();
+      },
+    );
+  };
+  const standFromRef = useRef(standFrom);
+  standFromRef.current = standFrom;
 
   useEffect(() => {
     const plan = scriptedRef.current;
@@ -156,27 +198,37 @@ export function useSimSession({
     // once, or a standby already waits at the chapter's start.
     const adopted = adopt.current;
     adopt.current = null;
-    const next =
-      adopted ??
-      (!!prepared && "transport" in prepared
-        ? createSimClient({
-            transport: "remote",
-            side: openSide.current,
-            connect: prepared.connect,
-          })
-        : createSimClient({
-            scenario,
-            seed,
-            side: openSide.current,
-            player,
-            transport: "worker",
-            replay,
-            // A prepared bundle connection owns one live authority. Once the
-            // session is replaced (for example by uploading a replay), start a
-            // fresh worker rather than sending init through the closed connection.
-            connect: generation === 0 && !replay ? prepared?.connect : undefined,
-            resume: generation === 0 && !replay ? prepared?.resume : undefined,
-          }));
+    let next: SeatClient | SimClient;
+    if (adopted) next = adopted.client;
+    else if (prepared && "transport" in prepared)
+      next = createSimClient({
+        transport: "remote",
+        side: openSide.current,
+        connect: prepared.connect,
+      });
+    else
+      next = createSimClient({
+        scenario,
+        seed,
+        side: openSide.current,
+        player,
+        transport: "worker",
+        replay,
+        // A prepared bundle connection owns one live authority. Once the
+        // session is replaced (for example by uploading a replay), start a
+        // fresh worker rather than sending init through the closed connection.
+        connect: generation === 0 && !replay ? prepared?.connect : undefined,
+        // A battle started at a chapter starts there again on Restart.
+        resume: replay ? undefined : prepared?.resume,
+      });
+    playing.current = next;
+    // A local battle played by hand keeps its open chapter's start waiting,
+    // read from every publication, so restarting the chapter is a swap. An
+    // adopted standby is in its chapter already, and the next waits at the
+    // same start.
+    const chapters = !replay && !plan && "pause" in next ? next : null;
+    let chapter = adopted?.chapter;
+    if (adopted) standFromRef.current(adopted.start, adopted.chapter);
     let warm = !plan;
     const operation = startSessionStartup(
       next,
@@ -220,6 +272,22 @@ export function useSimSession({
         warm,
       });
       frame ??= requestAnimationFrame(render);
+      const opened = publication.observation.scenario?.chapter;
+      if (chapters && opened && opened !== chapter) {
+        chapter = opened;
+        // The last chapter's start is behind the player now.
+        dropStandby();
+        const { tick } = publication;
+        // The recording holds every command up to this tick by the time it
+        // answers; the standby replays it only that far.
+        void chapters.replay().then(
+          (recorded) => {
+            if (playing.current !== chapters) return;
+            standFromRef.current({ replay: recorded, tick }, opened);
+          },
+          () => {},
+        );
+      }
       onDecodedRef.current?.(publication.observation, publication.digest);
       if (held.current) held.current.push(publication);
       else publication.release();
@@ -228,11 +296,14 @@ export function useSimSession({
     next.ready.catch((e: Error) => setError(e.message));
     return () => {
       operation.cancel();
+      if (playing.current === next) playing.current = null;
       if (startup.current === operation) startup.current = null;
       if (frame !== null) cancelAnimationFrame(frame);
       next.dispose();
+      // The next battle keeps no standby of this one (an adopted one moved on).
+      dropStandby();
     };
-  }, [scenario, seed, generation, replay, prepared, player]);
+  }, [scenario, seed, generation, replay, prepared, player, dropStandby]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;
@@ -249,35 +320,6 @@ export function useSimSession({
   }, []);
 
   const local = client && "pause" in client ? client : null;
-  /** Ready a standby battle at `tick` of the one playing, replacing any
-   *  older one: the recorded battle replayed there in a worker of its own,
-   *  publishing nothing until it is swapped in. */
-  const standAt = useCallback(
-    (tick: number) => {
-      if (!local) return;
-      void local.replay().then((recorded) => {
-        if (adopt.current) return;
-        standby.current?.dispose();
-        standby.current = createSimClient({
-          scenario,
-          seed,
-          side: openSide.current,
-          player,
-          transport: "worker",
-          resume: { replay: recorded, tick },
-        });
-        setStandbyAt(tick);
-      });
-    },
-    [local, scenario, seed, player],
-  );
-  useEffect(
-    () => () => {
-      standby.current?.dispose();
-      standby.current = null;
-    },
-    [scenario, seed, player],
-  );
   return {
     client,
     local,
@@ -299,8 +341,8 @@ export function useSimSession({
     holdCredit,
     onViewportReady,
     restart: () => setGeneration((g) => g + 1),
-    standAt,
-    /** The tick a chapter restart would take the battle back to. */
+    /** The tick a chapter restart would take the battle back to, once its
+     *  standby stands ready; null when there is none. */
     standbyAt,
     /** Play on from the standby: the battle as it stood at `standbyAt`. */
     restartChapter: () => {

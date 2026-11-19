@@ -58,6 +58,7 @@ export async function prepareBattle(
       memory,
       createBattle: (scenario, seed) => prepared.world.into_battle(scenario, seed),
       replayBattle: (scenario, replay) => prepared.world.into_replay(scenario, replay),
+      resumeBattle: (scenario, replay, tick) => prepared.world.into_resumed(scenario, replay, tick),
     },
     scenario: prepared.scenario,
     seed: setup.battleSeed,

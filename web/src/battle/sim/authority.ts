@@ -7,7 +7,7 @@
  *
  * The host supplies the clock, the timer, the channel and the module loader,
  * so this state machine runs the same in a worker, in-thread, and in a test. */
-import type { AuthorityStatus, Resume, SideName, SimReply, SimRequest } from "./protocol";
+import type { AuthorityStatus, SideName, SimReply, SimRequest } from "./protocol";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "./timing";
 
 /** The slice of the WASM module the authority needs. */
@@ -16,9 +16,8 @@ export interface SimModule {
   /** A live battle. */
   createBattle(scenario: string, seed: number): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
-  /** A recorded battle replayed to a tick, then live; absent where no
-   *  battle resumes (a server's). */
-  resumeBattle?(scenario: string, replay: string, tick: number): SimBattle;
+  /** A recorded battle replayed to a tick, then live. */
+  resumeBattle(scenario: string, replay: string, tick: number): SimBattle;
 }
 
 export interface SimBattle {
@@ -251,7 +250,7 @@ export function createAuthority(host: AuthorityHost): Authority {
               if (lifetime.kind === "closed") return;
               const { resume } = request;
               const battle = resume
-                ? resumed(module, request.scenario, resume)
+                ? module.resumeBattle(request.scenario, resume.replay, resume.tick)
                 : request.replay
                   ? module.replayBattle(request.scenario, request.replay)
                   : module.createBattle(request.scenario, request.seed);
@@ -363,7 +362,11 @@ export function createAuthority(host: AuthorityHost): Authority {
           script = { id: request.id, target: activeResources().battle.tick() + request.ticks };
           break;
         case "replay":
-          host.post({ type: "replay", json: activeResources().battle.replay_json() });
+          host.post({
+            type: "replay",
+            id: request.id,
+            json: activeResources().battle.replay_json(),
+          });
           return;
         case "sides": {
           const nextSides = [...new Set(request.sides)];
@@ -402,9 +405,4 @@ export function createAuthority(host: AuthorityHost): Authority {
   }
 
   return { handle, pump };
-}
-
-function resumed(module: SimModule, scenario: string, { replay, tick }: Resume): SimBattle {
-  if (!module.resumeBattle) throw new Error("this authority can't resume a battle");
-  return module.resumeBattle(scenario, replay, tick);
 }

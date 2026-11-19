@@ -12,15 +12,13 @@ import {
   type KeyCommand,
 } from "../input/commandBindings";
 import { UI_SIGNALS, type UiSignal } from "../input/uiSignals";
-import { FirstGroupKeys } from "../input/controlGroups";
+import { firstGroupKeys } from "../input/controlGroups";
 import { isHudAnchor, type HudAnchor } from "../present/hudAnchors";
 import { validateReel, type Reel } from "@apps/battle-lab/src/capture/capture";
 import type { ScenarioView } from "../sim/observationView";
 
 /** A scenario's coach: `fixtures/maps/<map>/scenarios/<name>.coach.json`. */
 export interface CoachDocument {
-  /** What the loading screen and the pause menu call the scenario. */
-  title: string;
   /** Who speaks the steps' lines: their narration speaker, the name and
    *  post the card shows, and their portrait. */
   speaker: { id: string; name: string; post: string; portrait: string };
@@ -126,8 +124,8 @@ function keyText(kind: "key" | "camera", name: string): string[] | null {
     const held: Record<string, string> = {
       show_orders: ShowOrdersBinding.label,
       contact_focus: ContactFocusBinding.label,
-      group_assign: FirstGroupKeys.assign,
-      group_recall: FirstGroupKeys.recall,
+      group_assign: firstGroupKeys("assign"),
+      group_recall: firstGroupKeys("recall"),
     };
     const label = held[name] ?? CommandBindings[name as KeyCommand]?.label;
     return label ? [label] : null;
@@ -139,8 +137,9 @@ function keyText(kind: "key" | "camera", name: string): string[] | null {
   return keys.length ? keys : null;
 }
 
-/** A card's words, and the keys it names in their place. */
-export type CardPart = string | { keys: string[] };
+/** A card's words, and the keys it names in their place: `name` is the
+ *  placeholder's own (`key:<command>`, `camera:<axis>`). */
+export type CardPart = string | { name: string; keys: string[] };
 
 /** A card's text with its keys filled in, as parts the panel draws. */
 export function cardParts(card: string): CardPart[] {
@@ -149,7 +148,7 @@ export function cardParts(card: string): CardPart[] {
   for (const found of card.matchAll(/\{(key|camera):([a-z_]+)\}/g)) {
     const keys = keyText(found[1] as "key" | "camera", found[2]);
     if (!keys) continue;
-    parts.push(card.slice(at, found.index), { keys });
+    parts.push(card.slice(at, found.index), { name: `${found[1]}:${found[2]}`, keys });
     at = found.index + found[0].length;
   }
   parts.push(card.slice(at));

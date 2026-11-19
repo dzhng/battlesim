@@ -3,34 +3,25 @@
  *  owners emit into this one bus where the act happens; the tutorial's coach
  *  listens to know a lesson was done. The simulation never sees it. */
 
-export type UiSignal =
-  | "camera_pan"
-  | "camera_rotate"
-  | "camera_tilt"
-  | "camera_zoom"
-  /** A selection of the player's own units, by a click, a box or a card. */
-  | "selected"
-  /** A move ordered with a facing (a right-drag). */
-  | "moved_with_facing"
-  /** The view jumped to a contact. */
-  | "contact_focus"
-  | "shop_opened"
-  /** Every unit's orders shown (the key held). */
-  | "show_orders"
-  | "group_set";
-
-export const UI_SIGNALS: readonly UiSignal[] = [
+export const UI_SIGNALS = [
   "camera_pan",
   "camera_rotate",
   "camera_tilt",
   "camera_zoom",
+  /** The player selected their own units: a click, a box, a card or a
+   *  group's key. */
   "selected",
+  /** A move ordered with a facing (a right-drag). */
   "moved_with_facing",
+  /** The contact jump's key pressed, whether or not a contact was there. */
   "contact_focus",
   "shop_opened",
+  /** Every unit's orders shown (the key held). */
   "show_orders",
   "group_set",
-];
+] as const;
+
+export type UiSignal = (typeof UI_SIGNALS)[number];
 
 const listeners = new Set<(signal: UiSignal) => void>();
 

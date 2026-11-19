@@ -288,13 +288,21 @@ const hold = async (page, code) => {
   await page.waitForTimeout(350);
   await page.keyboard.up(code);
 };
+/** The card's placeholder whose first key does what each signal hears. */
+const SIGNAL_KEYS = {
+  camera_pan: "camera:forward",
+  camera_rotate: "camera:turn",
+  camera_tilt: "camera:pitch",
+  contact_focus: "key:contact_focus",
+  group_set: "key:group_assign",
+  show_orders: "key:show_orders",
+};
 /** Does what a UI signal hears: keys as the card names them. */
 async function perform(page, card, signal) {
-  const keys = await card.locator("kbd").allInnerTexts();
+  const named = SIGNAL_KEYS[signal];
+  const [key] = named ? await card.locator(`[data-keys="${named}"] kbd`).allInnerTexts() : [];
   await page.mouse.move(640, 400);
-  if (signal === "camera_pan") await hold(page, "KeyW");
-  else if (signal === "camera_rotate") await hold(page, `Key${keys[0]}`);
-  else if (signal === "camera_tilt") await hold(page, `Key${keys[2]}`);
+  if (named?.startsWith("camera:")) await hold(page, `Key${key}`);
   else if (signal === "camera_zoom") await page.mouse.wheel(0, -300);
   else if (signal === "shop_opened")
     await page.getByRole("button", { name: "Reinforcements" }).click();
@@ -307,15 +315,15 @@ async function perform(page, card, signal) {
     await page.mouse.move(800, 300, { steps: 20 });
     await page.waitForTimeout(100);
     await page.mouse.up({ button: "right" });
-  } else if (signal === "contact_focus") await page.keyboard.press(`Key${keys[0]}`);
+  } else if (signal === "contact_focus") await page.keyboard.press(`Key${key}`);
   else if (signal === "group_set") {
     // Select a unit, then the group key the card names.
     await page.locator('[data-hud-anchor="army"] button:not([disabled])').first().click();
-    await page.keyboard.press(keys[0].replace("Ctrl", "Control").replace(/\+(\d)$/, "+Digit$1"));
+    await page.keyboard.press(key.replace("Ctrl", "Control").replace(/\+(\d)$/, "+Digit$1"));
   } else if (signal === "show_orders") {
     // The card names the key to hold.
-    await page.keyboard.down(keys[0]);
+    await page.keyboard.down(key);
     await page.waitForTimeout(500);
-    await page.keyboard.up(keys[0]);
+    await page.keyboard.up(key);
   } else throw Error(`the scene can't do ${signal}`);
 }

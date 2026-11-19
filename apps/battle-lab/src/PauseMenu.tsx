@@ -166,7 +166,12 @@ export function PauseMenu({
               <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
                 {online ? "Back to battle" : "Resume"}
               </button>
-              <button type="button" className="hud-menu-item" onClick={() => setGuideOpen(true)}>
+              <button
+                type="button"
+                className="hud-menu-item"
+                data-menu-item="guide"
+                onClick={() => setGuideOpen(true)}
+              >
                 Guide
               </button>
               <button type="button" className="hud-menu-item" onClick={() => setSettingsOpen(true)}>

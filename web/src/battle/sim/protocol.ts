@@ -230,7 +230,8 @@ export type SimRequest =
   | { type: "hidden"; hidden: boolean }
   /** Advance up to `ticks` or match completion while paused, as fast as credit allows. */
   | { type: "advance"; id: number; ticks: number }
-  | { type: "replay" }
+  /** Every command accepted so far, as a replay; answered by `id`. */
+  | { type: "replay"; id: number }
   /** Lab diagnostic: publish these side observations from now on. A newly
    *  listed side opens with a full snapshot. */
   | { type: "sides"; sides: SideName[] }
@@ -267,7 +268,7 @@ export type SimReply =
     }
   | { type: "status"; status: AuthorityStatus; slow: boolean }
   | { type: "advanced"; id: number; tick: number }
-  | { type: "replay"; json: string }
+  | { type: "replay"; id: number; json: string }
   | { type: "referee"; id: number; view: RefereeView }
   | { type: "seat_reset"; id: number }
   | { type: "order_applied"; player: string }

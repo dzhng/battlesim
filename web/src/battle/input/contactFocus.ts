@@ -58,7 +58,8 @@ export function focusStep(
 
 /** Step the view through the side's contacts on the binding's key (Shift:
  *  newer) until `signal` aborts: each jump centres `centerOn` on the target,
- *  unless `blocked`, and tells the coach. */
+ *  unless `blocked`. The coach hears the key whether or not a contact is
+ *  there: its lesson is the key, and a lesson never waits on the battle. */
 export function listenContactFocus(
   signal: AbortSignal,
   targets: () => readonly FocusTarget[],
@@ -69,12 +70,12 @@ export function listenContactFocus(
   let focused: Pick<FocusTarget, "id" | "evidenceTick"> | null = null;
   const jump = (newer: boolean) => {
     if (blocked()) return;
+    emitUiSignal("contact_focus");
     const list = targets();
     const target = list[focusStep(list, focused, newer)];
     if (!target) return;
     focused = target;
     centerOn(target.target);
-    emitUiSignal("contact_focus");
   };
   window.addEventListener(
     "keydown",

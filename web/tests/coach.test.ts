@@ -20,7 +20,6 @@ const NARRATION = (
 
 /** A two-chapter coach over an invented director. */
 const DOC: CoachDocument = {
-  title: "Test",
   speaker: { id: "hq", name: "HQ", post: "Base", portrait: "/hq.jpg" },
   chapters: [
     {
@@ -130,14 +129,17 @@ test("a card names keys from their owners", () => {
   expect(cardParts("press {key:unknown}")).toEqual(["press {key:unknown}"]);
   const [words, policy] = cardParts("press {key:toggle_fire_policy}");
   expect(words).toBe("press ");
-  expect(policy).toEqual({ keys: [CommandBindings.toggle_fire_policy.label] });
+  expect(policy).toEqual({
+    name: "key:toggle_fire_policy",
+    keys: [CommandBindings.toggle_fire_policy.label],
+  });
   // A camera axis shows each of its letter keys, as many as bind it.
   const turn = Object.keys(CAMERA_KEYS).filter(
     (code) => code.startsWith("Key") && CAMERA_KEYS[code][0] === "turn",
   );
   expect(cardParts("turn {camera:turn}")).toEqual([
     "turn ",
-    { keys: expect.arrayContaining(turn.map((c) => c.slice(3))) },
+    { name: "camera:turn", keys: expect.arrayContaining(turn.map((c) => c.slice(3))) },
   ]);
 });
 

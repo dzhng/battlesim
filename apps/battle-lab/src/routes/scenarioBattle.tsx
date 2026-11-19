@@ -1,6 +1,6 @@
 // /battle?scenario=<map>/<name>: an authored scenario's battle (the
-// tutorial is one), prepared from its saved map and document under this
-// build's rules, in the battle view every battle plays in.
+// tutorial is one), prepared from its saved map, document and coach under
+// this build's rules, in the battle view every battle plays in.
 import { useEffect, useMemo, useRef, useState } from "react";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -14,8 +14,6 @@ import { BattleClock } from "../battleStatus";
 import { BattleView } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import { gameCamera } from "../gameCamera";
-import type { CoachDocument } from "@web/battle/coach/coach";
-import { loadScenarioCoach } from "@web/maps/browser";
 
 type Stage = PrepareStage | "world" | "renderer";
 const STAGES: (LoadingStage & { id: Stage })[] = [
@@ -44,15 +42,6 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
   const [failure, setFailure] = useState<LoadingFailure | null>(null);
   const { map, name, chapter, beat } = scenario;
-  const [coachDoc, setCoachDoc] = useState<CoachDocument | null>(null);
-  useEffect(() => {
-    let live = true;
-    // A scenario without a coach plays without one.
-    void loadScenarioCoach(map, name).then((doc) => live && setCoachDoc(doc));
-    return () => {
-      live = false;
-    };
-  }, [map, name]);
 
   useEffect(() => {
     setMatchLighting({ preset: resolveLighting(DEFAULT_LIGHTING, map), seed: map });
@@ -110,13 +99,14 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
     [prepared],
   );
   const marks = useRef<Partial<Record<string, number>>>({});
-  if (!prepared || !view || !prepared.report.scenario) return cover;
+  if (!prepared || !view || !("scenario" in prepared.report)) return cover;
+  const { report } = prepared;
   return (
     <BattleView
       fixture="generated"
       prepared={prepared}
       scenario={prepared.scenario}
-      seed={prepared.report.scenario.battleSeed}
+      seed={report.scenario.battleSeed}
       player={view.player}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
@@ -129,11 +119,11 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
-      coach={coachDoc ?? undefined}
+      coach={report.coach ?? undefined}
       diagnostics={() => ({
         /** What the preparation worker made: the scenario, the map's
          *  identity and counts, and what each stage cost. */
-        prepared: () => prepared.report,
+        prepared: () => report,
         /** When each loading stage finished, ms since navigation started. */
         startup: () => ({ ...marks.current }),
       })}

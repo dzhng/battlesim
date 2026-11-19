@@ -83,7 +83,15 @@ export function useUnitControl(
   enabledRef.current = enabled;
   const eventsRef = useRef(events);
   eventsRef.current = events;
-  const [selected, setSelection] = useState<number[]>([]);
+  const [selected, reconcileSelection] = useState<number[]>([]);
+  // Set by the player's own selecting (a click, a box, a card, a group key),
+  // and heard once the selection it made renders: what the coach calls
+  // `selected`, never the selection merely persisting.
+  const picked = useRef(false);
+  const setSelection = useCallback((next: SetStateAction<number[]>) => {
+    picked.current = true;
+    reconcileSelection(next);
+  }, []);
   // The selection as last heard, and the unit a left-click picked to change it.
   const heardSelection = useRef<readonly number[]>([]);
   const clickedRef = useRef<number | null>(null);
@@ -110,7 +118,7 @@ export function useUnitControl(
   const onField = selected.filter((id) =>
     observation?.own.some((u) => u.id === id && !aboardCarrier(u)),
   );
-  if (onField.length !== selected.length) setSelection(onField);
+  if (onField.length !== selected.length) reconcileSelection(onField);
   /** The selection's units that take orders: an ally's never do. */
   const selectedUnits = useMemo(
     () => selected.flatMap((id) => yours.find((u) => u.id === id && !aboardCarrier(u)) ?? []),
@@ -148,10 +156,13 @@ export function useUnitControl(
   selectedUnitsRef.current = selectedUnits;
   const gestures = useRef(new MoveGestures());
   const clicks = useRef(new SelectClicks());
-  const setSelected = useCallback((next: SetStateAction<number[]>) => {
-    clicks.current.reset();
-    setSelection(next);
-  }, []);
+  const setSelected = useCallback(
+    (next: SetStateAction<number[]>) => {
+      clicks.current.reset();
+      setSelection(next);
+    },
+    [setSelection],
+  );
   const observationRef = useRef(observation);
   observationRef.current = observation;
   /** Every own unit as last observed: passengers are among them. */
@@ -166,13 +177,15 @@ export function useUnitControl(
     if (showOrders) emitUiSignal("show_orders");
   }, [showOrders]);
   useEffect(() => {
-    if (selectedUnits.length) emitUiSignal("selected");
-  }, [selectedUnits]);
+    if (!picked.current) return;
+    picked.current = false;
+    if (selectedUnitsRef.current.length) emitUiSignal("selected");
+  }, [selected]);
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
     clientRef.current = client;
-    setSelection([]);
+    reconcileSelection([]);
     setStored(new Map());
     setAcks([]);
     setMode("move");
@@ -349,7 +362,7 @@ export function useUnitControl(
         void issue(order, order.kind !== "upgrade_move" && queued);
       }
     },
-    [issue, setMode, intentAt, catalog, player],
+    [issue, setMode, setSelection, intentAt, catalog, player],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */

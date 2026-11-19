@@ -79,9 +79,10 @@ test("restart asks first, and only confirming restarts", async () => {
 test("the pause menu opens the guide above it and closes back to the menu", async () => {
   const view = render(<PauseMenu onClose={() => {}} />);
   const menu = view.getByRole("dialog");
-  // The guide is the menu's item after Resume. It opens as a dialog of its own
-  // holding the guide's article, while the menu steps aside beneath it.
-  const openGuide = () => act(async () => within(menu).getAllByRole("button")[1].click());
+  // The guide opens as a dialog of its own holding the guide's article, while
+  // the menu steps aside beneath it.
+  const guideItem = menu.querySelector<HTMLButtonElement>('[data-menu-item="guide"]')!;
+  const openGuide = () => act(async () => guideItem.click());
   await openGuide();
   const guide = view.getByRole("dialog");
   expect(guide).not.toBe(menu);

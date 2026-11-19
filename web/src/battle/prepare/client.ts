@@ -145,7 +145,8 @@ export function prepareBattle(
         throw new PreparationFailed(
           "The worker returned an uploaded bundle to the ordinary battle path.",
         );
-      return { ...reply.battle, connect, resume: reply.battle.report.resume };
+      const { report } = reply.battle;
+      return { ...reply.battle, connect, resume: "scenario" in report ? report.resume : undefined };
     },
     true,
   );

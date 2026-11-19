@@ -1,13 +1,23 @@
 /** Preparing an authored scenario: a fixed battle on a `scenario` saved map,
  *  resolved by the simulation under the build's own rules
- *  (`ScenarioDocument::on` through `authored_scenario`). The page names the
- *  map and the scenario; nothing else, since the document fixes the players,
- *  the seed and the forces. */
-import { loadMap, loadScenarioDocument, loadScenarioSolution } from "../../maps/browser";
+ *  (`ScenarioDocument::on` through `authored_scenario`), with its coach. The
+ *  page names the map and the scenario; nothing else, since the document
+ *  fixes the players, the seed and the forces. */
+import {
+  loadMap,
+  loadScenarioCoach,
+  loadScenarioDocument,
+  loadScenarioSolution,
+} from "../../maps/browser";
 import type { Resume } from "../sim/protocol";
 import { MapResolveError } from "../../maps/resolve";
 import { PreparationRefused, type PreparationModule, type PreparationResult } from "./prepare";
-import type { PrepareDocuments, PrepareStage, ScenarioRequest } from "./protocol";
+import type {
+  PrepareDocuments,
+  PrepareStage,
+  ScenarioPreparationReport,
+  ScenarioRequest,
+} from "./protocol";
 
 /** The simulation's scenario resolver, beside what preparation calls. */
 export interface ScenarioPreparationModule extends PreparationModule {
@@ -41,7 +51,7 @@ export async function prepareScenario(
   documents: PrepareDocuments,
   onStage: (stage: PrepareStage) => void = () => {},
   now: () => number = () => performance.now(),
-): Promise<PreparationResult> {
+): Promise<PreparationResult<ScenarioPreparationReport>> {
   const started = now();
   onStage("map");
   const refused = (stage: "map" | "encounter", location: string, error: unknown) =>
@@ -54,10 +64,11 @@ export async function prepareScenario(
       },
     ]);
   const { chapter } = request;
-  const [map, document, solution] = await Promise.all([
+  const [map, document, solution, coach] = await Promise.all([
     loadMap(request.map),
     loadScenarioDocument(request.map, request.name),
     chapter === undefined ? null : loadScenarioSolution(request.map, request.name),
+    loadScenarioCoach(request.map, request.name),
   ]).catch((error: unknown) => {
     throw refused("map", request.map, error);
   });
@@ -80,12 +91,14 @@ export async function prepareScenario(
   } catch (error) {
     throw refused("encounter", `${request.map}/scenarios/${request.name}.json`, error);
   }
-  // `{"battle_seed":<n>,…,"scenario":<text>}`: the scenario stays the exact
-  // text a battle takes; a chapter's start also names where it resumes.
-  const at = resolved.indexOf(',"scenario":');
-  const head = JSON.parse(`${resolved.slice(0, at)}}`) as { battle_seed: number; resume?: Resume };
-  const battleSeed = Number(head.battle_seed);
-  const scenario = resolved.slice(at + ',"scenario":'.length, -1);
+  // The scenario comes as a string: the exact text a battle takes. A
+  // chapter's start also names where it resumes.
+  const { battle_seed, resume, scenario } = JSON.parse(resolved) as {
+    battle_seed: number;
+    resume?: Resume;
+    scenario: string;
+  };
+  const battleSeed = Number(battle_seed);
   const world = wasm.PreparedWorld.from_scenario(scenario);
   const worldBuiltAt = now();
   const { sites } = (JSON.parse(scenario) as ScenarioSites).skirmish;
@@ -97,7 +110,8 @@ export async function prepareScenario(
     picture: null,
     report: {
       scenario: { ...request, battleSeed },
-      ...(head.resume && { resume: head.resume }),
+      ...(resume && { resume }),
+      coach,
       identity: map.identity,
       size: map.definition.size,
       extents: JSON.parse(world.extents()),
