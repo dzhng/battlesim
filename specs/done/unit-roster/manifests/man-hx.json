@@ -39,19 +39,21 @@
       "export": "assets/source/roster/man-hx/europe_man_hx_general_resupply.glb",
       "physical_authoring": {
         "body_dimensions_m": [
-          10.336,
+          9.0,
           2.5,
           3.3
         ],
         "half_extents_m": [
-          5.168,
+          4.5,
           1.25,
           1.65
         ],
         "eye_m": 3.102,
         "mounts": []
       },
-      "notes": []
+      "notes": [
+        "Runtime collision envelope shortened to 9.0 m for logistics navigation while retaining the platform's 2.5 m width and 3.3 m height."
+      ]
     }
   ],
   "dependency": "Coordinator removes mandatory fictional deploy art: stationary service, no deploy-motion nodes, no mast/outriggers invented for validation.",
