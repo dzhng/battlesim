@@ -40,7 +40,16 @@ def fitted_airframe(v, family, mats, skip_parts=()):
         if part.name in skip_parts:
             bpy.data.objects.remove(part, do_unlink=True)
             continue
-        material = _atlas(part.data.materials[0], family) if role == "atlas" else mats[role]
+        # Donor panes are authored with the shared `glass` role, while roster
+        # scripts tune the aircraft-specific `canopy` finish. Use that finish
+        # for donor glazing so the tint, coverage and cockpit depth authored by
+        # the roster actually reach the exported panes.
+        if role == "atlas":
+            material = _atlas(part.data.materials[0], family)
+        elif role == "glass":
+            material = mats["canopy"]
+        else:
+            material = mats[role]
         part.data.materials.clear()
         part.data.materials.append(material)
         del part["material_role"]

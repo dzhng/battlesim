@@ -66,13 +66,14 @@ def build(variant, v):
     A.rotor("main", (3.315, 0, 3.74), 8.6, 5, 0.58, m, hull, hub=.44, mast=.33,
             droop=.03, phase=.3)
     cyl("main_rotor_gearbox", .29, .22, (3.315, 0, 3.98), "Z", m["dark"], hull, seg=16, bevel=.025, lods=MID)
-    cyl("mast_radar_post", .18, .65, (3.315, 0, 4.20), "Z", m["dark"], hull, seg=12)
+    cyl("mast_radar_post", .20, .52, (3.315, 0, 4.18), "Z", m["dark"], hull, seg=12)
+    cyl("mast_radar_mount", .28, .12, (3.315, 0, 4.08), "Z", m["steel"], hull, seg=16, bevel=.018, lods=MID)
     radome = m["paint"]
     sections = []
     for i in range(13):
         angle = math.pi * i / 12
-        width = .35 * math.sin(angle)
-        sections.append((3.315 + .37 * math.cos(angle), width, 4.50 - width*.58, 4.50 + width*.58))
+        width = .42 * math.sin(angle)
+        sections.append((3.315 + .42 * math.cos(angle), width, 4.42 - width*.34, 4.42 + width*.34))
     A.body("mast_radar", sections, radome, hull, seg=20)
     A.markings(v, [
         ("insignia", dict(kind="ru_star", centre=(-3.6, 1, 2.01), normal=(0, 1, 0), up=(0, 0, 1),
