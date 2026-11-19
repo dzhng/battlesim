@@ -35,7 +35,8 @@
 //! Construction sizes, densities and clearances come from `open_country`;
 //! physical sight comes from resolved rules. Each step has its own named stream.
 use crate::layout::geometry::{
-    add, direction, distance, ring_distance, round_cm, scale, sub, thinned, Outline, Point, PI, TAU,
+    add, direction, distance, dot, ring_distance, round_cm, scale, sub, thinned, Outline, Point,
+    PI, TAU,
 };
 use crate::layout::rng::Stream;
 use crate::layout::water::Water;
@@ -58,7 +59,6 @@ mod bodies;
 mod completion;
 mod country;
 pub(crate) use completion::cover;
-pub(crate) use country::kept_corridors;
 mod coverage;
 pub(crate) use coverage::admit_coverage;
 mod measure;
@@ -96,6 +96,14 @@ impl<'a> Ground<'a> {
             || p[1] > y1 + gap
             || (charge(2 * self.ring.len() as u64) && ring_distance(self.ring, p) >= gap)
     }
+}
+
+/// Distance from `p` to the rectangle; zero inside it.
+fn rect_gap(rect: &Rect, p: Point) -> f64 {
+    let offset = sub(p, rect.center);
+    let along = dot(offset, rect.axis).abs() - rect.half[0];
+    let across = dot(offset, [-rect.axis[1], rect.axis[0]]).abs() - rect.half[1];
+    libm::hypot(along.max(0.0), across.max(0.0))
 }
 
 /// At least `least` away, and never on it.
@@ -141,7 +149,7 @@ struct Country<'a> {
     decks: Vec<Rect>,
     /// The kept approach corridors, and whether each is the main
     /// settlement's.
-    corridors: Vec<country::Lane>,
+    corridors: Vec<(Rect, bool)>,
     /// The kept approaches: each one's settlement and middle bearing.
     kept: Vec<(usize, f64)>,
     /// Set while the ground no kept corridor leaves room beside is filled:
@@ -275,9 +283,9 @@ impl<'a> Country<'a> {
             && self
                 .decks
                 .iter()
-                .all(|deck| self.charge(1) && beyond(deck.gap(p), road))
+                .all(|deck| self.charge(1) && beyond(rect_gap(deck, p), road))
             && self.yards.iter().enumerate().all(|(index, yard)| {
-                self.charge(1) && (index >= ask.own_from || beyond(yard.gap(p), r + c.yard_m))
+                self.charge(1) && (index >= ask.own_from || beyond(rect_gap(yard, p), r + c.yard_m))
             })
             && self
                 .bodies
@@ -286,7 +294,8 @@ impl<'a> Country<'a> {
             && (!ask.blocks_sight
                 || self.corridors.iter().all(|(corridor, main)| {
                     self.charge(1)
-                        && ((self.main_only && !main) || beyond(corridor.gap(p), r + c.approach_m))
+                        && ((self.main_only && !main)
+                            || beyond(rect_gap(corridor, p), r + c.approach_m))
                 }))
             && (!ask.level
                 || self.relief.as_ref().is_none_or(|(hills, pad)| {

@@ -1,29 +1,20 @@
 //! Rolling hills: groups of broad rounded rises across the open country, on
 //! plains maps in large sections and on mixed maps in a few, never on a
-//! city. Each rise is mirrored through the map's centre, so the halves hold
-//! the same high ground, and each keeps clear of settlements, rivers and
-//! their banks, swamps, bridges and their approaches, the skirmish
-//! objectives' clearings and the main settlement's kept approach lanes, so
-//! everything built on flat ground and the main firing lanes stay flat: a
-//! summit in a lane, where no tree may stand, could hide nothing from an
-//! eye on it. The rest of the approaches and fronts may roll: open ground
-//! is ground a force can advance over (`measure::approaches`), and every
-//! hillside is drivable. A rise is as
-//! broad as its place allows and as tall as its grade makes that breadth.
-//! Where rises overlap the land never stands above the presets'
-//! `max_height_m`, as bounded tile by tile (`crate::relief`). They are
-//! drawn from their own stream, after everything they keep clear of, so a
-//! seed's other features never move.
+//! city. Hill country is settled before the skirmish's farms, the swamps and
+//! the woods: each rise keeps clear of the settlements, rivers and their
+//! banks, bridges and their approaches, and the skirmish's fixed central
+//! objectives, and what comes after keeps its farms and swamps off the
+//! rises (`clear_of`) while woods may climb them. Roads cross them, and every
+//! hillside is drivable. Each rise is mirrored through the map's centre, so
+//! the halves hold the same high ground. A rise is as broad as its place
+//! allows and as tall as its grade makes that breadth. Where rises overlap
+//! the land never stands above the presets' `max_height_m`, as bounded tile
+//! by tile (`crate::relief`). They are drawn from their own stream.
 use super::geometry::{distance, ring_distance, Point, TAU};
-use super::sites::Corridor as Reserved;
 use super::towns::Town;
 use super::water::Water;
 use super::Context;
-use crate::parcels::space::Rect;
-use contract::encounter::SkirmishSites;
-use contract::ground::GroundShape;
 use contract::map::{Bridge, Relief};
-use contract::swamp::Swamp;
 
 /// The tile the height cap is bounded over.
 const CAP_TILE_M: f64 = 64.0;
@@ -35,16 +26,22 @@ const SHRINK: f64 = 0.85;
 /// What a hill keeps clear of.
 pub struct Clear<'a> {
     pub towns: &'a [Town],
-    /// The skirmish objectives' clearings; the main settlement's fronts
-    /// are approaches and may roll.
-    pub clearings: &'a [Reserved],
     pub water: &'a Water<'a>,
     pub bridges: &'a [Bridge],
-    pub swamps: &'a [Swamp],
-    pub skirmish: Option<&'a SkirmishSites>,
-    /// The main settlement's kept approach lanes, where no tree may stand
-    /// (`open_country::kept_corridors`).
-    pub main_lanes: &'a [Rect],
+    /// Fixed objective sites and their radii, fought over on flat ground.
+    pub objectives: &'a [(Point, f64)],
+}
+
+/// Whether the circle of `reach` about `p` keeps off every rise in
+/// `relief`, so it lies on flat ground.
+pub fn clear_of(relief: &[Relief], p: Point, reach: f64) -> bool {
+    relief.iter().all(|rise| match *rise {
+        Relief::Ridge {
+            center, radius_m, ..
+        } => distance(center, p) >= radius_m + reach,
+        // Layout draws only ridges; any other feature keeps everything off.
+        Relief::Mesa { .. } => false,
+    })
 }
 
 pub fn place(context: &Context, clear: &Clear) -> Vec<Relief> {
@@ -88,14 +85,7 @@ pub fn place(context: &Context, clear: &Clear) -> Vec<Relief> {
                 if radius_m < rules.radius_m[0] {
                     continue;
                 }
-                // Near the edge no higher than a wood hides.
-                let peak_m = if [center, mirror].iter().flatten().any(|&v| {
-                    v - radius_m < rules.edge_gap_m || v + radius_m > extent - rules.edge_gap_m
-                }) {
-                    (grade * radius_m).min(rules.edge_height_m)
-                } else {
-                    grade * radius_m
-                };
+                let peak_m = grade * radius_m;
                 let rise = |center: Point| Relief::Ridge {
                     center,
                     peak_m,
@@ -103,7 +93,7 @@ pub fn place(context: &Context, clear: &Clear) -> Vec<Relief> {
                 };
                 let before = rises.len();
                 rises.extend([rise(center), rise(mirror)]);
-                if capped(&rises, rules, extent, center, mirror, radius_m) {
+                if capped(&rises, rules, center, mirror, radius_m) {
                     stood += 1;
                 } else {
                     rises.truncate(before);
@@ -131,44 +121,22 @@ fn fits(context: &Context, clear: &Clear, center: Point, radius: f64) -> bool {
         .all(|t| ring_distance(&t.outline, center) >= radius + rules.settlement_gap_m);
     let within = radius + rules.river_gap_m;
     let river = clear.water.is_empty() || clear.water.gap(center, within) >= within;
-    let swamps = clear.swamps.iter().all(|s| match &s.shape {
-        GroundShape::Polygon { ring } => ring_distance(ring, center) >= radius + rules.swamp_gap_m,
-        GroundShape::Stroke { .. } => false,
-    });
     let decks = clear.bridges.iter().all(|deck| {
         let length = deck.half_extents[0] + context.presets.rivers.bridge.approach_m;
         distance(center, deck.center) >= radius + length + rules.bridge_gap_m
     });
-    let objectives = clear.skirmish.is_none_or(|sites| {
-        let mut circles = sites
-            .all_reserved_objectives()
-            .map(|o| (o.center, o.radius_m))
-            .chain(sites.entries.iter().map(|e| (e.center, 0.0)));
-        circles.all(|(c, r)| distance(center, c) >= radius + r + rules.objective_gap_m)
-    });
-    let lanes = clear
-        .main_lanes
+    let objectives = clear
+        .objectives
         .iter()
-        .all(|lane| lane.gap(center) >= radius + rules.lane_gap_m);
-    towns
-        && river
-        && lanes
-        && swamps
-        && decks
-        && objectives
-        && !clear
-            .clearings
-            .iter()
-            .any(|c| c.blocks(center, radius + rules.objective_gap_m))
+        .all(|&(c, r)| distance(center, c) >= radius + r + rules.objective_gap_m);
+    towns && river && decks && objectives
 }
 
-/// No tile the two newest rises reach could stand above its cap with every
-/// rise's most there summed: `max_height_m`, or `edge_height_m` on a tile
-/// within `edge_gap_m` of the map's edge.
+/// No tile the two newest rises reach could stand above `max_height_m`
+/// with every rise's most there summed.
 fn capped(
     rises: &[Relief],
     rules: &super::presets::Hills,
-    extent: f64,
     a: Point,
     b: Point,
     radius: f64,
@@ -180,14 +148,7 @@ fn capped(
             (at(c[0])..=to(c[0])).all(|x| {
                 let b =
                     [x as f64, y as f64, (x + 1) as f64, (y + 1) as f64].map(|v| v * CAP_TILE_M);
-                let edge =
-                    b[0].min(b[1]) < rules.edge_gap_m || b[2].max(b[3]) > extent - rules.edge_gap_m;
-                let cap = if edge {
-                    rules.edge_height_m
-                } else {
-                    rules.max_height_m
-                };
-                crate::relief::span(rises, b)[1] <= cap
+                crate::relief::span(rises, b)[1] <= rules.max_height_m
             })
         })
     })

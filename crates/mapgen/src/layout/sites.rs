@@ -50,21 +50,10 @@ impl Corridor {
 pub struct Placed {
     /// The main settlement first.
     pub sites: Vec<Site>,
-    /// The main settlement's open fronts, one a half, then the skirmish
-    /// objectives' clearings.
     pub reserved: Vec<Corridor>,
 }
 
-/// How many of `Placed::reserved` are the main settlement's fronts.
-const FRONTS: usize = 2;
-
 impl Placed {
-    /// The reserved ground past the main settlement's fronts: the skirmish
-    /// objectives' clearings.
-    pub fn clearings(&self) -> &[Corridor] {
-        &self.reserved[FRONTS.min(self.reserved.len())..]
-    }
-
     fn push(&mut self, class_id: &str, outline: Outline) {
         self.sites.push(Site {
             class_id: class_id.into(),

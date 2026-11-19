@@ -55,22 +55,19 @@ Water is a hard layout feature. Roads remain on their bank except at admitted
 [bridge crossings](src/layout/crossings.rs), and water stops an advertised open
 approach. Rivers and terrain use the shared [river contract](../contract/src/river.rs),
 so generator legality cannot differ from world admission.
+Hills are settled before the skirmish sites, from their own stream: groups of
+broad rounded rises (`Relief::Ridge`) mirrored through the centre, in large
+sections on plains maps, a few on mixed maps and none on a city
+([hills](src/layout/hills.rs)). A rise is as broad as its place allows and as
+tall as its grade makes that breadth. Rises keep clear of settlements, water,
+bridges and the fixed central objectives; roads cross them. What comes after
+keeps to the flat: every skirmish objective and reserved farm site, and the
+swamps. The presets refuse a height cap or radius whose sides a vehicle could
+not climb. Only copses and lone trees stand on hills: steads, yards and the
+fields' tree lines stay on level ground.
 Swamps come last, from their own stream, in pairs of one size across the
 halves, beside the river where there is one; the [swamp contract](../contract/src/swamp.rs)
 admits them, and the compiler refuses a seed whose swamp it would not.
-Hills come after them, from their own stream: groups of broad rounded rises
-(`Relief::Ridge`) mirrored through the centre, in large sections on plains maps,
-a few on mixed maps and none on a city ([hills](src/layout/hills.rs)). A rise is
-as broad as its place allows and as tall as its grade makes that breadth. They
-keep clear of everything built on flat ground, the skirmish clearings and the
-main settlement's kept approach lanes, where no tree may stand to hide anything
-from an eye on a summit; the rest of the approaches and fronts may roll, since
-open ground is ground a force can advance over. Near the map's edge the land
-stands no higher than a wood's canopy hides from an eye, because an eye on a
-summit there has only the inward side to be hidden from; taller hills stand
-further in. The presets refuse a height cap or radius whose sides a vehicle
-could not climb. Only copses and lone trees stand on hills: steads, yards and
-the fields' tree lines stay on level ground.
 
 Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled
@@ -169,8 +166,11 @@ placement algorithm.
 The land is a witness too, as it is in the simulation's sweep. A crest whose
 lowest land stands above every eye raises the horizon of each ray across it, so
 any later cell lower than the crest is hidden; a crest needs no far cell, only
-the farthest hidden one on the map. With relief, every witness earns its height
-margin for the one rectangle it is asked about, from bounds on the land's height
+the farthest hidden one on the map. An eye above a wood still has it as a
+witness when every ray down to the wood meets it below the canopy: the
+simulation counts the wood against such a ray, so nothing past it is seen. With
+relief, every witness earns its height margin for the one rectangle it is asked
+about, from bounds on the land's height, exact over small boxes
 ([relief](src/relief.rs), [coverage relief](src/open_country/coverage/relief.rs)).
 
 A witness must cover every position in a clipped location rectangle, including

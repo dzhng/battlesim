@@ -160,7 +160,25 @@ pub fn generate_layout(
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
+    // Hill country is settled before the skirmish's farms, the swamps and
+    // the woods: farms and swamps keep to the flat, woods may climb.
+    let central: Vec<_> = crate::skirmish::central_objectives(request, skeleton.hub)
+        .into_iter()
+        .map(|c| (c, crate::skirmish::OBJECTIVE_RADIUS_M))
+        .collect();
+    let relief = hills::place(
+        &context,
+        &hills::Clear {
+            towns: &towns,
+            water: &water,
+            bridges: &bridges,
+            objectives: &central,
+        },
+    );
     let outlines: Vec<_> = towns.iter().map(|t| t.outline.as_slice()).collect();
+    let flat = |p: geometry::Point, radius: f64| {
+        hills::clear_of(&relief, p, radius + presets.hills.objective_gap_m)
+    };
     let mut skirmish = crate::skirmish::reserve(
         request,
         &mut surfaces,
@@ -168,6 +186,7 @@ pub fn generate_layout(
         skeleton.hub,
         &outlines,
         presets.joints.edge_run_m,
+        &flat,
     )?;
     placed.reserved.extend(
         crate::skirmish::objective_clearances(skirmish.as_ref(), outlines)
@@ -197,6 +216,7 @@ pub fn generate_layout(
             roads: &surfaces,
             woods: &forests,
             skirmish: skirmish.as_ref(),
+            relief: &relief,
         },
     );
     let settlements = placed
@@ -225,29 +245,10 @@ pub fn generate_layout(
         lots: Vec::new(),
         regional_family: None,
         courts: Vec::new(),
-        relief: Vec::new(),
+        relief,
         unsupported_fields: BTreeMap::new(),
     };
     plan.approaches = measure::approaches(&plan, presets);
-    // Hills last: they keep clear of everything built above, so nothing
-    // drawn on flat ground moves.
-    let relief = hills::place(
-        &context,
-        &hills::Clear {
-            towns: &towns,
-            clearings: placed.clearings(),
-            water: &water::Water::new(&plan.rivers, plan.size),
-            bridges: &plan.bridges,
-            swamps: &plan.swamps,
-            skirmish: plan.skirmish.as_ref(),
-            main_lanes: &crate::open_country::kept_corridors(&plan)
-                .0
-                .into_iter()
-                .filter_map(|(lane, main)| main.then_some(lane))
-                .collect::<Vec<_>>(),
-        },
-    );
-    plan.relief = relief;
     verify(&context, &plan)?;
     Ok(plan)
 }

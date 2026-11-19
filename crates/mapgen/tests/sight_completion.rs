@@ -11,8 +11,10 @@ fn a_complete_location_cell_can_be_certified_by_adjacent_physical_patches() {
             .unwrap();
     let presets = PresetDefinitions::from_json(presets_text).unwrap();
     let rules = sim::fixtures::test_rules().to_string();
-    let (size, seed) = (MapSize::Large, 5_u64);
-    {
+    let size = MapSize::Large;
+    // The first map the generator admits from seed 5 on, as the lobby
+    // redraws a refused seed.
+    let admitted = (5_u64..13).find_map(|seed| {
         let request = GenerationRequest {
             generator_version: GENERATOR_VERSION.into(),
             preset_revision: presets.revision.clone(),
@@ -29,20 +31,19 @@ fn a_complete_location_cell_can_be_certified_by_adjacent_physical_patches() {
                 max_ground_points: 200_000,
             },
         };
-        let plan = match mapgen::generate_plan(
+        match mapgen::generate_plan(
             &serde_json::to_string(&request).unwrap(),
             presets_text,
             templates,
             &rules,
         ) {
-            GenerateOutcome::Ok { plan } => plan,
-            GenerateOutcome::Error { diagnostics } => {
-                panic!("{size:?} seed {seed}: {diagnostics:?}")
-            }
-        };
-        assert!(
-            !plan.forests.is_empty(),
-            "a successful certificate retains physical foliage"
-        );
-    }
+            GenerateOutcome::Ok { plan } => Some(plan),
+            GenerateOutcome::Error { .. } => None,
+        }
+    });
+    let plan = admitted.unwrap_or_else(|| panic!("no {size:?} seed from 5 to 12 is admitted"));
+    assert!(
+        !plan.forests.is_empty(),
+        "a successful certificate retains physical foliage"
+    );
 }

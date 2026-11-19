@@ -1,6 +1,8 @@
 //! Generated hills: plains maps get large sections of rolling rises, a
 //! city none; they are seeded, mirrored half for half, capped in height,
-//! drivable, and clear of the towns.
+//! drivable, and clear of the towns. Battle maps roll too, and the farms
+//! fought over there stand on the flat.
+use contract::generation::GenerationProfile;
 use contract::map::{relief_height, Relief};
 use mapgen::layout::{GenerationRequest, MapSize, MapType, PresetDefinitions, GENERATOR_VERSION};
 use mapgen::{CompileLimits, GenerateOutcome, MapPlan};
@@ -9,6 +11,10 @@ const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 
 fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
+    generated(map_type, size, seed, GenerationProfile::Standard)
+}
+
+fn generated(map_type: MapType, size: MapSize, seed: u64, profile: GenerationProfile) -> MapPlan {
     let catalogue =
         contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
             .unwrap();
@@ -20,8 +26,17 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         template_catalog_hash: catalogue.hash().into(),
         map_type,
         size,
-        entries_per_side: 1,
-        profile: contract::generation::GenerationProfile::Standard,
+        entries_per_side: match profile {
+            GenerationProfile::Standard => 1,
+            _ => {
+                contract::skirmish_sizes::tiers()
+                    .iter()
+                    .find(|tier| tier.size == size)
+                    .unwrap()
+                    .entry_count
+            }
+        },
+        profile,
         region: None,
         limits: CompileLimits {
             max_authored_parts: 250_000,
@@ -96,4 +111,37 @@ fn plains_roll_cities_stay_flat() {
         "highest {highest} under {cap}"
     );
     assert!(plan(MapType::Metro, MapSize::Medium, 1).relief.is_empty());
+}
+
+/// Every battle map on the plains rolls, and every objective it may be
+/// fought over, chosen or held in reserve, stands wholly on the flat, where
+/// its farm's buildings stand level.
+#[test]
+fn battle_plains_roll_and_their_objectives_stand_on_the_flat() {
+    for (size, seed) in [
+        (MapSize::Small, 1),
+        (MapSize::Small, 2),
+        (MapSize::Medium, 1),
+    ] {
+        let plains = generated(MapType::Open, size, seed, GenerationProfile::Skirmish);
+        let name = format!("{size:?} seed {seed}");
+        assert!(
+            !plains.relief.is_empty(),
+            "{name}: a battle plain has no hills"
+        );
+        let sites = plains.skirmish.as_ref().unwrap();
+        for site in sites.all_reserved_objectives() {
+            for step in 0..32 {
+                let angle = std::f64::consts::TAU * step as f64 / 32.0;
+                for reach in [0.0, site.radius_m / 2.0, site.radius_m] {
+                    let p = [
+                        site.center[0] + reach * angle.cos(),
+                        site.center[1] + reach * angle.sin(),
+                    ];
+                    let z = relief_height(&plains.relief, p[0], p[1]);
+                    assert!(z == 0.0, "{name}: objective {} stands {z} m up", site.id);
+                }
+            }
+        }
+    }
 }

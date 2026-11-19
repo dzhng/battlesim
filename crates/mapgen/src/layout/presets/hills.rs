@@ -27,22 +27,14 @@ pub struct Hills {
     pub peak_grade: Range,
     /// The land never stands higher than this, wherever rises overlap.
     pub max_height_m: f64,
-    /// Within this of the map's edge the land stands no higher than
-    /// `edge_height_m`: what a wood's canopy hides from a ground eye. An eye
-    /// on a summit there sees the map's edge behind it, so only woods on
-    /// the inward side can hide ground from it, as the ground-sight
-    /// certificate needs; taller hills stand further in.
-    pub edge_gap_m: f64,
-    pub edge_height_m: f64,
     /// Least ground between a rise's foot and a settlement's outline, a
     /// river's water, a swamp, a bridge deck lengthened by its approach,
-    /// a reserved site and a main approach lane.
+    /// and a skirmish objective's or farm's site.
     pub settlement_gap_m: f64,
     pub river_gap_m: f64,
     pub swamp_gap_m: f64,
     pub bridge_gap_m: f64,
     pub objective_gap_m: f64,
-    pub lane_gap_m: f64,
     /// Attempts at each group's middle, and at each of its rises.
     pub attempts: u32,
 }
@@ -85,8 +77,6 @@ impl Hills {
             ),
             (
                 self.max_height_m.is_finite()
-                    && self.edge_height_m.is_finite()
-                    && self.edge_height_m <= self.max_height_m
                     && self.peak_grade[1] * self.radius_m[1] <= self.max_height_m,
                 "max_height_m",
                 "no rise is drawn higher than the land may stand",
@@ -98,13 +88,11 @@ impl Hills {
             ),
             (
                 [
-                    self.edge_gap_m,
                     self.settlement_gap_m,
                     self.river_gap_m,
                     self.swamp_gap_m,
                     self.bridge_gap_m,
                     self.objective_gap_m,
-                    self.lane_gap_m,
                 ]
                 .into_iter()
                 .all(finite)
