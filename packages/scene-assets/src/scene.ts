@@ -11,11 +11,11 @@ import {
   TEXTURE_CHANNELS,
   TEXTURE_MAX_PX,
   TEXTURE_MIN_PX,
-  type Finding,
   type Material,
   type Texture,
   type TextureChannel,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import { sourceCoverage, sourceInterior, sourceRole } from "./material.ts";
 import { bakeTexture, decodePng, validTextureSize, type Rgba8 } from "./texture.ts";
 

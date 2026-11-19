@@ -28,7 +28,8 @@ import {
 import { articulatedPositions, articulatedWorlds, positionsBounds } from "./pose.ts";
 import { unitArtRule, type DressingAllowance } from "./unitArt.ts";
 import { extentFindings } from "./boxFit.ts";
-import type { ArticulatedNode, Finding, Tolerances } from "./schema.ts";
+import type { ArticulatedNode, Tolerances } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 import { finding, fmt } from "./finding.ts";
 
 const MAST_CHAIN = ["deploy_mast", "deploy_mast_2", "deploy_mast_3", "deploy_mast_head"];

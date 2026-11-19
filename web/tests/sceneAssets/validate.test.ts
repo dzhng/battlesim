@@ -4,16 +4,18 @@
 // none, so every code below is caused by its mutation alone.
 import { expect, test } from "vitest";
 import {
-  FINDING_CODES,
   KIT_BUNDLE_MAX_BYTES,
   TEXTURE_ARRAY_LAYERS_FLOOR,
   type AppearanceEntry,
   type Bundle,
   type SkeletonClips,
-  type Finding,
-  type FindingCode,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
+import {
+  FINDING_CODES,
+  type Finding,
+  type FindingCode,
+} from "@packages/scene-assets/src/finding.ts";
 import {
   budgetFindings,
   paintFindings,

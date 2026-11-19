@@ -47,7 +47,6 @@ import {
   type Bounds,
   type Budget,
   type Bundle,
-  type Finding,
   type Joint,
   type Material,
   type MaterialRole,
@@ -57,6 +56,7 @@ import {
   type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import type { SkeletonRef } from "./skeleton.ts";
 import { finding, fmt } from "./finding.ts";
 

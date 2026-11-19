@@ -23,13 +23,13 @@ import {
   type ArticulatedNode,
   type Clip,
   type ClipDeclaration,
-  type Finding,
   type Joint,
   type Material,
   type MeshData,
   type SkeletonClips,
   type Socket,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 
 type AddFinding = (code: Finding["code"], message: string, fix: string) => void;
 const collector =

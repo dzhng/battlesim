@@ -2,7 +2,8 @@
 // hull, its turret) inside the whole they were cut from, and what it threw
 // round it as it died within its debris allowance.
 
-import type { AppearanceEntry, Bounds, Finding, MeshData } from "./schema.ts";
+import type { AppearanceEntry, Bounds, MeshData } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 import { DEBRIS_NODE, type DebrisAllowance } from "./scenery.ts";
 import type { Scene } from "./scene.ts";
 import { finding, fmt } from "./finding.ts";

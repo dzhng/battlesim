@@ -12,13 +12,13 @@ import {
   RUBBER_MAX_LUMINANCE,
   type Bundle,
   type Coverage,
-  type Finding,
   type InteriorSheet,
   type Material,
   type MaterialRole,
   type SkeletonClips,
   type Texture,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import { bundleMeshes, textureMean } from "./texture.ts";
 
 type AddFinding = (code: Finding["code"], message: string, fix: string) => void;

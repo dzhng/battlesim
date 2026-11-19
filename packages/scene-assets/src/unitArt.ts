@@ -8,7 +8,8 @@
 // is re-measured (specs/done/unit-models/choices.md).
 
 import { meshTier, type Scene } from "./scene.ts";
-import type { Budget, Finding } from "./schema.ts";
+import type { Budget } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 
 /** The class every soldier appearance draws as. */
 export const SOLDIER_CLASS = "soldier";
