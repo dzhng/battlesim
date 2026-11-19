@@ -1,5 +1,6 @@
 """Build a rig-ready aircraft shell from its pinned, UV-mapped donor meshes."""
 import bpy
+import bmesh
 import numpy as np
 
 import skin_pins
@@ -40,6 +41,21 @@ def fitted_airframe(v, family, mats, skip_parts=()):
         if part.name in skip_parts:
             bpy.data.objects.remove(part, do_unlink=True)
             continue
+        if family == "nh90" and part.name in {"airframe_dark", "airframe_gear"}:
+            # The CC BY donor is posed with its cargo ramp lowered.  Its
+            # landing gear and ramp are merged into this mesh, so remove only
+            # the low aft ramp leaf before fitting the closed transport door.
+            mesh = bmesh.new()
+            mesh.from_mesh(part.data)
+            removed = []
+            for face in mesh.faces:
+                centre = face.calc_center_median()
+                if -3.25 < centre.x < -0.78 and centre.z < 1.82 and abs(centre.y) < 2.05:
+                    removed.append(face)
+            if removed:
+                bmesh.ops.delete(mesh, geom=removed, context='FACES')
+                mesh.to_mesh(part.data)
+            mesh.free()
         # Donor panes are authored with the shared `glass` role, while roster
         # scripts tune the aircraft-specific `canopy` finish. Use that finish
         # for donor glazing so the tint, coverage and cockpit depth authored by

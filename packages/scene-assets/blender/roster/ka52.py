@@ -71,33 +71,32 @@ def service_panel_details(m, h):
 
 
 def side_by_side_canopy(m, hull):
-    """The Alligator's two-seat canopy uses a framed centre windscreen bow."""
+    """Build the Alligator's faceted two-seat windscreen and side glazing."""
     glass = m["canopy"]
     for side, suffix in ((1, "L"), (-1, "R")):
-        panes = [
-            [(6.08, 0, 1.60), (5.72, 0, 2.36), (5.48, side * .92, 2.34), (5.76, side * .86, 1.61)],
-            [(5.48, side * .92, 2.34), (3.72, side * .86, 2.25), (3.55, side * .93, 1.63),
-             (5.76, side * .86, 1.61)],
-        ]
+        front = [(6.16, 0, 1.62), (5.78, 0, 2.31), (5.78, side * .78, 2.28),
+                 (6.02, side * .78, 1.63)]
+        side_pane = [(5.78, side * .78, 2.28), (3.82, side * .82, 2.22),
+                     (3.60, side * .88, 1.64), (6.02, side * .78, 1.63)]
         if side < 0:
-            panes = [pane[::-1] for pane in panes]
-        panel_shell(f"ka52_canopy_glass_{suffix}", panes, glass, hull)
-        box(f"ka52_canopy_sill_{suffix}", (2.55, .07, .08), (4.82, side * .91, 1.60),
+            front = front[::-1]
+            side_pane = side_pane[::-1]
+        panel_shell(f"ka52_canopy_front_{suffix}", [front], glass, hull)
+        panel_shell(f"ka52_canopy_side_{suffix}", [side_pane], glass, hull)
+        box(f"ka52_canopy_sill_{suffix}", (2.48, .06, .075), (4.80, side * .88, 1.61),
             m["canopy_frame"], hull, bevel=.018, lods=MID)
-        box(f"ka52_canopy_rear_post_{suffix}", (.08, .07, .72), (3.64, side * .88, 1.96),
+        box(f"ka52_canopy_rear_post_{suffix}", (.07, .06, .66), (3.72, side * .83, 1.94),
             m["canopy_frame"], hull, bevel=.018, rot=(0, -.16, 0), lods=MID)
-    box("ka52_canopy_center_bow", (.10, .07, .78), (5.73, 0, 1.98), m["canopy_frame"], hull,
-        bevel=.02, rot=(0, -.34, 0), lods=MID)
-    for side, suffix in ((1, "L"), (-1, "R")):
-        box(f"ka52_canopy_front_post_{suffix}", (.08, .07, .82), (5.78, side * .86, 2.00),
-            m["canopy_frame"], hull, bevel=.02, rot=(0, -.30, 0), lods=MID)
-    box("ka52_canopy_forward_bow", (.08, 1.02, .08), (5.72, 0, 2.34), m["canopy_frame"], hull,
-        bevel=.02, lods=MID)
-    box("ka52_canopy_rear_bow", (.08, .92, .08), (4.48, 0, 2.28), m["canopy_frame"], hull,
-        bevel=.02, lods=MID)
-    box("ka52_canopy_forward_sill", (.08, 1.02, .08), (5.98, 0, 1.60), m["canopy_frame"], hull,
-        bevel=.02, rot=(0, -.10, 0), lods=MID)
-    box("ka52_cockpit_deck", (1.75, 1.55, .42), (4.82, 0, 1.34), m["cockpit"], hull,
+        box(f"ka52_canopy_front_post_{suffix}", (.07, .06, .76), (5.90, side * .76, 1.98),
+            m["canopy_frame"], hull, bevel=.018, rot=(0, -.30, 0), lods=MID)
+    # A narrow centre bow is aligned fore/aft between the two seats.
+    box("ka52_canopy_center_bow", (1.68, .065, .075), (4.95, 0, 2.30), m["canopy_frame"], hull,
+        bevel=.018, rot=(0, -.06, 0), lods=MID)
+    box("ka52_canopy_forward_bow", (.07, 1.58, .075), (5.87, 0, 2.30), m["canopy_frame"], hull,
+        bevel=.018, lods=MID)
+    box("ka52_canopy_forward_sill", (.07, 1.56, .075), (6.08, 0, 1.62), m["canopy_frame"], hull,
+        bevel=.018, rot=(0, -.10, 0), lods=MID)
+    box("ka52_cockpit_deck", (1.72, 1.55, .35), (4.84, 0, 1.35), m["cockpit"], hull,
         bevel=.03, lods=MID)
 
 

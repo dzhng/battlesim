@@ -118,15 +118,27 @@ def merlin_surface_details(mats, hull):
 def nh90(v):
     mats = A.fit(v)
     mats["paint"] = flat_paint("nh90_olive", (.042, .060, .034), rough=.67, grime=.08, role="paint")
+    mats["panel"] = flat_paint("nh90_panel", (.055, .073, .043), rough=.55, grime=.05, role="paint")
     mats["paint"]["paint_edge_scale"] = 3.0
     mats["canopy"] = flat_paint("nh90_glass", (.011, .023, .028), rough=.14, grime=0,
                                coverage=("blended", .30), role="glass")
     fitted_airframe(v, "nh90", mats)
-    # The donor is an operational transport with its aft ramp lowered. The
-    # roster card shows the aircraft in transit, so close that aperture with a
-    # seated, painted ramp panel and a shallow perimeter seam.
-    box("nh90_rear_ramp_closed", (.28, 2.02, 1.38), (-2.34, 0, .86),
-        mats["paint"], v.hull, bevel=.07, rot=(0, -.12, 0))
+    # The donor is posed with its cargo ramp lowered. `fitted_airframe` removes
+    # that low leaf, then this seated door closes the aperture in the same
+    # vertical plane as the aft fuselage. The raised perimeter makes the seam
+    # legible without leaving a floating slab.
+    box("nh90_rear_door", (.24, 2.72, 2.30), (-2.42, 0, 1.05), mats["paint"], v.hull,
+        bevel=.06, rot=(0, -.06, 0))
+    for side in (-1, 1):
+        box(f"nh90_rear_door_jamb_{side}", (.28, .09, 2.30), (-2.27, side * 1.36, 1.05),
+            mats["panel"], v.hull, bevel=.025, rot=(0, -.06, 0), lods=MID)
+    box("nh90_rear_door_header", (.28, 2.72, .11), (-2.27, 0, 2.15), mats["panel"], v.hull,
+        bevel=.025, rot=(0, -.06, 0), lods=MID)
+    box("nh90_rear_door_split", (.03, .035, 2.05), (-2.27, 0, 1.05), mats["panel"], v.hull,
+        bevel=.01, rot=(0, -.06, 0), lods=MID)
+    for side in (-1, 1):
+        box(f"nh90_rear_door_inset_{side}", (.035, 1.10, .68), (-2.56, side * .64, 1.08), mats["dark"], v.hull,
+            bevel=.025, rot=(0, -.06, 0), lods=MID)
     for station in ("nose_L", "nose_R", "main_L", "main_R"):
         tyre = bpy.data.objects[f"tyre_{station}_LOD0"]
         corners = [Vector(corner) for corner in tyre.bound_box]
