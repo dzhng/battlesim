@@ -90,6 +90,10 @@ pub struct WeaponBallistics {
     /// Omit it for a round whose solved intercept line is its launch heading.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub launch_elevation_deg: Option<f64>,
+    /// How long a guided canister round holds that launch elevation before it
+    /// begins turning toward its commanded point.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_hold_s: Option<f64>,
     /// The flight bound, derived from a weapon's largest target-layer range.
     /// Standalone flight probes may supply it directly; an unpowered bomb has zero.
     #[serde(default)]

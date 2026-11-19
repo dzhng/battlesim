@@ -239,6 +239,7 @@ fn an_air_missile_ends_at_its_lifetime() {
             point: v3(10_000.0, 300.0, 250.0),
             turn_rad_s: profile.turn_rad_s.unwrap(),
             supported: false,
+            launch_hold_s: 0.0,
             loft: profile.loft,
         }),
         motor: profile.motor,

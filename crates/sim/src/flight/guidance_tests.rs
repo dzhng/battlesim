@@ -29,6 +29,7 @@ fn a_missile_that_passes_its_aim_never_circles_back_or_reacquires() {
             point: v3(2100.0, 2060.0, 300.0),
             turn_rad_s: 30_f64.to_radians(),
             supported: false,
+            launch_hold_s: 0.0,
             loft: None,
         }),
         motor: None,

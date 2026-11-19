@@ -545,6 +545,7 @@ fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
         point: center,
         turn_rad_s: 1.0,
         supported: false,
+        launch_hold_s: 0.0,
         loft: None,
     });
     let id = store.launch(launch);
