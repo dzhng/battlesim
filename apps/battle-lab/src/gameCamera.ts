@@ -52,7 +52,7 @@ export const gameCamera = {
       edgeX < edgeY ? [start[0] < center[0] ? -1 : 1, 0] : [0, start[1] < center[1] ? -1 : 1];
     const entryOutwardYaw = Math.atan2(edgeDirection[1], edgeDirection[0]);
     const radial = Math.hypot(dx, dy);
-    // A slightly higher opening elevation keeps the entry chevrons legible on
+    // A slightly higher opening elevation keeps the entry beacons legible on
     // the ground.
     const pitch = Math.min(
       Math.PI / 2 - 0.08,
