@@ -75,12 +75,12 @@ export const FINDING_CODES = [
   "fit.cheek",
   "fit.hull_extents",
   "fit.vehicle_muzzle",
+  "fit.deployed_muzzle",
   "fit.muzzle_arc",
   "fit.canopy",
   "fit.tree_size",
   "fit.dressing",
   "fit.footprint",
-  /** A scenery piece (a wreck's thrown turret) reaches outside the whole it is part of. */
   "fit.piece",
   /** A wreck's thrown debris lies past its allowance, or its state carries a
    *  part that is not debris. */

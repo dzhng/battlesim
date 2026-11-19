@@ -67,7 +67,8 @@ def build(variant, v):
     launcher(v)
     underside(v)
     articulate_launcher(v, (CAN_X - 1.35, 0, FLOOR + 0.65), 35,
-                        ("canister_", "launcher_arm"), ("turntable", "launcher_cradle", "slew_carriage"))
+                        ("canister_", "launcher_arm"), ("turntable", "launcher_cradle", "slew_carriage"),
+                        pitch_with_deploy=True)
 
 
 def crane(v):
