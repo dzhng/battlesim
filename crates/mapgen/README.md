@@ -58,13 +58,19 @@ so generator legality cannot differ from world admission.
 Swamps come last, from their own stream, in pairs of one size across the
 halves, beside the river where there is one; the [swamp contract](../contract/src/swamp.rs)
 admits them, and the compiler refuses a seed whose swamp it would not.
-Hills come after them, from their own stream: groups of low rounded rises
+Hills come after them, from their own stream: groups of broad rounded rises
 (`Relief::Ridge`) mirrored through the centre, in large sections on plains maps,
-a few on mixed maps and none on a city ([hills](src/layout/hills.rs)). They keep
-clear of everything built or measured on flat ground, and the presets refuse a
-height cap or radius whose sides a vehicle could not climb. Only trees stand on
-them, so the open country's steads stay on level ground, and the ground-sight
-certificate bounds their height witness by witness ([relief](src/relief.rs)).
+a few on mixed maps and none on a city ([hills](src/layout/hills.rs)). A rise is
+as broad as its place allows and as tall as its grade makes that breadth. They
+keep clear of everything built on flat ground, the skirmish clearings and the
+main settlement's kept approach lanes, where no tree may stand to hide anything
+from an eye on a summit; the rest of the approaches and fronts may roll, since
+open ground is ground a force can advance over. Near the map's edge the land
+stands no higher than a wood's canopy hides from an eye, because an eye on a
+summit there has only the inward side to be hidden from; taller hills stand
+further in. The presets refuse a height cap or radius whose sides a vehicle
+could not climb. Only copses and lone trees stand on hills: steads, yards and
+the fields' tree lines stay on level ground.
 
 Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled
@@ -160,12 +166,6 @@ support and an interior margin. All authored bodies are final before collection;
 new furnishing adds forests under that shared sampler rather than a second tree
 placement algorithm.
 
-A witness must cover every position in a clipped location rectangle, including
-edges and settlement interiors. Bounding every corner earns the maximum distance
-over that rectangle; testing only its center would leave gaps. Native angular and
-radial sampling margins must also leave an isolated missing far fog cell inside
-the map for every supported observer. A nearby feature outside the edge cannot
-prove interruption of an entirely open in-map circle. These conservative margins
 The land is a witness too, as it is in the simulation's sweep. A crest whose
 lowest land stands above every eye raises the horizon of each ray across it, so
 any later cell lower than the crest is hidden; a crest needs no far cell, only
@@ -173,6 +173,12 @@ the farthest hidden one on the map. With relief, every witness earns its height
 margin for the one rectangle it is asked about, from bounds on the land's height
 ([relief](src/relief.rs), [coverage relief](src/open_country/coverage/relief.rs)).
 
+A witness must cover every position in a clipped location rectangle, including
+edges and settlement interiors. Bounding every corner earns the maximum distance
+over that rectangle; testing only its center would leave gaps. Native angular and
+radial sampling margins must also leave an isolated missing far fog cell inside
+the map for every supported observer. A nearby feature outside the edge cannot
+prove interruption of an entirely open in-map circle. These conservative margins
 are why finite infantry samples do not replace the continuous certificate.
 
 Missing coverage stages legal forest proposals near-first. A rejected proposal

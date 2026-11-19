@@ -35,8 +35,7 @@
 //! Construction sizes, densities and clearances come from `open_country`;
 //! physical sight comes from resolved rules. Each step has its own named stream.
 use crate::layout::geometry::{
-    add, direction, distance, dot, ring_distance, round_cm, scale, sub, thinned, Outline, Point,
-    PI, TAU,
+    add, direction, distance, ring_distance, round_cm, scale, sub, thinned, Outline, Point, PI, TAU,
 };
 use crate::layout::rng::Stream;
 use crate::layout::water::Water;
@@ -59,6 +58,7 @@ mod bodies;
 mod completion;
 mod country;
 pub(crate) use completion::cover;
+pub(crate) use country::kept_corridors;
 mod coverage;
 pub(crate) use coverage::admit_coverage;
 mod measure;
@@ -96,14 +96,6 @@ impl<'a> Ground<'a> {
             || p[1] > y1 + gap
             || (charge(2 * self.ring.len() as u64) && ring_distance(self.ring, p) >= gap)
     }
-}
-
-/// Distance from `p` to the rectangle; zero inside it.
-fn rect_gap(rect: &Rect, p: Point) -> f64 {
-    let offset = sub(p, rect.center);
-    let along = dot(offset, rect.axis).abs() - rect.half[0];
-    let across = dot(offset, [-rect.axis[1], rect.axis[0]]).abs() - rect.half[1];
-    libm::hypot(along.max(0.0), across.max(0.0))
 }
 
 /// At least `least` away, and never on it.
@@ -149,7 +141,7 @@ struct Country<'a> {
     decks: Vec<Rect>,
     /// The kept approach corridors, and whether each is the main
     /// settlement's.
-    corridors: Vec<(Rect, bool)>,
+    corridors: Vec<country::Lane>,
     /// The kept approaches: each one's settlement and middle bearing.
     kept: Vec<(usize, f64)>,
     /// Set while the ground no kept corridor leaves room beside is filled:
@@ -172,7 +164,8 @@ struct Country<'a> {
     buildings: Vec<BuildingPlacement>,
     forests: Vec<Forest>,
     props: Vec<AuthoredPropDefinition>,
-    /// The hills, and the height grid's diagonal: only trees stand there.
+    /// The hills, and the height grid's diagonal: only what is not `level`
+    /// stands there.
     relief: Option<(crate::relief::ReliefBound, f64)>,
 }
 
@@ -183,6 +176,10 @@ struct Ask {
     /// Whether it blocks sight: a building or trees, kept out of the
     /// approach corridors.
     blocks_sight: bool,
+    /// Whether it stands on level ground, off the hills: all but a copse
+    /// or a lone tree (a tree line is a field's hedgerow, and a hill is
+    /// meadow).
+    level: bool,
     road_gap: f64,
     /// The yards it may touch, its own: those from this index on.
     own_from: usize,
@@ -278,9 +275,9 @@ impl<'a> Country<'a> {
             && self
                 .decks
                 .iter()
-                .all(|deck| self.charge(1) && beyond(rect_gap(deck, p), road))
+                .all(|deck| self.charge(1) && beyond(deck.gap(p), road))
             && self.yards.iter().enumerate().all(|(index, yard)| {
-                self.charge(1) && (index >= ask.own_from || beyond(rect_gap(yard, p), r + c.yard_m))
+                self.charge(1) && (index >= ask.own_from || beyond(yard.gap(p), r + c.yard_m))
             })
             && self
                 .bodies
@@ -289,10 +286,9 @@ impl<'a> Country<'a> {
             && (!ask.blocks_sight
                 || self.corridors.iter().all(|(corridor, main)| {
                     self.charge(1)
-                        && ((self.main_only && !main)
-                            || beyond(rect_gap(corridor, p), r + c.approach_m))
+                        && ((self.main_only && !main) || beyond(corridor.gap(p), r + c.approach_m))
                 }))
-            && (ask.blocks_sight
+            && (!ask.level
                 || self.relief.as_ref().is_none_or(|(hills, pad)| {
                     let reach = r + pad;
                     hills.span([p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach])[1] <= 0.0
@@ -310,6 +306,7 @@ impl<'a> Country<'a> {
         Ask {
             radius,
             blocks_sight: true,
+            level: false,
             road_gap: self.rules.clear.road_m,
             own_from: usize::MAX,
         }
@@ -450,6 +447,7 @@ impl<'a> Country<'a> {
         let half = t.width_m / 2.0;
         let ask = Ask {
             road_gap,
+            level: true,
             ..self.trees(half)
         };
         let mut stretches: Vec<Vec<Point>> = Vec::new();

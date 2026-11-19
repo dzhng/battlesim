@@ -39,64 +39,7 @@ impl<'a> Country<'a> {
                 ],
             })
             .collect();
-        // A settlement's widest approach in each half.
-        let unwrapped = |approach: &crate::ApproachPlan| {
-            if approach.to_rad < approach.from_rad {
-                approach.to_rad + TAU
-            } else {
-                approach.to_rad
-            }
-        };
-        let middle_of =
-            |approach: &crate::ApproachPlan| (approach.from_rad + unwrapped(approach)) / 2.0;
-        let mut widest: BTreeMap<(usize, u8), usize> = BTreeMap::new();
-        for (index, approach) in plan.approaches.iter().enumerate() {
-            let width = |approach: &crate::ApproachPlan| unwrapped(approach) - approach.from_rad;
-            let key = u8::from(approach.half == crate::Half::Top);
-            let best = widest.entry((approach.settlement, key)).or_insert(index);
-            if width(approach) > width(&plan.approaches[*best]) {
-                *best = index;
-            }
-        }
-        let mut keep: Vec<usize> = widest.into_values().collect();
-        keep.sort_unstable();
-        keep.dedup();
-        // The corridor of each: the bearings measured either side of its
-        // middle, and the middle itself.
-        let mut corridors = Vec::new();
-        let mut kept = Vec::new();
-        for approach in keep.into_iter().map(|index| &plan.approaches[index]) {
-            let settlement = &plan.settlements[approach.settlement];
-            let step = crate::layout::bearing_step(settlement, approach.depth_m);
-            let (first, last) = (
-                libm::round(approach.from_rad / step),
-                libm::round(unwrapped(approach) / step),
-            );
-            let middle = (first + last) / 2.0;
-            kept.push((approach.settlement, middle_of(approach)));
-            for bearing in [
-                libm::floor(middle) * step,
-                libm::ceil(middle) * step,
-                middle_of(approach),
-            ] {
-                let toward = direction(bearing);
-                let edge = corridor_start(
-                    &settlement.outline,
-                    settlement.center,
-                    toward,
-                    approach.front_m,
-                );
-                let corridor = Rect {
-                    center: add(
-                        settlement.center,
-                        scale(toward, edge + approach.depth_m / 2.0),
-                    ),
-                    axis: toward,
-                    half: [approach.depth_m / 2.0, approach.front_m / 2.0],
-                };
-                corridors.push((corridor, approach.settlement == 0));
-            }
-        }
+        let (corridors, kept) = kept_corridors(plan);
         // Country roads and tracks, cut where they run through a settlement.
         let mut roads = Vec::new();
         for area in &plan.surfaces {
@@ -174,4 +117,73 @@ impl<'a> Country<'a> {
             props: Vec::new(),
         }
     }
+}
+
+/// A kept approach's corridor, and whether it is the main settlement's.
+pub(crate) type Lane = (Rect, bool);
+
+/// The approaches the open country keeps clear of what blocks sight: each
+/// settlement's widest in each half, as the corridors of the bearings either
+/// side of its middle and the middle itself, each marked whether it is the
+/// main settlement's; and per kept approach, its settlement and middle.
+pub(crate) fn kept_corridors(plan: &MapPlan) -> (Vec<Lane>, Vec<(usize, f64)>) {
+    // A settlement's widest approach in each half.
+    let unwrapped = |approach: &crate::ApproachPlan| {
+        if approach.to_rad < approach.from_rad {
+            approach.to_rad + TAU
+        } else {
+            approach.to_rad
+        }
+    };
+    let middle_of =
+        |approach: &crate::ApproachPlan| (approach.from_rad + unwrapped(approach)) / 2.0;
+    let mut widest: BTreeMap<(usize, u8), usize> = BTreeMap::new();
+    for (index, approach) in plan.approaches.iter().enumerate() {
+        let width = |approach: &crate::ApproachPlan| unwrapped(approach) - approach.from_rad;
+        let key = u8::from(approach.half == crate::Half::Top);
+        let best = widest.entry((approach.settlement, key)).or_insert(index);
+        if width(approach) > width(&plan.approaches[*best]) {
+            *best = index;
+        }
+    }
+    let mut keep: Vec<usize> = widest.into_values().collect();
+    keep.sort_unstable();
+    keep.dedup();
+    // The corridor of each: the bearings measured either side of its
+    // middle, and the middle itself.
+    let mut corridors = Vec::new();
+    let mut kept = Vec::new();
+    for approach in keep.into_iter().map(|index| &plan.approaches[index]) {
+        let settlement = &plan.settlements[approach.settlement];
+        let step = crate::layout::bearing_step(settlement, approach.depth_m);
+        let (first, last) = (
+            libm::round(approach.from_rad / step),
+            libm::round(unwrapped(approach) / step),
+        );
+        let middle = (first + last) / 2.0;
+        kept.push((approach.settlement, middle_of(approach)));
+        for bearing in [
+            libm::floor(middle) * step,
+            libm::ceil(middle) * step,
+            middle_of(approach),
+        ] {
+            let toward = direction(bearing);
+            let edge = corridor_start(
+                &settlement.outline,
+                settlement.center,
+                toward,
+                approach.front_m,
+            );
+            let corridor = Rect {
+                center: add(
+                    settlement.center,
+                    scale(toward, edge + approach.depth_m / 2.0),
+                ),
+                axis: toward,
+                half: [approach.depth_m / 2.0, approach.front_m / 2.0],
+            };
+            corridors.push((corridor, approach.settlement == 0));
+        }
+    }
+    (corridors, kept)
 }

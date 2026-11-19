@@ -28,7 +28,7 @@ use contract::ground::GroundShape;
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-22";
+pub const GENERATOR_VERSION: &str = "layout-23";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
@@ -229,18 +229,22 @@ pub fn generate_layout(
         unsupported_fields: BTreeMap::new(),
     };
     plan.approaches = measure::approaches(&plan, presets);
-    // Hills last: they keep clear of everything above and the approaches
-    // just measured, so nothing drawn on flat ground moves.
+    // Hills last: they keep clear of everything built above, so nothing
+    // drawn on flat ground moves.
     let relief = hills::place(
         &context,
         &hills::Clear {
             towns: &towns,
-            reserved: &placed.reserved,
+            clearings: placed.clearings(),
             water: &water::Water::new(&plan.rivers, plan.size),
             bridges: &plan.bridges,
             swamps: &plan.swamps,
             skirmish: plan.skirmish.as_ref(),
-            corridors: &measure::approach_corridors(&plan),
+            main_lanes: &crate::open_country::kept_corridors(&plan)
+                .0
+                .into_iter()
+                .filter_map(|(lane, main)| main.then_some(lane))
+                .collect::<Vec<_>>(),
         },
     );
     plan.relief = relief;

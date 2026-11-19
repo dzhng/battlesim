@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-23",
+  "revision": "layout-presets-24",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -156,20 +156,22 @@
   },
   "hills": {
     "types": {
-      "open": { "chance": 1.0, "pairs_per_km2": 0.6 },
-      "mixed": { "chance": 0.6, "pairs_per_km2": 0.2 }
+      "open": { "chance": 1.0, "pairs_per_km2": 0.25 },
+      "mixed": { "chance": 0.6, "pairs_per_km2": 0.12 }
     },
-    "group_radius_m": [300, 600],
-    "rises": [10, 18],
-    "radius_m": [110, 230],
-    "peak_m": [3.5, 5.5],
-    "max_height_m": 8.0,
-    "settlement_gap_m": 140,
+    "group_radius_m": [250, 500],
+    "rises": [6, 12],
+    "radius_m": [180, 500],
+    "peak_grade": [0.035, 0.06],
+    "max_height_m": 30.0,
+    "edge_gap_m": 800,
+    "edge_height_m": 8.0,
+    "settlement_gap_m": 100,
     "river_gap_m": 120,
     "swamp_gap_m": 80,
     "bridge_gap_m": 160,
-    "objective_gap_m": 100,
-    "corridor_gap_m": 40,
+    "objective_gap_m": 60,
+    "lane_gap_m": 60,
     "attempts": 60
   },
   "swamps": {

@@ -1,7 +1,7 @@
 //! Oriented rectangles and lines to cut parcels along: what the parcel pass
 //! tests a parcel against. Arithmetic is `+ − × ÷` and `libm`, as in
 //! `layout::geometry`.
-use crate::layout::geometry::{add, cross, distance, scale, segment_distance, sub, Point};
+use crate::layout::geometry::{add, cross, distance, dot, scale, segment_distance, sub, Point};
 use contract::ground::polygon_contains;
 
 /// A rectangle with `axis` (unit) along its first half extent.
@@ -14,6 +14,14 @@ pub struct Rect {
 
 impl Rect {
     /// Counter-clockwise from the corner at `−axis, −normal`.
+    /// Distance from `p` to the rectangle; zero inside it.
+    pub fn gap(&self, p: Point) -> f64 {
+        let offset = sub(p, self.center);
+        let along = dot(offset, self.axis).abs() - self.half[0];
+        let across = dot(offset, [-self.axis[1], self.axis[0]]).abs() - self.half[1];
+        libm::hypot(along.max(0.0), across.max(0.0))
+    }
+
     pub fn corners(&self) -> [Point; 4] {
         [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]].map(|[x, y]| self.at([x, y]))
     }

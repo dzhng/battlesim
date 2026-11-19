@@ -1,7 +1,7 @@
-//! The generator's hills hide what stands behind them: the lowest, widest
-//! rise the presets draw (`fixtures/map-presets.json` `hills`) between a
-//! scout and a squad keeps the squad out of sight, where the same ground
-//! without it shows the squad.
+//! The generator's hills hide what stands behind them: the lowest rise the
+//! presets draw (`fixtures/map-presets.json` `hills`: the narrowest at the
+//! gentlest grade) between a scout and a squad keeps the squad out of
+//! sight, where the same ground without it shows the squad.
 use contract::ids::Side;
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -43,7 +43,8 @@ fn the_lowest_generated_hill_hides_a_squad_behind_it() {
     let presets: Value =
         serde_json::from_str(include_str!("../../../fixtures/map-presets.json")).unwrap();
     let hills = &presets["hills"];
-    let (peak, radius) = (hills["peak_m"][0].clone(), hills["radius_m"][1].clone());
+    let radius = hills["radius_m"][0].as_f64().unwrap();
+    let peak = radius * hills["peak_grade"][0].as_f64().unwrap();
     let middle = [(BLUE[0] + RED[0]) / 2.0, BLUE[1]];
     assert!(seen(json!([])), "on flat ground the scout sees the squad");
     assert!(
