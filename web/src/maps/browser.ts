@@ -23,7 +23,6 @@ const URLS = import.meta.glob<string>(
     "../../../fixtures/maps/*/{map,SOURCES}.json",
     "../../../fixtures/maps/*/encounters/*.json",
     "../../../fixtures/maps/*/scenarios/*.json",
-    "!../../../fixtures/maps/*/scenarios/*.solution.json",
     "../../../fixtures/prototype-building-templates.json",
   ],
   { query: "?url&no-inline", import: "default", eager: true },
@@ -93,6 +92,15 @@ export async function loadScenarioDocument(id: string, name: string): Promise<st
   checkAddress(id, id);
   checkAddress(name, location);
   return document(`maps/${id}/scenarios/${name}.json`, location);
+}
+
+/** Map `id`'s scenario `name`'s solution: the beats that play its human
+ *  player through it, which start a battle at a chapter (the dev loop). */
+export async function loadScenarioSolution(id: string, name: string): Promise<string> {
+  const location = `${id}/scenarios/${name}.solution.json`;
+  checkAddress(id, id);
+  checkAddress(name, location);
+  return document(`maps/${id}/scenarios/${name}.solution.json`, location);
 }
 
 /** Map `id`'s scenario `name`'s coach, or null when it has none. */

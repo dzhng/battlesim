@@ -288,6 +288,11 @@ test("a battle loads its voice sets only once its sounds are ready, and its unit
           },
         ],
       });
+    if (url === "/audio/voices/narration/hq/pack.json")
+      return Response.json({
+        speaker: "hq",
+        lines: [{ line: "hello", url: "/audio/voices/narration/hq/hello.1.mp3", duration: 5 }],
+      });
     if (url.startsWith("/audio/voices/")) return new Response(Uint8Array.of(9));
     await ready;
     return new Response(Uint8Array.of(1));
@@ -348,6 +353,13 @@ test("a battle loads its voice sets only once its sounds are ready, and its unit
   expect(fetched.filter((url) => url.endsWith("pack.json"))).toEqual([
     "/audio/voices/tank/pack.json",
   ]);
+  // While a narrator speaks, the net is theirs: no unit answers over them.
+  expect(await audio.narrate("hq", "hello")).toBe(5);
+  const before = played.length;
+  audio.respond({ ...answer, speaker: "own/2", groupKey: "order/3" });
+  frame();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(played.slice(before).filter((b) => b === take)).toEqual([]);
 });
 
 test("a battle's own shout plays its kind's bark where it was shouted, and the music dips under it", async () => {

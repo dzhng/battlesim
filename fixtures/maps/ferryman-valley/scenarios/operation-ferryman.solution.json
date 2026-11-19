@@ -102,6 +102,143 @@
           ]
         }
       ]
+    },
+    {
+      "id": "crossroads",
+      "beats": [
+        {
+          "id": "drive_to_farm",
+          "when": "chapter_opens",
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "move_to": "farm_wall"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "let_out",
+          "when": {
+            "fired": {
+              "beat": "carrier_at_farm",
+              "after_s": 3
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": "unload"
+              }
+            }
+          ]
+        },
+        {
+          "id": "into_farmhouse",
+          "when": {
+            "fired": {
+              "beat": "squad_unloaded"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "rifle_squad"
+                  }
+                },
+                "order": {
+                  "occupy": "farm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "gun_on_outpost",
+          "when": {
+            "fired": {
+              "beat": "squad_garrisoned"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "attack_ground": "outpost"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "advance",
+          "when": {
+            "all": [
+              {
+                "fired": {
+                  "beat": "squad_garrisoned"
+                }
+              },
+              {
+                "fired": {
+                  "beat": "outpost_pinned"
+                }
+              }
+            ]
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "rifle_squad"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "crossroads"
+                }
+              }
+            },
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "outpost"
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

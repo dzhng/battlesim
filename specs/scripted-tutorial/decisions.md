@@ -468,3 +468,60 @@ hills session was told what the valley needs.
   replay belongs to the solved scenario, not the shipped one, so it can't
   resume into the player's battle. See 13's shape.
 
+## Slice 13
+
+- **Vocabulary added** (agent): facts `inside` (`carrier` or `building`),
+  `suppression` (at least a tier), `attack_moving`; trigger `objective`
+  (`owned_by` a side, held and not contested; `capturing` by a side;
+  `contested`); directed orders `unload` (in place), `occupy` (the
+  garrisonable building nearest the zone's centre, within the zone),
+  `attack_move_to`, and `withdraw` (return to base and leave the battle). The
+  spec listed only the facts, but the solution needed the orders, and `withdraw`
+  was the physical fix below. Each is tested on test units
+  (`crates/sim/tests/director_facts.rs`).
+- **Chapter 2's river guns withdraw once heard** (agent, found by the
+  walkthrough). Left on the map, the BMP traded fire with the Bradley (which
+  fires at will) and killed it with its missiles. The story says they are
+  heard, never seen, so they now leave the battle six seconds after blue
+  hears them.
+- **The counter squad is placed and worn for the lesson** (agent, by the
+  walkthrough): just behind the house north of the ring, holding fire until
+  sent, four casualties, rockets spent. Placed farther out, it died before
+  contesting. Fresh, it killed blue's squad.
+- **The Bradley overwatches from the outpost, not the ring** (solution): parked
+  in the ring, it stalemated beside the counter squad.
+- **The drive gets its own zone** (`farm_wall`): the farm zone's centre is
+  inside the farmhouse, so a carrier sent there stopped at its edge.
+- **The chapters' dev loop** (agent, from 12's finding):
+  `/battle?scenario=<map>/<name>&chapter=<id>[&beat=<id>]` prepares the solved
+  scenario (`scenario_chapter`, over `Battle::chapter_start`) and resumes it
+  where the chapter opens or the beat fires, with every human-capable seat
+  handed back to a person. A human seat takes no director orders, so the
+  solution goes quiet. A scenario battle's player is its human-capable seat,
+  so the page takes orders from the seat it is handed. Solutions now ship to
+  the page, since a tutorial's solution is no secret.
+- **The scene plays every UI step the walkthrough can't** (agent): it starts
+  each later chapter at its opening and after each beat that comes before a
+  UI step, then does what the coach shows (select, facing move, contact
+  jump, show orders).
+- **Chatter holds while the narrator speaks** (agent, from 10): new unit lines
+  wait out a narration line. The lines already playing are cut, as before,
+  when the narrator keys in.
+- **`pause` steps are still unbuilt** (agent): chapter 3 has no tour over the
+  live battle. The first chapter that does adds them.
+- **Found, not fixed: an in-place unload after a move order does nothing**
+  (agent, while making the solution). A carrier told to move, then to unload
+  where it stands, keeps its squad aboard indefinitely. The same unload
+  without the move works. The solution unloads once the carrier has stopped,
+  so the walkthrough doesn't depend on it, but a player who presses unload
+  while driving meets it. It needs its own fix, in carriage or movement.
+- **After an unprimed critique of chapters 2–3's shots** (agent): the
+  show-orders key's label is "Space", and the card and Guide say "Hold". The
+  facing and attack-move steps name flag 1 and mark the ridge and the
+  crossroads. Two findings are left as they are and recorded here:
+  - unit readouts overlap when units stand close (the readout layout's own
+    problem, beyond the tutorial);
+  - the contact jump can show little when the newest contact is already in
+    view. That depends on where the contact falls, and a scripted camera move
+    before it would teach less than seeing the real jump.
+

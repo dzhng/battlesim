@@ -4,7 +4,10 @@
 //! authored-order path, credits into the wallet, purchases into the shop).
 
 use super::*;
-use contract::director::{Action, DirectedOrder, Selector, Trigger, UnitFact};
+use contract::director::{
+    Action, DirectedOrder, Host, ObjectiveState, Selector, Trigger, UnitFact,
+};
+use contract::observation::SuppressionTier;
 use contract::scenario_document::{credits_covering, CreditGrant};
 use contract::skirmish::{OfferedPurchase, PurchaseSpec};
 
@@ -40,12 +43,9 @@ impl Battle {
             }),
             Trigger::Phase(phase) => self.skirmish.as_ref().is_some_and(|s| s.phase == *phase),
             Trigger::Bought { player, purchase } => self.has_bought(player, purchase),
-            Trigger::Units { who, are } => self.selected(run, who).any(|unit| match are {
-                UnitFact::In(zone) => {
-                    unit.on_field() && inside(&run.setup.zones[zone], unit.position.xy())
-                }
-                UnitFact::Engagement(e) => unit.held_engagement.unwrap_or(unit.engagement) == *e,
-            }),
+            Trigger::Units { who, are } => {
+                self.selected(run, who).any(|unit| self.is(run, unit, are))
+            }
             Trigger::Identifies { side, who } => {
                 let known = &self.knowledge[side.index()];
                 self.selected(run, who)
@@ -58,9 +58,61 @@ impl Battle {
                         <= zone.radius_m + c.radius
                 })
             }
+            Trigger::Objective { id, is } => self.skirmish.as_ref().is_some_and(|skirmish| {
+                let views = skirmish
+                    .objectives
+                    .views(&skirmish.setup.sites.objectives, self.rules.tick_hz);
+                views.iter().filter(|o| &o.id == id).any(|o| match is {
+                    ObjectiveState::OwnedBy(side) => o.owner == Some(*side) && !o.contested,
+                    ObjectiveState::Capturing(side) => o.capturing == Some(*side),
+                    ObjectiveState::Contested => o.contested,
+                })
+            }),
             Trigger::All(all) => all.iter().all(|t| self.holds(run, t)),
             Trigger::Any(any) => any.iter().any(|t| self.holds(run, t)),
         }
+    }
+
+    /// Whether `unit` is so now.
+    fn is(&self, run: &DirectorRun, unit: &Unit, fact: &UnitFact) -> bool {
+        match fact {
+            UnitFact::In(zone) => {
+                unit.on_field() && inside(&run.setup.zones[zone], unit.position.xy())
+            }
+            UnitFact::Engagement(e) => unit.held_engagement.unwrap_or(unit.engagement) == *e,
+            UnitFact::Inside(Host::Carrier) => {
+                unit.hold.as_ref().is_some_and(|h| h.riding().is_some())
+            }
+            UnitFact::Inside(Host::Building) => unit.garrisoned(),
+            UnitFact::Suppression(at_least) => {
+                let rank = |tier: SuppressionTier| match tier {
+                    SuppressionTier::None => 0,
+                    SuppressionTier::Suppressed => 1,
+                    SuppressionTier::Pinned => 2,
+                };
+                rank(self.rules.suppression.tier(unit.suppression)) >= rank(*at_least)
+            }
+            UnitFact::AttackMoving => {
+                matches!(unit.orders.front(), Some(UnitOrder::AttackMove(_)))
+            }
+        }
+    }
+
+    /// The building a squad told to occupy `zone` steps into: the garrisonable
+    /// one nearest the zone's centre, within the zone.
+    fn building_in(&self, zone: &contract::scenario_document::Zone) -> Option<u32> {
+        let center = v2(zone.center[0], zone.center[1]);
+        self.world
+            .props_near(center, zone.radius_m)
+            .into_iter()
+            .filter_map(|prop| crate::garrison::building(&self.world, prop.id))
+            .min_by(|a, b| {
+                (a.center - center)
+                    .length()
+                    .total_cmp(&(b.center - center).length())
+                    .then(a.id.cmp(&b.id))
+            })
+            .map(|building| building.id)
     }
 
     /// The living units `who` names.
@@ -137,6 +189,31 @@ impl Battle {
                     }
                     let point = |zone: &str| run.setup.zones[zone].center;
                     let order = match &order {
+                        DirectedOrder::Unload => Order::Unload {
+                            units,
+                            goal: None,
+                            gesture: 0,
+                            route: contract::command::RoutePolicy::Shortest,
+                            into: None,
+                        },
+                        DirectedOrder::Withdraw => Order::Refund { units },
+                        DirectedOrder::AttackMoveTo(zone) => Order::AttackMove {
+                            units,
+                            gesture: 0,
+                            goal: point(zone),
+                        },
+                        DirectedOrder::Occupy(zone) => {
+                            let Some(building) = self.building_in(&run.setup.zones[zone]) else {
+                                run.refusals
+                                    .push((beat.to_owned(), OrderError::NotABuilding));
+                                continue;
+                            };
+                            Order::OccupyBuilding {
+                                units,
+                                building,
+                                gesture: 0,
+                            }
+                        }
                         DirectedOrder::MoveTo(zone) => Order::Move {
                             units,
                             gesture: 0,

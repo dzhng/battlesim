@@ -43,7 +43,7 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
   const [stage, setStage] = useState<Stage>("map");
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
   const [failure, setFailure] = useState<LoadingFailure | null>(null);
-  const { map, name } = scenario;
+  const { map, name, chapter, beat } = scenario;
   const [coachDoc, setCoachDoc] = useState<CoachDocument | null>(null);
   useEffect(() => {
     let live = true;
@@ -66,7 +66,7 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
     setStage("map");
     const documents = { rules: JSON.stringify(rules), presets, templates };
     const preparation = prepareBattle(
-      { type: "prepare-scenario", scenario: { map, name }, documents },
+      { type: "prepare-scenario", scenario: { map, name, chapter, beat }, documents },
       setStage,
     );
     preparation.battle.then(
@@ -83,7 +83,7 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
       live = false;
       preparation.cancel();
     };
-  }, [map, name, visitActive, rules]);
+  }, [map, name, chapter, beat, visitActive, rules]);
 
   const subject = subjectOf(scenario);
   const cover = (
@@ -99,6 +99,11 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
   const view = useMemo(
     () =>
       prepared && {
+        // The scenario's person: its human-capable seat, even where a battle
+        // started at a chapter hands that seat back only at its resume.
+        player: (
+          JSON.parse(prepared.scenario) as { players?: { id: string; human_capable?: boolean }[] }
+        ).players?.find((seat) => seat.human_capable)?.id,
         camera: gameCamera.fromStart(prepared.report.start.at, prepared.report.size),
         cameraConfig: gameCamera.forMap(prepared.report.size, prepared.report.extents.rendered),
       },
@@ -112,6 +117,7 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
       prepared={prepared}
       scenario={prepared.scenario}
       seed={prepared.report.scenario.battleSeed}
+      player={view.player}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
       cover={cover}

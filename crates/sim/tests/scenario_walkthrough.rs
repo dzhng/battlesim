@@ -74,6 +74,7 @@ fn every_scenario_plays_through_by_its_solution() {
             // The last chapter to open, not the end of the last one.
             if let Some(&(opened, index)) = openings.iter().rfind(|(_, i)| *i < chapters.len()) {
                 restarts(&setup, &battle, opened, &chapters[index], &id, &name);
+                starts_at(&setup, seed, limit, &chapters[index], index, &id, &name);
             }
             if let Some(dir) = std::env::var_os("WALKTHROUGH_REPLAY") {
                 let path = std::path::Path::new(&dir).join(format!("{id}-{name}.replay.json"));
@@ -124,4 +125,36 @@ fn restarts(
         "{id}/{name}: chapter {}'s beats fire again after a restart",
         chapter.id
     );
+}
+
+/// The chapters' dev loop: a battle started at `chapter` by its solution
+/// opens there, with the human seats handed back to a person.
+fn starts_at(
+    setup: &contract::scenario::ScenarioDefinition,
+    seed: u64,
+    limit: u64,
+    chapter: &contract::director::Chapter,
+    index: usize,
+    id: &str,
+    name: &str,
+) {
+    let (replay, tick) = Battle::chapter_start(setup, seed, &chapter.id, None, limit)
+        .unwrap_or_else(|e| panic!("{id}/{name}: {e}"));
+    let started = Battle::resume(setup, &replay, tick).unwrap();
+    assert_eq!(started.director().unwrap().chapter(), index, "{id}/{name}");
+    let humans: Vec<_> = setup
+        .players
+        .iter()
+        .filter(|p| p.human_capable)
+        .map(|p| &p.id)
+        .collect();
+    for (player, controller) in started.replay().controllers {
+        if humans.contains(&&player) {
+            assert_eq!(
+                controller,
+                contract::players::ControllerKind::Human,
+                "{id}/{name}: {player}"
+            );
+        }
+    }
 }
