@@ -438,16 +438,9 @@ async function apache(ctx, page, css, surface) {
     deg(firing.elevation) < -15,
     JSON.stringify({ elevation_deg: deg(firing.elevation) }),
   );
-  /** The chin gun's bore along `pose`, and its level bearing. */
-  const boreOf = ({ bearing: b, elevation: e }) => ({
-    level: [Math.cos(b), Math.sin(b), 0],
-    bore: [Math.cos(e) * Math.cos(b), Math.cos(e) * Math.sin(b), Math.sin(e)],
-  });
-  const drawnMuzzle = async () => {
-    await presented(page);
-    await page.evaluate(() => window.__lab.frame());
-    return lab(page, (id) => window.__lab.route.drawnMuzzle(id, 0), heli.id);
-  };
+  const [b, e] = [firing.bearing, firing.elevation];
+  const level = [Math.cos(b), Math.sin(b), 0];
+  const bore = [Math.cos(e) * Math.cos(b), Math.cos(e) * Math.sin(b), Math.sin(e)];
 
   // From low off its right bow, under the chin: the gun and the barrel's tip
   // clear of the nose and the stores.
@@ -457,7 +450,9 @@ async function apache(ctx, page, css, surface) {
     heli.position[2] + 0.8,
   ];
   await aim(page, chinAt, { distance: 16, pitch: 0.34, yaw: heli.yaw - 0.9 }, { onGround: false });
-  const muzzle = await drawnMuzzle();
+  await presented(page);
+  await page.evaluate(() => window.__lab.frame());
+  const muzzle = await lab(page, (id) => window.__lab.route.drawnMuzzle(id, 0), heli.id);
   ctx.check("the chin gun's muzzle is drawn", !!muzzle, JSON.stringify({ muzzle }));
   if (!muzzle) return;
   const shot = await page.screenshot();
@@ -485,8 +480,7 @@ async function apache(ctx, page, css, surface) {
   );
   // The flash's bright core: within half a metre of the barrel's tip, out
   // along the bore where the round leaves.
-  const { bore: firingBore } = boreOf(firing);
-  const out = await css([0, 1, 2].map((k) => muzzle[k] + 0.5 * firingBore[k]));
+  const out = await css([0, 1, 2].map((k) => muzzle[k] + 0.5 * bore[k]));
   const halfMetre = Math.hypot(out[0] - onScreen[0], out[1] - onScreen[1]);
   const fire = ([R, , B]) => R > 200 && R - B > 60;
   ctx.check(
@@ -496,7 +490,9 @@ async function apache(ctx, page, css, surface) {
   );
 
   // A tick on, the round's first stretch, out of the muzzle: nearer the
-  // airframe than any earlier round's.
+  // airframe than any earlier round's. It starts where the round left on the
+  // tick it fired, so it is judged against the barrel as drawn then: the gun
+  // has already begun to swing to its next tank.
   await advance(page, 1);
   o = await obs(page);
   const from = (p) => Math.hypot(...[0, 1, 2].map((k) => p.path[0][k] - heli.position[k]));
@@ -509,27 +505,25 @@ async function apache(ctx, page, css, surface) {
     JSON.stringify({ tick: o.tick, projectiles: o.projectiles }),
   );
   if (!round) return;
-  const leaving = await drawnMuzzle();
   // The simulation launches the round level with the bore at the muzzle's
   // reach along its bearing. The drawn barrel pivots on the same bore, pitched
   // down along the shot, so its tip is that reach along the shot's direction,
   // run back along it by at most the drawn recoil.
   const reach = unitType("ah_64e_guardian").mounts[CHIN].muzzle_m[0];
   const launch = round.path[0];
-  const { level, bore } = boreOf(apacheOf(o).weaponPoses.find((w) => w.mount === CHIN));
   const tip = [0, 1, 2].map((k) => launch[k] - reach * level[k] + reach * bore[k]);
   const back = Math.min(
     visuals.pose.mount.recoil_m,
     Math.max(
       0,
-      [0, 1, 2].reduce((s, k) => s + (tip[k] - leaving[k]) * bore[k], 0),
+      [0, 1, 2].reduce((s, k) => s + (tip[k] - muzzle[k]) * bore[k], 0),
     ),
   );
-  const off = Math.hypot(...[0, 1, 2].map((k) => tip[k] - back * bore[k] - leaving[k]));
+  const off = Math.hypot(...[0, 1, 2].map((k) => tip[k] - back * bore[k] - muzzle[k]));
   ctx.check(
     "the drawn muzzle is at the barrel's tip, pitched down along the shot from where the round leaves",
     off < 0.1,
-    JSON.stringify({ muzzle: leaving, launch, tip, recoiled_m: back, off }),
+    JSON.stringify({ muzzle, launch, tip, recoiled_m: back, off }),
   );
   // The whole scene, from the battle's camera: the airframe over the verge,
   // its drop line, the tank under fire on the road.
