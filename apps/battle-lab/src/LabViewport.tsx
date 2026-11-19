@@ -28,6 +28,7 @@ import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/vie
 import {
   CAMERA_KEYS,
   CameraController,
+  edgePan,
   type CameraIntent,
   type CameraPose,
 } from "@packages/renderer-core/src/cameraController";
@@ -72,9 +73,6 @@ const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
-
-/** Screen-edge band that pans the camera like a held key. */
-const EDGE_PAN_PX = 14;
 
 export function LabViewport({
   fixture,
@@ -630,19 +628,7 @@ export function LabViewport({
             (interactionSurface(document.elementFromPoint(pointer.x, pointer.y)) === canvas ||
               gestures.active)
           ) {
-            const rect = canvas.getBoundingClientRect();
-            edge = [
-              pointer.x - rect.left < EDGE_PAN_PX
-                ? -1
-                : rect.right - pointer.x < EDGE_PAN_PX
-                  ? 1
-                  : 0,
-              pointer.y - rect.top < EDGE_PAN_PX
-                ? 1
-                : rect.bottom - pointer.y < EDGE_PAN_PX
-                  ? -1
-                  : 0,
-            ];
+            edge = edgePan(pointer, canvas.getBoundingClientRect());
           }
           const framing = pilot?.pose(now) ?? null;
           piloted = framing !== null;
