@@ -85,6 +85,11 @@ pub struct WeaponBallistics {
     /// An unpowered air bomb omits this and resolves to zero.
     #[serde(default)]
     pub speed_mps: f64,
+    /// Elevation above the horizontal at the launcher, for a guided missile
+    /// that leaves a canister before turning onto its commanded point.
+    /// Omit it for a round whose solved intercept line is its launch heading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_elevation_deg: Option<f64>,
     /// The flight bound, derived from a weapon's largest target-layer range.
     /// Standalone flight probes may supply it directly; an unpowered bomb has zero.
     #[serde(default)]
