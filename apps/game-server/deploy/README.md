@@ -32,9 +32,12 @@ it needs no browser build or network access.
 [The hosted entry](lobby.ts) supplies [the sandbox provider](sandboxes.ts) to the
 same lobby startup used locally. Only this directory knows Bento's service,
 credentials and launch environment. The app receives `PORT`, `BENTO_API_URL`
-and `BENTO_APP_API_KEY` from its host. A battle receives only its key, bind host
-and port through the sandbox's create environment; command history never holds
-credentials. The public battle port authenticates control requests with the
+and `BENTO_APP_API_KEY` from its host. Battle allocations use the authored
+machine tier first and fall back to the smaller tier only when Boat reports
+temporary capacity exhaustion. Boat forces `noEnv`, so the provider uploads a
+signed, short-lived startup environment file and sources it inside the sandbox
+command. The key never appears in command arguments or control replies. The
+public battle port authenticates control requests with the
 battle key; player routes still require acknowledged seating.
 
 Provider startup stops leftovers labelled as this game's battles before the

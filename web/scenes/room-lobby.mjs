@@ -82,7 +82,7 @@ async function laneAgreement(ctx, page, name) {
 }
 async function commandGeometry(ctx, page, name) {
   const buttons = await page
-    .getByRole("button", { name: /^(Reroll|Ready|Unready|Start)$/ })
+    .getByRole("button", { name: /^(Reroll|Ready|Unready)$/ })
     .evaluateAll((buttons) =>
       buttons.map((b) => {
         const r = b.getBoundingClientRect();
@@ -98,7 +98,7 @@ async function commandGeometry(ctx, page, name) {
       }),
     );
   ctx.check(
-    `${name}: room orders share height and baseline`,
+    `${name}: secondary room orders share height and baseline`,
     buttons.every(
       (b) =>
         Math.abs(b.height - buttons[0].height) < 0.5 &&
@@ -108,6 +108,14 @@ async function commandGeometry(ctx, page, name) {
     ),
     JSON.stringify(buttons),
   );
+  const start = page.getByRole("button", { name: "Start", exact: true });
+  if (await start.count()) {
+    const box = await start.boundingBox();
+    ctx.check(
+      `${name}: Start stands taller and shares the secondary orders' bottom edge`,
+      box.height > buttons[0].height && Math.abs(box.y + box.height - buttons[0].bottom) < 0.5,
+    );
+  }
 }
 async function openMirror(ctx, page, name) {
   const mirror = await page.evaluate(() => {
@@ -120,24 +128,27 @@ async function openMirror(ctx, page, name) {
       center: plate.left + plate.right,
       rows: rows.map((row) => {
         const r = row.getBoundingClientRect();
-        // The row's word. A host has a picker there: its box is what
-        // mirrors (its arrow follows the word on both sides). A guest has
-        // the bare word of the sit target.
-        const picker = row.querySelector(".lobby-pick > button");
-        const text = document.createRange();
-        text.selectNodeContents(row.querySelector(".online-sit"));
-        const t = (picker ?? text).getBoundingClientRect();
-        return { left: r.left, right: r.right, textLeft: t.left, textRight: t.right };
+        const open = row.querySelector(".lobby-controller").getBoundingClientRect();
+        const move = row.querySelector(".lobby-move")?.getBoundingClientRect();
+        return {
+          left: r.left,
+          right: r.right,
+          openLeft: open.left,
+          openRight: open.right,
+          move: move && { left: move.left, right: move.right },
+        };
       }),
     };
   });
   if (!mirror) return;
   const [b, r] = mirror.rows;
   ctx.check(
-    `${name}: Red's open row mirrors Blue about the plate centre`,
+    `${name}: Open mirrors across the plate and any move button fits inside its banner`,
     Math.abs(b.left + r.right - mirror.center) < 0.5 &&
       Math.abs(b.right + r.left - mirror.center) < 0.5 &&
-      Math.abs(b.textLeft + r.textRight - mirror.center) < 0.5,
+      Math.abs(b.openLeft + r.openRight - mirror.center) < 0.5 &&
+      (!b.move || (b.openRight <= b.move.left && b.move.right <= b.right)) &&
+      (!r.move || (r.left <= r.move.left && r.move.right <= r.openLeft)),
     JSON.stringify(mirror),
   );
 }
@@ -257,27 +268,47 @@ export async function run(ctx) {
     await hostRed.getByRole("button", { name: "Remove Red 2", exact: true }).waitFor();
     await guest.getByRole("button", { name: "Ready", exact: true }).click();
     await host.getByRole("status", { name: "LENA ready" }).waitFor();
+    const bluePicker = host
+      .getByRole("button", { name: "Blue 2 seat", exact: true })
+      .filter({ hasText: /^Open$/ });
     ctx.check(
       "the host sees the guest ready beside an open seat and an AI",
-      (await host.getByRole("button", { name: "Sit Blue 2" }).isVisible()) &&
+      (await bluePicker.isVisible()) &&
         (await host.getByRole("button", { name: "Red 2 seat", exact: true }).isVisible()),
     );
     await settled(host);
     await settled(guest);
+    const { svg: hostMap, ...hostBounds } = await mapGeometry(host);
+    const { svg: guestMap, ...guestBounds } = await mapGeometry(guest);
+    const sameBounds = JSON.stringify(hostBounds) === JSON.stringify(guestBounds);
     ctx.check(
       "host and guest share the same map geometry and fixed sides",
-      JSON.stringify(await mapGeometry(host)) === JSON.stringify(await mapGeometry(guest)),
+      hostMap === guestMap && sameBounds,
+      sameBounds ? undefined : JSON.stringify({ host: hostBounds, guest: guestBounds }),
     );
     // Both browsers are captured without actions between them at each revision.
     await pair(ctx, host, guest, folder);
     // Show matching open rows on both sides without adding a fighter that
     // would ratchet the map to the next size tier.
+    const redPicker = host.getByRole("button", { name: "Red 2 seat", exact: true });
+    const beforePicker = await redPicker.boundingBox();
     await setSeat(host, "Red 2", "open");
-    await guest.getByRole("button", { name: "Sit Red 2", exact: true }).waitFor();
+    await guest.getByRole("button", { name: "Move here, Red 2", exact: true }).waitFor();
+    await redPicker.filter({ hasText: /^Open$/ }).waitFor();
+    const afterPicker = await redPicker.boundingBox();
+    ctx.check(
+      "the seat selector keeps its width and position from AI to Open",
+      beforePicker.width === afterPicker.width && beforePicker.x === afterPicker.x,
+      `${beforePicker.width}px → ${afterPicker.width}px`,
+    );
     await pair(ctx, host, guest, folder, "open-seats");
+    await bluePicker.click();
+    await host.getByRole("option", { name: "move here", exact: true }).waitFor();
+    await capture(host, folder, "host-open-picker");
+    await bluePicker.press("Escape");
     await setSeat(host, "Red 2", "ai");
     await guest
-      .getByRole("button", { name: "Sit Red 2", exact: true })
+      .getByRole("button", { name: "Move here, Red 2", exact: true })
       .waitFor({ state: "hidden" });
     const guestSettingsActions = guestRequests.length;
     const settingsBefore = await guest
@@ -311,7 +342,7 @@ export async function run(ctx) {
     await changeSetting(ctx, host, guest, guestRequests);
     await pair(ctx, host, guest, folder, "setting-changed");
     const before = await mapGeometry(guest);
-    await guest.getByRole("button", { name: "Sit Blue 2", exact: true }).click();
+    await guest.getByRole("button", { name: "Move here, Blue 2", exact: true }).click();
     await guest
       .getByRole("group", { name: "Blue side" })
       .getByText("LENA · you", { exact: true })

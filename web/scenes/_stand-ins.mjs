@@ -4,11 +4,17 @@
 // session. Rust (crates/presentation/tests/stand_in.rs) owns the block
 // rules for every body type; this is the live browser path.
 import { writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { lab } from "./_lab.mjs";
 
 const STAND_IN = "__battle_stand_in__";
 
-/** Holds every art response (`bundle.bin`) while `hold` is on. */
+const PREFETCH = `/@fs${fileURLToPath(new URL("../../", import.meta.url))}apps/battle-lab/src/runtimePrefetch.ts`;
+
+/** Holds every art response (`bundle.bin`) once `start` has run. The page
+ *  warms its cache with every kind's art in the background
+ *  (`runtimePrefetch.ts`); `start` waits for that to settle, so what it holds
+ *  is only art a battle asks for, never the warm-up's. */
 export async function holdArt(page) {
   const held = [];
   let hold = false;
@@ -18,7 +24,18 @@ export async function holdArt(page) {
   });
   return {
     held,
-    start: () => {
+    start: async () => {
+      const deadline = Date.now() + 600_000;
+      for (;;) {
+        const status = await page.evaluate(
+          async (path) => (await import(path)).prefetchStatus,
+          PREFETCH,
+        );
+        if (!["idle", "scheduled", "loading"].includes(status.state)) break;
+        if (Date.now() > deadline)
+          throw new Error(`the cache warm-up never settled: ${JSON.stringify(status)}`);
+        await page.waitForTimeout(1000);
+      }
       hold = true;
     },
     release: async () => {

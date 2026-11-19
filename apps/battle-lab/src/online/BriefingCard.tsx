@@ -93,7 +93,7 @@ export function BriefingCard({
           {error && <p role="alert">{error}</p>}
           <button
             type="button"
-            className="online-start"
+            className="menu-deploy"
             disabled={busy || map.status !== "ready"}
             onClick={() => {
               if (map.status === "ready") onDeploy(map.prepared);

@@ -14,6 +14,9 @@ declare const __ON_VERCEL__: boolean;
 // Before anything else, so a failure while starting is in the report.
 diagnostics.start();
 void startWithMechanics(import.meta.env.DEV, async () => {
+  // Safari can evaluate camera and HUD consumers while their shared
+  // presentation settings are still awaiting WebAssembly initialization.
+  await import("./presentationSettings");
   const [{ AppShell }, { applyHudTheme }] = await Promise.all([
     import("@apps/battle-lab/src/AppShell"),
     import("./battle/present/hudTheme"),

@@ -24,6 +24,7 @@ fn license(s: &str) -> bool {
     matches!(
         s,
         "CC0-1.0"
+            | "Public-Domain-PH-Gov"
             | "Public-Domain-US-Gov"
             | "CC-BY-3.0"
             | "CC-BY-4.0"

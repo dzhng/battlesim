@@ -7,6 +7,74 @@ use super::*;
 /// observed enemy to hold its attention.
 const IDLE_TURRET_RESET_S: f64 = 15.0;
 
+/// Candidate targeting, assessed before any soldier works a gun this tick.
+pub(super) struct MountPlan {
+    pub(super) stationary: bool,
+    pub(super) idle_reason: ActionReason,
+    pub(super) resolved: Option<Resolved>,
+    pub(super) assessment: Option<Result<Ready, ActionReason>>,
+    pub(super) kind: Option<usize>,
+}
+
+pub(super) fn preferred_mount(
+    unit: &Unit,
+    member: usize,
+    specs: &[MountSpec],
+    weapons: &[Weapon],
+    rules: &Rules,
+    plans: &[Option<MountPlan>],
+    moving: bool,
+) -> Option<usize> {
+    let eligible = |m: usize| {
+        candidates(unit, &unit.mounts[m], &specs[unit.mounts[m].spec]).any(|k| k == member)
+    };
+    let available =
+        |m: usize| plans[m].as_ref().is_some_and(|p| !(moving && p.stationary)) && eligible(m);
+    let useful = |m: usize| {
+        plans[m].as_ref().is_some_and(|p| {
+            p.assessment.is_some_and(|a| {
+                a.is_ok_and(|ready| {
+                    p.resolved.is_some_and(|r| {
+                        r.worth(
+                            &weapons[specs[unit.mounts[m].spec].kinds[ready.kind]].def,
+                            rules,
+                        )
+                    })
+                })
+            })
+        })
+    };
+    let assigned = |m: usize| !specs[unit.mounts[m].spec].squad && available(m);
+    let default = |m: usize| {
+        available(m)
+            && specs[unit.mounts[m].spec]
+                .kinds
+                .iter()
+                .any(|&k| weapons[k].def.default)
+    };
+    let mounts = || 0..unit.mounts.len();
+    mounts()
+        .find(|&m| assigned(m) && unit.mounts[m].support.is_some())
+        .or_else(|| mounts().find(|&m| assigned(m) && useful(m)))
+        .or_else(|| {
+            mounts().find(|&m| {
+                default(m)
+                    && plans[m]
+                        .as_ref()
+                        .is_some_and(|p| p.assessment.is_some_and(|a| a.is_ok()))
+            })
+        })
+        .or_else(|| {
+            mounts().find(|&m| {
+                assigned(m)
+                    && unit.mounts[m].cycles.iter().any(|c| {
+                        c.needs_reload(weapons, &unit.mounts[m].ammo, &specs[unit.mounts[m].spec])
+                    })
+            })
+        })
+        .or_else(|| mounts().find(|&m| default(m)))
+}
+
 fn select_active(
     unit: &mut Unit,
     specs: &[MountSpec],
@@ -86,6 +154,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
     let turret_rate = ctx.rules.movement.turret_turn_deg_s.to_radians() * dt;
     let tolerance = ctx.rules.movement.bearing_tolerance_deg.to_radians();
     let mut shots = Vec::new();
+    let mut tally = ctx.committed.clone();
     for i in 0..units.len() {
         if !units[i].on_field() {
             continue;
@@ -117,6 +186,10 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
         let (mut ordered_working, mut can_damage) = (0u64, false);
         let mut plans = Vec::with_capacity(units[i].mounts.len());
         for m in 0..units[i].mounts.len() {
+            let ctx = &FireContext {
+                committed: &tally,
+                ..*ctx
+            };
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
@@ -287,6 +360,11 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             else {
                 continue;
             };
+            let ctx = &FireContext {
+                committed: &tally,
+                ..*ctx
+            };
+            let mut launch_hits = Vec::new();
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
@@ -366,8 +444,17 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             mount.reason = match (&mount.lock, &resolved, assessment) {
                 (Some(lock), Some(r), Some(Ok(ready))) => {
                     let (target, k) = (lock.target, ready.kind);
+                    let overkill_hold = Some(target) != ordered
+                        && overkill::overkill(ctx, units, unit.side, spec, &ready, target);
                     engaging = mount.cycles.iter().any(active);
-                    if !engaging {
+                    if unit.hull.is_some()
+                        && unit
+                            .deployment
+                            .as_ref()
+                            .is_some_and(|d| !d.lands() && !d.fully_deployed())
+                    {
+                        ActionReason::ChangingPosition
+                    } else if !engaging {
                         ActionReason::HoldingFire
                     } else if !mount
                         .cycles
@@ -388,6 +475,10 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                     } else if mount.support.is_some() {
                         // One missile guided at a time: the next waits, loaded and aimed.
                         ActionReason::Guiding
+                    } else if overkill_hold {
+                        // Keep the lock and the engagement cycle alive while
+                        // committed fire is enough to finish the target.
+                        ActionReason::HoldingFire
                     } else if unit.garrisoned()
                         && !participants(unit, &mount, spec)
                             .any(|k| ctx.windows.faces(unit, k, r.point, ctx.rules, ctx.tick))
@@ -404,7 +495,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                         }
                     } else {
                         let moving = moved.carrier(i, unit, &mount);
-                        shots.extend(fire(
+                        let fired = fire(
                             ctx,
                             unit,
                             units,
@@ -417,7 +508,29 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                             moving,
                             rng,
                             &mut leaned,
-                        ));
+                        );
+                        if let Some(shot) = &fired {
+                            if let Target::Unit(target) = shot.target {
+                                let def = &ctx.arsenal.weapons[shot.weapon].def;
+                                let arrive = overkill::arrival_tick(
+                                    ctx.tick,
+                                    shot.time_of_flight_s,
+                                    ctx.rules.tick_hz,
+                                );
+                                let target_unit = &units[target.0 as usize];
+                                launch_hits.extend(shot.launches.iter().filter_map(|launch| {
+                                    overkill::counted(
+                                        def,
+                                        ctx.rules,
+                                        target_unit,
+                                        launch.origin,
+                                        arrive,
+                                    )
+                                    .map(|hit| (target, hit))
+                                }));
+                            }
+                        }
+                        shots.extend(fired);
                         ActionReason::Firing
                     }
                 }
@@ -445,6 +558,10 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 ordered_working |= 1 << m;
             }
             units[i].mounts[m] = mount;
+            let side = units[i].side;
+            for (target, hit) in launch_hits {
+                tally.add(side, target, hit);
+            }
         }
         // Who fired from his lean point stays out on it a while; after a
         // burst out he tucks back in for a spell.

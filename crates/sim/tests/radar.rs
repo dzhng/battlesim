@@ -170,6 +170,10 @@ fn radar_contact_refreshes_and_does_not_reveal_the_ground() {
     }
     let refreshed = radar_contacts(&b, Side::Blue)[0].clone();
     assert_eq!(first.id, refreshed.id);
+    assert_eq!(
+        first.center, refreshed.center,
+        "a stationary radar contact keeps its sampled area"
+    );
     assert!(!b
         .observe(Side::Blue)
         .ground_visibility

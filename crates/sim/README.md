@@ -69,6 +69,9 @@ Sight into ground, low air and high air is authored independently on each unit.
 [Sensors](../contract/src/catalog/sensors.rs) owns the band lookup; zero air reach
 means blind. Radar emission is an independent signature read by receivers and
 anti-radiation weapons, with no sight override or body-based range table.
+Radar refreshes renew one opaque area per emitter. They update the bearing,
+range and evidence lifetime while retaining the sampled area centre until the
+emitter leaves that area, so a stationary report does not jump on each tick.
 
 A projectile keeps its engagement and visibility band through its flight and
 burst. The band is the higher of its launch and target bands, with indirect and
@@ -105,6 +108,25 @@ from each weapon row working on its target, or for a jet attacking in runs,
 one run in which it fired; it hands off at once when nothing can act on its
 target. The last attack in a queue keeps on until its target is dead or lost
 (on the ground, for ever).
+
+[Automatic target choice](src/weapons/choice.rs) spreads fire and never
+prices it. A mount ranks what it could shoot now by seeker match, then return
+fire, then the share of damage its armour lets through, then a weighted
+distance: farther for each other friendly unit already locked on the target,
+and scaled by one seeded draw per unit, mount and target, so crews fan out
+over targets that tie and keep a stable preference. The rules' `targeting`
+section holds both weights; a crew keeps its lock until it can no longer
+shoot or, for a flagged row, until the target is doomed. A weapon row that
+opts in (`avoids_overkill`) also coordinates with the side's [committed fire](src/weapons/overkill.rs): while the damage its side
+already has flying at the target, landing no later than its own round, covers
+the target's remaining health, the mount holds its shot with its aim, reload
+and turret kept, looks for another target, and fires the moment the target is
+no longer doomed. Counted rounds are the side's flagged rounds aimed at the
+unit until their expected arrival, while still steering if guided; a round
+at a squad counts no more than its healthiest soldier's health, since a direct
+hit strikes one soldier; active protection absorbs the earliest interceptable
+ones by its charges left.
+Explicit orders and unflagged rows never hold.
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
 reinforcements; [the player list](../contract/src/players.rs) says who plays.

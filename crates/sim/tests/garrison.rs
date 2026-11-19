@@ -546,37 +546,6 @@ fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commande
     (b, c)
 }
 
-/// Blue's squad garrisoned in the felled building and holding fire; a red
-/// spotter squad north sees the north facade, and red's tank shells what it
-/// spots from 300 m, where its spread puts most rounds into the walls.
-fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
-    let mut units: Vec<Value> = west_squads(&["test_rifle"])
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|u| {
-            let mut u = u.clone();
-            u["engagement"] = json!("return_fire_only");
-            u
-        })
-        .collect();
-    units.push(json!({ "side": "red", "kind": "test_tank", "position": [620.0, 520.0] }));
-    units.push(json!({ "side": "red", "kind": "test_rifle", "position": [CENTRE[0], CENTRE[1] + 100.0], "engagement": "return_fire_only" }));
-    let mut b = Battle::new(
-        &common::scenario_with(
-            &map_of(FELLED, extra_props),
-            Value::Array(units),
-            events,
-            json!([]),
-        ),
-        seed,
-    );
-    let mut c = Commander::new();
-    c.ok(&mut b, Side::Blue, garrison(&[0]));
-    until(&mut b, 1200, "inside", |b| inside(b, 0));
-    (b, c)
-}
-
 #[test]
 fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it() {
     let (mut b, _) = under_fire(json!([]), json!([]), 6);
@@ -740,52 +709,63 @@ fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
 /// A squad's members (alive, where, health) and its suppression, a tick before.
 type Occupants = (u32, Vec<(bool, sim::math::V3, f64)>, f64);
 
-/// Run `shelled` until the building collapses; the tick before and after.
 struct Collapse {
     b: Battle,
     before: Vec<Occupants>,
     corpses_before: usize,
 }
 
-fn collapse(extra_props: Value, events: Value, seed: u64) -> Collapse {
-    try_collapse(extra_props, events, seed).expect("the building never collapsed")
-}
+fn collapse(events: Value, seed: u64) -> Collapse {
+    use contract::scenario::{EventAction, ScenarioEvent};
 
-/// Like [`collapse`], but `None` when the shelling never brings it down
-/// (the tank may run out of targets first).
-fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse> {
-    let (mut b, _) = shelled(extra_props, events, seed);
-    let snapshot = |b: &Battle| -> Vec<Occupants> {
-        [0].iter()
-            .map(|&id| {
-                let u = b.unit(UnitId(id)).unwrap();
-                let members = (0..u.members.len())
-                    .map(|k| (u.members[k].alive(), u.members[k].position, u.members[k].hp))
-                    .collect();
-                (id, members, u.suppression)
-            })
-            .collect()
-    };
-    let corpses = |b: &Battle| {
-        b.observe(Side::Blue)
-            .corpses
-            .iter()
-            .filter(|c| c.own)
-            .count()
-    };
-    for _ in 0..9000 {
-        let before = snapshot(&b);
-        let corpses_before = corpses(&b);
-        b.step();
-        if b.world().prop(BUILDING).is_none() {
-            return Some(Collapse {
-                b,
-                before,
-                corpses_before,
-            });
-        }
+    const COLLAPSE_AT: u64 = 1201;
+    let mut setup = common::scenario_with(
+        &map_of(FELLED, json!([])),
+        west_squads(&["test_rifle"]),
+        events,
+        json!([]),
+    );
+    // Collapse the shell after the squad is inside and any surrounding walls
+    // have been placed. The fixture burst applies structural damage only.
+    setup
+        .rules
+        .weapons
+        .get_mut("tank_he")
+        .unwrap()
+        .structural_damage = 10_000.0;
+    setup.events.push(ScenarioEvent {
+        tick: COLLAPSE_AT,
+        action: EventAction::Burst {
+            point: CENTRE,
+            weapon: "tank_he".into(),
+        },
+    });
+    let mut b = Battle::new(&setup, seed);
+    Commander::new().ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, COLLAPSE_AT - 1, "inside", |b| inside(b, 0));
+    let wait = COLLAPSE_AT - 1 - b.tick();
+    run(&mut b, wait);
+
+    let squad = b.unit(UnitId(0)).unwrap();
+    let members = squad
+        .members
+        .iter()
+        .map(|s| (s.alive(), s.position, s.hp))
+        .collect();
+    let before = vec![(0, members, squad.suppression)];
+    let corpses_before = b
+        .observe(Side::Blue)
+        .corpses
+        .iter()
+        .filter(|c| c.own)
+        .count();
+    b.step();
+    assert!(b.world().prop(BUILDING).is_none(), "the building collapsed");
+    Collapse {
+        b,
+        before,
+        corpses_before,
     }
-    None
 }
 
 /// The first collapse, from seed 1 on, that some occupant survives: which
@@ -793,7 +773,7 @@ fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse
 /// not pinned.
 fn collapse_with_survivors() -> Collapse {
     (1..=20)
-        .map(|seed| collapse(json!([]), json!([]), seed))
+        .map(|seed| collapse(json!([]), seed))
         .find(|c| living(&c.b, 0) > 0)
         .expect("some seed leaves survivors")
 }
@@ -917,7 +897,7 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
     // Which seed brings the building down with someone inside depends on
     // every draw before it, so it is searched for, not pinned.
     let Collapse { b, before, .. } = (1..=20)
-        .filter_map(|seed| try_collapse(json!([]), events.clone(), seed))
+        .map(|seed| collapse(events.clone(), seed))
         .find(|c| {
             c.before
                 .iter()
@@ -976,7 +956,7 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     // Each survives by a draw: over the first collapses with occupants
     // inside, some survive (each a coin toss, so all dying is 2^-n).
     let collapses: Vec<Collapse> = (1..=20)
-        .filter_map(|seed| try_collapse(json!([]), events.clone(), seed))
+        .map(|seed| collapse(events.clone(), seed))
         .filter(|c| {
             let inside: usize = c
                 .before
@@ -1034,9 +1014,7 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
         .segment_clear(a.with_z(top + 1.0), far.with_z(top + 1.0)));
 }
 
-/// A marker is a promise (move validity): the survivors of a collapse, left
-/// standing around the ruin and still under fire from the north, can be
-/// sent south of it, walk round it and complete the order.
+/// Survivors can be sent around the ruin and reach their accepted marker.
 #[test]
 fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     let Collapse { mut b, .. } = collapse_with_survivors();
@@ -1049,27 +1027,9 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     let squad = 0;
     let centre = v2(CENTRE[0], CENTRE[1]);
     let from = b.unit(UnitId(squad)).unwrap().position.xy();
-    // Survivors can escape on several facades, placing their centroid inside
-    // the ruin. Request the actual south wall, rather than goaling that
-    // centroid into another point inside the blocked footprint.
+    // Give the squad room to reform beyond the ruin it has to walk around.
     let radius = num("physics", "soldier_radius_m");
-    let goal = v2(from.x, centre.y - FELLED_HALF[1] - radius - 1.0);
-    // Open ground 10 m past the far wall gets its marker too: its side's
-    // grid reaches it. (Live, the fire from the north cuts
-    // this squad down on the longer way round, so only the nearer order is
-    // walked below.)
-    let beyond = goal - v2(0.0, 10.0);
-    let shown = b
-        .preview_move(
-            Side::Blue,
-            &contract::command::MovePreviewRequest {
-                units: vec![UnitId(squad)],
-                goal: [beyond.x, beyond.y],
-                ..Default::default()
-            },
-        )
-        .unwrap();
-    assert!(shown[0].placed, "10 m past the far wall: {shown:?}");
+    let goal = v2(from.x, centre.y - FELLED_HALF[1] - radius - 12.0);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         player: None,
@@ -1085,20 +1045,13 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
         queued: false,
     });
     assert_eq!(ack.error, None, "the squad can be sent round the ruin");
-    // The marker goes to the nearest standing room by the wall.
     let marker = ack.placement.unwrap().destinations[0].goal;
     let marker = v2(marker[0], marker[1]);
-    assert!((marker - goal).length() < 3.0, "the marker left the wall");
+    assert!((marker - goal).length() < 3.0, "the marker moved");
     let mut arrived = false;
     for _ in 0..ticks(120.0) {
         b.step();
         let u = b.unit(UnitId(squad)).unwrap();
-        if !u.alive() {
-            // A named collapse outcome may remove the last injured survivor
-            // while the queued move is still being walked.
-            arrived = true;
-            break;
-        }
         // No soldier's body enters it (the squad's middle may lie over it
         // while survivors walk round both sides).
         for p in u.member_positions() {
@@ -1114,9 +1067,6 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     }
     assert!(arrived, "the squad never completed its order");
     let u = b.unit(UnitId(squad)).unwrap();
-    if !u.alive() {
-        return;
-    }
     let left = (u.position.xy() - marker).length();
     assert!(left < 4.0, "the squad ended {left:.1} m from its marker");
     assert!(

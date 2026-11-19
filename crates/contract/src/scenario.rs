@@ -234,20 +234,20 @@ pub struct Armor {
     pub roof: f64,
     /// Chance, per face, that a kinetic round failing to penetrate glances
     /// off. It stands in for the plate's slope: independent of any 3D model.
-    pub ricochet: FaceChances,
+    pub ricochet: FaceShares,
 }
 
-/// A probability in [0, 1] per hull face.
+/// A share in [0, 1] per hull face.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct FaceChances {
+pub struct FaceShares {
     pub front: f64,
     pub side: f64,
     pub rear: f64,
     pub roof: f64,
 }
 
-impl FaceChances {
+impl FaceShares {
     pub fn face(&self, face: Face) -> f64 {
         match face {
             Face::Front => self.front,
@@ -298,6 +298,8 @@ impl Armor {
 
 mod sensors;
 pub use sensors::{RadarReport, SensorRules};
+mod targeting;
+pub use targeting::TargetingRules;
 
 /// How far a unit sees by direction, as multipliers of its ground range:
 /// dead ahead, abeam and astern. `sim::sight` owns how it eases between them.
@@ -345,6 +347,7 @@ pub struct Rules {
     pub guided: crate::ballistics::GuidedRules,
     pub launch: LaunchRules,
     pub sensors: SensorRules,
+    pub targeting: TargetingRules,
     /// The one forest rule (Q16, Q-G8b).
     pub forests: ForestRules,
     /// The weapon rows, `extends` resolved (`weapons::resolve_weapons`).
@@ -361,26 +364,8 @@ pub struct Rules {
     pub shouts: ShoutRules,
 }
 
-/// Timing data for simulation-emitted battle barks.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ShoutRules {
-    pub cooldown_s: f64,
-    pub talk_s: f64,
-}
-
-impl ShoutRules {
-    fn check(&self) -> Result<(), String> {
-        if !self.talk_s.is_finite() || self.talk_s <= 0.0 {
-            return Err("shouts: talk_s must be finite and positive".into());
-        }
-        if self.cooldown_s > 0.0 {
-            Ok(())
-        } else {
-            Err("shouts: cooldown_s must be positive".into())
-        }
-    }
-}
+mod shouts;
+pub use shouts::ShoutRules;
 
 mod air;
 pub use air::{AirRules, FixedWingFlight, HighAirLayer, LowAirLayer, RotorFlight};
@@ -585,123 +570,11 @@ pub enum CoverTier {
     Heavy,
 }
 
-/// Incoming spread multiplier per cover tier (Q5: cover works through scatter only).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct CoverTiers {
-    pub light: f64,
-    pub medium: f64,
-    pub heavy: f64,
-}
+mod cover;
+pub use cover::{CoverRules, CoverTiers};
 
-impl CoverTiers {
-    pub fn spread(&self, tier: CoverTier) -> f64 {
-        match tier {
-            CoverTier::Light => self.light,
-            CoverTier::Medium => self.medium,
-            CoverTier::Heavy => self.heavy,
-        }
-    }
-}
-
-/// Infantry cover (D3–D6, Q5, Q7, Q11, Q20, Q24): a hard-coded game rule for
-/// soldiers only. When a round is aimed at a soldier, the strongest cover
-/// body within `reach_m` of him that lies between him and the shooter widens
-/// that round's spread by its tier; a crater he stands in is light cover.
-/// A garrison keeps its building shelter instead (Q22, the named exception):
-/// wider spread and fewer damaging fragments, never less damage per hit.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct CoverRules {
-    pub tiers: CoverTiers,
-    // Which bodies cover, and how well, is a prop type's `cover_tier`
-    // column; a live vehicle covers by its weight class (Q24).
-    /// Ground cover: a crater at least `crater_min_fill` full.
-    pub crater: CoverTier,
-    pub crater_min_fill: f64,
-    /// A body within this of a soldier can cover him (Q20).
-    pub reach_m: f64,
-    /// A squad's area reaches this far beyond half its spread: its
-    /// soldiers seek cover anywhere inside it (Q7).
-    pub search_m: f64,
-    /// A soldier who cannot engage steps out, best cover first, within this
-    /// far; beyond it, to the nearest place in the area he can engage from
-    /// (D3, Q8).
-    pub step_out_m: f64,
-    /// A soldier who found nowhere to fight from searches again once the
-    /// enemy has moved this far, or he has, or his side learns of a body or
-    /// a crater within his search.
-    pub step_out_retry_m: f64,
-    /// A squad re-resolves its cover at most this often (Q11).
-    pub reresolve_s: f64,
-    /// A threat bearing swing that re-resolves cover (Q11).
-    pub swing_deg: f64,
-    /// A covering vehicle that moves this far re-resolves its users (Q24).
-    pub vehicle_moved_m: f64,
-    /// A soldier out on his lean fires at most this long before he tucks
-    /// back in: he steps out, fires a burst, and ducks back.
-    pub lean_burst_s: f64,
-    /// How long he stays tucked in before leaning out again.
-    pub lean_tuck_s: f64,
-    /// How long he stays out after his last round from there: the firing
-    /// pose's hold, which the pose driver reads too.
-    pub lean_hold_s: f64,
-    /// The farthest he leans from where he stands: a corner further off is
-    /// a walk, the cover search's business.
-    pub lean_max_m: f64,
-    /// How far beyond his body radius a lean point keeps from the footprint.
-    pub lean_clear_m: f64,
-    /// A lean point is claimed like a place: none within this of another
-    /// soldier's place or lean point.
-    pub lean_apart_m: f64,
-    /// A spot stands this far off the face it hides behind, beyond the
-    /// soldier's own radius.
-    pub standoff_m: f64,
-    /// A face counts as turned away from the threat when the cosine between
-    /// its normal and the threat's direction is at most this: one the threat
-    /// sees nearly edge-on hides nobody.
-    pub away_cos: f64,
-    /// The cover search looks this far beyond the squad's area.
-    pub search_slack_m: f64,
-    pub building_spread_multiplier: f64,
-    pub building_fragment_probability_multiplier: f64,
-}
-
-/// The ground layer (D2, Q8): per-cell craters, which are ground cover for
-/// infantry (`CoverRules::crater`) and slow vehicles slightly, and cosmetic scorch, track wear and
-/// trampling. Channels are bytes in [0, 255] that accumulate and saturate.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct GroundRules {
-    /// Cell edge length.
-    pub cell_m: f64,
-    /// A weapon's crater radius as a fraction of its blast radius.
-    pub crater_radius_fraction: f64,
-    /// Crater depth a burst adds at its centre, per metre of crater radius,
-    /// falling linearly to nothing at the rim.
-    pub crater_depth_per_m: f64,
-    /// Depth at which a crater gives its full cover and slowdown (saturation).
-    pub crater_full_depth: f64,
-    /// A track's wheel line: this share of the hull's half width off its
-    /// axis, where tracks wear the ground.
-    pub track_gauge: f64,
-    /// A vehicle knocking through trees clears this much beyond its hull on
-    /// either side (Q16).
-    pub lane_margin_m: f64,
-    /// A weapon's scorch radius as a fraction of its blast radius.
-    pub scorch_radius_fraction: f64,
-    /// Scorch a burst adds at its centre, falling linearly to the rim.
-    pub scorch_per_burst: f64,
-    /// A burst of at least this blast radius marks the ground fully; a
-    /// smaller one adds scorch in proportion to its radius's share of this,
-    /// and crater depth by the square of it, so a small cannon shell leaves
-    /// a dark pock where a shell leaves a crater and a black scorch.
-    pub mark_reference_blast_m: f64,
-    /// Track wear a vehicle track adds to each cell it enters.
-    pub tracks_per_pass: f64,
-    /// Trampling a soldier adds to each cell it enters.
-    pub trampled_per_pass: f64,
-}
+mod ground;
+pub use ground::GroundRules;
 
 /// An authored change at a fixed tick: part of the fixture, replayed with it.
 #[derive(Clone, Debug, Serialize)]

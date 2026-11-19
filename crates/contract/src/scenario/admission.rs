@@ -18,6 +18,7 @@ pub(super) struct UncheckedRules {
     guided: crate::ballistics::GuidedRules,
     launch: LaunchRules,
     sensors: SensorRules,
+    targeting: TargetingRules,
     forests: ForestRules,
     #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
     weapons: crate::weapons::WeaponRules,
@@ -50,6 +51,7 @@ impl TryFrom<UncheckedRules> for Rules {
             guided: r.guided,
             launch: r.launch,
             sensors: r.sensors,
+            targeting: r.targeting,
             forests: r.forests,
             weapons: r.weapons,
             service: r.service,
@@ -127,6 +129,7 @@ impl Rules {
         ] {
             checked.map_err(|error| RulesError::new(id, error))?;
         }
+        self.targeting.check()?;
         // Every host a passenger can be thrown out of has its row, so a
         // bail-out never finds one missing mid-battle.
         for (host, name) in [

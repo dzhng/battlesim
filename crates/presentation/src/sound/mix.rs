@@ -116,8 +116,29 @@ impl AudioMix {
                 v.full_traverse_rps,
             )?;
         }
+        for (kind, class) in &self.vehicle_class_overrides {
+            if !self.vehicles.contains_key(class) {
+                return Err(format!(
+                    "audio.vehicle_class_overrides.{kind}: unknown vehicle sound class {class}"
+                ));
+            }
+        }
         Ok(())
     }
+
+    /// Which movement loops a vehicle sounds as, given its physical class.
+    pub(crate) fn vehicle_class_for<'a>(
+        &'a self,
+        kind: &str,
+        physical: Option<&'a str>,
+    ) -> Option<&'a str> {
+        physical.map(|class| {
+            self.vehicle_class_overrides
+                .get(kind)
+                .map_or(class, String::as_str)
+        })
+    }
+
     fn check_distance(&self, name: &str, path: &str) -> Result<(), String> {
         if self.distance.contains_key(name) {
             Ok(())

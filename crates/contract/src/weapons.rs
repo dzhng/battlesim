@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::ballistics::{Delivery, WeaponBallistics};
+use crate::scenario::FaceShares;
 
 /// `"unlimited"` or a round count. Unlimited is its own state, never a big number.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +67,9 @@ pub struct WeaponDefinition {
     /// How gently its damage fades as its penetration falls short of the
     /// armour: the share of the armour it must reach to do any damage.
     pub partial_from: f64,
+    /// Per-face multiplier on damage short of full penetration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partial_damage_scale: Option<FaceShares>,
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
@@ -115,6 +119,9 @@ pub struct WeaponDefinition {
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
+    /// Counts this row's rounds when automatic fire avoids overkill.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub avoids_overkill: bool,
     /// The altitude layers it can engage (D1), each with how it fires there
     /// and the kinds of target it is brought to bear on. A rifle, a machine
     /// gun or an autocannon swings up at a helicopter, from much closer and
@@ -532,6 +539,14 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     }
                     if !(0.0..1.0).contains(&def.partial_from) {
                         return Err(serde::de::Error::custom("partial_from must lie in [0, 1)"));
+                    }
+                    if let Some(scale) = def.partial_damage_scale {
+                        if [scale.front, scale.side, scale.rear, scale.roof]
+                            .into_iter()
+                            .any(|s| !(0.0..=1.0).contains(&s))
+                        {
+                            return Err(serde::de::Error::custom("partial_damage_scale must lie in [0, 1] on every face"));
+                        }
                     }
                     if !unpowered && def.min_range_m > def.ballistics.range_m {
                         return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));

@@ -1,6 +1,7 @@
 //! Which target a mount picks, whether its rounds can reach it, and when a
 //! seeker may acquire one.
 
+use super::choice::{return_fire_threat, select};
 use super::*;
 use contract::command::Engagement;
 use serde_json::json;
@@ -36,8 +37,10 @@ fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
+        committed: &crate::weapons::overkill::Committed::default(),
     };
     let mut soldier = battle.unit(UnitId(0)).unwrap().members[0].clone();
     soldier.position = v3(100.0, 100.0, 0.0);
@@ -93,8 +96,10 @@ fn known_infantry_bore_turns_toward_us_from_the_observed_center() {
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
+        committed: &crate::weapons::overkill::Committed::default(),
     };
     let track = crate::knowledge::Track {
         id: contract::observation::ObservedTargetId(7),
@@ -147,8 +152,10 @@ fn known_return_fire_threat_requires_a_clear_physical_trajectory() {
             arsenal: battle.arsenal(),
             rules: &setup.rules,
             tick: 0,
+            seed: 5,
             knowledge: &knowledge,
             rounds: &[],
+            committed: &crate::weapons::overkill::Committed::default(),
         };
         let enemy = battle.unit(UnitId(1)).unwrap();
         let track = crate::knowledge::Track {
@@ -207,8 +214,10 @@ fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_cha
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
+        committed: &crate::weapons::overkill::Committed::default(),
     };
     let choose = |units: &[Unit]| {
         select(
@@ -266,8 +275,10 @@ fn reach_is_judged_where_the_round_meets_its_target_before_the_line_of_fire() {
         arsenal: battle.arsenal(),
         rules: &setup.rules,
         tick: 0,
+        seed: 5,
         knowledge: &knowledge,
         rounds: &[],
+        committed: &crate::weapons::overkill::Committed::default(),
     };
     let units = [battle.unit(UnitId(0)).unwrap().clone()];
     let tank = &units[0];

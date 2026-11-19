@@ -134,10 +134,6 @@
   color: rgb(var(--hud-dim));
   font-size: 12px;
 }
-.frontline-deploy button {
-  min-width: 220px;
-  min-height: 48px;
-}
 .frontline-briefing [role="alert"] {
   color: rgb(var(--hud-enemy));
   font-size: 12px;
@@ -190,11 +186,15 @@
   border-left: 1px solid rgb(var(--hud-glass));
 }
 
-.hud-panel :is(.online-frontline, .frontline-deploy) button.online-start {
+.hud-panel button.frontline-play {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.14em;
+  color: rgb(var(--hud-glass));
+  background: rgb(var(--hud-accent));
 }
-.hud-panel .frontline-deploy button.online-start:disabled {
-  opacity: 1;
+.hud-panel button.frontline-play:disabled {
+  color: rgb(var(--hud-dim));
+  background: none;
+  border-style: dashed;
 }

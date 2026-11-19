@@ -258,6 +258,9 @@ pub struct AudioMix {
     pub weapon_defaults: WeaponDefaults,
     pub effects: HashMap<String, String>,
     pub vehicles: HashMap<String, VehicleSound>,
+    /// Unit kinds that use a different vehicle sound row from their hull class.
+    #[serde(default)]
+    pub vehicle_class_overrides: HashMap<String, String>,
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
     /// Battle music's mood direction and ducking ([`super::music`]).

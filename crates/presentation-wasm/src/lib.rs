@@ -428,7 +428,7 @@ impl SoundFrame {
         let Some(listener) = presentation.inner.listener() else {
             return "[]".into();
         };
-        let motion = presentation.inner.motion();
+        let motion = presentation.inner.motion(&self.inner.tables().audio);
         let clock = presentation.inner.clock_of_frame();
         commands(self.inner.update(clock, wall, now, &motion, listener))
     }

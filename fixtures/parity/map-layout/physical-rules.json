@@ -120,6 +120,10 @@
       "min_radius_m": 50
     }
   },
+  "targeting": {
+    "engaged_distance_penalty": 0.5,
+    "distance_spread": 0.1
+  },
   "ricochet": {
     "speed_kept": 0.6,
     "scatter_deg": 12,
@@ -128,7 +132,10 @@
   },
   "guided": {
     "release_coast_s": 0.5,
-    "flare_burn_s":4,"flare_drag_s":0.85,"flare_fall_mps":3,"flare_meet_m": 1
+    "flare_burn_s": 4,
+    "flare_drag_s": 0.85,
+    "flare_fall_mps": 3,
+    "flare_meet_m": 1
   },
   "launch": {
     "clearance_m": 30

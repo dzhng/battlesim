@@ -177,7 +177,7 @@ def build(variant, v):
         turret = rig(v.frame, v.root)["gun"][0] if variant["id"] == "europe_gepard_1a2" else None
         SB.wear(v, path, pitch)
         if turret is None:
-            articulate_launcher(v, (0.7, 0, 2.35), -40, ("gun_body_",), ("turret_body_",))
+            articulate_launcher(v, (-3.30, 0, 2.35), 40, ("gun_body_",), ("turret_body_",), pitch_with_deploy=True)
         else:
             # The whips on the turret roof's rear corners (turret frame).
             RF.whip_pair(turret, (-1.40, 0.75, 0.89), v.mats, height=2.0)

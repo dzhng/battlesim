@@ -8,7 +8,8 @@ use serde_json::json;
 use sim::battle::Battle;
 
 use crate::common::{self, Commander};
-use crate::guidance::{ambush, horizontal, missile, move_to, own, until_launch};
+use crate::guidance::{ambush, missile, move_to, own, until_launch};
+use crate::launcher_operators::horizontal;
 
 #[test]
 fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {
@@ -270,11 +271,13 @@ fn screened_battle(screen_after: u64, seed: u64) -> (Battle, u64) {
             .to_string();
     // Release timing is this experiment's input, independent of gameplay
     // missile tuning: a roughly 300 m/s missile passes the screen before it rises.
+    // Rows that extend the ATGM inherit its launch speed and may cap their own
+    // top speed at the game's 300 m/s, so the launch speed stays under it.
     let setup = |events| {
         let mut setup = common::scenario_with(&map, units.clone(), events, json!([]));
         let mut rules = common::scenario_rules();
-        rules["weapons"]["atgm"]["speed_mps"] = json!(300.0);
-        rules["weapons"]["atgm"]["top_speed_mps"] = json!(301.0);
+        rules["weapons"]["atgm"]["speed_mps"] = json!(299.0);
+        rules["weapons"]["atgm"]["top_speed_mps"] = json!(300.0);
         rules["weapons"]["atgm"]["accel_mps2"] = json!(1.0);
         setup.rules = serde_json::from_value(rules).unwrap();
         setup

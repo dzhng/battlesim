@@ -147,29 +147,33 @@ test("ready, sit, add, remove and set-seat send actions and wait for the stream"
     () => expect(group(page, "Blue").getAllByRole("listitem")).toHaveLength(2),
     () => expect(group(page, "Blue").getAllByRole("listitem")).toHaveLength(3),
   );
-  // One picker on a seat nobody sits in: the host chooses Open or AI.
-  fireEvent.click(page.getByRole("button", { name: "Blue 2 seat" }));
-  expect(page.getAllByRole("option").map((option) => option.textContent)).toEqual(["open", "ai"]);
+  const openSeat = within(page.getByRole("listitem", { name: "Blue 2 seat" }));
+  const picker = openSeat.getByRole("button", { name: "Blue 2 seat" });
+  expect(openSeat.queryByRole("button", { name: "Move here, Blue 2" })).toBeNull();
+  fireEvent.click(picker);
+  expect(page.getByRole("option", { name: "move here" })).toBeTruthy();
   await request(
     page.getByRole("option", { name: "ai" }),
     { kind: "set_seat", seat: "seat-3", to: "ai" },
-    () => expect(page.getByRole("button", { name: "Sit Blue 2" })).toBeTruthy(),
-    () => expect(page.queryByRole("button", { name: "Sit Blue 2" })).toBeNull(),
+    () => expect(picker.textContent).toBe("Open"),
+    () => expect(picker.textContent).toBe("AI"),
   );
   expect(page.getByTestId("lobby-vs").textContent).toBe("3 VS 2");
-  fireEvent.click(page.getByRole("button", { name: "Blue 2 seat" }));
+  fireEvent.click(picker);
+  expect(page.queryByRole("option", { name: "move here" })).toBeNull();
   await request(
     page.getByRole("option", { name: "open" }),
     { kind: "set_seat", seat: "seat-3", to: "open" },
-    () => expect(page.queryByRole("button", { name: "Sit Blue 2" })).toBeNull(),
-    () => expect(page.getByRole("button", { name: "Sit Blue 2" })).toBeTruthy(),
+    () => expect(picker.textContent).toBe("AI"),
+    () => expect(picker.textContent).toBe("Open"),
   );
   expect(page.getByTestId("lobby-vs").textContent).toBe("2 VS 2");
+  fireEvent.click(picker);
   await request(
-    page.getByRole("button", { name: "Sit Blue 2" }),
+    page.getByRole("option", { name: "move here" }),
     { kind: "sit", seat: "seat-3" },
-    () => expect(page.getByRole("button", { name: "Sit Blue 2" })).toBeTruthy(),
-    () => expect(page.queryByRole("button", { name: "Sit Blue 2" })).toBeNull(),
+    () => expect(picker.textContent).toBe("Open"),
+    () => expect(openSeat.getByText("SCOUT · you")).toBeTruthy(),
   );
   await request(
     page.getByRole("button", { name: "Remove Blue 3" }),
@@ -375,13 +379,13 @@ test("room rows keep seat order but number only fighting lanes after a guest mov
   });
   expect(page.getByRole("img", { name: "Red lane 1: you" })).toBeTruthy();
   expect(page.getByRole("img", { name: "Blue lane 2: unused" })).toBeTruthy();
-  fireEvent.click(page.getByRole("button", { name: "Sit Blue 2" }));
+  fireEvent.click(page.getByRole("button", { name: "Move here, Blue 2" }));
   await waitFor(() => expect(group(page, "Blue").getByText("SCOUT · you")).toBeTruthy());
   expect(page.getByRole("img", { name: "Blue lane 2: you" })).toBeTruthy();
   expect(page.getByRole("img", { name: "Red lane 1: occupied" })).toBeTruthy();
   expect(page.getByRole("img", { name: "Red lane 2: unused" })).toBeTruthy();
   const red = group(page, "Red").getAllByRole("listitem");
-  expect(within(red[0]).getByRole("button", { name: "Sit Red 1" })).toBeTruthy();
+  expect(within(red[0]).getByRole("button", { name: "Move here, Red 1" })).toBeTruthy();
   expect(within(red[0]).queryByRole("img", { name: /lane/ })).toBeNull();
   expect(within(red[1]).getByRole("img", { name: "Red lane 1" }).textContent).toBe("1");
   expect(group(page, "Red").queryByRole("img", { name: "Red lane 2" })).toBeNull();
@@ -433,10 +437,13 @@ test("both sides expose open seats as sit targets without a lane until occupied"
   });
   for (const name of ["Blue 2", "Red 3"]) {
     const row = await page.findByRole("listitem", { name: `${name} seat` });
-    expect(within(row).getByRole("button", { name: `Sit ${name}` }).textContent).toBe("Open");
+    expect(within(row).getByText("Open", { exact: true })).toBeTruthy();
+    expect(within(row).getByRole("button", { name: `Move here, ${name}` }).textContent).toBe(
+      "Move here",
+    );
     expect(within(row).queryByRole("img", { name: /lane/ })).toBeNull();
   }
-  fireEvent.click(page.getByRole("button", { name: "Sit Red 3" }));
+  fireEvent.click(page.getByRole("button", { name: "Move here, Red 3" }));
   const row = page.getByRole("listitem", { name: "Red 3 seat" });
   await waitFor(() => expect(within(row).getByText("SCOUT · you")).toBeTruthy());
   expect(within(row).getByRole("img", { name: "Red lane 2" }).textContent).toBe("2");
@@ -458,7 +465,7 @@ test("an unfinished room numbers its real fighters without inventing a lane on t
   fireEvent.click(page.getByRole("button", { name: "Remove WING from room" }));
   fireEvent.click(await page.findByRole("button", { name: "Red 1 seat" }));
   fireEvent.click(page.getByRole("option", { name: "open" }));
-  await page.findByRole("button", { name: "Sit Red 1" });
+  await group(page, "Red").findByText("Open", { exact: true });
   expect(group(page, "Blue").getByRole("img", { name: "Blue lane 1" }).textContent).toBe("1");
   expect(group(page, "Red").queryByRole("img", { name: /lane/ })).toBeNull();
   await waitFor(() =>

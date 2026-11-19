@@ -1,7 +1,9 @@
 // Layered air defence (slice 03), from red's side. Helicopters (LowAir):
 // the medium Buk and the short gun engage them, the long S-300, whose rows
 // target only HighAir, never fires. A jet (HighAir): the short gun, the Buk
-// and the S-300 all fire. The short gun the tower hides from it is a
+// and the S-300 all fire. The battery sets up before it fires, so the jet
+// comes in over it from behind while it does and circles out in front of
+// it, where a turret can follow it. The short gun the tower hides from it is a
 // ballistic gun, direct fire like any other: it never holds for want of its
 // own line to an aircraft (D52). That a guided missile does hold is the
 // simulation's to show. The simulation's test behind this:

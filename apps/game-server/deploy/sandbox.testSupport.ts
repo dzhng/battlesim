@@ -12,7 +12,6 @@ type Sandbox = {
   id: string;
   state: string;
   labels: Record<string, string>;
-  env: Record<string, string>;
   folder: string;
   port: number;
   child?: ChildProcess;
@@ -28,14 +27,11 @@ export async function serviceStandIn(archive: string) {
   const output: string[] = [];
   const calls: string[] = [];
   let refusal = 0;
+  let refusalType: string | undefined;
   let neverReady = false;
   let lostCreateReply = false;
   const creations = new Map<string, Sandbox>();
-  async function add(
-    labels: Record<string, string>,
-    env: Record<string, string> = {},
-    disk = false,
-  ) {
+  async function add(labels: Record<string, string>, disk = false) {
     const id = `machine-${machines.size}`;
     const folder = join(root, id);
     await mkdir(folder);
@@ -48,7 +44,6 @@ export async function serviceStandIn(archive: string) {
       id,
       state: "ready",
       labels,
-      env,
       folder,
       port,
       stderr: "",
@@ -70,7 +65,7 @@ export async function serviceStandIn(archive: string) {
           : {};
       const path = url.pathname.replace("/v1/services/boat", "");
       calls.push(`${request.method} ${path}`);
-      // The one allowed credential channel (create.env) is deliberately excluded.
+      // Record request metadata without retaining credentials or uploaded file contents.
       seen.push(request.url, body.command, body.labels);
       const send = (data: unknown, status = 200) => {
         response.writeHead(status, { "Content-Type": "application/json" });
@@ -82,22 +77,29 @@ export async function serviceStandIn(archive: string) {
           Number(request.headers["content-length"]) !== bytes.length
         )
           return send({}, 403);
-        await writeFile(join(machines.get(path.split("/")[2])!.folder, "battle.tar.gz"), bytes);
+        const [, , id, file] = path.split("/");
+        const sandbox = machines.get(id)!;
+        // Stand-in processes share a host, so each needs its own listening port.
+        const contents =
+          file === "battle.env"
+            ? bytes.toString().replace(`\nPORT=${settings.port}\n`, `\nPORT=${sandbox.port}\n`)
+            : bytes;
+        await writeFile(join(sandbox.folder, file), contents);
         return send({});
       }
       if (request.headers.authorization !== "Bearer stand-in-app-key") return send({}, 403);
       if (path === "/sandboxes" && request.method === "POST") {
-        if (refusal) return send({}, refusal);
+        if (refusal && (!refusalType || body.type === refusalType)) return send({}, refusal);
         if (
-          !body.noEnv ||
+          body.noEnv !== true ||
           body.visibility !== "private" ||
           body.snapshots !== false ||
-          body.type !== settings.machine ||
+          ![settings.machine, "small"].includes(body.type) ||
           !body.ttlSeconds
         )
           return send({}, 400);
         const token = String(request.headers["idempotency-key"]);
-        const sandbox = creations.get(token) ?? (await add(body.labels, body.env));
+        const sandbox = creations.get(token) ?? (await add(body.labels));
         creations.set(token, sandbox);
         if (lostCreateReply) {
           lostCreateReply = false;
@@ -119,7 +121,7 @@ export async function serviceStandIn(archive: string) {
             })),
         });
       }
-      const [, , id, action] = path.split("/");
+      const [, , id, action, subaction] = path.split("/");
       const sandbox = machines.get(id)!;
       if (sandbox.state === "deleted") return send({}, 404);
       if (request.method === "DELETE") {
@@ -132,12 +134,13 @@ export async function serviceStandIn(archive: string) {
         return send({
           sandbox: { state: neverReady && sandbox.state === "ready" ? "starting" : sandbox.state },
         });
-      if (action === "files") return send({ method: "PUT", url: `${address}/upload/${id}` });
+      if (action === "files" && subaction === "upload-url" && request.method === "POST")
+        return send({ method: "PUT", url: `${address}/upload/${id}/${body.path}` });
       if (action === "host") return send({ url: `http://127.0.0.1:${sandbox.port}` });
       if (action === "commands" && request.method === "POST") {
         const child = spawn("/bin/sh", ["-c", body.command], {
           cwd: sandbox.folder,
-          env: { PATH: process.env.PATH, ...sandbox.env, PORT: String(sandbox.port) },
+          env: { PATH: process.env.PATH },
           stdio: ["ignore", "pipe", "pipe"],
         });
         sandbox.child = child;
@@ -186,8 +189,9 @@ export async function serviceStandIn(archive: string) {
     diagnostic: (text: string) => {
       for (const s of machines.values()) s.stderr += `${text}:stand-in-app-key`;
     },
-    refuse: (status: number) => {
+    refuse: (status: number, type?: string) => {
       refusal = status;
+      refusalType = type;
     },
     stall: () => {
       neverReady = true;
@@ -196,7 +200,7 @@ export async function serviceStandIn(archive: string) {
       lostCreateReply = true;
     },
     leftover: (ours: boolean, disk = false) =>
-      add(ours ? { battlegame: "battle" } : { other: "work" }, {}, disk),
+      add(ours ? { battlegame: "battle" } : { other: "work" }, disk),
     async lobby(folder: string) {
       const child = spawn("node", [join(folder, "lobby.mjs")], {
         cwd: root,
