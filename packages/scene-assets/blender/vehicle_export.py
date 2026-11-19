@@ -218,7 +218,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
             from vehicle_crew import crew
             if crew_army is None:
                 raise SystemExit(f"{variant['id']} carries crew: its family's run() must name crew_army")
-            source = crew_source(crew_army)
+            source = crew_source(crew_army[variant["id"]] if isinstance(crew_army, dict) else crew_army)
             for args_ in v.crew:
                 crew(*args_, source)
         counts = triangles_by_tier()
@@ -241,7 +241,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
     return None if wrecking or selected else receipt
 
 
-def _receipt(path, script, variants, frames, references=None):
+def _receipt(path, script, variants, frames, references=None, authoring=None):
     here = Path(__file__).resolve().parent
     # Every script of the repository the export ran: the family's own, any
     # family script it builds on (the Challenger 3 on the Challenger's), the shared code and
@@ -256,7 +256,7 @@ def _receipt(path, script, variants, frames, references=None):
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         "references": references or f"assets/references/{family}/references.json",
-        "authoring": ("A generated skin (`skins`, pinned in blender/skins/) carrying procedural parts built from the "
+        "authoring": authoring or ("A generated skin (`skins`, pinned in blender/skins/) carrying procedural parts built from the "
                       "committed references; photos are visual reference only." if worn else
                       "Original geometry built from the committed references: procedural parts, and bodies built "
                       "by their own scripts (`scripted_body`); photos are visual reference only." if scripted else
@@ -268,7 +268,7 @@ def _receipt(path, script, variants, frames, references=None):
 
 
 def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=None,
-        appearances=None, script=None, receipt_file=None, crew_army=None, **looks):
+        appearances=None, script=None, receipt_file=None, crew_army=None, authoring=None, **looks):
     """Export every variant of `family` (or `--variant=<id>`), live or with
     `--wreck` its wreck, through `build` and `wreck` (see the module doc).
     `references` is its reference library's `references.json` where that is
@@ -276,14 +276,14 @@ def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=Non
     from several folders; `script` keeps its receipt tied to the actual source.
     `looks` are `materials` keywords (a
     family's fittings, canvas or chip). A family whose vehicles carry crew
-    names the army they wear (`crew_army`, an `armies.json` id)."""
+    names the army they wear (`crew_army`, one `armies.json` id or one per variant)."""
     variants = ([roster_variant(name, repo=REPO) for name in appearances]
                 if appearances is not None else family_variants(family, repo=REPO))
     receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, looks=looks, crew_army=crew_army)
     if receipt is not None:
         _receipt(receipt_file or f"assets/source/roster/{family}/source-receipt.json",
                  script or f"{family}.py", receipt, "fixtures/catalog.json",
-                 references or f"assets/references/{family}/references.json")
+                 references or f"assets/references/{family}/references.json", authoring)
 
 
 # How far a disabled card's built model may stray from the dimensions its

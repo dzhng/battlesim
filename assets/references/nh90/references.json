@@ -8,7 +8,7 @@
    "page": "https://commons.wikimedia.org/wiki/File:NHIndustries_NH90_TTH_Italian_Army_MM81540_EI-223_PAS_2013_01.jpg",
    "author": "Julian Herzog (Website)",
    "licence": "CC-BY-4.0",
-   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "sha256": "e42168fa0109e2f4e3eed84b612bc7e5d81c2b593411a158040238a877772467",
    "note": "NH90 TTH front-left three-quarter static (Italian Army): cabin door open, sponsons, nose gear"
   },
   {
@@ -19,7 +19,7 @@
    "page": "https://commons.wikimedia.org/wiki/File:NH90_TTH_-_Me_and_my_NH90_TTH_5D4_8825_(52256667614).jpg",
    "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
    "licence": "CC-BY-2.0",
-   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "sha256": "9a93e845d64c4ccf764a05e5021e382c4a77baf6d7e26faef887a1f536573f5c",
    "note": "NH90 TTH head-on static"
   },
   {
@@ -30,19 +30,19 @@
    "page": "https://commons.wikimedia.org/wiki/File:78%2B31_German_Army_NHIndustries_NH90_TTH_ILA_Berlin_2016_11.jpg",
    "author": "Julian Herzog (Website)",
    "licence": "CC-BY-4.0",
-   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "sha256": "529cddfcc320ea719e8e3895f13b332aa3c438f8c86de3af88e189e630984e18",
    "note": "NH90 TTH right side in flight: cabin, tail, ramp line"
   },
   {
-   "file": "europe_nh90_tth-three_quarter_rear.jpg",
+   "file": "europe_nh90_tth-side-2.jpg",
    "variant": "europe_nh90_tth",
-   "view": "three_quarter_rear",
+   "view": "side",
    "source": "photo",
    "page": "https://commons.wikimedia.org/wiki/File:NH90-TTH_79%2B15_static_display_ILA-2022.jpg",
    "author": "Boevaya mashina",
    "licence": "CC-BY-SA-3.0",
-   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
-   "note": "NH90 TTH rear three-quarter static: ramp, tail, tail rotor"
+   "sha256": "009dd8a79ee0d6c066126bdc71ad457cf1293eeaaf566703fecc32b5f7c681a6",
+   "note": "German TTH port side with cabin doors open. Inspect the sponson, door tracks and tail rotor."
   },
   {
    "file": "europe_nh90_tth-detail.jpg",
@@ -52,12 +52,24 @@
    "page": "https://commons.wikimedia.org/wiki/File:NHIndustries_NH90_TTH_French_Army_Air_Corps_EAD_PAS_2013_01.jpg",
    "author": "Julian Herzog (Website)",
    "licence": "CC-BY-4.0",
-   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "sha256": "8167be952cda4c7aa73dc689dbf7ad76a129a0eeab2f355d015cd05c6324e27f",
    "note": "NH90 nose close up: radome, cockpit glazing, nose gear"
+  },
+  {
+   "file": "europe_nh90_tth-rear.jpg",
+   "variant": "europe_nh90_tth",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:NH90_TTH_-_rear.jpg",
+   "author": "Duch.seb",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "1ae4f19e9e24b136afab6563d8b54de115d729a375b7e872107f417e758d564d",
+   "note": "Ground-level rear view of the TTH. Shows the ramp outline, tail rotor and asymmetric tailplane."
   }
  ],
  "gaps": [
   "europe_nh90_tth: German, Italian and French TTHs (same airframe); no top view",
-  "europe_nh90_tth: dimensions 16.13 x 3.6 x 4.33 m against Vertipedia's NH90 TTH (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/177: airframe 16.13 x 4.62 x 4.23; NHIndustries via https://en.wikipedia.org/wiki/NHIndustries_NH90 for the length): length match, height 2.4% over. Width is 22% under Vertipedia's 4.62 m, which no source explains (Airbus publishes only rotors-turning figures); 3.6 m is over the sponsons, and this library's five files are one photo (see its entries' hashes), so the tail's stabiliser cannot be judged from it: open, not restated"
+  "europe_nh90_tth: dimensions 16.13 x 3.6 x 4.33 m against Vertipedia's NH90 TTH (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/177: airframe 16.13 x 4.62 x 4.23; NHIndustries via https://en.wikipedia.org/wiki/NHIndustries_NH90 for the length): length match, height 2.4% over. Width is 22% under Vertipedia's 4.62 m, which no source explains (Airbus publishes only rotors-turning figures); 3.6 m is over the sponsons.",
+  "europe_nh90_tth: no three-quarter rear view."
  ]
 }

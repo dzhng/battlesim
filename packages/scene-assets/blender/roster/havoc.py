@@ -23,68 +23,69 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
+from aircraft_donor import fitted_airframe  # noqa: E402
+from parts import box, cyl, flat_paint  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 # The 2A42's elevation in its chin mount, degrees, and its stroke.
 GUN_PITCH_DEG = (-40.0, 13.0)
 GUN_STROKE_M = 0.08
-SPEC = dict(
-    fuselage=[(8.2, 0.0, 1.35, 1.35), (7.9, 0.5, 1.0, 1.8, 1.35, 2.4), (6.6, 0.64, 0.85, 2.05, 1.45, 3.0),
-              (4.8, 0.7, 0.85, 2.45, 1.6, 3.0), (2.4, 0.82, 0.9, 2.66, 1.65, 3.4), (0.0, 0.78, 0.95, 2.6, 1.7, 3.4),
-              (-1.6, 0.5, 1.25, 2.42, 1.8, 3.0), (-4.5, 0.26, 1.6, 2.2, 1.9, 2.4), (-7.6, 0.22, 1.75, 2.3, 2.0),
-              (-8.5, 0.2, 1.8, 2.6, 2.1)],
-    wing=[(1.6, 0.75, 2.0, 1.4, 0.18), (1.35, 2.32, 1.72, 1.1, 0.12)],
-    stab=[(-7.2, 0.2, 2.0, 0.9, 0.1), (-7.3, 1.4, 2.0, 0.7, 0.06)],
-    fins=[dict(root_x=-7.0, root_z=2.2, height=1.7, root_chord=1.3, tip_chord=0.9, sweep_m=0.7, thick=0.16)],
-    gear=[dict(name="main_L", x=3.0, y=1.2, top=1.05, radius=0.38, width=0.22),
-          dict(name="main_R", x=3.0, y=-1.2, top=1.05, radius=0.38, width=0.22),
-          dict(name="tail", x=-6.6, y=0.0, top=1.75, radius=0.2, width=0.12)],
-    pylons=[((1.3, 1.25, 1.9), 0.8, 0.2), ((1.25, 1.95, 1.78), 0.8, 0.2)],
-    stores=[("pod", (1.2, 1.25, 1.45), 1.7, 0.25), ("missile", (1.1, 2.32, 1.72), 1.8, 0.1)],
-)
-# How far forward the airframe's parts (placed in their drawing's frame)
-# move to centre on the hull box.
-AFT_M = 0.064
-
 
 def build(variant, v):
-    m = A.jet(v, SPEC)
+    m = A.fit(v)
     hull = v.hull
-    # The photo's flat armoured glass stands tall out of the body.
-    A.canopy("canopy", 7.8, 6.25, 1.62, 2.45, 0.6, m, hull, bows=(7.3, 6.8), peak=0.6, tail=0.75)
-    A.canopy("canopy_glass_rear", 6.25, 4.55, 1.95, 2.98, 0.64, m, hull, bows=(5.7, 5.1), peak=0.5, tail=0.8)
-    A.sensor_ball("sensor", (8.15, 0, 1.1), 0.32, m, hull)
+    # Keep the donor's framed panes while using the same controlled glass
+    # finish as the other attack helicopters, so cockpit depth survives close
+    # views without turning the windows into black holes.
+    m["canopy"] = flat_paint("havoc_laminated_glass", (0.018, 0.028, 0.034), rough=0.13,
+                             grime=0, coverage=("blended", 0.38), role="glass")
+    fitted_airframe(v, "mi_28_havoc", m, skip_parts=("cockpit",))
+    if not v.wreck:
+        # Keep the donor glazing, but give each tandem station a visible seat,
+        # headrest, coaming and instrument panel behind it.
+        for label, x, z in (("front", 5.35, 1.55), ("rear", 4.25, 1.48)):
+            box(f"cockpit_seat_{label}", (0.18, 0.46, 0.62), (x, 0, z), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.12, 0), lods=MID)
+            box(f"cockpit_headrest_{label}", (0.16, 0.34, 0.20), (x - 0.05, 0, z + 0.38), m["black"], hull,
+                bevel=0.018, lods=MID)
+            box(f"cockpit_coaming_{label}", (0.42, 0.62, 0.12), (x + 0.28, 0, z + 0.31), m["cockpit"], hull,
+                bevel=0.025, rot=(0, -0.08, 0), lods=MID)
+            box(f"cockpit_panel_{label}", (0.05, 0.48, 0.16), (x + 0.48, 0, z + 0.26), m["dark"], hull,
+                bevel=0.012, rot=(0, -0.18, 0), lods=MID)
+        for name, x, z in (("pilot", 5.35, 1.55), ("gunner", 4.25, 1.48)):
+            v.crew.append((name, hull, (x, 0, z),
+                           ((x + .28, .14, z + .22), (x + .28, -.14, z + .22)),
+                           ((x + .48, .14, z - .30), (x + .48, -.14, z - .30))))
+    A.body("chin_fairing", [(7.06, 0, 1.10, 1.10), (6.90, .25, .94, 1.20, 1.05),
+                            (6.54, .31, .93, 1.20, 1.05), (6.23, .23, 1.01, 1.21, 1.12),
+                            (6.09, 0, 1.18, 1.18)], m["paint"], hull, seg=16)
     A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.28)
-    for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(2.3, 0.0, 2.4, 2.4), (2.0, 0.34, 2.06, 2.74, 2.4), (-0.6, 0.34, 2.06, 2.74, 2.4),
-                                (-1.0, 0.24, 2.16, 2.64, 2.4)], m["paint"], hull, seg=14, loc=(0, side * 0.95, 0))
-        box(f"exhaust_{k}", (0.8, 0.3, 0.5), (-1.0, side * 1.05, 2.1), m["nozzle"], hull, rot=(0, -0.6, 0), lods=MID)
-        for j, dz in enumerate((0.16, -0.14)):
-            A.store(f"atgm_{k}_{j}", "missile", (1.15, side * 1.95 + (0.06 if j else -0.06), 1.45 + dz), 1.8, 0.1, m,
-                    hull)
-    cyl("mast", 0.18, 0.9, (0.3, 0, 3.15), "Z", m["dark"], hull, seg=12)
-    A.rotor("main", (0.3, 0, 3.7), 8.6, 5, 0.58, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3)
-    A.body("mast_radar", [(0.95, 0.0, 4.35, 4.35), (0.75, 0.48, 4.1, 4.62, 4.36), (-0.15, 0.5, 4.05, 4.7, 4.38),
-                          (-0.35, 0.0, 4.38, 4.38)], m["paint"], hull, seg=16)
-    cyl("mast_radar_post", 0.12, 0.3, (0.3, 0, 3.95), "Z", m["dark"], hull, seg=10)
-    # The X-shaped tail rotor: two two-blade rotors at an angle on one hub.
-    A.rotor("tail", (-7.95, -0.3, 3.4), 1.9, 4, 0.28, m, hull, hub=0.16, mast=0.0, droop=0.0,
-            rot=(math.pi / 2, 0, 0), thick=0.12, phase=0.4)
-
-    # The VVS's red star on the boom, a red bort number on the nose.
+    # The donor rotor bearings set the pivots. The radar above the head is
+    # fixed to the mast and remains facing forward as the blades turn.
+    A.rotor("main", (3.315, 0, 3.74), 8.6, 5, 0.58, m, hull, hub=.44, mast=.33,
+            droop=.03, phase=.3)
+    cyl("main_rotor_gearbox", .29, .22, (3.315, 0, 3.98), "Z", m["dark"], hull, seg=16, bevel=.025, lods=MID)
+    cyl("mast_radar_post", .18, .65, (3.315, 0, 4.20), "Z", m["dark"], hull, seg=12)
+    radome = m["paint"]
+    sections = []
+    for i in range(13):
+        angle = math.pi * i / 12
+        width = .35 * math.sin(angle)
+        sections.append((3.315 + .37 * math.cos(angle), width, 4.50 - width*.58, 4.50 + width*.58))
+    A.body("mast_radar", sections, radome, hull, seg=20)
     A.markings(v, [
-        ("insignia", dict(kind="ru_star", centre=(-5.5, 1.2, 1.95), normal=(0, 1, 0), up=(0, 0, 1), size=0.28, onto=("fuselage",))),
-        ("text", dict(text="45", height=0.42, centre=(5.8, 1.2, 1.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
+        ("insignia", dict(kind="ru_star", centre=(-3.6, 1, 2.01), normal=(0, 1, 0), up=(0, 0, 1),
+                          size=.37, onto=("fuselage",))),
+        ("text", dict(text="731", height=.32, centre=(4.93, 1.15, 1.98), normal=(0, 1, 0), up=(0, 0, 1),
+                      colour="yellow", onto=("fuselage",))),
     ])
-    # The airframe as drawn runs off the frame's middle; the frame (and the
-    # mounts' pivots in it) is centred on the hull box.
-    v.hull.location.x += AFT_M
+    A.rotor("tail", (-7.51, -.60, 3.09), 1.9, 4, .28, m, hull, hub=.16, mast=.16,
+            droop=0, rot=(math.pi / 2, 0, 0), thick=.12, phase=.4)
 
 
 def wreck(variant, v):
     A.rotorcraft_crash(v, tail_x=-2.8, tail_yaw=0.42, tail_drop=0.1, seed=28)
 
 
-run("havoc", "russian_air_grey", build, wreck, references="assets/references/mi_28_havoc/references.json")
+run("havoc", "russian_air_grey", build, wreck, crew_army="eastern_emr", references="assets/references/mi_28_havoc/references.json")

@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "ah_64e_guardian",
+    "glb": "assets/source/skins/ah_64_apache/guardian-airframe.glb",
+    "sha256": "8ce4b5accbc58d06fa5339f236f15c77278b8ebda009dcb53594bba6d94b32a6",
+    "title": "Boeing AH-64D Apache Combat Helicopter",
+    "creator": "Muhamad Mirza Arrafi",
+    "source": "https://sketchfab.com/3d-models/boeing-ah-64d-apache-combat-helicopter-c3b58008c46b45048fdd7dd283a3c8c8",
+    "source_sha256": "9d49962bf819f68f260062a8d183057acda1a81a10644781daeeae34edd04856",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Adapted for the AH-64E with separate glazing, crew, rotor assemblies, animated chin mount and Army markings."
+  }
+]

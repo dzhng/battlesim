@@ -8,7 +8,7 @@
    "page": "https://commons.wikimedia.org/wiki/File:A2663-UnitedKingdom-Merlin-ZJ130-RIAT2013.JPG",
    "author": "MilborneOne",
    "licence": "CC-BY-SA-3.0",
-   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "sha256": "5e39145d03755bbb1b1b299461d9f233cac2db13ee6368639e9b4441a7779b3b",
    "note": "Merlin left side static: long cabin, sponsons, three engines, tail pylon"
   },
   {
@@ -19,7 +19,7 @@
    "page": "https://commons.wikimedia.org/wiki/File:EGVA_-_AgustaWestland_Merlin_HC3_-_Royal_Air_Force_-_ZJ130_O_(43240420344).jpg",
    "author": "Steve Lynes from Sandshurst, United Kingdom",
    "licence": "CC-BY-2.0",
-   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "sha256": "63fcf06c06aef6e48019a8cad34af76c42dc6c99c3280398d1ce53e04e494a06",
    "note": "Merlin front-right three-quarter static on the apron"
   },
   {
@@ -30,23 +30,24 @@
    "page": "https://commons.wikimedia.org/wiki/File:Agusta_Westland_AW101_Merlin_HC.3A.jpg",
    "author": "Adrian ...",
    "licence": "CC-BY-2.0",
-   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "sha256": "be5e53d519563d1b223be6ac81fe1da11185f5e52a33c2ed4cbdffde61ad3b78",
    "note": "Merlin head-on in flight"
   },
   {
-   "file": "europe_aw101_merlin_hc4-three_quarter_rear.jpg",
+   "file": "europe_aw101_merlin_hc4-side-2.jpg",
    "variant": "europe_aw101_merlin_hc4",
-   "view": "three_quarter_rear",
+   "view": "side",
    "source": "photo",
    "page": "https://commons.wikimedia.org/wiki/File:Westland_Merlin_HC3_(7568960614).jpg",
    "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
    "licence": "CC-BY-2.0",
-   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
-   "note": "Merlin rear-left three-quarter static: ramp, tail pylon"
+   "sha256": "e944e1204d8f9cac2552229ca28f1fcecf70b299b587bb793c188cb28c0b2013",
+   "note": "HC3 port profile on the ground. Review the cabin windows, sponsons and aft ramp outline."
   }
  ],
  "gaps": [
   "europe_aw101_merlin_hc4: photos are the HC3/HC3A the HC4 was converted from (the HC4 adds folding blades and tail, a new cockpit; outwardly alike); no top view",
-  "europe_aw101_merlin_hc4: dimensions 19.53 x 4.52 x 4.95 m: fuselage length from Jane's 2003-04 and Leonardo as cited by https://en.wikipedia.org/wiki/AgustaWestland_AW101 (19.53: match); width against Airforce Technology's width excluding the main rotor (https://www.airforce-technology.com/projects/aw101-helicopter/: 4.55, within 1%) where Vertipedia's Merlin HC.3 gives 5.06 (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/7: airframe 19.30 x 5.06 x 5.09; height 2.8% under); the two sources disagree on width, so it stays on Airforce Technology's"
+  "europe_aw101_merlin_hc4: dimensions 19.53 x 4.52 x 4.95 m: fuselage length from Jane's 2003-04 and Leonardo as cited by https://en.wikipedia.org/wiki/AgustaWestland_AW101 (19.53: match); width against Airforce Technology's width excluding the main rotor (https://www.airforce-technology.com/projects/aw101-helicopter/: 4.55, within 1%) where Vertipedia's Merlin HC.3 gives 5.06 (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/7: airframe 19.30 x 5.06 x 5.09; height 2.8% under); the two sources disagree on width, so it stays on Airforce Technology's",
+  "europe_aw101_merlin_hc4: no three-quarter rear view."
  ]
 }
