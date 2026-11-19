@@ -9,7 +9,7 @@ use super::{
     bearing_from, candidates, fire_from, infantry_offset, muzzle, FireContext, Mount, MountSpec,
     Resolved, Target, Weapon,
 };
-use crate::flight::{predicted_path, timed_path, Aim, FiringSolution, NoSolution};
+use crate::flight::{solved_timed_path, Aim, FiringSolution, NoSolution};
 use crate::lean;
 use crate::math::V3;
 use crate::units::Unit;
@@ -35,11 +35,14 @@ fn friendly_in_line(
 ) -> bool {
     let margin = ctx.rules.physics.friendly_prefire_margin_m;
     let (def, profile) = (&weapon.def, &weapon.profile);
-    let path = timed_path(
+    let path = solved_timed_path(
         &ctx.arsenal.config,
         profile,
         origin,
-        s.velocity + carrier,
+        &FiringSolution {
+            velocity: s.velocity + carrier,
+            ..*s
+        },
         s.time_of_flight_s,
     );
     // Every chord lies inside the path's box. In a hull's moving frame the
@@ -99,13 +102,19 @@ fn launch_clear(
     weapon: &Weapon,
     carrier: V3,
 ) -> bool {
-    let path = predicted_path(
+    let path: Vec<_> = solved_timed_path(
         &ctx.arsenal.config,
         &weapon.profile,
         origin,
-        s.velocity + carrier,
+        &FiringSolution {
+            velocity: s.velocity + carrier,
+            ..*s
+        },
         s.time_of_flight_s,
-    );
+    )
+    .into_iter()
+    .map(|(point, _)| point)
+    .collect();
     let mut left = ctx.rules.launch.clearance_m;
     for w in path.windows(2) {
         let chord = w[1] - w[0];

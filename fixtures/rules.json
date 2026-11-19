@@ -533,6 +533,7 @@
       "description": "S-300 long-range aircraft-only missile.",
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2400, "scatter_mrad": 0.5 } },
       "ammo": 4,
+      "launch_elevation_deg": 90,
       "reload_s": 15,
       "penetration": 100,
       "damage": 220
@@ -543,6 +544,7 @@
       "description": "S-350 long-range aircraft-only missile.",
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2000, "scatter_mrad": 0.5 } },
       "ammo": 12,
+      "launch_elevation_deg": 90,
       "reload_s": 4,
       "damage": 70
     },
