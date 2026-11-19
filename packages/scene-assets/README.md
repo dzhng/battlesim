@@ -25,7 +25,9 @@ A unit or wreck must really switch with zoom: every mesh names its tier, and
 each tier draws a recorded fraction of the one before. Those rules, the
 dressing allowance and the budgets are kept per unit class (a vehicle's
 physical class, or soldier) in [unit art](src/unitArt.ts), as scenery's are
-per kind. A class's triangle budget holds any one model near its siblings
+per kind. Every class has a row naming its triangle budget, and a unit whose
+class has none is refused, so a new class arrives with its limit. A class's
+triangle budget holds any one model near its siblings
 (about 1.5 times the class's median model): a model over it is simplified
 until it fits, and the budget moves only when the whole class is re-measured.
 

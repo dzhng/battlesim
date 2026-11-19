@@ -27,7 +27,7 @@ import {
   worldTransforms,
 } from "./pose.ts";
 import { bindTextures, importScene, type Scene } from "./scene.ts";
-import { SOLDIER_CLASS, tierFindings, unitArtRule } from "./unitArt.ts";
+import { SOLDIER_CLASS, UNIT_ART, tierFindings, unitArtRule } from "./unitArt.ts";
 import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
@@ -521,6 +521,14 @@ function unitArtFindings(
   classes: readonly (string | null)[],
 ): Finding[] {
   const out = classes.flatMap((cls) => {
+    if (cls !== null && !Object.hasOwn(UNIT_ART, cls))
+      return [
+        finding(
+          "budget.class_row",
+          `${label}: draws as ${cls}, which has no row in UNIT_ART`,
+          `give ${cls} a row with its tier_triangles in packages/scene-assets/src/unitArt.ts, measured from its models`,
+        ),
+      ];
     const rule = unitArtRule(cls);
     return [
       ...tierFindings(label, scene, triangles, rule.tier_ratio),
@@ -528,7 +536,7 @@ function unitArtFindings(
         label,
         triangles,
         rule,
-        `the ${cls ?? "default"} row of UNIT_ART (packages/scene-assets/src/unitArt.ts)`,
+        `the ${cls ?? "shared"} rules of UNIT_ART (packages/scene-assets/src/unitArt.ts)`,
         bundle,
       ),
     ];

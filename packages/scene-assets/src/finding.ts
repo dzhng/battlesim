@@ -90,6 +90,8 @@ export const FINDING_CODES = [
   // frame cost
   /** A tier draws more triangles than its scenery kind or unit class allows. */
   "budget.tier_triangles",
+  /** A unit's class has no row of budgets in `UNIT_ART`. */
+  "budget.class_row",
   /** A GPU texture array would hold more distinct layers than the device allows. */
   "budget.texture_layers",
   /** A unit's encoded bundle is over its class's bytes. */

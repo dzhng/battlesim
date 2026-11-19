@@ -335,6 +335,20 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     budgetFindings("tank", [], { bundle_bytes: 1 }, "a test budget", await builtTank()),
   "budget.unit_textures": async () =>
     budgetFindings("tank", [], { textures: 0 }, "a test budget", await builtTank()),
+  "budget.class_row": async () =>
+    (
+      await validateAppearance(
+        {
+          name: "tank",
+          entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
+          files: { "t.glb": tankGlb() },
+        },
+        {
+          ...context,
+          authority: { ...AUTHORITY, units: syntheticUnits({ vehicle_class: "hover_tank" }) },
+        },
+      )
+    ).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),

@@ -35,21 +35,26 @@ export interface UnitArtRule extends Budget {
   dressing: DressingAllowance;
 }
 
-/** The rules by class: a vehicle class (`vehicle_class`) or `SOLDIER_CLASS`.
- *  A class without a row, and a field a row leaves out, take `default`'s.
- *  A vehicle class's `tier_triangles` hold any one model to about 1.5 times
- *  its class's median model at the near tiers and twice it at the far ones,
- *  where the counts are small (measured over the roster, 2026-11-19), so no
- *  one model draws much more detail than its siblings; `default`'s are the
- *  heaviest ground class's, so a class without its own row is still held.
- *  `bundle_bytes` is the whole encoded bundle, its shared textures included,
- *  set from the first rebuilt vehicles with about twice their room. */
-export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArtRule>> = {
-  default: {
-    tier_triangles: [95000, 40000, 16000, 5000],
-    tier_ratio: 0.9,
-    dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
-  },
+/** A class's row: its triangle budget, which every class must name, and
+ *  any shared rule it changes. */
+export type ClassRule = Partial<UnitArtRule> & Required<Pick<Budget, "tier_triangles">>;
+
+/** The rules every class shares unless its row changes them. */
+export const SHARED_ART: UnitArtRule = {
+  tier_ratio: 0.9,
+  dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
+};
+
+/** The rows by class: a vehicle class (`vehicle_class`) or `SOLDIER_CLASS`.
+ *  A unit whose class has no row is refused (`budget.class_row`), so a new
+ *  class always arrives with its budget. A vehicle class's `tier_triangles`
+ *  hold any one model to about 1.5 times its class's median model at the
+ *  near tiers and twice it at the far ones, where the counts are small
+ *  (measured over the roster, 2026-11-19), so no one model draws much more
+ *  detail than its siblings. `bundle_bytes` is the whole encoded bundle, its
+ *  shared textures included, set from the first rebuilt vehicles with about
+ *  twice their room. */
+export const UNIT_ART: Record<string, ClassRule> = {
   // About twice the first rebuilt rifle squad, which measured
   // at most 29149 / 6987 / 2486 / 763 triangles, a 12.4 MB bundle, 24 textures.
   [SOLDIER_CLASS]: {
@@ -57,8 +62,8 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
     bundle_bytes: 24 * 1024 * 1024,
     textures: 48,
   },
-  // Its tier_triangles are `default`'s.
   tracked_heavy: {
+    tier_triangles: [95000, 40000, 16000, 5000],
     bundle_bytes: 48_000_000,
     textures: 64,
   },
@@ -79,6 +84,7 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
   },
   wheeled_heavy: { tier_triangles: [60000, 20000, 5000, 2000] },
   air_light: { tier_triangles: [50000, 20000, 8000, 3000] },
+  air_light_logistics: { tier_triangles: [50000, 20000, 11000, 5000] },
   high_air_light: { tier_triangles: [110000, 30000, 8000, 3000] },
   wheeled_medium_logistics: {
     tier_triangles: [45000, 20000, 4000, 2000],
@@ -87,8 +93,11 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
   },
 };
 
+/** The rules `cls`'s models are held to: its row over the shared rules. A
+ *  model no type draws (`null`), or of a class without a row, takes the
+ *  shared rules alone. */
 export const unitArtRule = (cls: string | null): UnitArtRule => ({
-  ...UNIT_ART.default,
+  ...SHARED_ART,
   ...(cls === null ? {} : UNIT_ART[cls]),
 });
 

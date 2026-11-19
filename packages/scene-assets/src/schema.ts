@@ -7,7 +7,8 @@ import type { Trs } from "./trs.ts";
 import type { Faction, MountDraws, UnitCatalog } from "./units.ts";
 
 /** A frame-cost budget: a scenery kind's (`SCENERY_KINDS`) or a unit
- *  class's (`UNIT_ART`). Each limit is enforced only when set. */
+ *  class's (`UNIT_ART`, where every class sets `tier_triangles`). Each limit
+ *  is enforced only when set. */
 export interface Budget {
   /** The most triangles each tier may draw, finest first. */
   tier_triangles?: readonly number[];
