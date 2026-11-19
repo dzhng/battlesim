@@ -105,7 +105,12 @@ impl Ground {
             records.push(PlotRecord {
                 colour: f4(rgb(linear(p.colour), k.roughness)),
                 rows: f4([p.across[0], p.across[1], k.furrow_m, k.furrow_contrast]),
-                detail: f4([k.mottle, p.kind as f64, on(k.row_break), 0.0]),
+                detail: f4([
+                    k.mottle,
+                    p.kind as f64,
+                    on(k.row_break),
+                    if p.edged { 1.0 } else { 0.0 },
+                ]),
                 grain: f4([1.0 / k.grain_m, on(k.grain), 1.0 / k.grain_stretch, 0.0]),
                 dry: f4([1.0 / k.patch_m[0], 1.0 / k.patch_m[1], 0.0, 0.0]),
                 tram: f4([on(k.tram.rows), k.tram.width_m / 2.0, k.tram.contrast, 0.0]),
@@ -196,6 +201,7 @@ impl Ground {
         let [litter, moss, humus] = [0, 1, 2].map(|i| linear(b.palette(&f.palette)[i]));
         let (shore, bank) = (&b.shore, b.palette(&b.shore.palette));
         let pixels = self.tuning.terrain.distant.plot_pixels;
+        let crest = &b.crest_dry;
         let params = TerrainParams {
             region: f4(self.plots.region),
             field: f4([ox, oy, 1.0 / cell, FOOTPRINT_M]),
@@ -237,6 +243,14 @@ impl Ground {
                 shore.relief,
             ]),
             distant: f4(rgb(one("distant"), 0.0)),
+            crest_dry: f4([
+                crest.strength,
+                crest.height_m[0],
+                crest.height_m[1],
+                crest.sun,
+            ]),
+            crest_tone: f4([crest.desaturate, crest.lift, 0.0, 0.0]),
+            crest_straw: f4(rgb(one(&crest.palette), 0.0)),
             shore_tuning: self.shore_tuning(),
             water_looks: self.water_looks(),
             view: [0; 4],
@@ -254,6 +268,17 @@ impl Ground {
             trampled: mark(&sc.trampled.palette, sc.trampled.strength),
             relief: f4([sc.crater.relief_m, sc.crater.rim, 0.0, 0.0]),
             grass: f4([sc.grass.thin, sc.grass.tracks_thin, sc.grass.flatten, 0.0]),
+            tracks_mottle: {
+                let soil = b.palette(&sc.tracks.palette);
+                f4(rgb(linear(soil[soil.len() - 1]), sc.ruts.mottle))
+            },
+            tread: f4([
+                sc.ruts.tread_pitch_m,
+                sc.ruts.tread_dark,
+                sc.ruts.tread_grass,
+                sc.ruts.feather_m,
+            ]),
+            rut_shape: f4([1.0 / sc.ruts.patch_m, 0.0, 0.0, 0.0]),
         };
         TerrainTables {
             nodes: bytemuck::cast_slice(&nodes).to_vec(),
@@ -359,6 +384,8 @@ pub struct Grid {
     pub page_ids: Vec<u32>,
     /// `page_size²` row-major heights per present page.
     pub heights: Vec<f32>,
+    /// Each page's highest height (absent pages 0), filled on first use.
+    pub page_tops: std::sync::OnceLock<Vec<f32>>,
 }
 
 impl Grid {
@@ -388,6 +415,34 @@ impl Grid {
             Ok(page) => self.heights[page * size * size + (j % size) * size + i % size] as f64,
             Err(_) => 0.0,
         }
+    }
+
+    /// The highest ground within `radius` metres (a square round `(x, y)`,
+    /// clamped to the grid) by its pages' maxima: never below the true
+    /// highest there.
+    pub fn highest_within(&self, x: f64, y: f64, radius: f64) -> f64 {
+        if self.nx < 2 || self.ny < 2 || self.page_size == 0 || self.spacing <= 0.0 {
+            return 0.0;
+        }
+        let size = self.page_size;
+        let cols = self.nx.div_ceil(size);
+        let rows = self.ny.div_ceil(size);
+        let tops = self.page_tops.get_or_init(|| {
+            let mut out = vec![0f32; cols * rows];
+            for (p, &id) in self.page_ids.iter().enumerate() {
+                let page = &self.heights[p * size * size..(p + 1) * size * size];
+                out[id as usize] = page.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+            }
+            out
+        });
+        let cell =
+            |v: f64, n: usize| ((v / self.spacing).floor().max(0.0) as usize).min(n - 1) / size;
+        let (i0, i1) = (cell(x - radius, self.nx), cell(x + radius, self.nx));
+        let (j0, j1) = (cell(y - radius, self.ny), cell(y + radius, self.ny));
+        (j0..=j1)
+            .flat_map(|j| (i0..=i1).map(move |i| j * cols + i))
+            .map(|k| f64::from(tops[k]))
+            .fold(f64::NEG_INFINITY, f64::max)
     }
 
     /// The ground's height at `(x, y)`, clamped to the grid's edge, by the

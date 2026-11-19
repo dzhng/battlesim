@@ -60,6 +60,7 @@ mod completion;
 mod country;
 pub(crate) use completion::cover;
 mod coverage;
+pub(crate) use coverage::admit_coverage;
 mod measure;
 mod rules;
 mod steads;
@@ -171,6 +172,9 @@ struct Country<'a> {
     buildings: Vec<BuildingPlacement>,
     forests: Vec<Forest>,
     props: Vec<AuthoredPropDefinition>,
+    /// The hills, and the height grid's diagonal: only what is not `level`
+    /// stands there.
+    relief: Option<(crate::relief::ReliefBound, f64)>,
 }
 
 /// What a place is asked for.
@@ -180,6 +184,10 @@ struct Ask {
     /// Whether it blocks sight: a building or trees, kept out of the
     /// approach corridors.
     blocks_sight: bool,
+    /// Whether it stands on level ground, off the hills: all but a copse
+    /// or a lone tree (a tree line is a field's hedgerow, and a hill is
+    /// meadow).
+    level: bool,
     road_gap: f64,
     /// The yards it may touch, its own: those from this index on.
     own_from: usize,
@@ -289,6 +297,11 @@ impl<'a> Country<'a> {
                         && ((self.main_only && !main)
                             || beyond(rect_gap(corridor, p), r + c.approach_m))
                 }))
+            && (!ask.level
+                || self.relief.as_ref().is_none_or(|(hills, pad)| {
+                    let reach = r + pad;
+                    hills.span([p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach])[1] <= 0.0
+                }))
     }
 
     /// Trees of `radius` at `p` keep their distance from those placed.
@@ -302,6 +315,7 @@ impl<'a> Country<'a> {
         Ask {
             radius,
             blocks_sight: true,
+            level: false,
             road_gap: self.rules.clear.road_m,
             own_from: usize::MAX,
         }
@@ -442,6 +456,7 @@ impl<'a> Country<'a> {
         let half = t.width_m / 2.0;
         let ask = Ask {
             road_gap,
+            level: true,
             ..self.trees(half)
         };
         let mut stretches: Vec<Vec<Point>> = Vec::new();
@@ -809,40 +824,4 @@ fn retain_approaches(plan: &mut MapPlan, presets: &PresetDefinitions, kept: Vec<
             .then(a.from_rad.total_cmp(&b.from_rad))
     });
     plan.approaches = approaches;
-}
-
-pub(crate) fn admit_coverage(
-    request: &GenerationRequest,
-    presets: &PresetDefinitions,
-    physics: &contract::generation_physics::GenerationPhysics,
-) -> Result<(), Vec<Diagnostic>> {
-    let range = physics.circular_range_m().map_err(|message| {
-        vec![Diagnostic {
-            code: DiagnosticCode::InvalidPhysicalRules,
-            feature: None,
-            location: "$.rules".into(),
-            message,
-        }]
-    })?;
-    coverage::preflight(
-        [request.extent_m(); 2],
-        presets.terrain.fog_cell_m,
-        presets.open_country.sight.cell_m,
-        range,
-    )
-    .and_then(|()| {
-        coverage::tree_line_work(
-            presets.open_country.tree_lines.length_m[1],
-            presets.open_country.tree_lines,
-        )
-        .map(|_| ())
-    })
-    .map_err(|message| {
-        vec![Diagnostic {
-            code: DiagnosticCode::GenerationFailed,
-            feature: Some("ground_sight".into()),
-            location: "$.presets.open_country.sight.cell_m".into(),
-            message,
-        }]
-    })
 }

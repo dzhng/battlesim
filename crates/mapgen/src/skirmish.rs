@@ -53,6 +53,25 @@ pub(crate) fn follow_roads(sites: &mut SkirmishSites, surfaces: &[SurfaceArea], 
     }
 }
 
+/// Every objective site's radius.
+pub(crate) const OBJECTIVE_RADIUS_M: f64 = 50.0;
+
+/// The fixed field objectives either side of the central junction on a
+/// large or extra-large skirmish map; none otherwise.
+pub(crate) fn central_objectives(request: &GenerationRequest, hub: [f64; 2]) -> Vec<[f64; 2]> {
+    let extent = request.extent_m();
+    if request.profile == GenerationProfile::Standard
+        || !matches!(request.size, MapSize::Large | MapSize::Xl)
+    {
+        return Vec::new();
+    }
+    [-1.0, 1.0]
+        .map(|sign| [hub[0] + sign * extent * 0.2, extent / 2.0])
+        .to_vec()
+}
+
+/// `flat` says whether a site of a radius about a point stands on flat
+/// ground; every sampled objective site must.
 pub(crate) fn reserve(
     request: &GenerationRequest,
     surfaces: &mut Vec<SurfaceArea>,
@@ -60,6 +79,7 @@ pub(crate) fn reserve(
     hub: [f64; 2],
     towns: &[&[[f64; 2]]],
     edge_run: f64,
+    flat: &dyn Fn([f64; 2], f64) -> bool,
 ) -> Result<Option<SkirmishSites>, Vec<Diagnostic>> {
     if request.profile == GenerationProfile::Standard {
         return Ok(None);
@@ -121,20 +141,16 @@ pub(crate) fn reserve(
     let mut objectives = vec![ObjectiveSite {
         id: "objective-0".into(),
         center: hub,
-        radius_m: 50.0,
+        radius_m: OBJECTIVE_RADIUS_M,
         kind: ObjectiveSiteKind::Junction,
         counterpart: None,
     }];
-    let central = if matches!(request.size, MapSize::Large | MapSize::Xl) {
-        3
-    } else {
-        1
-    };
-    for sign in [-1.0, 1.0].into_iter().take(central - 1) {
+    let central = central_objectives(request, hub);
+    for center in &central {
         objectives.push(ObjectiveSite {
             id: format!("objective-{}", objectives.len()),
-            center: [hub[0] + sign * extent * 0.2, extent / 2.0],
-            radius_m: 50.0,
+            center: *center,
+            radius_m: OBJECTIVE_RADIUS_M,
             kind: ObjectiveSiteKind::Field,
             counterpart: None,
         });
@@ -146,7 +162,7 @@ pub(crate) fn reserve(
     };
     let mut rng = crate::layout::stream(request, "objectives");
     let mut candidates = Vec::new();
-    if central == 3 {
+    if !central.is_empty() {
         for index in 0..6 {
             if let Some(center) = (0..200).find_map(|_| {
                 let p = [extent * (0.12 + rng.unit() * 0.76), extent / 2.0];
@@ -154,13 +170,14 @@ pub(crate) fn reserve(
                     contract::ground::polygon_contains(ring, p)
                         || contract::ground::edges(ring)
                             .any(|(a, b)| contract::ground::segment_distance(*a, *b, p) < 70.0)
-                }) && objectives.iter().all(|o| distance(o.center, p) >= 150.0))
+                }) && objectives.iter().all(|o| distance(o.center, p) >= 150.0)
+                    && flat(p, OBJECTIVE_RADIUS_M))
                 .then_some(p)
             }) {
                 candidates.push(ObjectiveSite {
                     id: format!("central-{index}"),
                     center,
-                    radius_m: 50.0,
+                    radius_m: OBJECTIVE_RADIUS_M,
                     kind: ObjectiveSiteKind::Field,
                     counterpart: None,
                 });
@@ -190,7 +207,8 @@ pub(crate) fn reserve(
                     })
                     && objectives.iter().all(|o| distance(o.center, p) >= 150.0)
                     && entries.iter().all(|e| distance(e.center, p) >= 150.0)
-                    && points.iter().all(|q| distance(*q, p) >= 150.0))
+                    && points.iter().all(|q| distance(*q, p) >= 150.0)
+                    && flat(p, OBJECTIVE_RADIUS_M))
                 .then_some(p)
             });
             let Some(point) = point else {
@@ -212,7 +230,7 @@ pub(crate) fn reserve(
             .map(|(half, center)| ObjectiveSite {
                 id: format!("field-{pair}-{half}"),
                 center,
-                radius_m: 50.0,
+                radius_m: OBJECTIVE_RADIUS_M,
                 kind: ObjectiveSiteKind::Field,
                 counterpart: Some(format!("field-{pair}-{}", 1 - half)),
             })

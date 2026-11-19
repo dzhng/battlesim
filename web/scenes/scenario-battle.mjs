@@ -48,6 +48,42 @@ export async function run(ctx) {
   await restartChapter(ctx, page);
   await page.close();
   await startedLater(ctx);
+  await victory(ctx);
+}
+
+/** The story's end: started where the last chapter's match is decided, the
+ *  battle ends in the player's victory and the coach's closing step stays up
+ *  over the result. */
+async function victory(ctx) {
+  const last = COACH.chapters.at(-1);
+  const won = [...last.steps]
+    .reverse()
+    .find((s) => typeof s.until === "object" && "beat" in s.until).until.beat;
+  const page = await ctx.newPage();
+  const url = new URL(ctx.url);
+  url.search = `?scenario=${SCENARIO}&chapter=${last.id}&beat=${won}`;
+  await page.goto(url.href);
+  await playable(page, ctx.readinessTimeout, 1);
+  await page.getByRole("dialog", { name: "Match result" }).waitFor({ timeout: 60000 });
+  const card = page.getByRole("complementary", { name: "Coach" });
+  // Continue through what the player hasn't dismissed in this run.
+  const closing = last.steps.at(-1).id;
+  for (
+    let i = 0;
+    i < last.steps.length && (await card.getAttribute("data-step")) !== closing;
+    i++
+  ) {
+    const go = card.getByRole("button", { name: "Continue" });
+    if (await go.count()) await go.click();
+    else await page.waitForTimeout(500);
+  }
+  ctx.check(
+    "the battle ends in victory with the coach's closing step up",
+    (await card.getAttribute("data-step")) === closing,
+    await card.getAttribute("data-step"),
+  );
+  await snapshot(ctx, page, "victory.png");
+  await page.close();
 }
 
 /** Where each later chapter's UI-gated steps begin: the chapter's opening,

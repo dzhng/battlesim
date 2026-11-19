@@ -1,5 +1,12 @@
 # 16 Chapter 6: Eyes in the sky
 
+**Status: shipped 2026-11-19.** Chapter 6's beats, forces, solution and coach
+steps; its vocabulary; anti-radiation seekers riding the beam; reacting coach
+lines. Evidence: `director_facts` (a radar contact for the finding side alone,
+a purchase pending then arrived, a helicopter airborne), the radar test above,
+`coach.test.ts` (`linesBetween`), and the walkthrough through chapter 6.
+Deviations: [decisions.md](../decisions.md#slice-16).
+
 **Unlocks:** helicopters, jets (arrival, attack passes, fuel), air defence, radar
 contacts and SEAD. See [story.md](../story.md#chapter-6-eyes-in-the-sky). It
 follows the chapter slice shape in [13](13-chapter-3.md#shape-of-every-chapter-slice-1317).

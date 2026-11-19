@@ -8,6 +8,12 @@ use contract::ids::Side;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
+/// The chapter every test director ends on, as every director must: one
+/// that closes on the match's result.
+pub(crate) fn closing() -> Value {
+    json!({"id":"close","beats":[{"id":"won","when":{"match_result":{"kind":"winner","side":"blue"}}}]})
+}
+
 /// The sample scenario with a blue rifle squad placed beside red's tank and
 /// `chapters` as its director.
 fn directed(chapters: Value) -> Value {
@@ -15,6 +21,8 @@ fn directed(chapters: Value) -> Value {
     doc["forces"]["rifles"] =
         json!({"side":"blue","owner":"blue-1","kind":"test_rifle","position":[60.0,60.0]});
     doc["zones"]["east"] = json!({"center":[280.0,60.0],"radius_m":30.0});
+    let mut chapters = chapters;
+    chapters.as_array_mut().unwrap().push(closing());
     doc["director"] = json!({ "chapters": chapters });
     doc
 }
@@ -166,6 +174,11 @@ fn a_director_naming_what_its_scenario_lacks_is_refused_by_beat() {
         {"grant":{"player":"nobody","credits":{"exactly":1}}}]}]}])
     )
     .contains("nobody"));
+    // The story ends where the match does.
+    let mut doc = document();
+    doc["director"] = json!({"chapters":[{"id":"c","beats":[{"id":"b","when":"chapter_opens"}]}]});
+    let open_ended = resolve(doc, rules_with(|_| {})).expect_err("refused");
+    assert!(open_ended.contains("director.c"), "{open_ended}");
 }
 
 /// `side`'s publication, read back as the page reads it.

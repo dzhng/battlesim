@@ -1,5 +1,5 @@
 {
-  "max_minutes": 20,
+  "max_minutes": 30,
   "chapters": [
     {
       "id": "briefing",
@@ -595,6 +595,332 @@
                 },
                 "order": {
                   "attack_ground": "far_treeline"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sky",
+      "beats": [
+        {
+          "id": "buy_stingers",
+          "when": {
+            "fired": {
+              "beat": "heli_seen"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fim_92_stinger_team"
+                },
+                "at": "farm_wall"
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_viper",
+          "when": {
+            "fired": {
+              "beat": "heli_down"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_ah_1z_viper_attack_helicopter"
+                },
+                "at": "supply_point"
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_jet",
+          "when": {
+            "fired": {
+              "beat": "own_heli_up"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                },
+                "at": "crossroads"
+              }
+            }
+          ]
+        },
+        {
+          "id": "jet_in",
+          "when": {
+            "fired": {
+              "beat": "jet_arrived"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                  }
+                },
+                "order": {
+                  "attack_ground": "bridge"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_growler",
+          "when": {
+            "fired": {
+              "beat": "jet_attacking"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                },
+                "at": "crossroads"
+              }
+            }
+          ]
+        },
+        {
+          "id": "fire_into_it",
+          "when": {
+            "fired": {
+              "beat": "radar_found"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                  }
+                },
+                "order": {
+                  "attack_contact_in": "hill"
+                }
+              }
+            },
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                  }
+                },
+                "order": {
+                  "attack_contact_in": "hill"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "rebuy_stingers",
+          "recovery": true,
+          "when": {
+            "fired": {
+              "beat": "air_defence_replaced"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fim_92_stinger_team"
+                },
+                "at": "farm_wall"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "push",
+      "beats": [
+        {
+          "id": "buy_team_one",
+          "when": {
+            "fired": {
+              "beat": "shop_open"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                },
+                "at": "crossroads"
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_team_two",
+          "when": {
+            "fired": {
+              "beat": "buy_team_one"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                },
+                "at": "crossroads"
+              }
+            }
+          ]
+        },
+        {
+          "id": "go_bridge",
+          "when": {
+            "all": [
+              {
+                "fired": {
+                  "beat": "buy_team_two"
+                }
+              },
+              {
+                "units": {
+                  "who": {
+                    "bought": {
+                      "player": "blue-1",
+                      "variant": "us_m2_bradley_ifv_m2a4"
+                    }
+                  },
+                  "are": {
+                    "in": "crossroads"
+                  }
+                }
+              }
+            ]
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "bridge"
+                }
+              }
+            },
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ah_1z_viper_attack_helicopter"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "bridge"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "let_out_bridge",
+          "when": {
+            "units": {
+              "who": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "us_m2_bradley_ifv_m2a4"
+                }
+              },
+              "are": {
+                "in": "bridge"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": "unload"
+              }
+            }
+          ]
+        },
+        {
+          "id": "go_hill",
+          "when": {
+            "objective": {
+              "id": "bridge",
+              "is": {
+                "owned_by": "blue"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ah_1z_viper_attack_helicopter"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "hill"
+                }
+              }
+            },
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "rifle_squad"
+                  }
+                },
+                "order": {
+                  "attack_move_to": "hill"
                 }
               }
             }

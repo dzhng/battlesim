@@ -53,6 +53,11 @@ impl ShadowFit {
         }
     }
 
+    /// Unit vector toward the installed light's sun (z up).
+    pub fn sun_direction(&self) -> [f64; 3] {
+        self.light.sun_direction()
+    }
+
     pub fn invalidate(&mut self) {
         self.cached = None;
         self.stats = ReceiverStats::default();

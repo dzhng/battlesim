@@ -138,10 +138,17 @@ pub(crate) fn cover(
     Ok(plan)
 }
 
+/// Places a rectangle larger than a fog cell tries, nearest first, before it
+/// splits. Whatever would certify the rectangle certifies each quarter too,
+/// so splitting sooner loses no certificate; it can only add a feature.
+const COARSE_TRIES: usize = 2048;
+
 /// A coarse location rectangle can straddle two different physical witnesses.
-/// Partition only when it cannot be certified whole; every child still earns
-/// the same continuous certificate. The fog-cell floor and shared work budget
-/// bound the search, including all failed proposals.
+/// Partition when its nearest `COARSE_TRIES` places cannot certify it whole;
+/// every child still earns the same continuous certificate, and one a fog
+/// cell across tries every place before the seed is refused. The fog-cell
+/// floor and shared work budget bound the search, including all failed
+/// proposals.
 fn fill_cell(
     country: &mut Country<'_>,
     coverage: &mut coverage::Coverage<'_>,
@@ -158,9 +165,11 @@ fn fill_cell(
         return Ok(());
     }
     let at = scale(add(low, high), 0.5);
+    let finest = (high[0] - low[0]).min(high[1] - low[1]) <= smallest;
+    let tries = if finest { offsets.len() } else { COARSE_TRIES };
     for main_only in [false, true] {
         country.main_only = main_only;
-        for offset in offsets {
+        for offset in offsets.iter().take(tries) {
             let p = add(at, *offset);
             if !coverage.admits(p, low, high) {
                 coverage.check()?;
@@ -174,7 +183,7 @@ fn fill_cell(
             coverage.check()?;
         }
     }
-    if (high[0] - low[0]).min(high[1] - low[1]) <= smallest {
+    if finest {
         return Err(format!(
             "no physically certified sight feature covers rectangle {low:?}..{high:?}"
         ));

@@ -6,11 +6,11 @@ fn groundShoulderGrass(worn: vec2f) -> f32 {
 }
 
 // @block ground_material_groundAlbedo
-fn groundAlbedo(world: vec3f, tint: vec4f, cell: vec4u, paved: GroundPaved) -> vec4f {
+fn groundAlbedo(world: vec3f, tint: vec4f, cell: vec4u, paved: GroundPaved, sunFacing: f32) -> vec4f {
   let footprint = length(fwidth(world.xy));
   let xy = world.xy;
   let site = groundSite(xy, cell, paved);
-  let surface = groundColour(xy, footprint, site, paved, groundWater(xy, cell));
+  let surface = groundColour(xy, footprint, site, paved, groundWater(xy, cell), groundCrest(world.z, sunFacing));
   let albedo = mix(surface.xyz, srgbToLinear(tint.xyz), tint.w);
   return vec4f(albedo, mix(surface.w, 0.85f, tint.w));
 }
@@ -118,11 +118,23 @@ fn groundClasses(xy: vec2f, footprint: f32, site: vec4f, water: f32) -> vec3f {
   return vec3f(classDistance(site.z), classDistance(water), (f32(packed) / 255f));
 }
 
+// @block ground_material_groundCrest
+/** How far ground at height `z`, facing the sun by `sunFacing` (n·sun),
+ *  is parched: the biome's strength over its height ramp, the facing mixed
+ *  in by its sun weight. 0 with dry crests off. */
+fn groundCrest(z: f32, sunFacing: f32) -> f32 {
+  let c = terrainParams.crestDry;
+  if (c.x <= 0f) {
+    return 0f;
+  }
+  return c.x * smoothstep(c.y, c.z, z) * mix(1f, saturate(sunFacing), c.w);
+}
+
 // @block ground_material_groundColour
 const GROUND_COLOUR_VERGE_MOTTLE = 0.18f;
 const GROUND_COLOUR_VERGE_ROUGHNESS = 0.95f;
 const GROUND_COLOUR_DISTANT_FADE_M = 600f;
-fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, water: f32) -> vec4f {
+fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, water: f32, parched: f32) -> vec4f {
   let terrain = (&terrainParams);
   let aa = (footprint * 0.5f);
   let plot = (&plots[i32(site.x)]);
@@ -137,6 +149,14 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   let inRegion = rectInside(xy, (*terrain).region);
   let distant = max((1f - smoothstep(0f, GROUND_COLOUR_DISTANT_FADE_M, inRegion)), smoothstep((*terrain).feathers.y, (*terrain).feathers.z, footprint));
   albedo = mix(albedo, (*terrain).distant.xyz, distant);
+  // Dry crests: toward straw at the ground's own luminance, greyer and a
+  // little paler; the forest floor, banks, roads and scars go over it.
+  if ((parched > 0f)) {
+    let luma = dot(albedo, LUMA);
+    let straw = ((*terrain).crestStraw.xyz * (luma / max(dot((*terrain).crestStraw.xyz, LUMA), 1e-4f)));
+    let turned = mix(albedo, straw, parched);
+    albedo = (mix(turned, vec3f(dot(turned, LUMA)), ((*terrain).crestTone.x * parched)) * (1f + ((*terrain).crestTone.y * parched)));
+  }
   let floorWeights = groundFloor(xy, footprint, site.w);
   if ((floorWeights.x > 0f)) {
     albedo = mix(albedo, forestFloor(xy, footprint, noise), floorWeights.x);
@@ -311,10 +331,12 @@ fn groundTint(albedo: vec3f, dry: f32) -> vec3f {
 }
 
 // @block ground_material_groundVerge
+/** The grass strip along a plot's edge; none round an unedged plot (a
+ *  hill's meadow: its record's detail.w is 0). */
 fn groundVerge(site: vec4f, footprint: f32) -> f32 {
   let terrain = (&terrainParams);
   let vergeHalf = (*terrain).verge.w;
-  return (1f - smoothstep(vergeHalf, (vergeHalf + max((*terrain).feathers.x, footprint)), site.y));
+  return (plots[i32(site.x)].detail.w * (1f - smoothstep(vergeHalf, (vergeHalf + max((*terrain).feathers.x, footprint)), site.y)));
 }
 
 // @block ground_material_groundWheeling

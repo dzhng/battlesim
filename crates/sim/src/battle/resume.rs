@@ -189,7 +189,9 @@ impl Battle {
             }
             battle.step();
         }
-        let tick = battle.tick();
+        // A start on the tick that decided the match resumes the tick before,
+        // which decides it again: a battle resumes only before its end.
+        let tick = battle.tick() - Tick::from(battle.finished());
         let mut replay = battle.replay();
         for player in solved.players.iter().filter(|p| p.human_capable) {
             replay.controller_transitions.push(ControllerTransition {

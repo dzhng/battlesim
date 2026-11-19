@@ -60,6 +60,7 @@ mod ground_delivery;
 mod ground_speed;
 mod guidance;
 mod guidance_release;
+mod hill_sight;
 mod hull_guns;
 mod junction_turns;
 mod kerbside;

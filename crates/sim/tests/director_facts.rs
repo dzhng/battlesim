@@ -11,6 +11,16 @@ use sim::battle::Battle;
 
 /// The sample scenario with `forces` added and `chapters` as its director.
 fn battle(forces: Value, zones: Value, chapters: Value) -> Battle {
+    battle_with(forces, zones, chapters, |_| {})
+}
+
+/// `battle`, with the test rules patched first.
+fn battle_with(
+    forces: Value,
+    zones: Value,
+    chapters: Value,
+    patch: impl FnOnce(&mut Value),
+) -> Battle {
     let mut doc = document();
     for (name, force) in forces.as_object().unwrap() {
         doc["forces"][name] = force.clone();
@@ -18,11 +28,21 @@ fn battle(forces: Value, zones: Value, chapters: Value) -> Battle {
     for (name, zone) in zones.as_object().unwrap() {
         doc["zones"][name] = zone.clone();
     }
+    let mut chapters = chapters;
+    chapters
+        .as_array_mut()
+        .unwrap()
+        .push(crate::director::closing());
     doc["director"] = json!({ "chapters": chapters });
-    // The smoke tank and the supply truck join the roster for the facts
-    // about smoke and supply.
+    // The smoke tank, the supply truck and the helicopter join the roster
+    // for the facts about smoke, supply and the air.
     let rules = rules_with(|fixture| {
-        for (kind, variant) in [("test_smoke_tank", "Smoke"), ("test_supply", "Supply")] {
+        patch(fixture);
+        for (kind, variant) in [
+            ("test_smoke_tank", "Smoke"),
+            ("test_supply", "Supply"),
+            ("test_heli", "Heli"),
+        ] {
             sim::fixtures::patch_catalog(
                 fixture,
                 "units",
@@ -288,5 +308,108 @@ fn a_top_up_grant_adds_only_the_shortfall() {
     assert_eq!(
         topped, before,
         "a wallet that already covers it gets nothing"
+    );
+}
+
+#[test]
+fn a_radar_contact_is_the_finding_sides_alone() {
+    // Blue's truck carries a radar receiver; red's tank a radar that emits.
+    let mut b = battle_with(
+        json!({"truck": {"side":"blue","owner":"blue-1","kind":"test_supply","position":[60.0,60.0]}}),
+        json!({}),
+        json!([{"id":"one","beats":[
+            {"id":"blue_finds","when":{"radar_contact":{"side":"blue"}}},
+            {"id":"red_finds","recovery":true,"when":{"radar_contact":{"side":"red"}}}
+        ]}]),
+        |fixture| {
+            sim::fixtures::patch_catalog(
+                fixture,
+                "units",
+                "test_supply",
+                // Short-sighted, so it finds the tank by radar alone.
+                json!({"capabilities":{"radar_receiver":{"range_m":2000.0}},
+                       "sensors":{"ground_m":30.0,"low_air_m":30.0,"high_air_m":30.0}}),
+            );
+            sim::fixtures::patch_catalog(
+                fixture,
+                "units",
+                "test_tank",
+                json!({"capabilities":{"radar_emitter":true}}),
+            );
+        },
+    );
+    until(&mut b, "blue_finds", 5);
+    for _ in 0..40 {
+        b.step();
+    }
+    assert_eq!(
+        fired(&b, "red_finds"),
+        None,
+        "red has no receiver, so no radar contact"
+    );
+}
+
+#[test]
+fn a_purchase_is_pending_then_arrives_and_a_helicopter_flies() {
+    let mut b = battle(
+        json!({"heli": {"side":"blue","owner":"blue-1","kind":"test_heli","position":[80.0,80.0]}}),
+        json!({}),
+        json!([{"id":"one","beats":[
+            {"id":"on_its_way","when":{"pending":{"player":"blue-1","purchase":{"variant":"test_rifle","carrier":"test_apc"}}}},
+            {"id":"here","when":{"all":[{"fired":{"beat":"on_its_way"}},
+                {"units":{"who":{"bought":{"player":"blue-1","variant":"test_apc"}},"are":"arrived"}}]}},
+            {"id":"up","when":{"units":{"who":{"force":"heli"},"are":"airborne"}}}
+        ]}]),
+    );
+    blue(
+        &mut b,
+        Order::ConfirmPurchase {
+            variant: "test_rifle".into(),
+            carrier: Some("test_apc".into()),
+            destination: [60.0, 60.0],
+        },
+    );
+    until(&mut b, "on_its_way", 2);
+    until(&mut b, "here", 60);
+    blue(
+        &mut b,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [150.0, 100.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    );
+    until(&mut b, "up", 30);
+}
+
+#[test]
+fn a_beat_answers_the_match_result_on_the_tick_it_is_decided() {
+    // A blue squad on each of the three objectives, red's tank holding
+    // fire: total control ends the match, and nothing ticks after.
+    let mut doc = document();
+    for (name, at) in [
+        ("a", [170.0, 120.0]),
+        ("b", [60.0, 160.0]),
+        ("c", [280.0, 60.0]),
+    ] {
+        doc["forces"][name] =
+            json!({"side":"blue","owner":"blue-1","kind":"test_rifle","position":at});
+    }
+    doc["forces"]["tank"]["engagement"] = json!("return_fire_only");
+    doc["director"] = json!({"chapters":[crate::director::closing()]});
+    let mut b = Battle::new(&resolve(doc, rules_with(|_| {})).unwrap(), 9);
+    blue(&mut b, Order::Ready);
+    let limit = b.tick() + 600 * u64::from(b.rules().tick_hz);
+    while !b.finished() {
+        assert!(b.tick() < limit, "blue takes total control");
+        b.step();
+    }
+    assert_eq!(
+        fired(&b, "won"),
+        Some(b.tick()),
+        "the beat answers the deciding tick"
     );
 }
