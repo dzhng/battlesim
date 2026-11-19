@@ -56,6 +56,7 @@ const MATCH: SkirmishView = {
       unitCount: 6,
       cap: 30,
       pending: [],
+      offered: null,
     },
   ],
   preparationRemainingS: 0,

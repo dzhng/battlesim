@@ -214,3 +214,81 @@ fn every_shipped_scenario_resolves_and_places_its_forces_legally() {
     }
     assert!(checked > 0, "the catalogue ships a scenario");
 }
+
+/// The sample scenario with blue's shop narrowed to a rifle squad in its
+/// carrier.
+fn narrowed() -> Battle {
+    let mut doc = document();
+    doc["offered"] = json!({"blue-1": [{"variant":"test_rifle","carrier":"test_apc"}]});
+    Battle::new(&resolve(doc, rules_with(|_| {})).unwrap(), 7)
+}
+
+fn buy(
+    battle: &mut Battle,
+    variant: &str,
+    carrier: Option<&str>,
+) -> Option<contract::command::OrderError> {
+    battle
+        .accept_order(
+            Side::Blue,
+            Some("blue-1".into()),
+            contract::command::Order::ConfirmPurchase {
+                variant: variant.into(),
+                carrier: carrier.map(Into::into),
+                destination: [100.0, 80.0],
+            },
+            false,
+        )
+        .error
+}
+
+#[test]
+fn a_narrowed_shop_sells_only_what_it_offers_and_a_squad_only_in_its_ride() {
+    use contract::command::OrderError::NotOffered;
+    let mut battle = narrowed();
+    assert_eq!(
+        buy(&mut battle, "test_rifle", None),
+        Some(NotOffered),
+        "not on foot"
+    );
+    assert_eq!(
+        buy(&mut battle, "test_apc", None),
+        Some(NotOffered),
+        "nor the carrier alone"
+    );
+    assert_eq!(
+        buy(&mut battle, "test_rifle", Some("test_apc")),
+        None,
+        "the offered pair"
+    );
+}
+
+#[test]
+fn a_narrowed_shop_is_published_to_its_side_and_read_back() {
+    let mut battle = narrowed();
+    battle.step();
+    let words = sim::publication::Publisher::new()
+        .publish(&battle, Side::Blue)
+        .unwrap()
+        .iter()
+        .map(|w| w.to_bits())
+        .collect::<Vec<_>>();
+    let decoded = sim::publication::reader::Reader::new(&sim::publication::layout_json(&battle))
+        .unwrap()
+        .decode(&words)
+        .unwrap()
+        .unwrap();
+    let decoded = serde_json::to_value(&decoded).unwrap();
+    let player = &decoded["skirmish"]["players"][0];
+    assert_eq!(
+        player["offered"],
+        json!([{"kind":"test_rifle","carrier":"test_apc"}])
+    );
+    // A shop nobody narrowed is published as such.
+    let open = Battle::new(&resolve(document(), rules_with(|_| {})).unwrap(), 7);
+    assert!(
+        open.observe(Side::Blue).skirmish.as_ref().unwrap().players[0]
+            .offered
+            .is_none()
+    );
+}

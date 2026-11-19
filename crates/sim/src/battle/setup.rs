@@ -185,6 +185,21 @@ impl Battle {
         // owner's income and unit cap and pays a bounty like a bought unit,
         // though nobody paid for it.
         if let Some(skirmish) = battle.skirmish.as_mut() {
+            // A scenario's narrowed shops, by unit type (its resolver checked
+            // every name is a card its player's faction buys).
+            let kind = |id: &str| battle.rules.catalog.index(id).expect("an admitted card");
+            for (player, offered) in &skirmish.setup.offered.clone() {
+                let index = skirmish.player_index(player).expect("an admitted player");
+                skirmish.offers[index] = Some(
+                    offered
+                        .iter()
+                        .map(|o| contract::skirmish::OfferedPurchase {
+                            kind: kind(&o.variant),
+                            carrier: o.carrier.as_deref().map(kind),
+                        })
+                        .collect(),
+                );
+            }
             for unit in &battle.units {
                 let Some(player) = unit
                     .owner

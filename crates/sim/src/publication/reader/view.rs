@@ -194,7 +194,14 @@ view!(Encounter {
 });
 view!(Skirmish { phase: Option<&'static str>, players: Vec<Player>, preparation_remaining_s: f64,
     scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, report: Option<Report> });
-view!(Player { index: f64, id: Name, controller: Name, ready: bool, credits: f64, income_per_minute: f64, unit_count: f64, cap: f64, pending: Vec<PendingPurchase> });
+view!(Player { index: f64, id: Name, controller: Name, ready: bool, credits: f64, income_per_minute: f64, unit_count: f64, cap: f64, pending: Vec<PendingPurchase>,
+    // What a shop an authored scenario narrowed sells; none where it is not narrowed.
+    offered: Option<Vec<Offer>> });
+view!(Offer {
+    kind: Name,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    carrier: Option<Name>
+});
 view!(Objective { id: Name, center: Point2, radius_m: f64, owner: Option<&'static str>,
     capturing: Option<&'static str>, capture_progress: f64, contested: bool });
 view!(PendingPurchase {

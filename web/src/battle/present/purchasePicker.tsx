@@ -11,6 +11,7 @@ import { PurchaseInfo, ShopCard } from "./purchaseCard";
 import {
   cardPurchasable,
   carrierSections,
+  shopOf,
   enterChoice,
   filterCards,
   shopOrder,
@@ -19,13 +20,7 @@ import {
   type BuyFacts,
   type UnitGroup,
 } from "./purchaseFilter";
-import {
-  ON_FOOT,
-  optionCarrier,
-  optionPurchasable,
-  TransportMenu,
-  transportOptions,
-} from "./transportMenu";
+import { optionCarrier, optionPurchasable, TransportMenu, transportOptions } from "./transportMenu";
 import type { PlayerView, SkirmishView } from "../sim/observationView";
 
 /** A request to show one exact card in the store, from a unit card's
@@ -193,7 +188,9 @@ function PurchaseMenu({
   reveal,
 }: MenuProps) {
   const catalog = useSessionCatalog();
-  const available = cards.filter((c) => c.roster.factions.includes(faction));
+  const sold = cards.filter((c) => c.roster.factions.includes(faction));
+  const shop = shopOf(player.offered);
+  const available = sold.filter(shop.sells);
   // A planned card has no type: it is neither a squad nor a carrier.
   const typed = (id: string) => catalog.units.has(id);
   const groupOf = (c: UnitCard) => unitGroup(c, typed(c.id) ? catalog.units.type(c.id) : null);
@@ -201,7 +198,14 @@ function PurchaseMenu({
   // its info card open. Its filter holds the full name so the state explains
   // itself; the id is what keeps the result exact.
   const revealed = reveal ? (available.find((c) => c.id === reveal.card) ?? null) : null;
-  const [group, setGroup] = useState<UnitGroup>(revealed ? groupOf(revealed) : UNIT_GROUPS[0].id);
+  // A shop an authored scenario narrowed to a few cards shows only the tabs
+  // they stand under: a tab with nothing on sale says nothing.
+  const groups = player.offered
+    ? UNIT_GROUPS.filter(({ id }) => available.some((c) => groupOf(c) === id))
+    : UNIT_GROUPS;
+  const [group, setGroup] = useState<UnitGroup>(
+    revealed ? groupOf(revealed) : (groups[0] ?? UNIT_GROUPS[0]).id,
+  );
   const [hovered, setHovered] = useState<string | null>(revealed?.id ?? null);
   // An explicitly hovered or keyboard-selected transport option, for its squad.
   const [pick, setPick] = useState<{ squad: string; option: string } | null>(null);
@@ -270,17 +274,19 @@ function PurchaseMenu({
   const sections = squad
     ? carrierSections(
         squadSize(squad),
-        available,
+        sold.filter((carrier) => shop.carries(squad, carrier)),
         (c) => (typed(c.id) ? catalog.units.seats(c.id) : 0),
         groupOf,
       )
     : [];
-  // Pointing at the base card previews buying the squad on foot.
+  const onFoot = squad !== null && shop.onFoot(squad);
+  // Pointing at the base card previews buying the squad on foot, or its first
+  // ride where the shop sells it only riding.
   const option =
     squad && pick?.squad === squad.id
       ? pick.option
       : squad && squad === hoveredCard
-        ? ON_FOOT
+        ? (transportOptions(sections, onFoot)[0] ?? null)
         : null;
   // A card without a transport menu shows its one info card.
   const info = squad ? null : hoveredCard;
@@ -310,7 +316,7 @@ function PurchaseMenu({
   const step = useRef<(by: 1 | -1) => void>(() => {});
   step.current = (by) => {
     if (!squad) return;
-    const options = transportOptions(sections);
+    const options = transportOptions(sections, onFoot);
     const at = option === null ? (by > 0 ? -1 : options.length) : options.indexOf(option);
     const next = options[(at + by + options.length) % options.length];
     setPick({ squad: squad.id, option: next });
@@ -331,7 +337,8 @@ function PurchaseMenu({
   // Enter buys the sole match; a squad's, in the highlighted ride or on foot.
   // With several shown, it no-ops.
   const enter = () => {
-    if (squad && squad === sole) buy(squad, option ?? ON_FOOT);
+    const first = squad ? transportOptions(sections, onFoot)[0] : undefined;
+    if (squad && squad === sole && (option ?? first)) buy(squad, option ?? first!);
     else {
       const choice = searching ? enterChoice(shown, facts) : null;
       if (choice) onChoose(choice.id);
@@ -419,7 +426,7 @@ function PurchaseMenu({
           the tabs, and dims them while it owns the search. */}
       <div className="hud-purchase-filter">
         <div className="hud-purchase-groups" role="tablist" aria-label="Unit groups">
-          {UNIT_GROUPS.map(({ id, label }) => (
+          {groups.map(({ id, label }) => (
             <button
               key={id}
               type="button"
@@ -487,6 +494,7 @@ function PurchaseMenu({
           key={squad.id}
           squad={squad}
           sections={sections}
+          onFoot={onFoot}
           facts={facts}
           rules={rules}
           option={option}

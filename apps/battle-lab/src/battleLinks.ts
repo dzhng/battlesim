@@ -41,6 +41,9 @@ export type AskedBattle =
       battleSeed: number;
       lighting: string;
     })
+  /** An authored scenario on a saved `scenario` map: its document fixes the
+   *  rest. */
+  | { kind: "scenario"; map: string; name: string }
   | { kind: "replay" };
 
 /** Every parameter a battle address may hold. */
@@ -56,6 +59,7 @@ const PARAMETERS = new Set([
   "red_faction",
   "battle",
   "replay",
+  "scenario",
 ]);
 
 /** The regions a player may ask for: the presets' regional families. */
@@ -130,6 +134,9 @@ function playerParams(players: readonly Player[]): string[] {
   });
 }
 
+/** An authored scenario's battle address: map `map`'s scenario `name`. */
+export const scenarioHref = (map: string, name: string) => `/battle?scenario=${map}/${name}`;
+
 /** The battle `players` fight on the generated map `choice`. */
 export const battleHref = (
   choice: MapChoice,
@@ -163,6 +170,17 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const unknown = [...params.keys()].find((name) => !PARAMETERS.has(name));
   if (unknown !== undefined) return { error: `${unknown} is not a battle parameter` };
   if (params.has("replay")) return { kind: "replay" };
+  const scenario = params.get("scenario");
+  if (scenario !== null) {
+    // `<map>/<name>`, each a catalogue address; nothing else goes with it.
+    const [map, name, ...rest] = scenario.split("/");
+    const address = /^[a-z0-9_-]+$/;
+    if (rest.length || !address.test(map ?? "") || !address.test(name ?? ""))
+      return { error: "scenario must name a map and its scenario as <map>/<name>" };
+    if ([...params.keys()].some((key) => key !== "scenario"))
+      return { error: "a scenario's battle takes no other parameter" };
+    return { kind: "scenario", map, name };
+  }
   const seed = (name: string, fallback: string) => canonicalSeed(params.get(name) ?? fallback);
   const battleSeed = Number(params.get("battle") ?? DEFAULT_BATTLE_SEED);
   if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)

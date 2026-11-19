@@ -19,9 +19,13 @@ import { purchasePairPanels, purchasePanel, type PanelRules } from "./panelRows"
 export const ON_FOOT = "on-foot";
 
 /** The menu's options in the order the arrow keys step through them: on
- *  foot, then each section's carriers as they stand. */
-export const transportOptions = (sections: readonly CarrierSection[]): string[] => [
-  ON_FOOT,
+ *  foot (where the shop sells the squad on foot), then each section's
+ *  carriers as they stand. */
+export const transportOptions = (
+  sections: readonly CarrierSection[],
+  onFoot: boolean,
+): string[] => [
+  ...(onFoot ? [ON_FOOT] : []),
   ...sections.flatMap((s) => s.carriers.map((c) => c.id)),
 ];
 
@@ -54,6 +58,7 @@ const clampLeft = (picker: HTMLElement, left: number, width: number) =>
 export function TransportMenu({
   squad,
   sections,
+  onFoot,
   facts,
   rules,
   option,
@@ -64,6 +69,8 @@ export function TransportMenu({
 }: {
   squad: UnitCard;
   sections: readonly CarrierSection[];
+  /** The shop sells the squad on foot. */
+  onFoot: boolean;
   facts: BuyFacts;
   rules: PanelRules;
   /** The highlighted option, null until the player shows intent. */
@@ -130,12 +137,14 @@ export function TransportMenu({
           pointer never leaves the menu on its way in. */}
       <div className="hud-transport" ref={menu} onMouseEnter={onEnter}>
         <section ref={frame} className="hud-panel hud-transport-menu" aria-label="Transport">
-          <div className="hud-transport-section" role="group" aria-label="On foot">
-            <span className="hud-transport-label" aria-hidden>
-              On foot
-            </span>
-            <div className="hud-transport-cards">{card(ON_FOOT, null)}</div>
-          </div>
+          {onFoot && (
+            <div className="hud-transport-section" role="group" aria-label="On foot">
+              <span className="hud-transport-label" aria-hidden>
+                On foot
+              </span>
+              <div className="hud-transport-cards">{card(ON_FOOT, null)}</div>
+            </div>
+          )}
           {sections.map(({ group, label, carriers }) => (
             <div key={group} className="hud-transport-section" role="group" aria-label={label}>
               <span className="hud-transport-label" aria-hidden>

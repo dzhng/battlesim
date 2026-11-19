@@ -109,6 +109,20 @@ pub struct SkirmishSetup {
     /// income (an authored scenario's grant). Absent, the rules decide.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub opening_credits: BTreeMap<String, u64>,
+    /// What a player may buy, when an authored scenario narrows its shop.
+    /// Absent, the player buys whatever its faction sells.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub offered: BTreeMap<String, Vec<PurchaseSpec>>,
+}
+
+/// A purchase as a card names it: a unit type, and the carrier a squad is
+/// bought in.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PurchaseSpec {
+    pub variant: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -120,6 +134,8 @@ struct UncheckedSetup {
     openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
     #[serde(default)]
     opening_credits: BTreeMap<String, u64>,
+    #[serde(default)]
+    offered: BTreeMap<String, Vec<PurchaseSpec>>,
 }
 
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
@@ -152,6 +168,7 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
             sites: value.sites,
             openings: value.openings,
             opening_credits: value.opening_credits,
+            offered: value.offered,
         })
     }
 }
@@ -251,6 +268,17 @@ pub struct PlayerView {
     pub unit_count: u32,
     pub cap: u32,
     pub pending: Vec<PendingPurchase>,
+    /// What the player may buy now, when its shop is narrowed.
+    pub offered: Option<Vec<OfferedPurchase>>,
+}
+
+/// A purchase a narrowed shop offers: a unit type, and the carrier a squad
+/// is bought in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OfferedPurchase {
+    pub kind: TypeIndex,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<TypeIndex>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

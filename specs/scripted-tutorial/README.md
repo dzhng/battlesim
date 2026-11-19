@@ -21,9 +21,9 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–04 shipped (probes, Guide, directed seats,
-scenario map, scenario document). Next: [slice 05 (scenario battle)](slices/05-scenario-battle.md);
-[06 (director)](slices/06-director.md) does not depend on it.*
+*Status 2026-11-19: slices 00–05 shipped (probes, Guide, directed seats,
+scenario map, scenario document, scenario battle). Next:
+[slice 06 (director)](slices/06-director.md).*
 
 Read **Contracts** and **One owner per concept** below before touching code;
 every slice inherits them. The scenario document lives in
@@ -38,10 +38,10 @@ Warnings:
 
 - The deploy key is **T**, not D. Coach text never spells a key: it reads the
   bindings.
-- The `ui` scene's pause-menu baselines (`web/scenes/baselines/ui/pause-menu*.png`)
-  still show "Tutorial" after slice 01. Re-approve them, after looking, in the first
-  slice that runs browser scenes (05). It needs the WASM build (`bun run --cwd web
-  build:wasm`, already built in this checkout) and the scene's LFS assets.
+- Browser scenes need the WASM build (`bun run --cwd web build:wasm`, after any
+  contract or sim change) and the LFS runtime art and effects
+  (`assets/runtime/**`, `assets/third-party/effects/**`), all present in this
+  checkout. Run them with `WEBGPU_BROWSER=local`.
 - Generated maps on `staging` are still flat (the rolling-hills work is in a
   separate session). The Ferryman valley's hills are authored, so nothing waits on
   that work.
@@ -57,7 +57,7 @@ TODO:
 - [x] [02](slices/02-directed-seats.md) A `DirectedAi` controller: an AI seat the director moves
 - [x] [03](slices/03-scenario-map.md) `scenario` map category and the Ferryman valley
 - [x] [04](slices/04-scenario-document.md) Scenario document, its resolver and the placement check
-- [ ] [05](slices/05-scenario-battle.md) Scenario battle playable: address, preparation, offered shop, covering grants
+- [x] [05](slices/05-scenario-battle.md) Scenario battle playable: address, preparation, offered shop, covering grants
 - [ ] [06](slices/06-director.md) Director: contract and runtime
 - [ ] [07](slices/07-published-progress.md) Director progress published to its audience
 - [ ] [08](slices/08-walkthrough.md) Walkthrough harness and chapters 1–2 directed

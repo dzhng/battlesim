@@ -136,6 +136,15 @@ impl Reader {
                     return Err("pending purchase names an unpublished player".into());
                 }
             }
+            for (owner, offer) in map(&rows[group("offers")], |r| self.offer(r))? {
+                match players.iter_mut().find(|p| p.index == owner) {
+                    Some(Player {
+                        offered: Some(offered),
+                        ..
+                    }) => offered.push(offer),
+                    _ => return Err("an offer names a player whose shop is not narrowed".into()),
+                }
+            }
             let reported =
                 f!(h, HEADER, "reportTotalsCount") > 0.0 || f!(h, HEADER, "reportEventCount") > 0.0;
             Some(Skirmish {

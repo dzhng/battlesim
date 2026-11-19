@@ -4,8 +4,8 @@ use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
 use contract::players::{ControllerKind, Player, Seating};
 use contract::skirmish::{
-    MatchEvent, MatchReport, MatchRuleSet, MatchRules, MatchTotals, MatchUnit, PendingPurchase,
-    Phase, PurchaseId, SkirmishSetup, SkirmishView,
+    MatchEvent, MatchReport, MatchRuleSet, MatchRules, MatchTotals, MatchUnit, OfferedPurchase,
+    PendingPurchase, Phase, PurchaseId, SkirmishSetup, SkirmishView,
 };
 use std::collections::{BTreeMap, VecDeque};
 
@@ -24,6 +24,7 @@ pub fn setup_for<P: AsRef<[Player]>>(
         sites,
         openings: BTreeMap::new(),
         opening_credits: BTreeMap::new(),
+        offered: BTreeMap::new(),
     }
 }
 
@@ -185,6 +186,9 @@ pub struct Skirmish {
     pub dispatch_turn: Vec<usize>,
     pub entered: BTreeMap<UnitId, EnteredUnit>,
     pub report: MatchReport,
+    /// Each player's narrowed shop, or none where it buys what its faction
+    /// sells ([`SkirmishSetup::offered`], resolved to unit types).
+    pub offers: Vec<Option<Vec<OfferedPurchase>>>,
 }
 
 impl PlayerState {
@@ -264,6 +268,7 @@ impl Skirmish {
                 totals: vec![MatchTotals::default(); players.len()],
                 events: Vec::new(),
             },
+            offers: vec![None; players.len()],
             players,
             next_dispatch: vec![0; entry_count],
             dispatch_turn,
@@ -281,6 +286,14 @@ impl Skirmish {
             fielded[player].cost += self.entered.get(&unit.id).map_or(0, |e| u64::from(e.price));
         }
         fielded
+    }
+    /// Whether `player`'s shop sells `purchase`: anything its faction sells,
+    /// unless an authored scenario narrowed it.
+    pub fn offers(&self, player: usize, purchase: OfferedPurchase) -> bool {
+        self.offers
+            .get(player)
+            .and_then(Option::as_ref)
+            .is_none_or(|offered| offered.contains(&purchase))
     }
     pub fn player_index(&self, id: &str) -> Option<usize> {
         self.players.iter().position(|p| p.id == id)
@@ -341,6 +354,7 @@ impl Skirmish {
                     / CREDIT_SCALE as f64,
                 unit_count: fielded.units + p.reserved_units(),
                 cap: self.setup.rules.max_units,
+                offered: self.offers[index].clone(),
                 pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
             })
             .collect();
@@ -519,6 +533,18 @@ impl Skirmish {
         }
         for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
             d.u64(*clock).u64(*turn as u64);
+        }
+        // Only a narrowed shop hashes, so other battles keep their digests.
+        for (index, offered) in self.offers.iter().enumerate() {
+            if let Some(offered) = offered {
+                d.bytes(b"offered")
+                    .u64(index as u64)
+                    .u64(offered.len() as u64);
+                for o in offered {
+                    d.u64(o.kind.0 as u64)
+                        .u64(o.carrier.map_or(u64::MAX, |c| c.0 as u64));
+                }
+            }
         }
         d.u64(self.entered.len() as u64);
         for (id, u) in &self.entered {

@@ -71,6 +71,11 @@ map type, size, map seed and battle seed default when left out, the size to the
 smallest map that fits the players. A link may place several humans on either side. An old-shape link (its `faction` or `enemy`, or no players), a wrong
 value, or a parameter the battle does not read is refused by name, never
 ignored, and a refused seed never silently becomes another battle.
+An authored scenario's address names only its map and scenario
+(`/battle?scenario=<map>/<name>`): its document fixes the players, the seed and
+the forces, and preparation resolves it under the build's own rules. Its shop
+shows only what the scenario offers, under only the tabs those cards stand
+under.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own `capture` map

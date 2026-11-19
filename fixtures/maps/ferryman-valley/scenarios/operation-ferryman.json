@@ -110,6 +110,17 @@
       ]
     }
   },
+  "offered": {
+    "blue-1": [
+      {
+        "variant": "us_army_scouts_light_patrol"
+      },
+      {
+        "variant": "rifle_squad",
+        "carrier": "us_m2_bradley_ifv_m2a4"
+      }
+    ]
+  },
   "zones": {
     "entry": {
       "center": [

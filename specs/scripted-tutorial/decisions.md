@@ -217,3 +217,35 @@ hills session was told what the valley needs.
   they are first used, so this slice adds no unused code.
 - **Red's `river_guns` stands at the edge of `river_woods`, not inside it**
   (agent): the placement test refused it among the trees, since trees are bodies.
+
+## Slice 05
+
+- **Offers travel by unit type.** The skirmish holds each narrowed shop as
+  resolved `OfferedPurchase { kind, carrier }` pairs, resolved from the
+  document's names when the battle is built, because the publication writer
+  has no catalog. The publication adds an `offers` group (owner, kind,
+  carrier) and a `shopNarrowed` flag on the player row, so a shop narrowed to
+  nothing still reads as narrowed. The parity fixtures were re-blessed once
+  for the new layout, a named decision (agent).
+- **`NotOffered` counts as malformed** (agent): the sender sees its own offer,
+  as it sees its faction for `WrongFaction`. The page has no words for it,
+  because the picker never shows a card the shop doesn't sell.
+- **Empty tabs hide only in a narrowed shop** (agent, after an unprimed
+  critique found a lone card under nine empty tabs "semi-broken"). A skirmish
+  faction sells in every group, and the picker's tests build tiny card sets
+  that click tabs, so the general rule would only have broken them.
+- **A squad sold only riding opens its menu on its ride**, and the menu drops
+  "On foot" when the shop doesn't sell the squad on foot (agent).
+- **An authored scenario's battle doesn't open from a replay file** (agent).
+  `parseReplayFile` admits only a generated battle's file; chapter restart
+  (12) replays inside the session. A scenario replay from a file is a later
+  addition if it's ever wanted.
+- **`Skirmish::{offer, grant}` move to slice 06** (agent), where the director
+  first calls them, so no function lands unused.
+- **A capture refresh re-records its battle digests** (agent, its own commit).
+  The paris-corner capture's recorded digests had gone stale on staging before
+  this branch (proved on the base commit), so no layout change could re-bless
+  it. That follows the user's rule that recordings follow the game.
+- **The Ferryman document offers chapter 1's two purchases** (scouts; a rifle
+  squad in a Bradley), and the opening credits cover exactly them: the
+  battle opens with 390 CR at today's prices.

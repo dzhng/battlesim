@@ -589,6 +589,15 @@ export interface PlayerView {
   unitCount: number;
   cap: number;
   pending: PendingPurchaseView[];
+  /** What a shop an authored scenario narrowed sells; null where the player
+   *  buys whatever its faction sells. */
+  offered: OfferView[] | null;
+}
+
+/** A narrowed shop's purchase: a unit type, and the carrier a squad rides. */
+export interface OfferView {
+  kind: string;
+  carrier?: string;
 }
 
 export interface PendingPurchaseView {

@@ -62,6 +62,20 @@ export interface PrepareReplayMessage {
   battle: PreparedBattle;
 }
 
+/** An authored scenario on a `scenario` saved map, by its names. */
+export interface ScenarioRequest {
+  map: string;
+  name: string;
+}
+
+/** Preparing an authored scenario: the document fixes everything but the
+ *  rules, which are the build's own. */
+export interface PrepareScenarioMessage {
+  type: "prepare-scenario";
+  scenario: ScenarioRequest;
+  documents: PrepareDocuments;
+}
+
 /** An explicit downloaded bundle; admission never resolves a map source. */
 export interface PrepareScenarioBundleMessage {
   type: "prepare-bundle";
@@ -70,6 +84,7 @@ export interface PrepareScenarioBundleMessage {
 }
 export type PreparationMessage =
   | PrepareMessage
+  | PrepareScenarioMessage
   | PrepareReplayMessage
   | PrepareScenarioBundleMessage;
 
@@ -110,8 +125,12 @@ export interface PreparedPicture {
 
 export interface PreparationReport {
   stress?: StressPreparation & { livingUnits: Record<"blue" | "red", number> };
-  /** The request, as the simulation's check wrote it back. */
-  request: PrepareBattleRequest;
+  /** A generated battle's request, as the simulation's check wrote it back.
+   *  An authored scenario's battle names its scenario instead. */
+  request?: PrepareBattleRequest;
+  /** The authored scenario the battle plays, and the seed its document
+   *  fixes. */
+  scenario?: ScenarioRequest & { battleSeed: number };
   /** What the resolved map is. */
   identity: MapIdentity;
   /** The playable area, metres. */

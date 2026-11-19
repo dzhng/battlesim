@@ -1,5 +1,15 @@
 # 05 Scenario battle: address, preparation, offered shop
 
+**Status: shipped 2026-11-19.** `/battle?scenario=ferryman-valley/operation-ferryman`
+opens the tutorial's battle in preparation with 390 CR and a shop narrowed to
+the scouts and the rifle squad in its Bradley, under only the REC and INF tabs
+([shot](../../../throwaway/evidence/scenario-battle/shop.png) is scratch; the
+`scenario-battle` scene re-shoots it). Evidence: `scenario-battle` scene passes;
+`crates/sim/tests/scenarios.rs` (narrowed shop refusals and publication round
+trip); the picker tests; the `ui` scene with its two pause-menu baselines
+re-blessed (only the label changed). Deviations:
+[decisions.md](../decisions.md#slice-05).
+
 **Unlocks:** the tutorial battle is playable (no story yet). Open it, buy the
 offered cards with the granted credits, place them, start, and fight the
 outpost.

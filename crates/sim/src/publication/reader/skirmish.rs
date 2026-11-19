@@ -1,7 +1,9 @@
 //! The skirmish's rows: capture objectives, pending purchases and players,
 //! decoded by the writer's field names.
-use super::{at, optional_fixed, Objective, PendingPurchase, Player, Reader, Result, Row, LIMB};
-use crate::publication::{OBJECTIVE_FIELDS, PENDING_FIELDS, PLAYER_FIELDS};
+use super::{
+    at, optional_fixed, Objective, Offer, PendingPurchase, Player, Reader, Result, Row, LIMB,
+};
+use crate::publication::{OBJECTIVE_FIELDS, OFFER_FIELDS, PENDING_FIELDS, PLAYER_FIELDS};
 
 impl Reader {
     pub(super) fn objective(&self, r: &Row) -> Result<Objective> {
@@ -53,6 +55,20 @@ impl Reader {
             unit_count: v!(f, "unitCount"),
             cap: v!(f, "cap"),
             pending: Vec::new(),
+            offered: (v!(f, "shopNarrowed") != 0.0).then(Vec::new),
         })
+    }
+
+    /// An offers row: its owner's seat index and the purchase.
+    pub(super) fn offer(&self, r: &Row) -> Result<(f64, Offer)> {
+        const FIELDS: &[&str] = &OFFER_FIELDS;
+        let f = r.fields;
+        Ok((
+            v!(f, "owner"),
+            Offer {
+                kind: self.name("unitKinds", v!(f, "kind"))?,
+                carrier: self.optional("unitKinds", v!(f, "carrier"))?,
+            },
+        ))
     }
 }

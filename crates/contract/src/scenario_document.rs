@@ -20,7 +20,7 @@ use crate::identity::Seed;
 use crate::map::MapDefinition;
 use crate::players::Player;
 use crate::scenario::{Rules, ScenarioDefinition, UnitSetup};
-use crate::skirmish::{MatchRules, SkirmishSetup};
+use crate::skirmish::{MatchRules, PurchaseSpec, SkirmishSetup};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -42,6 +42,10 @@ pub struct ScenarioDocument {
     /// income.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub opening_credits: BTreeMap<String, CreditGrant>,
+    /// What a player may buy at the start, when the scenario narrows its
+    /// shop. Absent, the player buys whatever its faction sells.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub offered: BTreeMap<String, Vec<PurchaseSpec>>,
     /// The named places the scenario's story talks about.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub zones: BTreeMap<String, Zone>,
@@ -56,16 +60,6 @@ pub enum CreditGrant {
     Covering(Vec<PurchaseSpec>),
     /// This many credits.
     Exactly(u64),
-}
-
-/// A purchase as a card names it: a unit type, and the carrier a squad is
-/// bought in.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PurchaseSpec {
-    pub variant: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub carrier: Option<String>,
 }
 
 /// A named place on the map: a circle.
@@ -114,6 +108,21 @@ impl ScenarioDocument {
             sold_to(&rules.catalog, &force.kind, owner.faction)
                 .map_err(|e| format!("forces.{name}.kind: {e}"))?;
         }
+        let check_purchases = |field: &str, player: &str, purchases: &[PurchaseSpec]| {
+            let faction = seat(player)
+                .ok_or_else(|| format!("{field}.{player}: not a player of the scenario"))?
+                .faction;
+            for (i, purchase) in purchases.iter().enumerate() {
+                for kind in std::iter::once(&purchase.variant).chain(&purchase.carrier) {
+                    sold_to(&rules.catalog, kind, faction)
+                        .map_err(|e| format!("{field}.{player}[{i}]: {e}"))?;
+                }
+            }
+            Ok::<_, String>(())
+        };
+        for (player, purchases) in &self.offered {
+            check_purchases("offered", player, purchases)?;
+        }
         let mut opening_credits = BTreeMap::new();
         for (player, grant) in &self.opening_credits {
             let Some(seat) = seat(player) else {
@@ -148,6 +157,7 @@ impl ScenarioDocument {
             "rules": match_rules,
             "sites": self.sites,
             "opening_credits": opening_credits,
+            "offered": self.offered,
         }))
         .map_err(|e| format!("sites: {e}"))?;
         let setup = ScenarioDefinition {
