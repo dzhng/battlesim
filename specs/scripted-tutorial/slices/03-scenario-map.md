@@ -1,5 +1,13 @@
 # 03 Scenario map category and the Ferryman valley
 
+**Status: shipped 2026-11-19.** `MapCategory::Scenario`; every listing carries
+`scenarios` (only a scenario map lists any, and it lists no encounters);
+`fixtures/maps/ferryman-valley` as recorded in
+[decisions.md](../decisions.md#probes-p1-p2-p4-agent-2026-11-19). Lab and test
+loaders already refuse anything but `test` maps. Evidence: the sim map tests
+and `web/tests/mapCatalogue.test.ts` pass; the valley picture was reviewed
+unprimed and its two naming problems were fixed.
+
 **Unlocks:** the first saved map players see, in a category built for authored
 scenarios in general.
 

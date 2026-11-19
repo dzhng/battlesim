@@ -9,5 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["consequences", "cook-off"],
+  "scenarios": [],
   "benchmarks": []
 }

@@ -39,6 +39,22 @@ pub enum ResumeError { Replay(ReplayError), AiMemory { player: String }, Beyond 
   there with the human seat handed back to a person (a recorded controller
   transition at the resume tick).
 
+**P2's verdict shapes it.** A plain replay to chapter 7 costs minutes
+(see [decisions.md](../decisions.md#probes-p1-p2-p4-agent-2026-11-19)), so
+restart is instant from a battle that is already there:
+
+- **A standby battle per chapter.** When a chapter opens, the page starts a
+  second worker that runs `Battle::resume(setup, replay, chapter_tick)` in the
+  background, without publishing, and waits at that tick. "Restart chapter"
+  makes that worker the live authority and drops the old one. The next
+  chapter's opening replaces the standby. This spends one worker's memory for
+  a smooth restart (the user's standing preference) and keeps replay as the
+  only proof: no clone, no snapshot.
+- **A fast-forward that publishes once.** The worker's resume runs its prefix
+  without a publication per tick, then publishes the tick it lands on.
+- Re-measure the real tutorial's resume cost in this slice. It is far smaller
+  than P2's 30-a-side battle.
+
 **Gates:**
 
 - `crates/sim/tests/resume.rs` on a test map:

@@ -1,0 +1,14 @@
+{
+  "category": "scenario",
+  "status": "released",
+  "label": "Ferryman valley",
+  "character": "open",
+  "biome": "summer",
+  "size_m": [1800, 1800],
+  "tags": ["relief", "river", "road", "bridge", "forest", "prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": [],
+  "scenarios": [],
+  "benchmarks": []
+}

@@ -69,7 +69,7 @@ It pins nothing about Ferryman.
 
 - players: blue human `us`, red `DirectedAi` `eastern`;
 - sites: one blue road, one red road, three objectives;
-- chapter 1–2 forces: `outpost` and `east_guns`;
+- chapter 1–2 forces: `outpost` and `river_guns`;
 - the [story](../story.md) zones;
 - opening credits covering chapter 1's purchases;
 - a match patch with a long preparation and a long `majority_s`.

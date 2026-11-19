@@ -21,39 +21,42 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: planned. No slice has started.*
+*Status 2026-11-19: slices 00–03 shipped (probes, Guide, directed seats,
+scenario map). Next: [slice 04 (scenario document)](slices/04-scenario-document.md).*
 
-Start with [slice 00 (probes)](slices/00-probes.md). Each probe can kill an
-assumption the rest of the ladder stands on, and each costs about an hour.
-Slices [01 (Guide)](slices/01-guide.md) and
-[02 (directed seats)](slices/02-directed-seats.md) don't depend on the probes
-and may run alongside them. Read **Contracts** and **One owner per concept**
-below before touching code; every slice inherits them. Climb the check ladder
-only as far as each slice's gate says. The full run happens once, in slice 18.
-Record every decision the plan didn't make in [decisions.md](decisions.md),
-then update this section (status, next pickup, blockers) before you end your
-pass.
+Read **Contracts** and **One owner per concept** below before touching code;
+every slice inherits them. Slice 04 builds on P3's verdict: authored forces in a
+skirmish are refused by `validate_player_contract` today, so 04 admits owned
+forces and gives each an `EnteredUnit` at its current price (see
+[decisions.md](decisions.md#probes-p3-and-p5-agent-2026-11-19)). Use the zones in
+[assets/ferryman-zones.json](assets/ferryman-zones.json) and the card picks from
+P4. Climb the check ladder only as far as each slice's gate says. The full run
+happens once, in slice 18. Record every decision the plan didn't make in
+[decisions.md](decisions.md), then update this section (status, next pickup,
+blockers) before you end your pass.
 
 Warnings:
 
 - The deploy key is **T**, not D. Coach text never spells a key: it reads the
   bindings.
-- Probe P5 checks a suspected bug, where a player-owned authored script's second
-  order is silently refused as out of sequence. If it's real, fix it in its own
-  commit even though this feature doesn't depend on it.
-- Generated maps on `staging` are flat until the rolling-hills work
-  (`t3/map-gen-rolling-hills`, a separate session) lands. Probe P1 says how to
-  proceed either way. The tutorial's ridge and hill are why P1 needs it.
+- The `ui` scene's pause-menu baselines (`web/scenes/baselines/ui/pause-menu*.png`)
+  still show "Tutorial" after slice 01. Re-approve them, after looking, in the first
+  slice that runs browser scenes (05). It needs the WASM build (`bun run --cwd web
+  build:wasm`, already built in this checkout) and the scene's LFS assets.
+- Generated maps on `staging` are still flat (the rolling-hills work is in a
+  separate session). The Ferryman valley's hills are authored, so nothing waits on
+  that work.
 - Bento's ElevenLabs proxy has no voice-design route, and voices created through
   it expire after 24 h. Narration uses a shared-library voice, which never
   expires (slice 10).
+- Disk runs near full: about 30 GB free. Keep Rust builds serial in one checkout.
 
 TODO:
 
-- [ ] [00](slices/00-probes.md) Probes: valley map, resume cost, pre-placed owned units in a skirmish, roster coverage, script sequence bug
-- [ ] [01](slices/01-guide.md) The tutorial page becomes the Guide, reached from Esc
-- [ ] [02](slices/02-directed-seats.md) A `DirectedAi` controller: an AI seat the director moves
-- [ ] [03](slices/03-scenario-map.md) `scenario` map category and the Ferryman valley
+- [x] [00](slices/00-probes.md) Probes: valley map, resume cost, pre-placed owned units in a skirmish, roster coverage, script sequence bug
+- [x] [01](slices/01-guide.md) The tutorial page becomes the Guide, reached from Esc
+- [x] [02](slices/02-directed-seats.md) A `DirectedAi` controller: an AI seat the director moves
+- [x] [03](slices/03-scenario-map.md) `scenario` map category and the Ferryman valley
 - [ ] [04](slices/04-scenario-document.md) Scenario document, its resolver and the placement check
 - [ ] [05](slices/05-scenario-battle.md) Scenario battle playable: address, preparation, offered shop, covering grants
 - [ ] [06](slices/06-director.md) Director: contract and runtime

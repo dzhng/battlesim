@@ -13,5 +13,6 @@
     "defense-jet", "dogfight", "flight", "fog", "ground", "high-air", "hover", "hud", "lost",
     "radar-fighter", "radar-sead", "roof", "survivability"
   ],
+  "scenarios": [],
   "benchmarks": []
 }

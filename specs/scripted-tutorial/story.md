@@ -38,9 +38,9 @@ bridge is fine), never the rules.
 | `ridge` | The wooded ridge above the village, with a treeline facing north | 2, 4 |
 | `farm` | The farm, with a garrisonable farmhouse and a stone wall on the village side | 3, 5 |
 | `crossroads` | The village crossroads: **objective 1** | 3, 7 |
-| `east_woods` | The woods east of the village, where the unseen gunfire comes from | 2 |
-| `ridge_road` | The road over the ridge, where the tank comes in | 4 |
-| `ambush_woods` | Woods beside `ridge_road`, where the AT team waits | 4 |
+| `river_woods` | The woods across the river from the village, where the unseen gunfire comes from | 2 |
+| `north_road` | The road from the bridge down to the village, where the tank comes in | 4 |
+| `ambush_woods` | Woods beside `north_road`, where the AT team waits | 4 |
 | `far_treeline` | The treeline across the fields, where the mortar fires | 5 |
 | `bridge` | The river bridge: **objective 2** | 7 |
 | `hill` | The enemy hill with the SAM radar: **objective 3** | 6, 7 |
@@ -77,7 +77,7 @@ Opening credits cover exactly the chapter's purchases at current prices.
 | To the ridge | beat: recon in `ridge` | `c2.move` | Mark `ridge` on the ground. |
 | Facing | ui: move with facing | `c2.facing` | |
 | Outpost seen | beat: blue identifies the outpost | `c2.spotted` | Red's `outpost` squad stands in the village, worn. |
-| Gunfire | beat: blue holds a contact from `east_woods` | `c2.gunfire` | The director orders red's `east_guns` to fire on a patch of ground near the village. They are heard, never seen. |
+| Gunfire | beat: blue holds a contact from `river_woods` | `c2.gunfire` | The director orders red's `river_guns` to fire on a patch of ground near the village. They are heard, never seen. |
 | Jump to it | ui: contact focus | `c2.jump` | |
 | Stay hidden | beat: recon on return fire only | `c2.hidden` | The panel already shows Hidden. |
 
@@ -100,7 +100,7 @@ Opening credits cover exactly the chapter's purchases at current prices.
 
 | Step | Gate | Line | Notes |
 |---|---|---|---|
-| Tank! | beat: blue identifies `tank` | `c4.tank` | The director sends red's worn `tank` down `ridge_road`. It fires at will. |
+| Tank! | beat: blue identifies `tank` | `c4.tank` | The director sends red's worn `tank` down `north_road`. It fires at will. |
 | Groups | ui: two control groups set | `c4.groups` | |
 | Smoke and reverse | beat: carrier popped smoke, then reversed | `c4.smoke` | |
 | The AT team | continue | `c4.at_team` | Chapter 4 opens by offering and granting blue an AT team, and asks the player to buy it and put it in `ambush_woods` on return fire only. |

@@ -129,3 +129,57 @@ hills session was told what the valley needs.
 - **The bundle's controller normalisation keeps any non-human seat as is**
   (agent, a cleanup while adding the arm): one guard (an untaken human seat
   sits passive) instead of an arm per kind.
+
+## Probes P1, P2, P4 (agent, 2026-11-19)
+
+- **P4: the rosters cover every role.** The picks, with the reason each one
+  is the right card, are what the chapter slices field:
+
+  | Role | Card | Why this card |
+  |---|---|---|
+  | Blue recon | `us_army_scouts_light_patrol` | Sees 750 m; concealment 0.8 |
+  | Blue squad and carrier | `rifle_squad` + `us_m2_bradley_ifv_m2a4` | The only `us` 8-seat carrier with smoke, which chapter 4 needs; its autocannon suppresses |
+  | Blue AT team | `fgm_148_javelin_team` | Top attack beats a T-72's roof; minimum range 100 m |
+  | Blue supply | `us_m977_hemtt_general_resupply` | Deploys |
+  | Blue mortar | `us_m1129_stryker_mortar_120_mm_mortar_carrier` | Indirect, 100–900 m |
+  | Blue air defence | `fim_92_stinger_team` | Hits low air |
+  | Blue helicopter | `us_ah_1z_viper_attack_helicopter` | |
+  | Blue jet | A-10C | Attack runs and arrival countdown |
+  | Blue SEAD | `us_ea_18g_growler_electronic_warfare_aircraft` | Radar receiver 5 km, anti-radiation missile |
+  | Red squads | `eastern_rifle_squad` | |
+  | Red tank | `eastern_t_72_t_72b3_2016` | |
+  | Red helicopter | `eastern_mi_8_hip_mi_8amtsh` | The Mi-35M's armour is beyond the Stinger |
+  | Red radar SAM | `eastern_buk_buk_m3_medium_range_air_defense` | Emits; the Pantsir would shoot down the SEAD missile |
+  | Red treeline team | `eastern_rpg_team_rpg_7` | |
+
+  The Buk reaches 1500 m, most of the map, so chapter 6's red SAM must not
+  engage before the radar step (its authored engagement, then a director cue).
+- **P1: the flat valley generates; the hills are authored.** The rolling-hills
+  branch hasn't landed. The best of 60 requests is `open small` seed 3 (1800 m).
+  It was regenerated in the `paris` region so the village reads European (the
+  seed drew `china`; `region` is a generation request field, and the layout
+  didn't change). Saved as `fixtures/maps/ferryman-valley` with two authored
+  ridges (a 14 m ridge under the wood beside Blue's road, and a 26 m hill on
+  red's bank of the river for the radar) and a low stone wall on the farm's
+  village side, east of the road. It is an `authored` map: its identity pins its
+  content hash and its own template selection (8 paris templates), as the
+  fixtures README asks of an authored map. The generated `sites.json` stays out
+  of the folder (that file belongs to generated maps); the scenario document
+  carries its sites. The map and its zones:
+  [assets/ferryman-valley.png](assets/ferryman-valley.png),
+  [assets/ferryman-zones.json](assets/ferryman-zones.json).
+- **Zone names follow the map, and so do the two spoken lines that named
+  them.** An unprimed review of the picture found every story place, and
+  flagged that "east woods" lie across the river to the west, and that the tank
+  comes down the north road, not a ridge road. The zones are now `river_woods`
+  and `north_road`; `c2.gunfire` ("across the river") and `c4.tank` ("on the
+  north road") were re-recorded and pass speech-to-text.
+- **The ridge treeline is about 530 m from the village's south edge**, inside
+  the scouts' 750 m sight. So chapter 2's outpost stands at the village's south
+  edge. The walkthrough (08) proves the sighting.
+- **P2: restart by plain replay is too slow at full scale.** Native release, at
+  about 30 units a side: 65.6 M instructions a tick, 261 ticks/s, so 45k ticks
+  takes about 3 minutes. A normal small battle with 23 units runs at about
+  800 ticks/s (56 s). In the browser, `SimClient.advance` also publishes every
+  tick and waits for the page's buffer. **Slice 12 takes the fallback** (see its
+  file).

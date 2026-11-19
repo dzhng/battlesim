@@ -9,5 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["movement"],
+  "scenarios": [],
   "benchmarks": []
 }

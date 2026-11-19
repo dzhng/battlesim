@@ -13,70 +13,237 @@
     "One line per coach beat; the beat id is the coach step's id."
   ],
   "lines": [
-    { "id": "c1.open", "text": "Ferryman, this is Lantern. Dawn is breaking over the valley. Before anyone moves, take a good look at the ground." },
-    { "id": "c1.camera_pan", "text": "Slide the map around. Get a feel for how far it runs." },
-    { "id": "c1.camera_turn", "text": "Now turn the view, and tilt it. Hills hide things. Look at them from more than one side." },
-    { "id": "c1.camera_zoom", "text": "Pull right back and see the whole valley. Then come in close." },
-    { "id": "c1.objectives", "text": "Those numbered flags are what this fight is about. Hold them, and the score runs our way. First side to the top wins." },
-    { "id": "c1.entry", "text": "This is our road in. Everything we buy arrives here. The enemy comes in from the far side." },
-    { "id": "c1.credits", "text": "Command has given us a budget. That's what we have to spend, and it keeps growing while the battle runs." },
-    { "id": "c1.buy_recon", "text": "Open reinforcements and buy us some eyes. Scouts first." },
-    { "id": "c1.place", "text": "Place them where you want them to go. Drag as you place, and you choose which way they face when they get there." },
-    { "id": "c1.buy_carrier", "text": "Now a rifle squad, riding in its carrier. One purchase, two units." },
-    { "id": "c1.orders_not_units", "text": "Nothing is on the field yet. Those are orders, not units. When the battle starts, they drive in from the road." },
-    { "id": "c1.start", "text": "Start the battle when you're ready. If the clock runs out first, it starts anyway." },
-
-    { "id": "c2.arrive", "text": "Here they come. Click the scouts to take command. Or use their card along the bottom." },
-    { "id": "c2.move", "text": "See the treeline on the ridge? Send the scouts up there." },
-    { "id": "c2.facing", "text": "Good. Now face them toward the village. Drag the order out to set where they look." },
-    { "id": "c2.spotted", "text": "Contact. Enemy outpost in the village. When you see a name in red, we can see them clearly." },
-    { "id": "c2.gunfire", "text": "Gunfire, to the east. We can't see who's shooting, but we heard it. That red patch is a contact. Something is out there." },
-    { "id": "c2.jump", "text": "Jump the camera to the contact. Then bring it back." },
-    { "id": "c2.hidden", "text": "Your scouts are hidden in those trees. Keep them that way. Tell them to hold fire unless they're fired on. A scout that shoots is a scout that's seen." },
-
-    { "id": "c3.drive", "text": "The carrier's up next. Take the squad down to that stone wall by the farm." },
-    { "id": "c3.unload", "text": "Let them out behind the wall. Nobody fights from inside the carrier." },
-    { "id": "c3.garrison", "text": "That farmhouse makes a fine fighting position. Put the squad inside." },
-    { "id": "c3.suppress", "text": "There's a squad dug in at the crossroads. Put the carrier's gun on them. Keep their heads down." },
-    { "id": "c3.pinned", "text": "They're pinned. Pinned soldiers move slowly and shoot badly. This is your moment." },
-    { "id": "c3.attack_move", "text": "Out of the farmhouse and forward. Advance, and fight as you go. Use the walls." },
-    { "id": "c3.show_orders", "text": "Hold it down and you see every order at once: the routes, where everyone ends up, and how much cover each soldier will have." },
-    { "id": "c3.capture", "text": "The crossroads is clear. Stand inside the ring, and the flag turns ours, as long as nobody else is in it." },
-    { "id": "c3.captured", "text": "Objective one is ours. Every second we hold it, the score climbs." },
-    { "id": "c3.contested", "text": "Enemy squad pushing back in. With both sides in the ring, it's contested, and nobody scores. Clear them out." },
-
-    { "id": "c4.tank", "text": "Armour on the ridge road! Enemy tank. Your carrier can't trade blows with that." },
-    { "id": "c4.groups", "text": "Before it gets busy: make your infantry one group, and your vehicles another. One key brings each of them back." },
-    { "id": "c4.smoke", "text": "Pop smoke on the carrier and back out. Reverse, don't turn. Keep the thick armour toward the threat." },
-    { "id": "c4.at_team", "text": "We have an anti-tank team in the woods, holding fire. Let the tank come to them." },
-    { "id": "c4.ambush", "text": "Now! Order the attack on that tank." },
-    { "id": "c4.killed", "text": "Tank down. An ambush from cover. That's how infantry beats steel." },
-
-    { "id": "c5.credits", "text": "Our budget grows while we hold ground. Time to spend it." },
-    { "id": "c5.supply", "text": "Buy a supply truck, and bring it up behind the farm." },
-    { "id": "c5.deploy", "text": "Set it up. Anything that stops nearby gets ammunition, repairs, and fresh soldiers for the ones we've lost." },
-    { "id": "c5.resupply", "text": "Bring your battered units in. They get patched up even while they fight." },
-    { "id": "c5.mortar", "text": "Something is hiding in that far treeline. We can't see it, but we can shell it. Buy a mortar, and fire on the ground there." },
-    { "id": "c5.mortar_done", "text": "Whatever was in there won't be bothering us now." },
-
-    { "id": "c6.helicopter", "text": "Rotors! Enemy helicopter, coming in low." },
-    { "id": "c6.air_defence", "text": "Get air defence up, and bring it down." },
-    { "id": "c6.helicopter_down", "text": "Splash one. Good shooting." },
-    { "id": "c6.own_helicopter", "text": "Our turn. Buy a helicopter. It lifts off from our edge straight away." },
-    { "id": "c6.jet", "text": "Command is offering us a jet. Jets take a while to arrive. Watch its card count down." },
-    { "id": "c6.jet_attack", "text": "A jet never stops. Send it in to attack, and it makes passes: in, fire, out, and around again. Mind its fuel. When it runs low, it heads home." },
-    { "id": "c6.radar", "text": "There's an air-defence site on that hill, and we can't see it. It's hunting our aircraft. A radar-hunting jet will find it." },
-    { "id": "c6.radar_found", "text": "There. A radar contact. We don't know exactly where it is, but we know the area. Fire into it." },
-    { "id": "c6.radar_down", "text": "Their radar's gone quiet. The sky is ours." },
-
-    { "id": "c7.push", "text": "Ferryman, the bridge and the hill are all that's left. Take them. Your call how." },
-    { "id": "c7.contested", "text": "They're fighting us for that flag. While it's contested, nobody scores." },
-    { "id": "c7.score", "text": "Watch the bar up top. Ours fills from the left, theirs from the right. First to the middle wins." },
-    { "id": "c7.victory", "text": "Every flag is ours. Total control. Outstanding work, Ferryman." },
-    { "id": "c7.guide", "text": "If you want a refresher on anything, the guide is in the menu. Lantern out." },
-
-    { "id": "any.retry", "text": "Not quite. Let's run that again." },
-    { "id": "any.unit_lost", "text": "We lost one. It happens. Keep your head." },
-    { "id": "any.take_your_time", "text": "Take your time. Nothing moves until you're ready." }
+    {
+      "id": "c1.open",
+      "text": "Ferryman, this is Lantern. Dawn is breaking over the valley. Before anyone moves, take a good look at the ground."
+    },
+    {
+      "id": "c1.camera_pan",
+      "text": "Slide the map around. Get a feel for how far it runs."
+    },
+    {
+      "id": "c1.camera_turn",
+      "text": "Now turn the view, and tilt it. Hills hide things. Look at them from more than one side."
+    },
+    {
+      "id": "c1.camera_zoom",
+      "text": "Pull right back and see the whole valley. Then come in close."
+    },
+    {
+      "id": "c1.objectives",
+      "text": "Those numbered flags are what this fight is about. Hold them, and the score runs our way. First side to the top wins."
+    },
+    {
+      "id": "c1.entry",
+      "text": "This is our road in. Everything we buy arrives here. The enemy comes in from the far side."
+    },
+    {
+      "id": "c1.credits",
+      "text": "Command has given us a budget. That's what we have to spend, and it keeps growing while the battle runs."
+    },
+    {
+      "id": "c1.buy_recon",
+      "text": "Open reinforcements and buy us some eyes. Scouts first."
+    },
+    {
+      "id": "c1.place",
+      "text": "Place them where you want them to go. Drag as you place, and you choose which way they face when they get there."
+    },
+    {
+      "id": "c1.buy_carrier",
+      "text": "Now a rifle squad, riding in its carrier. One purchase, two units."
+    },
+    {
+      "id": "c1.orders_not_units",
+      "text": "Nothing is on the field yet. Those are orders, not units. When the battle starts, they drive in from the road."
+    },
+    {
+      "id": "c1.start",
+      "text": "Start the battle when you're ready. If the clock runs out first, it starts anyway."
+    },
+    {
+      "id": "c2.arrive",
+      "text": "Here they come. Click the scouts to take command. Or use their card along the bottom."
+    },
+    {
+      "id": "c2.move",
+      "text": "See the treeline on the ridge? Send the scouts up there."
+    },
+    {
+      "id": "c2.facing",
+      "text": "Good. Now face them toward the village. Drag the order out to set where they look."
+    },
+    {
+      "id": "c2.spotted",
+      "text": "Contact. Enemy outpost in the village. When you see a name in red, we can see them clearly."
+    },
+    {
+      "id": "c2.gunfire",
+      "text": "Gunfire, across the river. We can't see who's shooting, but we heard it. That red patch is a contact. Something is out there."
+    },
+    {
+      "id": "c2.jump",
+      "text": "Jump the camera to the contact. Then bring it back."
+    },
+    {
+      "id": "c2.hidden",
+      "text": "Your scouts are hidden in those trees. Keep them that way. Tell them to hold fire unless they're fired on. A scout that shoots is a scout that's seen."
+    },
+    {
+      "id": "c3.drive",
+      "text": "The carrier's up next. Take the squad down to that stone wall by the farm."
+    },
+    {
+      "id": "c3.unload",
+      "text": "Let them out behind the wall. Nobody fights from inside the carrier."
+    },
+    {
+      "id": "c3.garrison",
+      "text": "That farmhouse makes a fine fighting position. Put the squad inside."
+    },
+    {
+      "id": "c3.suppress",
+      "text": "There's a squad dug in at the crossroads. Put the carrier's gun on them. Keep their heads down."
+    },
+    {
+      "id": "c3.pinned",
+      "text": "They're pinned. Pinned soldiers move slowly and shoot badly. This is your moment."
+    },
+    {
+      "id": "c3.attack_move",
+      "text": "Out of the farmhouse and forward. Advance, and fight as you go. Use the walls."
+    },
+    {
+      "id": "c3.show_orders",
+      "text": "Hold it down and you see every order at once: the routes, where everyone ends up, and how much cover each soldier will have."
+    },
+    {
+      "id": "c3.capture",
+      "text": "The crossroads is clear. Stand inside the ring, and the flag turns ours, as long as nobody else is in it."
+    },
+    {
+      "id": "c3.captured",
+      "text": "Objective one is ours. Every second we hold it, the score climbs."
+    },
+    {
+      "id": "c3.contested",
+      "text": "Enemy squad pushing back in. With both sides in the ring, it's contested, and nobody scores. Clear them out."
+    },
+    {
+      "id": "c4.tank",
+      "text": "Armour on the north road! Enemy tank. Your carrier can't trade blows with that."
+    },
+    {
+      "id": "c4.groups",
+      "text": "Before it gets busy: make your infantry one group, and your vehicles another. One key brings each of them back."
+    },
+    {
+      "id": "c4.smoke",
+      "text": "Pop smoke on the carrier and back out. Reverse, don't turn. Keep the thick armour toward the threat."
+    },
+    {
+      "id": "c4.at_team",
+      "text": "We have an anti-tank team in the woods, holding fire. Let the tank come to them."
+    },
+    {
+      "id": "c4.ambush",
+      "text": "Now! Order the attack on that tank."
+    },
+    {
+      "id": "c4.killed",
+      "text": "Tank down. An ambush from cover. That's how infantry beats steel."
+    },
+    {
+      "id": "c5.credits",
+      "text": "Our budget grows while we hold ground. Time to spend it."
+    },
+    {
+      "id": "c5.supply",
+      "text": "Buy a supply truck, and bring it up behind the farm."
+    },
+    {
+      "id": "c5.deploy",
+      "text": "Set it up. Anything that stops nearby gets ammunition, repairs, and fresh soldiers for the ones we've lost."
+    },
+    {
+      "id": "c5.resupply",
+      "text": "Bring your battered units in. They get patched up even while they fight."
+    },
+    {
+      "id": "c5.mortar",
+      "text": "Something is hiding in that far treeline. We can't see it, but we can shell it. Buy a mortar, and fire on the ground there."
+    },
+    {
+      "id": "c5.mortar_done",
+      "text": "Whatever was in there won't be bothering us now."
+    },
+    {
+      "id": "c6.helicopter",
+      "text": "Rotors! Enemy helicopter, coming in low."
+    },
+    {
+      "id": "c6.air_defence",
+      "text": "Get air defence up, and bring it down."
+    },
+    {
+      "id": "c6.helicopter_down",
+      "text": "Splash one. Good shooting."
+    },
+    {
+      "id": "c6.own_helicopter",
+      "text": "Our turn. Buy a helicopter. It lifts off from our edge straight away."
+    },
+    {
+      "id": "c6.jet",
+      "text": "Command is offering us a jet. Jets take a while to arrive. Watch its card count down."
+    },
+    {
+      "id": "c6.jet_attack",
+      "text": "A jet never stops. Send it in to attack, and it makes passes: in, fire, out, and around again. Mind its fuel. When it runs low, it heads home."
+    },
+    {
+      "id": "c6.radar",
+      "text": "There's an air-defence site on that hill, and we can't see it. It's hunting our aircraft. A radar-hunting jet will find it."
+    },
+    {
+      "id": "c6.radar_found",
+      "text": "There. A radar contact. We don't know exactly where it is, but we know the area. Fire into it."
+    },
+    {
+      "id": "c6.radar_down",
+      "text": "Their radar's gone quiet. The sky is ours."
+    },
+    {
+      "id": "c7.push",
+      "text": "Ferryman, the bridge and the hill are all that's left. Take them. Your call how."
+    },
+    {
+      "id": "c7.contested",
+      "text": "They're fighting us for that flag. While it's contested, nobody scores."
+    },
+    {
+      "id": "c7.score",
+      "text": "Watch the bar up top. Ours fills from the left, theirs from the right. First to the middle wins."
+    },
+    {
+      "id": "c7.victory",
+      "text": "Every flag is ours. Total control. Outstanding work, Ferryman."
+    },
+    {
+      "id": "c7.guide",
+      "text": "If you want a refresher on anything, the guide is in the menu. Lantern out."
+    },
+    {
+      "id": "any.retry",
+      "text": "Not quite. Let's run that again."
+    },
+    {
+      "id": "any.unit_lost",
+      "text": "We lost one. It happens. Keep your head."
+    },
+    {
+      "id": "any.take_your_time",
+      "text": "Take your time. Nothing moves until you're ready."
+    }
   ]
 }

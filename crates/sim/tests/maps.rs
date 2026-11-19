@@ -86,6 +86,8 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
         let rules = match catalogue.category(&id).unwrap() {
             contract::maps::MapCategory::Test => &test_rules,
             contract::maps::MapCategory::Capture => &capture_rules,
+            // A scenario map carries scenarios, never encounters.
+            contract::maps::MapCategory::Scenario => continue,
         };
         for name in catalogue.encounters(&id).unwrap() {
             let encounter = catalogue

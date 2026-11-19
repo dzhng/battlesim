@@ -31,7 +31,12 @@ test("the listing is the catalogue's folders, each with valid metadata that says
     const meta = validateMapMeta(id, shipped.meta(id));
     const { definition, identity } = shipped.load(id);
     expect(
-      checkMapFolder(id, meta, { definition, identity, encounters: shipped.encounters(id) }),
+      checkMapFolder(id, meta, {
+        definition,
+        identity,
+        encounters: shipped.encounters(id),
+        scenarios: shipped.scenarios(id),
+      }),
     ).toEqual([]);
     expect(existsSync(join(FIXTURES, "biomes", `${meta.biome}.json`)), `${id}'s biome`).toBe(true);
     for (const benchmark of meta.benchmarks)
@@ -94,6 +99,7 @@ const META: MapMeta = {
   source: "authored",
   seed: null,
   encounters: ["first"],
+  scenarios: [],
   benchmarks: [],
 };
 
@@ -114,6 +120,10 @@ test("metadata a listing could not show is refused, naming the file and the fiel
   for (const category of ["playable", "lab", "benchmark", undefined])
     expect(refused({ category })).toMatch(/^fixtures\/maps\/a-lab\/meta\.json\.category: /);
   expect(refused({ category: "capture" })).toBe("accepted");
+  // Encounters stage tests and films, scenarios are played: one map holds one kind.
+  expect(refused({ category: "scenario", encounters: [], scenarios: ["first"] })).toBe("accepted");
+  expect(refused({ category: "scenario" })).toMatch(/meta\.json\.encounters: /);
+  expect(refused({ scenarios: ["first"] })).toMatch(/meta\.json\.scenarios: /);
   expect(refused({ character: "farmland" })).toMatch(/meta\.json\.character: /);
   expect(refused({ status: undefined })).toBe("fixtures/maps/a-lab/meta.json.status: missing");
   expect(refused({ colour: "red" })).toBe("fixtures/maps/a-lab/meta.json.colour: unknown field");
@@ -132,17 +142,31 @@ test("metadata a listing could not show is refused, naming the file and the fiel
 test("metadata that disagrees with its map is reported field by field", () => {
   const { definition, identity } = shipped.load("geometry");
   const meta = validateMapMeta("geometry", shipped.meta("geometry"));
-  const folder = { definition, identity, encounters: shipped.encounters("geometry") };
+  const folder = {
+    definition,
+    identity,
+    encounters: shipped.encounters("geometry"),
+    scenarios: shipped.scenarios("geometry"),
+  };
   expect(checkMapFolder("geometry", meta, folder)).toEqual([]);
   const problems = checkMapFolder(
     "geometry",
-    { ...meta, size_m: [1, 1], tags: [], encounters: ["absent"], source: "generated", seed: "7" },
+    {
+      ...meta,
+      size_m: [1, 1],
+      tags: [],
+      encounters: ["absent"],
+      scenarios: ["absent"],
+      source: "generated",
+      seed: "7",
+    },
     folder,
   );
   expect(problems.map((p) => p.split(":")[0])).toEqual([
     "fixtures/maps/geometry/meta.json.size_m",
     "fixtures/maps/geometry/meta.json.tags",
     "fixtures/maps/geometry/meta.json.encounters",
+    "fixtures/maps/geometry/meta.json.scenarios",
     "fixtures/maps/geometry/meta.json.source",
   ]);
   // A generated map's listing takes its seed from the generation it pins.

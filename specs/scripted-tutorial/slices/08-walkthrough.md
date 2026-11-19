@@ -16,7 +16,7 @@ person plays.
 `operation-ferryman.json`:
 
 - a milestone beat (no actions, audience blue) for every coach `beat` gate;
-- red's `east_guns` cue: a `DirectedAi` order to fire on ground near the village,
+- red's `river_guns` cue: a `DirectedAi` order to fire on ground near the village,
   heard by blue;
 - the chapter 2 forces worn as the story says.
 

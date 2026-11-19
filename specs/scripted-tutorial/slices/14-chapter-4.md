@@ -13,8 +13,8 @@ follows the chapter slice shape in [13](13-chapter-3.md#shape-of-every-chapter-s
   current order state, which is a fact, not a command;
 - the first recovery beat, using `Grant` with `Covering`.
 
-**Red:** the `tank` (worn hull, fire at will) waits behind the ridge. The
-director sends it down `ridge_road` when the chapter opens.
+**Red:** the `tank` (worn hull, fire at will) waits north of the bridge. The
+director sends it down `north_road` when the chapter opens.
 
 **Blue:** the chapter opens with an `Offer` and a `Grant` covering an AT team.
 The coach asks for it in `ambush_woods` on return fire only. Control groups are

@@ -9,5 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["heli", "heli-crowded", "heli-fire", "heli-ground", "heli-shift", "supply"],
+  "scenarios": [],
   "benchmarks": []
 }

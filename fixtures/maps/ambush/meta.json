@@ -9,5 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["crossfire", "late", "prompt", "top-attack"],
+  "scenarios": [],
   "benchmarks": []
 }

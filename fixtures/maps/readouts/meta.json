@@ -9,5 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": ["readouts"],
+  "scenarios": [],
   "benchmarks": []
 }
