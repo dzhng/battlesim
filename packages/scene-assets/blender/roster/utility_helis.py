@@ -126,7 +126,8 @@ RAMP_CLOSED_TIP = Vector((-3.00, 0, 1.89))  # the boom's underside, where the ap
 
 
 def close_nh90_ramp(part):
-    """Swing the donor's lowered ramp leaf (and its rams) shut on its hinge."""
+    """Swing the donor's lowered ramp leaf, with the rams and tie-downs on it,
+    shut on its hinge."""
     hinge = RAMP_HINGE
     lowered, closed = RAMP_LOWERED_TIP - hinge, RAMP_CLOSED_TIP - hinge
     along, along_closed = lowered.normalized(), closed.normalized()
@@ -134,7 +135,10 @@ def close_nh90_ramp(part):
     stretch = closed.length / lowered.length
 
     def on_ramp(co):
-        return -2.85 < co.x < -0.15 and abs(co.y) < 0.97 and co.z < hinge.z + (co.x - hinge.x) * 0.37 + 0.15
+        # Under the lowered leaf's plane (or up to 0.15 m above it, its
+        # rams), from its hinge to its toes' tips, inside the fuselage's width.
+        below_leaf = co.z < hinge.z + (co.x - hinge.x) * lowered.z / lowered.x + 0.15
+        return -2.85 < co.x < -0.15 and abs(co.y) < 0.97 and below_leaf
 
     mesh = bmesh.new()
     mesh.from_mesh(part.data)
@@ -158,7 +162,6 @@ def close_nh90_ramp(part):
 def nh90(v):
     mats = A.fit(v)
     mats["paint"] = flat_paint("nh90_olive", (.042, .060, .034), rough=.67, grime=.08, role="paint")
-    mats["panel"] = flat_paint("nh90_panel", (.055, .073, .043), rough=.55, grime=.05, role="paint")
     mats["paint"]["paint_edge_scale"] = 3.0
     mats["canopy"] = flat_paint("nh90_glass", (.011, .023, .028), rough=.14, grime=0,
                                coverage=("blended", .30), role="glass")

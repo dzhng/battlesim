@@ -155,6 +155,19 @@ family's spec gives `skin`, and check it on its sheet. A rotorcraft's frame leav
 its blades out (`blade_*`): length nose to tail, width over the widest fixed
 part, height to the top of the rotor head.
 
+A rotorcraft's shell can instead be a donor ([`aircraft_donor.py`](aircraft_donor.py)):
+a licensed third-party model of the real aircraft (CC BY or CC0 only), pinned
+in [`skins/<family>.json`](skins/) like a skin, with its source, creator,
+licence, the source file's hash and what was changed. A donor is prepared
+once into the catalog frame: nose forward, wheels on the ground, its own
+rotors and decals stripped, one part per material, each carrying its
+`material_role` (an `atlas` part keeps the donor's own texture). When that
+preparation is a script, it lives beside the pin (`skins/<family>.py`) and
+rebuilds the pinned file byte for byte. The roster script adds rotors, guns
+and markings, and re-poses what the donor was modelled doing (a lowered
+ramp swung shut on its hinge) through `fitted_airframe`'s `adjust` hook,
+never by covering it with a stand-in part.
+
 A tracked vehicle's body can instead be built by its own script
 ([`scripted_body.py`](scripted_body.py)): a standalone Blender program,
 `build.py`, written by Gemini Argon from the references and our

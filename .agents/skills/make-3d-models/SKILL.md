@@ -28,6 +28,10 @@ has already got right. It is never the source of proportions.
   grants another) it is edited in place; the README of the round the family
   wears lists those edits. A turret or hull that local edits can't fix is
   another round's work, not a patch over the script.
+- A **donor** is a licensed model of the real aircraft (CC BY or CC0),
+  prepared once into the catalog frame and pinned like a skin; most
+  helicopters wear one. The roster script adds rotors, guns and markings
+  around it. The scene-assets Blender readme says how one is prepared.
 - A family's **reference library** holds its photos and drawings with their
   licences. Record a drawing's crop and measured scale in its note so the
   next measurement reuses them.
@@ -181,6 +185,11 @@ result as it lands, polling briefly, and keep test renders small.
   draws, but lit from behind, so it reads near-black in every light. The tell
   is one wall dark from every side: count the faces whose normals point at
   the model's middle.
+
+- **A stand-in over a donor's pose reads as a slab.** A donor modelled
+  doing something (a ramp lowered, a door open) and covered with a box looks
+  like the box. Re-pose the donor's own part on its hinge. The tell is a
+  flat panel where the photos show the aircraft's own shape.
 
 Blender scripting traps live in [references/blender.md](references/blender.md).
 Read it when a script runs but its result looks wrong.

@@ -12,9 +12,9 @@ tricycle gear. Camouflaged green, sand and black over a pale blue belly.
 
 The airframe, cockpit, gear, cannon and stores are 42manako's CC BY Ka-52
 (`skins/ka_52_alligator.json`), fitted to the catalog frame (rotorcraft
-rule: fuselage length without blades, width over the
-wing-tip pods, height to the top of the upper rotor head): 13.65 x 7.3 x
-4.85 m. The rotors, mast and markings are built here.
+rule: fuselage length without blades, width over the wing-tip pods, height
+to the top of the upper rotor head): 13.65 x 7.3 x 4.85 m. The rotors, mast
+and markings are built here.
 
 The cannon on the right flank barely traverses, so it is fixed in the hull
 with the missiles; the airframe turns to bring them to bear.
