@@ -1,9 +1,10 @@
 //! The first helicopter checkpoint's fire, the air map's `flight` encounter
-//! as its lab (`/lab/air`) plays it: red's rifle squad, beside the route,
+//! on its lab (`/lab/air`) route: red's rifle squad, beside the route,
 //! strikes the helicopter's hull without hurting it; the gun jeep, freed
 //! once the helicopter hovers at its goal and held again after its first
 //! burst, hurts it and leaves it flying. Each shooter stands inside its
-//! weapon's reach at the helicopter's height.
+//! weapon's reach at the helicopter's height. The jeep fires without spread
+//! here so the damage check does not depend on one lucky scattered round.
 
 use contract::ids::UnitId;
 use contract::scenario::Rules;
@@ -37,7 +38,10 @@ fn play() -> Beat {
     let held = encounter.scripts[2].tick;
     let mut game = fixtures::rules();
     game["catalog"] = serde_json::Value::Array(fixtures::catalog_documents(CatalogSet::Test));
+    game["physics"]["min_spread_at_max_range_m"] = serde_json::json!(0);
+    game["weapons"]["autocannon"]["targets"]["low_air"]["scatter_mrad"] = serde_json::json!(0);
     let rules: Rules = serde_json::from_value(game).unwrap();
+    sim::admit(&rules).unwrap();
     let mut b = Battle::new(&encounter.on(map, rules).unwrap(), SEED);
     let full = b
         .rules()

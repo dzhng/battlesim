@@ -4,6 +4,7 @@ use crate::effects::launches::Launch;
 use crate::effects::publication::EffectPublication;
 use crate::records::{Emitter, NONE};
 use crate::sound::frame::{Cue, Heard, Motion, Shout};
+use crate::sound::tables::AudioMix;
 use crate::units::pose::PoseFrame;
 use crate::world::UnitsSection;
 use serde::Serialize;
@@ -40,15 +41,12 @@ impl Presentation {
     }
 
     /// What the last frame draws moving, as sound hears it: its emitters,
-    /// each vehicle as its type's vehicle class.
-    pub fn motion(&self) -> Motion {
+    /// each vehicle as the mix's sound class for its type.
+    pub fn motion(&self, mix: &AudioMix) -> Motion {
         let types = self.loaded.as_ref().map(|l| &l.units.types);
         Motion::of(&self.frame.emitters, |class| {
-            types?
-                .values()
-                .nth(class as usize)?
-                .vehicle_class
-                .as_deref()
+            let (kind, unit) = types?.iter().nth(class as usize)?;
+            mix.vehicle_class_for(kind, unit.vehicle_class.as_deref())
         })
     }
 }

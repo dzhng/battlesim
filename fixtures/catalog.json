@@ -7192,13 +7192,13 @@
             "variant": "AH-64E Guardian"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -7336,7 +7336,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -7355,9 +7355,9 @@
             "variant": "2S19M2"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7395,7 +7395,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.8,
           "cost": 380,
           "description": "Heavy rocket artillery",
@@ -7427,7 +7432,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_heavy"
               ]
@@ -7446,9 +7451,9 @@
             "variant": "Heavy rocket artillery"
           },
           "sensors": {
-            "ground_m": 400.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 400.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7638,7 +7643,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 240,
           "description": "BM-21 rocket artillery",
@@ -7657,20 +7667,20 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.0,
+                1.5574,
                 0.0,
-                0.0
+                0.9606
               ],
               "name": "Rockets",
               "on": null,
               "pivot_m": [
-                -1.8,
+                -2.3,
                 0.0,
                 2.6
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_light"
               ]
@@ -7689,9 +7699,9 @@
             "variant": "BM-21 rocket artillery"
           },
           "sensors": {
-            "ground_m": 400.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 400.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7921,9 +7931,9 @@
             "variant": "BMP-3"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "main_gun",
             "sight_shape": {
               "front": 1.0,
@@ -8016,9 +8026,9 @@
             "variant": "BRM-3K"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -8155,6 +8165,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -8174,14 +8188,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.3,
+                -0.7019,
                 0.0,
-                0.93
+                3.4412
               ],
               "name": "Buk-M3",
               "on": null,
               "pivot_m": [
-                2.0,
+                0.15,
                 0.0,
                 2.37
               ],
@@ -8206,9 +8220,9 @@
             "variant": "Buk-M3 medium-range air defense"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "ground_m": 500.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8574,13 +8588,13 @@
             "variant": "Ka-52M"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -8803,8 +8817,8 @@
             "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -8920,8 +8934,8 @@
             "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -9043,13 +9057,13 @@
             "variant": "Mi-8AMTSh"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -9177,13 +9191,13 @@
             "variant": "Mi-8AMTSh Supply"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -9532,6 +9546,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -9559,7 +9577,7 @@
               "name": "Pantsir-SM",
               "on": null,
               "pivot_m": [
-                -1.25,
+                -1.6,
                 0.0,
                 2.1
               ],
@@ -9584,9 +9602,9 @@
             "variant": "Pantsir-SM"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "ground_m": 500.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9655,7 +9673,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -9674,9 +9692,9 @@
             "variant": "Chinese tracked 155 mm howitzer"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9867,6 +9885,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -9919,8 +9941,8 @@
             "variant": "S-300PMU2 Favorit"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "ground_m": 500.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -9960,6 +9982,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -10012,8 +10038,8 @@
             "variant": "S-350"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "ground_m": 500.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -11123,9 +11149,9 @@
             "variant": "Main battle tank"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11266,9 +11292,9 @@
             "variant": "Heavy IFV"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -11397,9 +11423,9 @@
             "variant": "T-72B3 (2016)"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11529,9 +11555,9 @@
             "variant": "T-80BVM"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11661,9 +11687,9 @@
             "variant": "T-90M Proryv"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11758,15 +11784,16 @@
             "variant": "Tigr-M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 700.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
               "side": 0.5
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -11889,9 +11916,9 @@
             "variant": "ZTQ-15 light tank"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12020,9 +12047,9 @@
             "variant": "ZTZ-99A"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12215,13 +12242,13 @@
             "variant": "Attack helicopter"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -12343,13 +12370,13 @@
             "variant": "Utility transport"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -12438,9 +12465,9 @@
             "variant": "Wheeled IFV"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12550,9 +12577,9 @@
             "variant": "Tracked reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12729,13 +12756,13 @@
             "variant": "HC4"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -12829,13 +12856,13 @@
             "variant": "AH1"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -13020,9 +13047,9 @@
             "variant": "RCT30"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13061,7 +13088,12 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -13112,7 +13144,7 @@
             "variant": "Gun-and-missile air defense"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 900.0,
             "low_air_m": 900.0,
             "sight_shape": {
@@ -13171,9 +13203,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                8.06,
+                7.465,
                 0.0,
-                0.0
+                0.28
               ],
               "name": "Howitzer",
               "on": null,
@@ -13184,7 +13216,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -13203,9 +13235,9 @@
             "variant": "8×8"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13316,9 +13348,9 @@
             "variant": "Tank destroyer"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -13445,13 +13477,13 @@
             "variant": "HC6"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -13579,13 +13611,13 @@
             "variant": "HC6 Supply"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -13709,9 +13741,9 @@
             "variant": "Challenger 2 TES"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -13853,9 +13885,9 @@
             "variant": "Challenger 3"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -13985,9 +14017,9 @@
             "variant": "Light tank"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14080,9 +14112,9 @@
             "variant": "CV9040C"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -14192,9 +14224,9 @@
             "variant": "Mk IV"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 600.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -14305,9 +14337,9 @@
             "variant": "Armed reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -14424,13 +14456,13 @@
             "variant": "HAD"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -14541,13 +14573,13 @@
             "variant": "UHT"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -14768,9 +14800,9 @@
             "variant": "Reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -14862,8 +14894,8 @@
             "variant": "1A2"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 3200.0,
+            "ground_m": 500.0,
+            "high_air_m": 2000.0,
             "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
@@ -14903,6 +14935,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -14955,9 +14991,9 @@
             "variant": "IRIS-T SLM"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "ground_m": 500.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15294,9 +15330,9 @@
             "variant": "Prototype main battle tank"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15426,9 +15462,9 @@
             "variant": "XLR"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15558,9 +15594,9 @@
             "variant": "2A6"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15690,9 +15726,9 @@
             "variant": "2A7V"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15834,9 +15870,9 @@
             "variant": "2A8"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -15867,7 +15903,7 @@
                 "side": 10.0
               },
               "half_extents_m": [
-                5.168,
+                4.5,
                 1.25,
                 1.65
               ],
@@ -16004,7 +16040,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 360,
           "description": "Multiple-launch rocket system",
@@ -16035,7 +16076,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_heavy"
               ]
@@ -16054,9 +16095,9 @@
             "variant": "Multiple-launch rocket system"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16231,6 +16272,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.4,
@@ -16283,8 +16328,8 @@
             "variant": "NASAMS 3"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "ground_m": 500.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -16411,13 +16456,13 @@
             "variant": "TTH"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -16543,9 +16588,9 @@
             "variant": "Level C"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -16615,7 +16660,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -16634,9 +16679,9 @@
             "variant": "Tracked 155 mm howitzer"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17253,9 +17298,9 @@
             "variant": "Infantry fighting vehicle"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -17349,15 +17394,16 @@
             "variant": "Machine-gun scout"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 700.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
               "side": 0.5
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -18170,13 +18216,13 @@
             "variant": "Attack helicopter"
           },
           "sensors": {
-            "ground_m": 900.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 900.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18287,13 +18333,13 @@
             "variant": "AH-6M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18415,13 +18461,13 @@
             "variant": "MH-6M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18642,13 +18688,13 @@
             "variant": "CH-47F"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -18776,13 +18822,13 @@
             "variant": "CH-47F Supply"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -19965,9 +20011,9 @@
             "variant": "LAV-AT"
           },
           "sensors": {
-            "ground_m": 650.0,
+            "ground_m": 450.0,
             "high_air_m": 300.0,
-            "low_air_m": 650.0,
+            "low_air_m": 450.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -20037,7 +20083,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_howitzer"
               ]
@@ -20056,9 +20102,9 @@
             "variant": "M109A7"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20186,9 +20232,9 @@
             "variant": "Light tank"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 550.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -20282,9 +20328,9 @@
             "variant": "Reconnaissance vehicle"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -20324,7 +20370,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 200,
           "description": "120 mm mortar carrier",
@@ -20375,9 +20426,9 @@
             "variant": "120 mm mortar carrier"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20470,9 +20521,9 @@
             "variant": "HMG"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 700.0,
+            "low_air_m": 500.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -20511,7 +20562,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 320,
           "description": "GMLRS",
@@ -20530,20 +20586,20 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.0,
+                0.4248,
                 0.0,
-                0.0
+                1.8459
               ],
               "name": "Rockets",
               "on": null,
               "pivot_m": [
-                -1.5,
+                -0.6,
                 0.0,
                 2.5
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_light"
               ]
@@ -20562,9 +20618,9 @@
             "variant": "GMLRS"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20602,7 +20658,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 420,
           "description": "PrSM",
@@ -20621,20 +20682,20 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.0,
+                0.4248,
                 0.0,
-                0.0
+                1.8459
               ],
               "name": "Strike Missile",
               "on": null,
               "pivot_m": [
-                -1.5,
+                -0.6,
                 0.0,
                 2.5
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_strike_missile"
               ]
@@ -20653,9 +20714,9 @@
             "variant": "PrSM"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20783,9 +20844,9 @@
             "variant": "SEP v2"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -20927,9 +20988,9 @@
             "variant": "SEP v2 Trophy"
           },
           "sensors": {
-            "ground_m": 500.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 500.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -21071,9 +21132,9 @@
             "variant": "SEP v3 Trophy"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -21215,9 +21276,9 @@
             "variant": "M1E3"
           },
           "sensors": {
-            "ground_m": 600.0,
+            "ground_m": 350.0,
             "high_air_m": 0.0,
-            "low_air_m": 600.0,
+            "low_air_m": 350.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -21257,7 +21318,12 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.4,
           "cost": 370,
           "description": "M270A2",
@@ -21288,7 +21354,7 @@
               ],
               "special": false,
               "squad": false,
-              "turret": false,
+              "turret": true,
               "weapons": [
                 "artillery_rocket_light"
               ]
@@ -21307,9 +21373,9 @@
             "variant": "M270A2"
           },
           "sensors": {
-            "ground_m": 450.0,
+            "ground_m": 350.0,
             "high_air_m": 300.0,
-            "low_air_m": 450.0,
+            "low_air_m": 350.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -21439,9 +21505,9 @@
             "variant": "M2A4"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -21555,9 +21621,9 @@
             "variant": "M3A3"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 300.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -21588,7 +21654,7 @@
                 "side": 10.0
               },
               "half_extents_m": [
-                5.2,
+                4.5,
                 1.2,
                 1.5
               ],
@@ -21824,6 +21890,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.4,
@@ -21876,9 +21946,9 @@
             "variant": "NASAMS 3"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 3200.0,
-            "low_air_m": 3200.0,
+            "ground_m": 500.0,
+            "high_air_m": 2250.0,
+            "low_air_m": 2250.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -21917,6 +21987,10 @@
             }
           },
           "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            },
             "radar_emitter": true
           },
           "concealment": 2.8,
@@ -21937,14 +22011,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.6,
-                0.0,
-                1.4
+                0.6243,
+                0.54,
+                4.4535
               ],
               "name": "Patriot PAC-3",
               "on": null,
               "pivot_m": [
-                -4.3,
+                -2.2,
                 0.0,
                 2.05
               ],
@@ -21969,8 +22043,8 @@
             "variant": "Patriot PAC-3"
           },
           "sensors": {
-            "ground_m": 550.0,
-            "high_air_m": 7000.0,
+            "ground_m": 500.0,
+            "high_air_m": 3000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -22247,9 +22321,9 @@
             "variant": "M1134 ATGM"
           },
           "sensors": {
-            "ground_m": 650.0,
+            "ground_m": 450.0,
             "high_air_m": 300.0,
-            "low_air_m": 650.0,
+            "low_air_m": 450.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -22343,9 +22417,9 @@
             "variant": "M1296 Dragoon"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 300.0,
-            "low_air_m": 550.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -22384,7 +22458,12 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 1.0,
+              "seconds": 3.0
+            }
+          },
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -22435,7 +22514,7 @@
             "variant": "Gun-and-missile air-defense vehicle"
           },
           "sensors": {
-            "ground_m": 550.0,
+            "ground_m": 500.0,
             "high_air_m": 900.0,
             "low_air_m": 900.0,
             "sight_shape": {
@@ -22563,13 +22642,13 @@
             "variant": "Utility transport"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -22691,13 +22770,13 @@
             "variant": "UH-60M"
           },
           "sensors": {
-            "ground_m": 700.0,
+            "ground_m": 850.0,
             "high_air_m": 600.0,
-            "low_air_m": 700.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
-              "rear": 0.3,
-              "side": 0.6
+              "rear": 1.0,
+              "side": 1.0
             }
           },
           "sound": {
@@ -27224,13 +27303,13 @@
         "variant": "AH-64E Guardian"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -27506,7 +27585,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -27525,9 +27604,9 @@
         "variant": "2S19M2"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27566,7 +27645,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.8,
       "cost": 380,
       "description": "Heavy rocket artillery",
@@ -27600,7 +27684,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_heavy"
           ]
@@ -27619,9 +27703,9 @@
         "variant": "Heavy rocket artillery"
       },
       "sensors": {
-        "ground_m": 400.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 400.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28002,7 +28086,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 240,
       "description": "BM-21 rocket artillery",
@@ -28023,20 +28112,20 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.0,
+            1.5574,
             0.0,
-            0.0
+            0.9606
           ],
           "name": "Rockets",
           "on": null,
           "pivot_m": [
-            -1.8,
+            -2.3,
             0.0,
             2.6
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_light"
           ]
@@ -28055,9 +28144,9 @@
         "variant": "BM-21 rocket artillery"
       },
       "sensors": {
-        "ground_m": 400.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 400.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28295,9 +28384,9 @@
         "variant": "BMP-3"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "main_gun",
         "sight_shape": {
           "front": 1.0,
@@ -28393,9 +28482,9 @@
         "variant": "BRM-3K"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -28536,6 +28625,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -28557,14 +28650,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.3,
+            -0.7019,
             0.0,
-            0.93
+            3.4412
           ],
           "name": "Buk-M3",
           "on": null,
           "pivot_m": [
-            2.0,
+            0.15,
             0.0,
             2.37
           ],
@@ -28589,9 +28682,9 @@
         "variant": "Buk-M3 medium-range air defense"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "ground_m": 500.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28968,13 +29061,13 @@
         "variant": "Ka-52M"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29294,8 +29387,8 @@
         "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29415,8 +29508,8 @@
         "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29542,13 +29635,13 @@
         "variant": "Mi-8AMTSh"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -29680,13 +29773,13 @@
         "variant": "Mi-8AMTSh Supply"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -30024,6 +30117,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -30053,7 +30150,7 @@
           "name": "Pantsir-SM",
           "on": null,
           "pivot_m": [
-            -1.25,
+            -1.6,
             0.0,
             2.1
           ],
@@ -30078,9 +30175,9 @@
         "variant": "Pantsir-SM"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "ground_m": 500.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30152,7 +30249,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -30171,9 +30268,9 @@
         "variant": "Chinese tracked 155 mm howitzer"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30604,6 +30701,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -30658,8 +30759,8 @@
         "variant": "S-300PMU2 Favorit"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "ground_m": 500.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -30700,6 +30801,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -30754,8 +30859,8 @@
         "variant": "S-350"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "ground_m": 500.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -31989,9 +32094,9 @@
         "variant": "Main battle tank"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32136,9 +32241,9 @@
         "variant": "Heavy IFV"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32271,9 +32376,9 @@
         "variant": "T-72B3 (2016)"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32407,9 +32512,9 @@
         "variant": "T-80BVM"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32543,9 +32648,9 @@
         "variant": "T-90M Proryv"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32643,15 +32748,16 @@
         "variant": "Tigr-M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 700.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
           "side": 0.5
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -32778,9 +32884,9 @@
         "variant": "ZTQ-15 light tank"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32913,9 +33019,9 @@
         "variant": "ZTZ-99A"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33115,13 +33221,13 @@
         "variant": "Attack helicopter"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -33247,13 +33353,13 @@
         "variant": "Utility transport"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -33345,9 +33451,9 @@
         "variant": "Wheeled IFV"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -33461,9 +33567,9 @@
         "variant": "Tracked reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -33706,13 +33812,13 @@
         "variant": "HC4"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -33809,13 +33915,13 @@
         "variant": "AH1"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -34006,9 +34112,9 @@
         "variant": "RCT30"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -34048,7 +34154,12 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -34101,7 +34212,7 @@
         "variant": "Gun-and-missile air defense"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 900.0,
         "low_air_m": 900.0,
         "sight_shape": {
@@ -34163,9 +34274,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            8.06,
+            7.465,
             0.0,
-            0.0
+            0.28
           ],
           "name": "Howitzer",
           "on": null,
@@ -34176,7 +34287,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -34195,9 +34306,9 @@
         "variant": "8×8"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34312,9 +34423,9 @@
         "variant": "Tank destroyer"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34445,13 +34556,13 @@
         "variant": "HC6"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -34583,13 +34694,13 @@
         "variant": "HC6 Supply"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -34717,9 +34828,9 @@
         "variant": "Challenger 2 TES"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34865,9 +34976,9 @@
         "variant": "Challenger 3"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -35001,9 +35112,9 @@
         "variant": "Light tank"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -35099,9 +35210,9 @@
         "variant": "CV9040C"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35214,9 +35325,9 @@
         "variant": "Mk IV"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 600.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35331,9 +35442,9 @@
         "variant": "Armed reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35454,13 +35565,13 @@
         "variant": "HAD"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -35575,13 +35686,13 @@
         "variant": "UHT"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -35809,9 +35920,9 @@
         "variant": "Reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -35906,8 +36017,8 @@
         "variant": "1A2"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 3200.0,
+        "ground_m": 500.0,
+        "high_air_m": 2000.0,
         "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
@@ -35948,6 +36059,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -36002,9 +36117,9 @@
         "variant": "IRIS-T SLM"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "ground_m": 500.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36298,9 +36413,9 @@
         "variant": "Prototype main battle tank"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36434,9 +36549,9 @@
         "variant": "XLR"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36570,9 +36685,9 @@
         "variant": "2A6"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36706,9 +36821,9 @@
         "variant": "2A7V"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36854,9 +36969,9 @@
         "variant": "2A8"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -36888,7 +37003,7 @@
             "side": 10.0
           },
           "half_extents_m": [
-            5.168,
+            4.5,
             1.25,
             1.65
           ],
@@ -37173,7 +37288,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 360,
       "description": "Multiple-launch rocket system",
@@ -37206,7 +37326,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_heavy"
           ]
@@ -37225,9 +37345,9 @@
         "variant": "Multiple-launch rocket system"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37407,6 +37527,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.4,
@@ -37461,8 +37585,8 @@
         "variant": "NASAMS 3"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "ground_m": 500.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -37593,13 +37717,13 @@
         "variant": "TTH"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -37729,9 +37853,9 @@
         "variant": "Level C"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -37804,7 +37928,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -37823,9 +37947,9 @@
         "variant": "Tracked 155 mm howitzer"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38474,9 +38598,9 @@
         "variant": "Infantry fighting vehicle"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -38573,15 +38697,16 @@
         "variant": "Machine-gun scout"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 700.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
           "side": 0.5
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -39654,13 +39779,13 @@
         "variant": "Attack helicopter"
       },
       "sensors": {
-        "ground_m": 900.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 900.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -39775,13 +39900,13 @@
         "variant": "AH-6M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -39907,13 +40032,13 @@
         "variant": "MH-6M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -40262,13 +40387,13 @@
         "variant": "CH-47F"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -40400,13 +40525,13 @@
         "variant": "CH-47F Supply"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -41648,9 +41773,9 @@
         "variant": "LAV-AT"
       },
       "sensors": {
-        "ground_m": 650.0,
+        "ground_m": 450.0,
         "high_air_m": 300.0,
-        "low_air_m": 650.0,
+        "low_air_m": 450.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -41723,7 +41848,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_howitzer"
           ]
@@ -41742,9 +41867,9 @@
         "variant": "M109A7"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -41876,9 +42001,9 @@
         "variant": "Light tank"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 550.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -41975,9 +42100,9 @@
         "variant": "Reconnaissance vehicle"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -42018,7 +42143,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 200,
       "description": "120 mm mortar carrier",
@@ -42071,9 +42201,9 @@
         "variant": "120 mm mortar carrier"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -42169,9 +42299,9 @@
         "variant": "HMG"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 700.0,
+        "low_air_m": 500.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -42211,7 +42341,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 320,
       "description": "GMLRS",
@@ -42232,20 +42367,20 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.0,
+            0.4248,
             0.0,
-            0.0
+            1.8459
           ],
           "name": "Rockets",
           "on": null,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0.0,
             2.5
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_light"
           ]
@@ -42264,9 +42399,9 @@
         "variant": "GMLRS"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -42305,7 +42440,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 420,
       "description": "PrSM",
@@ -42326,20 +42466,20 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.0,
+            0.4248,
             0.0,
-            0.0
+            1.8459
           ],
           "name": "Strike Missile",
           "on": null,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0.0,
             2.5
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_strike_missile"
           ]
@@ -42358,9 +42498,9 @@
         "variant": "PrSM"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -42492,9 +42632,9 @@
         "variant": "SEP v2"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42640,9 +42780,9 @@
         "variant": "SEP v2 Trophy"
       },
       "sensors": {
-        "ground_m": 500.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 500.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42788,9 +42928,9 @@
         "variant": "SEP v3 Trophy"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42936,9 +43076,9 @@
         "variant": "M1E3"
       },
       "sensors": {
-        "ground_m": 600.0,
+        "ground_m": 350.0,
         "high_air_m": 0.0,
-        "low_air_m": 600.0,
+        "low_air_m": 350.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -42979,7 +43119,12 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.4,
       "cost": 370,
       "description": "M270A2",
@@ -43012,7 +43157,7 @@
           ],
           "special": false,
           "squad": false,
-          "turret": false,
+          "turret": true,
           "weapons": [
             "artillery_rocket_light"
           ]
@@ -43031,9 +43176,9 @@
         "variant": "M270A2"
       },
       "sensors": {
-        "ground_m": 450.0,
+        "ground_m": 350.0,
         "high_air_m": 300.0,
-        "low_air_m": 450.0,
+        "low_air_m": 350.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -43167,9 +43312,9 @@
         "variant": "M2A4"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -43287,9 +43432,9 @@
         "variant": "M3A3"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 300.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -43321,7 +43466,7 @@
             "side": 10.0
           },
           "half_extents_m": [
-            5.2,
+            4.5,
             1.2,
             1.5
           ],
@@ -43814,6 +43959,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.4,
@@ -43868,9 +44017,9 @@
         "variant": "NASAMS 3"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 3200.0,
-        "low_air_m": 3200.0,
+        "ground_m": 500.0,
+        "high_air_m": 2250.0,
+        "low_air_m": 2250.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -43910,6 +44059,10 @@
         }
       },
       "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        },
         "radar_emitter": true
       },
       "concealment": 2.8,
@@ -43932,14 +44085,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.6,
-            0.0,
-            1.4
+            0.6243,
+            0.54,
+            4.4535
           ],
           "name": "Patriot PAC-3",
           "on": null,
           "pivot_m": [
-            -4.3,
+            -2.2,
             0.0,
             2.05
           ],
@@ -43964,8 +44117,8 @@
         "variant": "Patriot PAC-3"
       },
       "sensors": {
-        "ground_m": 550.0,
-        "high_air_m": 7000.0,
+        "ground_m": 500.0,
+        "high_air_m": 3000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -44263,9 +44416,9 @@
         "variant": "M1134 ATGM"
       },
       "sensors": {
-        "ground_m": 650.0,
+        "ground_m": 450.0,
         "high_air_m": 300.0,
-        "low_air_m": 650.0,
+        "low_air_m": 450.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -44362,9 +44515,9 @@
         "variant": "M1296 Dragoon"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 300.0,
-        "low_air_m": 550.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -44404,7 +44557,12 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 1.0,
+          "seconds": 3.0
+        }
+      },
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -44457,7 +44615,7 @@
         "variant": "Gun-and-missile air-defense vehicle"
       },
       "sensors": {
-        "ground_m": 550.0,
+        "ground_m": 500.0,
         "high_air_m": 900.0,
         "low_air_m": 900.0,
         "sight_shape": {
@@ -44589,13 +44747,13 @@
         "variant": "Utility transport"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -44721,13 +44879,13 @@
         "variant": "UH-60M"
       },
       "sensors": {
-        "ground_m": 700.0,
+        "ground_m": 850.0,
         "high_air_m": 600.0,
-        "low_air_m": 700.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
-          "rear": 0.3,
-          "side": 0.6
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {
@@ -44792,7 +44950,7 @@
       "range_m": 1000.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 4.0,
+      "resupply_rounds_per_s": 6.0,
       "round_cost": 1,
       "speed_mps": 600.0,
       "stationary": false,
@@ -44847,7 +45005,7 @@
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 3000.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -44865,10 +45023,10 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 3000.0,
+      "range_m": 2000.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.03333333333333333,
+      "resupply_rounds_per_s": 0.11,
       "round_cost": 45,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
@@ -44882,7 +45040,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 3000.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -44907,12 +45065,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -44930,10 +45088,10 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 2000.0,
+      "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.25,
       "round_cost": 30,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
@@ -44947,7 +45105,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -44955,7 +45113,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         }
       },
@@ -44970,6 +45128,7 @@
       "anti_radiation": false,
       "appearance": "tank_sabot",
       "armor_piercing": true,
+      "avoids_overkill": true,
       "blast_radius_m": 0.0,
       "damage": 50.0,
       "decoyable": false,
@@ -44999,7 +45158,7 @@
       "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -45055,7 +45214,7 @@
       "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -45112,7 +45271,7 @@
       "range_m": 0.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.165,
       "round_cost": 25,
       "speed_mps": 0.0,
       "stationary": false,
@@ -45169,7 +45328,7 @@
       "range_m": 0.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.11,
       "round_cost": 25,
       "speed_mps": 0.0,
       "stationary": false,
@@ -45201,6 +45360,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 100.0,
       "decoyable": false,
@@ -45214,7 +45374,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 1200.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -45231,10 +45391,10 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 1200.0,
+      "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": false,
@@ -45245,11 +45405,11 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 1200.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
-      "top_speed_mps": 400.0,
+      "top_speed_mps": 300.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
     },
@@ -45357,12 +45517,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -45380,10 +45540,10 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 2000.0,
+      "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 25,
       "seeker": "infrared",
       "seeker_fov_deg": 70.0,
@@ -45397,7 +45557,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -45405,7 +45565,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45420,6 +45580,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 105.0,
       "decoyable": false,
@@ -45453,7 +45614,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
@@ -45478,14 +45639,14 @@
     },
     "artillery_howitzer": {
       "accel_mps2": null,
-      "aim_s": 2.5,
+      "aim_s": 3.0,
       "ammo": 24,
       "anti_radiation": false,
       "appearance": "artillery",
       "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 36.0,
-      "damage": 240.0,
+      "damage": 140.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45494,7 +45655,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2000.0
+            "range_m": 1300.0
           }
         ]
       },
@@ -45505,15 +45666,15 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 350.0,
+      "min_range_m": 150.0,
       "name": "Howitzer",
       "near_miss_suppression": 0.65,
       "partial_from": 0.08,
       "penetration": 12.0,
-      "range_m": 2000.0,
+      "range_m": 1300.0,
       "reload_s": 7.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 12,
       "speed_mps": 380.0,
       "stationary": true,
@@ -45525,7 +45686,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2000.0,
+          "range_m": 1300.0,
           "scatter_mrad": 8.0
         }
       },
@@ -45542,7 +45703,7 @@
       "arc_height_m": 80.0,
       "armor_piercing": false,
       "blast_radius_m": 30.0,
-      "damage": 180.0,
+      "damage": 100.0,
       "decoyable": false,
       "default": false,
       "derived": {
@@ -45551,7 +45712,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 1500.0
+            "range_m": 900.0
           }
         ]
       },
@@ -45562,15 +45723,15 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 120.0,
+      "min_range_m": 100.0,
       "name": "Mortar",
       "near_miss_suppression": 0.55,
       "partial_from": 0.08,
       "penetration": 10.0,
-      "range_m": 1500.0,
+      "range_m": 900.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.2,
       "round_cost": 8,
       "speed_mps": 280.0,
       "stationary": true,
@@ -45582,7 +45743,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 1500.0,
+          "range_m": 900.0,
           "scatter_mrad": 10.0
         }
       },
@@ -45592,7 +45753,7 @@
     },
     "artillery_rocket_heavy": {
       "accel_mps2": null,
-      "aim_s": 3.0,
+      "aim_s": 5.0,
       "ammo": 12,
       "anti_radiation": false,
       "appearance": "rocket_artillery",
@@ -45608,7 +45769,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2500.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45621,19 +45782,19 @@
       "magazine": {
         "burst": null,
         "rounds": 4,
-        "shot_interval_s": 0.45
+        "shot_interval_s": 0.9
       },
-      "min_range_m": 700.0,
+      "min_range_m": 250.0,
       "name": "Heavy rocket salvo",
       "near_miss_suppression": 0.8,
       "partial_from": 0.08,
       "penetration": 11.0,
-      "range_m": 2500.0,
-      "reload_s": 12.0,
+      "range_m": 2000.0,
+      "reload_s": 24.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.2,
-      "round_cost": 16,
-      "speed_mps": 460.0,
+      "resupply_rounds_per_s": 0.15,
+      "round_cost": 32,
+      "speed_mps": 300.0,
       "stationary": true,
       "structural_damage": 220.0,
       "suppression_radius_m": 24.0,
@@ -45643,7 +45804,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2500.0,
+          "range_m": 2000.0,
           "scatter_mrad": 10.0
         }
       },
@@ -45653,7 +45814,7 @@
     },
     "artillery_rocket_light": {
       "accel_mps2": null,
-      "aim_s": 2.5,
+      "aim_s": 5.0,
       "ammo": 18,
       "anti_radiation": false,
       "appearance": "rocket_artillery",
@@ -45669,7 +45830,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2200.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45682,19 +45843,19 @@
       "magazine": {
         "burst": null,
         "rounds": 6,
-        "shot_interval_s": 0.35
+        "shot_interval_s": 0.7
       },
-      "min_range_m": 500.0,
+      "min_range_m": 200.0,
       "name": "Rocket salvo",
       "near_miss_suppression": 0.7,
       "partial_from": 0.08,
       "penetration": 10.0,
-      "range_m": 2200.0,
-      "reload_s": 9.0,
+      "range_m": 2000.0,
+      "reload_s": 18.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.25,
-      "round_cost": 10,
-      "speed_mps": 400.0,
+      "resupply_rounds_per_s": 0.28,
+      "round_cost": 20,
+      "speed_mps": 300.0,
       "stationary": true,
       "structural_damage": 150.0,
       "suppression_radius_m": 20.0,
@@ -45704,7 +45865,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2200.0,
+          "range_m": 2000.0,
           "scatter_mrad": 11.0
         }
       },
@@ -45714,7 +45875,7 @@
     },
     "artillery_strike_missile": {
       "accel_mps2": null,
-      "aim_s": 3.0,
+      "aim_s": 5.0,
       "ammo": 6,
       "anti_radiation": false,
       "appearance": "strike_missile",
@@ -45730,7 +45891,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 2500.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -45741,17 +45902,17 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 900.0,
+      "min_range_m": 300.0,
       "name": "Strike missile",
       "near_miss_suppression": 0.9,
       "partial_from": 0.08,
       "penetration": 9.0,
-      "range_m": 2500.0,
-      "reload_s": 15.0,
+      "range_m": 2000.0,
+      "reload_s": 30.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.025,
-      "round_cost": 24,
-      "speed_mps": 460.0,
+      "resupply_rounds_per_s": 0.035,
+      "round_cost": 48,
+      "speed_mps": 300.0,
       "stationary": true,
       "structural_damage": 300.0,
       "suppression_radius_m": 26.0,
@@ -45761,7 +45922,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 2500.0,
+          "range_m": 2000.0,
           "scatter_mrad": 6.0
         }
       },
@@ -45776,6 +45937,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 100.0,
       "decoyable": false,
@@ -45809,7 +45971,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
@@ -45911,6 +46073,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 110.0,
       "decoyable": false,
@@ -45944,7 +46107,7 @@
       "range_m": 850.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.11,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
@@ -46075,7 +46238,7 @@
       "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.25,
       "round_cost": 30,
       "speed_mps": 100.0,
       "stationary": true,
@@ -46102,6 +46265,7 @@
       "anti_radiation": false,
       "appearance": "grenade",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 6.0,
       "damage": 80.0,
       "decoyable": false,
@@ -46158,6 +46322,7 @@
       "anti_radiation": false,
       "appearance": "tank_sabot",
       "armor_piercing": true,
+      "avoids_overkill": true,
       "blast_radius_m": 0.0,
       "damage": 45.0,
       "decoyable": false,
@@ -46187,7 +46352,7 @@
       "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -46243,7 +46408,7 @@
       "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -46265,7 +46430,7 @@
     },
     "heavy_sniper": {
       "accel_mps2": null,
-      "aim_s": 2.0,
+      "aim_s": 5.0,
       "ammo": 30,
       "anti_radiation": false,
       "appearance": "heavy_sniper",
@@ -46299,10 +46464,16 @@
       "min_range_m": 0.0,
       "name": "Heavy Sniper",
       "near_miss_suppression": 0.025,
-      "partial_from": 0.5,
-      "penetration": 30.0,
+      "partial_damage_scale": {
+        "front": 0.0,
+        "rear": 0.02,
+        "roof": 0.0,
+        "side": 0.02
+      },
+      "partial_from": 0.15,
+      "penetration": 9.0,
       "range_m": 700.0,
-      "reload_s": 2.5,
+      "reload_s": 5.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.1,
       "round_cost": 2,
@@ -46339,6 +46510,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 100.0,
       "decoyable": false,
@@ -46372,7 +46544,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": false,
@@ -46427,7 +46599,7 @@
       "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -46557,7 +46729,7 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -46615,7 +46787,7 @@
       "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.25,
       "round_cost": 30,
       "speed_mps": 100.0,
       "stationary": true,
@@ -46642,6 +46814,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 105.0,
       "decoyable": false,
@@ -46675,7 +46848,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
@@ -46705,6 +46878,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 110.0,
       "decoyable": false,
@@ -46738,7 +46912,7 @@
       "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.11,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
@@ -46764,6 +46938,7 @@
       "anti_radiation": false,
       "appearance": "tank_sabot",
       "armor_piercing": true,
+      "avoids_overkill": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
       "decoyable": false,
@@ -46793,7 +46968,7 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -46849,7 +47024,7 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -46917,7 +47092,7 @@
       "range_m": 400.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 1.0,
+      "resupply_rounds_per_s": 2.675,
       "round_cost": 1,
       "speed_mps": 800.0,
       "stationary": false,
@@ -46990,7 +47165,7 @@
       "range_m": 500.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 1.0,
+      "resupply_rounds_per_s": 0.8,
       "round_cost": 1,
       "speed_mps": 800.0,
       "stationary": false,
@@ -47035,12 +47210,12 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           },
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 2000.0
+            "range_m": 1500.0
           }
         ]
       },
@@ -47058,10 +47233,10 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 2000.0,
+      "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.25,
       "round_cost": 30,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
@@ -47076,7 +47251,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -47085,7 +47260,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 2000.0,
+          "range_m": 1500.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47110,7 +47285,7 @@
           {
             "intercepts": true,
             "layer": "high_air",
-            "range_m": 3000.0
+            "range_m": 2000.0
           }
         ]
       },
@@ -47128,10 +47303,10 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 5.0,
-      "range_m": 3000.0,
+      "range_m": 2000.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
-      "resupply_rounds_per_s": 0.03333333333333333,
+      "resupply_rounds_per_s": 0.11,
       "round_cost": 45,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
@@ -47146,7 +47321,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 3000.0,
+          "range_m": 2000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47268,9 +47443,9 @@
       "range_m": 750.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.5,
+      "resupply_rounds_per_s": 0.75,
       "round_cost": 2,
-      "speed_mps": 450.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 80.0,
       "suppression_radius_m": 15.0,
@@ -47295,6 +47470,7 @@
       "anti_radiation": false,
       "appearance": "rpg_heavy",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 140.0,
       "decoyable": false,
@@ -47327,9 +47503,9 @@
       "range_m": 450.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 10,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
@@ -47353,6 +47529,7 @@
       "anti_radiation": false,
       "appearance": "rpg",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 140.0,
       "decoyable": false,
@@ -47385,9 +47562,9 @@
       "range_m": 350.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 10,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
@@ -47411,6 +47588,7 @@
       "anti_radiation": false,
       "appearance": "rpg",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 8.0,
       "damage": 140.0,
       "decoyable": false,
@@ -47440,9 +47618,9 @@
       "range_m": 300.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 10,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 35.0,
       "suppression_radius_m": 8.0,
@@ -47467,6 +47645,7 @@
       "anti_radiation": true,
       "appearance": "sam",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 3.0,
       "damage": 130.0,
       "decoyable": false,
@@ -47480,7 +47659,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 4000.0
+            "range_m": 2500.0
           }
         ]
       },
@@ -47497,10 +47676,10 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 180.0,
-      "range_m": 4000.0,
+      "range_m": 2500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 40,
       "seeker": "radar",
       "seeker_fov_deg": 90.0,
@@ -47513,11 +47692,11 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 4000.0,
+          "range_m": 2500.0,
           "scatter_mrad": 0.5
         }
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 300.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },
@@ -47528,6 +47707,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 110.0,
       "decoyable": false,
@@ -47561,7 +47741,7 @@
       "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.11,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
@@ -47618,7 +47798,7 @@
       "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.25,
       "round_cost": 30,
       "speed_mps": 100.0,
       "stationary": true,
@@ -47645,6 +47825,7 @@
       "anti_radiation": false,
       "appearance": "tank_sabot",
       "armor_piercing": true,
+      "avoids_overkill": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
       "decoyable": false,
@@ -47674,7 +47855,7 @@
       "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -47730,7 +47911,7 @@
       "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.1,
+      "resupply_rounds_per_s": 0.145,
       "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
@@ -47757,6 +47938,7 @@
       "anti_radiation": false,
       "appearance": "atgm",
       "armor_piercing": false,
+      "avoids_overkill": true,
       "blast_radius_m": 4.0,
       "damage": 100.0,
       "decoyable": false,
@@ -47790,7 +47972,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "resupply_rounds_per_s": 0.05,
+      "resupply_rounds_per_s": 0.125,
       "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,

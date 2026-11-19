@@ -535,7 +535,7 @@ export interface Tolerances {
   hull_extent_m: number;
   /** A static appearance against its simulation box (roof overhangs, rubble). */
   footprint_m: number;
-  /** A vehicle mount's muzzle at rest against its `mounts` row (pivot plus muzzle). */
+  /** Muzzle fit in firing posture (pivot plus muzzle offset). */
   vehicle_muzzle_m: number;
   /** A mount's drawn muzzle against the simulation's as its turret and gun turn. */
   muzzle_arc_m: number;

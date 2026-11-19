@@ -47,24 +47,9 @@ fn sound_with(edit: impl FnOnce(&mut Value)) -> Sound {
 
 #[test]
 fn first_high_air_entry_raises_one_alarm_until_the_episode_ends() {
-    let v: Value = serde_json::from_str(
-        &std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/fixtures/sound-vectors.json"
-        ))
-        .unwrap(),
-    )
-    .unwrap();
-    let mut s = sound();
-    s.set_durations(serde_json::from_value(v["durations"].clone()).unwrap())
-        .unwrap();
-    let listener = Listener {
-        position: [0.0, 0.0, 0.0],
-        forward: [0.0, 1.0, 0.0],
-        look: [0.0; 3],
-    };
+    let mut s = ready();
     let empty = Motion::default();
-    s.update(0.0, 0.0, 0.0, &empty, listener);
+    s.update(0.0, 0.0, 0.0, &empty, HERE);
     let jet = Motion {
         vehicles: vec![SoundVehicle {
             key: 7.0,
@@ -78,21 +63,81 @@ fn first_high_air_entry_raises_one_alarm_until_the_episode_ends() {
         }],
         soldiers: Vec::new(),
     };
-    s.update(1.0, 1.0, 1.0, &jet, listener);
-    let commands = s.update(1.1, 1.1, 1.1, &jet, listener);
+    s.update(1.0, 1.0, 1.0, &jet, HERE);
+    let commands = s.update(1.1, 1.1, 1.1, &jet, HERE);
     let alarms = commands
         .iter()
         .filter(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-air-alarm"))
         .count();
     assert_eq!(alarms, 1);
-    s.update(1.2, 1.2, 1.2, &empty, listener);
-    s.update(1.3, 1.3, 1.3, &jet, listener);
-    let commands = s.update(1.4, 1.4, 1.4, &jet, listener);
+    s.update(1.2, 1.2, 1.2, &empty, HERE);
+    s.update(1.3, 1.3, 1.3, &jet, HERE);
+    let commands = s.update(1.4, 1.4, 1.4, &jet, HERE);
     let alarms = commands
         .iter()
         .filter(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-air-alarm"))
         .count();
     assert_eq!(alarms, 1);
+}
+
+#[test]
+fn distant_aircraft_hold_their_own_against_a_nearer_autocannon() {
+    let mut s = ready();
+    let weapon = [1000.0, 0.0, 0.0];
+    let jet = [0.0, 3200.0, 2400.0];
+    let rotor = [0.0, -3744.0, 1408.0];
+    let (effects, launches) = shot(1.0, 4.0, weapon, "autocannon");
+    s.note(
+        &Heard {
+            effects: &effects,
+            launches: &launches,
+            audible: Vec::new(),
+            shouts: Vec::new(),
+        },
+        0.0,
+    );
+    let motion = Motion {
+        vehicles: [
+            (jet, "high_air_light", None),
+            (rotor, "air_light", Some(1.0)),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(i, (position, class, rotor_speed))| SoundVehicle {
+            key: i as f64,
+            vehicle_class: class.to_owned(),
+            position,
+            travel_l: 0.0,
+            travel_r: 0.0,
+            turret: 0.0,
+            reverse: false,
+            rotor_speed,
+        })
+        .collect(),
+        soldiers: Vec::new(),
+    };
+    let buses = s.tables().audio.buses.clone();
+    let commands = s.update(1.0 / 30.0, 0.0, 0.0, &motion, HERE);
+    let level_at = |position, looping, bus, bus_gain| {
+        commands.iter().find_map(|command| match command {
+            Command::Start { voice, .. }
+                if voice.position == Some(position)
+                    && voice.looping == looping
+                    && voice.bus == bus =>
+            {
+                Some(voice.gain * bus_gain)
+            }
+            _ => None,
+        })
+    };
+    let jet = level_at(jet, true, Bus::Units, buses.units).expect("distant jet engine");
+    let rotor = level_at(rotor, true, Bus::Units, buses.units).expect("distant rotor");
+    let weapon = level_at(weapon, false, Bus::Effects, buses.effects).expect("autocannon report");
+    assert_eq!(jet, rotor, "matching engines at the same distance");
+    assert!(
+        jet >= weapon,
+        "distant aircraft {jet}, nearby weapon {weapon}"
+    );
 }
 
 #[test]

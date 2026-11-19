@@ -94,7 +94,7 @@ impl Battle {
             } else {
                 d.u64(0);
             }
-            d.u64(r.layer as u64);
+            d.u64(r.layer as u64).f64(r.expected_arrival_tick);
         }
         d.u64(self.suppressed.len() as u64);
         for ((id, i), v) in &self.suppressed {

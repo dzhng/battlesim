@@ -1258,7 +1258,7 @@
       ],
       "appearance": "us_lav_lav_at",
       "sensors": {
-        "ground_m": 650,
+        "ground_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1325,7 +1325,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             0.7,
             0,
@@ -1340,8 +1340,8 @@
       ],
       "appearance": "us_m109_paladin_m109a7",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1532,7 +1532,7 @@
       ],
       "appearance": "us_m1127_stryker_rv_reconnaissance_vehicle",
       "sensors": {
-        "ground_m": 850,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -1543,6 +1543,7 @@
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "Stryker Mortar",
       "description": "120 mm mortar carrier",
@@ -1616,8 +1617,8 @@
       ],
       "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1700,7 +1701,7 @@
       ],
       "appearance": "us_m1151_hmmwv_hmg",
       "sensors": {
-        "ground_m": 700,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1710,6 +1711,7 @@
       }
     },
     "us_m142_himars_gmlrs": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "HIMARS GMLRS",
       "description": "GMLRS",
@@ -1768,23 +1770,23 @@
           "weapons": [
             "artillery_rocket_light"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0,
             2.5
           ],
           "muzzle_m": [
-            1.0,
-            0,
-            0
+            0.4248,
+            0.0,
+            1.8459
           ]
         }
       ],
       "appearance": "us_m142_himars_gmlrs",
       "sensors": {
-        "ground_m": 450,
-        "low_air_m": 450,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1793,6 +1795,7 @@
       }
     },
     "us_m142_himars_prsm": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "HIMARS PrSM",
       "description": "PrSM",
@@ -1851,23 +1854,23 @@
           "weapons": [
             "artillery_strike_missile"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
-            -1.5,
+            -0.6,
             0,
             2.5
           ],
           "muzzle_m": [
-            1.0,
-            0,
-            0
+            0.4248,
+            0.0,
+            1.8459
           ]
         }
       ],
       "appearance": "us_m142_himars_prsm",
       "sensors": {
-        "ground_m": 450,
-        "low_air_m": 450,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1968,7 +1971,7 @@
       ],
       "appearance": "us_m1_abrams_sep_v2",
       "sensors": {
-        "ground_m": 500,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2141,8 +2144,8 @@
       ],
       "concealment": 2.8,
       "sensors": {
-        "ground_m": 600,
-        "low_air_m": 600
+        "ground_m": 350,
+        "low_air_m": 350
       },
       "capabilities": {
         "smoke": { "capacity": 3 }
@@ -2191,6 +2194,7 @@
       ]
     },
     "us_m270_mlrs_m270a2": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "M270A2 MLRS",
       "description": "M270A2",
@@ -2248,7 +2252,7 @@
           "weapons": [
             "artillery_rocket_light"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             -3.2,
             0,
@@ -2263,8 +2267,8 @@
       ],
       "appearance": "us_m270_mlrs_m270a2",
       "sensors": {
-        "ground_m": 450,
-        "low_air_m": 450,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2376,7 +2380,7 @@
       ],
       "appearance": "us_m2_bradley_ifv_m2a4",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2478,7 +2482,7 @@
       ],
       "appearance": "us_m3_bradley_cfv_m3a3",
       "sensors": {
-        "ground_m": 850,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -2510,7 +2514,7 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            5.2,
+            4.5,
             1.2,
             1.5
           ],
@@ -2880,7 +2884,7 @@
       ],
       "appearance": "us_stryker_m1134_atgm",
       "sensors": {
-        "ground_m": 650,
+        "ground_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2964,7 +2968,7 @@
       ],
       "appearance": "us_stryker_m1296_dragoon",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2974,6 +2978,7 @@
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Stryker M-SHORAD",
       "description": "Gun-and-missile air-defense vehicle",
@@ -3226,9 +3231,10 @@
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
         "low_air_m": 1800,
-        "high_air_m": 7000
+        "high_air_m": 3000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -3240,14 +3246,14 @@
           ],
           "turret": true,
           "pivot_m": [
-            -4.3,
+            -2.2,
             0,
             2.05
           ],
           "muzzle_m": [
-            0.6,
-            0,
-            1.4
+            0.6243,
+            0.54,
+            4.4535
           ]
         }
       ],
@@ -3306,10 +3312,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 3200,
-        "high_air_m": 3200
+        "low_air_m": 2250,
+        "high_air_m": 2250
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [

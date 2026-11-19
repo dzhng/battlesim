@@ -63,6 +63,7 @@ answer with no readable refusal in it is a reply that did not arrive.
 | Method and path                  | Body                  | Answer                                                                                                                       |
 | -------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `GET /build`                     |                       | `BuildIdentity` only. No credential, and no player is registered                                                             |
+| `GET /deployment`                |                       | The hosted server's source commit for deployment checks. No credential or player is registered                               |
 | `POST /hello`                    | `{ build, callsign }` | `{ callsign }` (with `#2` on a clash), or refused `build`, `callsign` or `invalid`                                           |
 | `GET /rooms`                     |                       | state stream of `RoomList`                                                                                                   |
 | `POST /rooms`                    | `{ visibility }`      | `{ code }`, or refused `full`, `game_running` or `callsign`                                                                  |

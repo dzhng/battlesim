@@ -89,7 +89,7 @@ export interface Speakers {
 export interface SoundVehicle {
   /** Unique across both sides (the effects' shooter key). */
   key: number;
-  /** Its presentation class (the catalog's `vehicle_class`): the `vehicles` row it sounds as. */
+  /** Which row of the audio mix's `vehicles` table it sounds as. */
   vehicleClass: string;
   position: P3;
   /** Metres the left and right running gear have rolled. */

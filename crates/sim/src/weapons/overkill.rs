@@ -1,0 +1,188 @@
+//! Committed fire: the side's flagged rounds on their way to each target,
+//! and whether a shot would only add to a kill they already cover.
+use std::collections::BTreeMap;
+
+use contract::ids::{Side, UnitId};
+use contract::scenario::Rules;
+use contract::weapons::WeaponDefinition;
+
+use crate::damage::pierce_share;
+use crate::math::V3;
+use crate::units::Unit;
+use crate::weapons::{FireContext, MountSpec, Ready, Target};
+
+/// One counted round: when it should land and what it should do there.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Hit {
+    pub arrive_tick: f64,
+    pub damage: f64,
+    pub interceptable: bool,
+}
+
+/// Counted rounds, grouped by the side that fired and their target.
+#[derive(Clone, Debug, Default)]
+pub struct Committed {
+    hits: BTreeMap<(Side, UnitId), Vec<Hit>>,
+}
+
+impl Committed {
+    /// Add a counted round, kept in arrival order; the sort is stable, so
+    /// equal arrivals keep the order they were added in.
+    pub fn add(&mut self, side: Side, target: UnitId, hit: Hit) {
+        let list = self.hits.entry((side, target)).or_default();
+        list.push(hit);
+        list.sort_by(|a, b| a.arrive_tick.total_cmp(&b.arrive_tick));
+    }
+
+    /// Count damage arriving by `arrive_tick` after active protection absorbs
+    /// the earliest interceptable counted rounds.
+    fn landing_by(&self, side: Side, target: UnitId, arrive_tick: f64, charges: u32) -> f64 {
+        let Some(hits) = self.hits.get(&(side, target)) else {
+            return 0.0;
+        };
+        let mut remaining_charges = charges;
+        hits.iter()
+            .filter(|hit| {
+                if hit.interceptable && remaining_charges > 0 {
+                    remaining_charges -= 1;
+                    false
+                } else {
+                    true
+                }
+            })
+            .filter(|hit| hit.arrive_tick <= arrive_tick)
+            .map(|hit| hit.damage)
+            .sum()
+    }
+}
+
+/// A vehicle's health, or the health of its living soldiers.
+pub fn remaining_hp(unit: &Unit) -> f64 {
+    if unit.hull.is_some() {
+        unit.hp
+    } else {
+        squad_hp(&unit.members)
+    }
+}
+
+fn squad_hp(members: &[crate::units::Soldier]) -> f64 {
+    members
+        .iter()
+        .filter(|soldier| soldier.alive())
+        .map(|soldier| soldier.hp)
+        .sum()
+}
+
+/// The tick a round fired now lands, from its time of flight.
+pub fn arrival_tick(tick: contract::ids::Tick, time_of_flight_s: f64, tick_hz: u32) -> f64 {
+    tick as f64 + time_of_flight_s * f64::from(tick_hz)
+}
+
+/// A round of `def` counted against `target`, coming from `from` and landing
+/// at `arrive_tick`; none for a row that doesn't avoid overkill.
+pub fn counted(
+    def: &WeaponDefinition,
+    rules: &Rules,
+    target: &Unit,
+    from: V3,
+    arrive_tick: f64,
+) -> Option<Hit> {
+    def.avoids_overkill.then(|| Hit {
+        arrive_tick,
+        damage: hit_damage(def, rules, target, from),
+        interceptable: def.interceptable,
+    })
+}
+
+/// Damage after penetration on the face the target shows the incoming round.
+/// A direct hit on a squad strikes one soldier, so it counts no more than the
+/// healthiest one's health; its blast is not counted.
+fn hit_damage(def: &WeaponDefinition, rules: &Rules, target: &Unit, from: V3) -> f64 {
+    if target.hull.is_none() {
+        let healthiest = target
+            .members
+            .iter()
+            .filter(|soldier| soldier.alive())
+            .map(|soldier| soldier.hp)
+            .fold(0.0, f64::max);
+        return def.damage.min(healthiest);
+    }
+    let Some(armor) = target.armor(rules) else {
+        return def.damage;
+    };
+    let face = target.hull_face(from);
+    def.damage * pierce_share(def, 0, rules, armor, face)
+}
+
+/// Whether committed damage landing by this shot's arrival destroys `target`.
+pub fn doomed(committed: &Committed, side: Side, target: &Unit, arrive_tick: f64) -> bool {
+    let charges = target.protection.as_ref().map_or(0, |state| state.charges);
+    committed.landing_by(side, target.id, arrive_tick, charges) >= remaining_hp(target)
+}
+
+/// Whether a flagged kind's shot at `target`, landing after its time of
+/// flight, would only add to damage already committed to kill it.
+pub(super) fn overkill(
+    ctx: &FireContext,
+    units: &[Unit],
+    side: Side,
+    spec: &MountSpec,
+    ready: &Ready,
+    target: Target,
+) -> bool {
+    let Target::Unit(target) = target else {
+        return false;
+    };
+    ctx.arsenal.weapons[spec.kinds[ready.kind]]
+        .def
+        .avoids_overkill
+        && doomed(
+            ctx.committed,
+            side,
+            &units[target.0 as usize],
+            arrival_tick(ctx.tick, ready.time_of_flight_s, ctx.rules.tick_hz),
+        )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hit(arrive_tick: f64, damage: f64, interceptable: bool) -> Hit {
+        Hit {
+            arrive_tick,
+            damage,
+            interceptable,
+        }
+    }
+
+    #[test]
+    fn landing_cutoff_includes_ties_and_excludes_later_hits() {
+        let mut committed = Committed::default();
+        committed.add(Side::Blue, UnitId(1), hit(3.0, 2.0, false));
+        committed.add(Side::Blue, UnitId(1), hit(4.0, 5.0, false));
+        assert_eq!(committed.landing_by(Side::Blue, UnitId(1), 3.0, 0), 2.0);
+    }
+
+    #[test]
+    fn trophy_absorbs_earliest_interceptable_hits_only() {
+        let mut committed = Committed::default();
+        committed.add(Side::Blue, UnitId(1), hit(1.0, 2.0, true));
+        committed.add(Side::Blue, UnitId(1), hit(1.0, 11.0, true));
+        committed.add(Side::Blue, UnitId(1), hit(2.0, 3.0, false));
+        committed.add(Side::Blue, UnitId(1), hit(3.0, 5.0, true));
+        committed.add(Side::Blue, UnitId(1), hit(4.0, 7.0, true));
+        assert_eq!(committed.landing_by(Side::Blue, UnitId(1), 4.0, 1), 26.0);
+        assert_eq!(committed.landing_by(Side::Blue, UnitId(1), 4.0, 5), 3.0);
+    }
+
+    #[test]
+    fn squad_health_sums_living_soldiers() {
+        let members = vec![
+            crate::units::Soldier::new(1, 0, V3::default(), 4.0),
+            crate::units::Soldier::new(2, 1, V3::default(), 0.0),
+            crate::units::Soldier::new(3, 2, V3::default(), 6.0),
+        ];
+        assert_eq!(squad_hp(&members), 10.0);
+    }
+}

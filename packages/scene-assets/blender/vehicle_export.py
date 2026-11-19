@@ -73,6 +73,27 @@ def _run_lint(vehicle_id):
                          "fix them or run `vehicle_lint.py --update-baseline` to accept them")
 
 
+def apply_hull_scale(hull, longitudinal_factor):
+    """Bake a frame-only longitudinal resize into the vehicle's geometry.
+
+    The runtime catalog owns the collision envelope. Applying that envelope to
+    the finished model keeps every exported node at uniform scale, which the
+    GLB validator requires.
+    """
+    if abs(longitudinal_factor - 1.0) < 1e-9:
+        return
+    hull.scale.x = longitudinal_factor
+    bpy.context.view_layer.update()
+
+    descendants = list(hull.children_recursive)
+    mesh_world = {obj: obj.matrix_world.copy() for obj in descendants if obj.type == "MESH"}
+    hull.scale = (1.0, 1.0, 1.0)
+    bpy.context.view_layer.update()
+    for obj, world in mesh_world.items():
+        obj.data.transform(obj.matrix_world.inverted_safe() @ world)
+    bpy.context.view_layer.update()
+
+
 CHIP = 0.35  # the paint's edge wear unless a family sets its own (`materials`)
 
 

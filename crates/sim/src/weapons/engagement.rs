@@ -6,8 +6,8 @@ use contract::ids::UnitId;
 use contract::observation::ActionReason;
 
 use super::{
-    bearing_from, candidates, fire_from, fires_into, infantry_offset, muzzle, FireContext, Mount,
-    MountSpec, Resolved, Target, Weapon,
+    bearing_from, candidates, fire_from, infantry_offset, muzzle, FireContext, Mount, MountSpec,
+    Resolved, Target, Weapon,
 };
 use crate::flight::{predicted_path, timed_path, Aim, FiringSolution, NoSolution};
 use crate::lean;
@@ -123,6 +123,31 @@ fn launch_clear(
         left -= len;
     }
     true
+}
+
+/// An explicit ground attack can hit the body it names or wear down a
+/// non-occluding blocker it has enough ammunition to destroy.
+pub(super) fn fires_into(
+    ctx: &FireContext,
+    weapon: &Weapon,
+    rounds: Option<u32>,
+    target: Target,
+    id: PropId,
+) -> bool {
+    let Target::Ground(point) = target else {
+        return false;
+    };
+    let Some(prop) = ctx.world.prop(id) else {
+        return false;
+    };
+    if prop.footprint().contains(point.xy(), 0.0) {
+        return true;
+    }
+    let Some(hp) = ctx.structures.hp(ctx.world, id) else {
+        return false;
+    };
+    let per_round = weapon.def.structural_damage * prop.body.armor;
+    !prop.body.occludes && per_round > 0.0 && rounds.is_none_or(|n| per_round * n as f64 >= hp)
 }
 
 /// Can this mount fire the given kind at the resolved point from here? The

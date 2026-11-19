@@ -58,7 +58,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             1.35,
             0,
@@ -73,8 +73,8 @@
       ],
       "appearance": "eastern_2s19_msta_s_2s19m2",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -83,6 +83,7 @@
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Tornado-S",
       "description": "Heavy rocket artillery",
@@ -141,7 +142,7 @@
           "weapons": [
             "artillery_rocket_heavy"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             -3.4,
             0,
@@ -156,8 +157,8 @@
       ],
       "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
       "sensors": {
-        "ground_m": 400,
-        "low_air_m": 400,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -256,6 +257,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.4,
       "name": "BM-21 Grad",
       "description": "BM-21 rocket artillery",
@@ -314,23 +316,23 @@
           "weapons": [
             "artillery_rocket_light"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
-            -1.8,
+            -2.3,
             0,
             2.6
           ],
           "muzzle_m": [
-            3.0,
-            0,
-            0
+            1.5574,
+            0.0,
+            0.9606
           ]
         }
       ],
       "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "sensors": {
-        "ground_m": 400,
-        "low_air_m": 400,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -534,7 +536,7 @@
       ],
       "appearance": "eastern_bmp_ifv_family_bmp_3",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -756,10 +758,11 @@
         }
       },
       "sensors": {
-        "low_air_m": 3200,
-        "high_air_m": 3200
+        "low_air_m": 2250,
+        "high_air_m": 2250
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -771,14 +774,14 @@
           ],
           "turret": true,
           "pivot_m": [
-            2.0,
+            0.15,
             0,
             2.37
           ],
           "muzzle_m": [
-            0.3,
-            0,
-            0.93
+            -0.7019,
+            0.0,
+            3.4412
           ]
         }
       ],
@@ -1525,10 +1528,11 @@
         }
       },
       "sensors": {
-        "low_air_m": 3200,
-        "high_air_m": 3200
+        "low_air_m": 2250,
+        "high_air_m": 2250
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -1540,7 +1544,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -1.25,
+            -1.6,
             0,
             2.1
           ],
@@ -1611,7 +1615,7 @@
           "weapons": [
             "artillery_howitzer"
           ],
-          "turret": false,
+          "turret": true,
           "pivot_m": [
             0.5,
             0,
@@ -1626,8 +1630,8 @@
       ],
       "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2514,7 +2518,7 @@
       ],
       "appearance": "eastern_t_72_t_72b3_2016",
       "sensors": {
-        "ground_m": 450,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2627,7 +2631,7 @@
       ],
       "appearance": "eastern_t_80_t_80bvm",
       "sensors": {
-        "ground_m": 500,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2740,7 +2744,7 @@
       ],
       "appearance": "eastern_t_90_t_90m_proryv",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2779,7 +2783,7 @@
         "variant": "Tigr-M",
         "family_name": "Tigr"
       },
-      "extends": "roster_profile_light_car",
+      "extends": "roster_profile_wheeled_recon",
       "body": {
         "hull": {
           "half_extents_m": [
@@ -2835,7 +2839,7 @@
       ],
       "appearance": "eastern_tigr_tigr_m",
       "sensors": {
-        "ground_m": 700,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3045,7 +3049,7 @@
       ],
       "appearance": "eastern_type_99_ztz_99a",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3349,7 +3353,7 @@
       ],
       "appearance": "eastern_zbl_08_wheeled_ifv",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3379,9 +3383,10 @@
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
         "low_air_m": 1800,
-        "high_air_m": 7000
+        "high_air_m": 3000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [
@@ -3460,9 +3465,10 @@
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
         "low_air_m": 1800,
-        "high_air_m": 7000
+        "high_air_m": 3000
       },
       "capabilities": {
+        "deploy": { "seconds": 3, "pack_seconds": 1 },
         "radar_emitter": true
       },
       "mounts": [

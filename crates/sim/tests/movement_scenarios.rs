@@ -502,7 +502,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-cover-shot-away",
-            caption: "a squad behind chest-high sandbags under a jeep's HMG: the fire grinds the sandbags to rubble; the squad holds the rubble strip (light cover) and the teeth",
+            caption: "a jeep shoots away the sandbags and the squad holds the rubble",
             map: flat(
                 [140.0, 90.0],
                 json!({ "props": [
@@ -518,9 +518,9 @@ fn authored() -> Vec<Scenario> {
                 { "side": "red", "kind": "test_jeep", "position": [110, 45], "yaw": std::f64::consts::PI },
             ]),
             events: none.clone(),
-            scripts: none.clone(),
-            // Soldiers and the jeep too tough to fall, so the fight lasts: the
-            // squad firing back past its cover would kill the jeep otherwise.
+            scripts: json!([{ "tick": 1, "side": "red", "order": {
+                "kind": "attack", "units": [1], "target": { "kind": "ground", "point": [64.0, 45.0, 0.0] },
+            } }]),
             rules: json!({ "catalog": { "units": { "test_jeep": { "body": { "hull": { "hp": 1.0e6 } } } }, "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 60.0,
             seed: 1,

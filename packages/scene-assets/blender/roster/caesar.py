@@ -14,11 +14,13 @@ CAESAR, French-built; the Danish car is green).
 Its frame is the chassis's length,
 width and height to its cab roof (10.0 x 2.55 x 3.2 m), measured off the side
 photo against its 1.16 m tyres, recorded as `references`; the gun travelling
-over the cab is its mount, outside the frame as a tank's gun is. The gun is drawn travelling and does not articulate yet.
+over the cab is its mount, outside the frame as a tank's gun is.
 """
 import math
 import os
 import sys
+
+import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,7 +29,7 @@ import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -62,7 +64,9 @@ def build(variant, v):
     # under the barrel, the two equilibrators, the elevating sector.
     cx = -2.95
     gz = 3.28  # the gun travels over the cab roof (3.10)
-    box("gun_carriage", (1.20, 1.50, 0.90), (cx, 0, deck + 0.50), m["paint"], h, bevel=0.04)
+    # Keep the traversing carriage clear of the deck plate and the walkway
+    # brackets that flank it at the rear of the truck.
+    box("gun_carriage", (1.20, 1.30, 0.82), (cx, 0, deck + 0.58), m["paint"], h, bevel=0.04)
     cyl("carriage_ring", 0.68, 0.10, (cx, 0, deck + 1.00), "Z", m["dark"], h, seg=28, lods=MID)
     for side in (-1, 1):
         box(f"cradle_cheek_{side}", (0.90, 0.10, 1.00), (cx + 0.10, side * 0.45, deck + 1.40), m["paint"], h,
@@ -93,6 +97,20 @@ def build(variant, v):
     # The rest on the cab's roof and its clamp round the barrel.
     box("travel_rest", (0.16, 0.40, gz - 3.10), (2.4, 0, (gz + 3.10) / 2 - 0.08), m["dark"], h, lods=MID)
     box("gun_travel_clamp", (0.14, 0.30, 0.10), (2.4, 0, gz + 0.12), m["dark"], h, bevel=0.02, lods=MID)
+    if not v.wreck:
+        yaw, pitch, _, _ = rig(v.frame, v.root)["gun"]
+        pitch["pitch_max_deg"] = 80
+        bpy.context.view_layer.update()
+        for part in list(h.children):
+            if part.name.startswith(("gun_carriage", "carriage_ring", "cradle_cheek", "trunnion_", "equilibrator_", "elevating_sector_")):
+                owner = yaw
+            elif part.name.startswith(("gun_breech", "gun_barrel", "gun_collar", "muzzle_", "brake_port_", "recuperator_", "cradle_LOD")):
+                owner = pitch
+            else:
+                continue
+            world = part.matrix_world.copy()
+            part.parent = owner
+            part.matrix_world = world
     # The recoil spade folded up under the tail.
     AR.bolted_panel("recoil_spade", (-half + 0.25, 0, 0.55), (0.12, 1.60, 0.60), m, h, bolts=(1, 4), bevel=0.02,
                     rot=(0, -0.35, 0), lods=VP.ALL)

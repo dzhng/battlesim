@@ -260,7 +260,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "material.role_rubber": () => panel((m) => (m.extras = { role: "rubber" })),
   "material.role_glass": () => panel((m) => (m.extras = { role: "glass" })),
   "basis.ground": () => soldier({ lift: 0.1 }),
-  "basis.forward": () => tank({}, { basis_yaw_deg: 180 }),
+  "basis.forward": () => truck({ reversed: true }),
   "basis.up": () => tank({ flip: true }),
   "fit.soldier_height": () => soldier({ top: 1.9 }),
   "fit.eye": () => soldier({ eyeY: 1.3 }),

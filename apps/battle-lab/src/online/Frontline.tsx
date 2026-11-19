@@ -161,7 +161,7 @@ export function Frontline({
         </p>
         {notice && <p role="alert">{notice}</p>}
       </div>
-      <button type="button" className="online-start" disabled={busy} onClick={() => void play()}>
+      <button type="button" className="frontline-play" disabled={busy} onClick={() => void play()}>
         {busy ? "Finding a battle…" : "Play"}
       </button>
     </section>

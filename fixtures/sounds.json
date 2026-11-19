@@ -549,6 +549,15 @@
       "sha256": "0b6df2f8b199a55153c744446f863754dff7194483cb66808d770865e7e62d30",
       "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
     },
+    "paf-super-huey-firefighting": {
+      "label": "Philippine Air Force Super Huey firefighting flight",
+      "author": "Philippine Air Force",
+      "license": "Public-Domain-PH-Gov",
+      "url": "https://commons.wikimedia.org/wiki/File:2024-01-29_Huey_Helibucket.webm",
+      "path": "assets/third-party/audio/paf-super-huey-firefighting.opus",
+      "sha256": "123d05d71a3f8f346c9b2c8448f0be86090c79124eba539d6d7b6f1df6c30093",
+      "notes": "Philippine Air Force ground footage of a Super Huey on a firefighting flight in Itogon, Benguet, on January 29, 2024. The Opus track was copied from the published WebM. Section 176 of Republic Act No. 8293 requires agency approval for exploitation for profit."
+    },
     "uh60-b-roll": {
       "label": "UH-60 Blackhawk B-Roll",
       "author": "Master Sgt. Jason Stadel / U.S. Army",
@@ -820,6 +829,15 @@
       "path": "assets/third-party/audio/freesound-239135-tank-shots-qubodup-hq.ogg",
       "sha256": "6e374214bdb42e58b0fc8acbba6b3fa134cbc2a21375b910db32fb0358bbbf89",
       "notes": "Freesound HQ OGG Vorbis preview (192 kb/s, 48 kHz stereo), retained as downloaded; the original 48 kHz 16-bit FLAC requires login. A US Army recording of tank main-gun shots."
+    },
+    "freesound-431473": {
+      "label": "F35 Jet Low-Flyby.mp3",
+      "author": "johnnythesalesman",
+      "license": "CC-BY-3.0",
+      "url": "https://freesound.org/people/johnnythesalesman/sounds/431473/",
+      "path": "assets/third-party/audio/freesound-431473-f35a-avalon-flyby.mp3",
+      "sha256": "13efb96436f3e45e33079956b4f89566fdb65d4ce9163434456d18a59e67408b",
+      "notes": "Ground recording of an F-35A Lightning II low pass at the 2017 Avalon Airshow in Victoria, Australia. Freesound HQ MP3 preview retained as downloaded."
     }
   },
   "clips": {
@@ -4624,6 +4642,21 @@
       "loop": true,
       "notes": "Hollywood optical effect (1930s-60s, USC transfer): M-4 pass by, squeaky clacking treads. Its steadiest 3 s, crossfaded into a loop."
     },
+    "rotor-huey": {
+      "label": "Super Huey rotor \u00b7 in-flight loop",
+      "category": "rotor",
+      "role": "loop",
+      "source": "paf-super-huey-firefighting",
+      "source_rate": 48000,
+      "source_frames": [21600, 377773],
+      "processing": "running-gear",
+      "url": "/audio/clips/rotor-huey.wav",
+      "sha256": "80610a4fe7bbd506c60f6aa294b9a76b931e3c7c562f40e8dc081b4887b5dcd6",
+      "sample_rate": 48000,
+      "frames": 351373,
+      "loop": true,
+      "notes": "Steady blade beat as heard from the ground. The loop spans whole blade passes so the crossfade keeps the beat."
+    },
     "rotor-uh60": {
       "label": "UH-60 rotor \u00b7 running loop",
       "category": "rotor",
@@ -5102,6 +5135,21 @@
       "frames": 113376,
       "loop": false,
       "notes": "The shot at 8.59 s through its echo to the end of the recording, from 2 ms before the attack. Processed with more bass and about a third less echo (post 34 take D)."
+    },
+    "f35a-avalon-engine": {
+      "label": "F-35A \u00b7 Avalon Airshow engine loop",
+      "category": "air-war",
+      "role": "loop",
+      "source": "freesound-431473",
+      "source_rate": 44100,
+      "source_frames": [28665, 324135],
+      "processing": "flyby-loop",
+      "url": "/audio/clips/f35a-avalon-engine.wav",
+      "sha256": "2b36d142dfc003e87d1e84b5ad66e6fe3517b064e90ff5fc79018ec860cb05c9",
+      "sample_rate": 48000,
+      "frames": 297600,
+      "loop": true,
+      "notes": "The low pass from 0.65 to 7.35 s, downmixed and filtered. Compression softens the recorded approach and departure, and a half-second equal-power crossfade joins the ends."
     }
   },
   "sounds": {
@@ -6415,6 +6463,14 @@
       "gain": 1,
       "loop": true
     },
+    "recorded-rotor-huey": {
+      "label": "Rotor \u00b7 Super Huey (Philippine Air Force)",
+      "clips": ["rotor-huey"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
     "recorded-rotor-uh60": {
       "label": "Rotor \u00b7 UH-60 Blackhawk B-Roll (US Army)",
       "clips": ["rotor-uh60"],
@@ -6432,8 +6488,8 @@
       "loop": false
     },
     "airwar-jet-engine": {
-      "label": "Jet engine \u00b7 generated",
-      "clips": ["airwar-jet-engine-1"],
+      "label": "Jet engine \u00b7 F-35A at Avalon Airshow",
+      "clips": ["f35a-avalon-engine"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,

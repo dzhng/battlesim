@@ -1,5 +1,6 @@
 //! Sound follows the presentation document's effect clock.
 use presentation::sound::frame::{Command, Heard, Listener, Motion, Sound};
+use presentation::sound::idle::idle_loops_of;
 use serde_json::{json, Value};
 
 fn setup() -> Value {
@@ -12,6 +13,25 @@ fn setup() -> Value {
         "unit_catalog": {"units": [], "soldiers": {}},
         "tick_hz": 30
     })
+}
+
+#[test]
+fn a_unit_can_take_a_different_audio_class_from_its_physical_class() {
+    let mut setup = setup();
+    setup["unit_catalog"]["units"] = json!([
+        {"id": "test_vehicle", "vehicle_class": "default", "mobility": {"wheeled": {}}, "mounts": []}
+    ]);
+    let baseline = idle_loops_of(&setup.to_string(), "test_vehicle").unwrap();
+    setup["audio"]["vehicle_class_overrides"] = json!({"test_vehicle": "test_audio"});
+    let mut row = setup["audio"]["vehicles"]["default"].clone();
+    row["engine"] = json!("engine_diesel");
+    setup["audio"]["vehicles"]["test_audio"] = row;
+    let overridden = idle_loops_of(&setup.to_string(), "test_vehicle").unwrap();
+    assert_ne!(overridden[0].sound, baseline[0].sound);
+    assert_eq!(overridden[0].sound, "engine_diesel");
+    setup["audio"]["vehicle_class_overrides"]["test_vehicle"] = json!("missing");
+    let error = idle_loops_of(&setup.to_string(), "test_vehicle").unwrap_err();
+    assert!(error.contains("audio.vehicle_class_overrides.test_vehicle"));
 }
 
 #[test]

@@ -5,15 +5,64 @@
 // The growth's art is held at the network edge until the new kind's stand-in
 // blocks are judged and attacked (`_stand-ins.mjs`), then released. The
 // fixture's link is a fixed small skirmish, so the meeting is the same every
-// run.
+// run. Red's opening army is drawn from the start, so the new kind is one red
+// sends in later: the scout watches red from outside the reach of what it
+// sees, and within its own sight, until one comes into view.
 import { readFile } from "node:fs/promises";
 import { advance, lab, obs, presented } from "./_lab.mjs";
 import { growthArt } from "./_growthArt.mjs";
 import { approachContact, followEnemyObjective } from "./_contact-battle.mjs";
 import { heldUnit, holdArt, judgeStandIns } from "./_stand-ins.mjs";
+import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 
 /** Minutes of play allowed for blue to meet red. */
 const ROUNDS = 10;
+
+const game = await nodeCatalogSet("game");
+const types = new Map(game.units.view.units.map((t) => [t.id, t]));
+/** The farthest a unit of `kind` reaches the ground with any of its weapons. */
+const reach = (kind) =>
+  Math.max(
+    0,
+    ...(types.get(kind)?.mounts ?? []).flatMap((m) =>
+      (m.weapons ?? []).map((w) => game.weapons[w]?.targets?.ground?.range_m ?? 0),
+    ),
+  );
+
+/** Hold the scout off the nearest enemy it sees, midway between that enemy's
+ *  reach and the scout's own sight: seen, and out of reach. With nothing in
+ *  sight it scouts on toward what red holds. */
+async function watch(page, observation, scoutId) {
+  const scout = observation.own.find((u) => u.id === scoutId);
+  if (!scout) return;
+  const from = (u) =>
+    Math.hypot(u.position[0] - scout.position[0], u.position[1] - scout.position[1]);
+  const enemy = [...observation.identified].sort((a, b) => from(a) - from(b))[0];
+  if (!enemy) return followEnemyObjective(page, observation, scoutId);
+  const sight = types.get(scout.kind).sensors.ground_m;
+  const standoff = Math.min((reach(enemy.kind) + sight) / 2, sight);
+  const d = from(enemy);
+  const k = standoff / Math.max(d, 1);
+  const goal = [0, 1].map((i) => enemy.position[i] + (scout.position[i] - enemy.position[i]) * k);
+  const band = 30;
+  // Holding in the band, already on the way to the standoff, or still closing
+  // from beyond it: nothing to order.
+  if (!scout.goal && Math.abs(d - standoff) <= band) return;
+  if (scout.goal && Math.hypot(scout.goal[0] - goal[0], scout.goal[1] - goal[1]) < band) return;
+  if (scout.goal && d > standoff + band) return;
+  await lab(
+    page,
+    ([id, goal]) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [id],
+        gesture: 2802,
+        goal,
+        route: "fastest",
+      }),
+    [scoutId, goal],
+  );
+}
 
 export async function run(ctx) {
   const page = await ctx.newPage();
@@ -64,15 +113,16 @@ export async function run(ctx) {
   const initialWork = timeline.find((e) => e.kind === "scene installed")?.detail?.work;
   const initialNames = await snapshots.at(-1);
   console.log("battle-growth admission work", JSON.stringify(initialWork));
-  // The first scene is built: from here on, only growth, its art held.
+  // The first scene is built: from here on, only growth.
   timeline.length = 0;
   snapshots.length = 0;
   details.length = 0;
-  network.start();
 
   // Recon's longer sight reaches the firing vehicles before they can kill a
   // short-sighted tank on the approach. This fixture is a meeting, not an assault.
   const scoutId = await approachContact(page);
+  // The battle warms its cache once it starts; growth art is held after that.
+  await network.start();
   // Stop at the first held growth, rather than fast-forwarding through a
   // whole minute in which a second kind could arrive as well. Staging waits
   // on the art, so a held growth shows as blocks before it logs anything.
@@ -84,7 +134,7 @@ export async function run(ctx) {
     meeting = await obs(page);
     unit = network.held.length ? await heldUnit(page, meeting) : null;
     if (unit) break;
-    await followEnemyObjective(page, meeting, scoutId);
+    await watch(page, meeting, scoutId);
   }
   const committed = () => {
     const lastStage = timeline.map((e) => e.kind).lastIndexOf("battle staged");

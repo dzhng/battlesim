@@ -5,7 +5,7 @@ use crate::common;
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::MoveState;
-use contract::scenario::{PushClass, Rules, ScenarioDefinition, WeightClass};
+use contract::scenario::{Face, PushClass, Rules, ScenarioDefinition, WeightClass};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::ground::GroundLayer;
@@ -477,16 +477,15 @@ fn a_jeep_sees_all_round_and_only_rifles_partly_hurt_it() {
         .unwrap()
         .def;
     let a = common::hull("test_jeep").armor;
-    let share = |w: &contract::weapons::WeaponDefinition, armor: f64| {
-        sim::damage::pierce_share(w, 0, &r, armor)
-    };
+    let share = |w, face| sim::damage::pierce_share(w, 0, &r, &a, face);
     for w in &arsenal.weapons {
         if w.def.penetration > rifle.penetration {
-            let thickest = a.front.max(a.side).max(a.rear).max(a.roof);
-            assert_eq!(share(&w.def, thickest), 1.0, "{}", w.id);
+            for face in [Face::Front, Face::Side, Face::Rear, Face::Roof] {
+                assert_eq!(share(&w.def, face), 1.0, "{} {face:?}", w.id);
+            }
         }
     }
-    let rifle_share = share(rifle, a.weakest());
+    let rifle_share = share(rifle, Face::Rear);
     assert!(
         0.0 < rifle_share && rifle_share < 1.0,
         "rifle: {rifle_share}"

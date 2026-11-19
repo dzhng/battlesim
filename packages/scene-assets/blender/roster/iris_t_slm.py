@@ -34,6 +34,7 @@ import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, stencil, textured  # noqa: E402
 from truck_chassis import on  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 hx = importlib.import_module("man-hx")
@@ -63,6 +64,9 @@ def build(variant, v):
     shelter(v)
     launcher(v)
     underside(v)
+    articulate_launcher(v, (PACK_REAR + 0.05, 0, PACK_FLOOR - 0.10), 90,
+                        ("canister_", "collar_", "launcher_rail", "launcher_base", "launcher_post", "connector_", "ram_"),
+                        vertical=True)
 
 
 def intake(v, cab_rear):

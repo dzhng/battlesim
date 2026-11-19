@@ -447,7 +447,7 @@ impl Audio {
         let Some(listener) = presentation.listener() else {
             return;
         };
-        let motion = presentation.motion();
+        let motion = presentation.motion(&self.sound.tables().audio);
         let clock = presentation.clock_of_frame();
         let commands = self
             .sound

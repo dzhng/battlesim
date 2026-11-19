@@ -400,11 +400,19 @@ fn a_set_up_supply_heli_serves_its_reach_from_its_stock() {
     })]));
     let stock = b.unit(HELI).unwrap().stock.unwrap();
     let (setup, _, _) = timing(&b);
-    for _ in 0..setup + 30 * b.rules().tick_hz as u64 {
+    // Served from the stock until full, however fast its resupply rate.
+    let mut served = false;
+    for _ in 0..setup + 300 * b.rules().tick_hz as u64 {
         b.step();
+        let service = b.unit(RECIPIENT).unwrap().service;
+        served |= service == ServiceStatus::Serving;
+        if service == ServiceStatus::Full {
+            break;
+        }
     }
+    assert!(served, "the set-up helicopter serves the team in its reach");
     assert!(b.unit(HELI).unwrap().stock.unwrap() < stock);
-    assert_eq!(b.unit(RECIPIENT).unwrap().service, ServiceStatus::Serving);
+    assert_eq!(b.unit(RECIPIENT).unwrap().service, ServiceStatus::Full);
 }
 
 #[test]

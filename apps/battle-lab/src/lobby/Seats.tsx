@@ -114,32 +114,31 @@ function Banner({
               {you ? " · you" : ""}
               {occupant.host && <small>host</small>}
             </span>
+          ) : room.editable && vacant ? (
+            <Pick
+              label={`${name} seat`}
+              testId={`lobby-seat-${seat.id}`}
+              className="lobby-controller"
+              options={vacant === "open" ? ["open", "ai", "move_here"] : ["open", "ai"]}
+              value={vacant}
+              onChange={(to) => {
+                if (to === "move_here") sit();
+                else room.setSeat(seat.id, to);
+              }}
+            >
+              {vacant === "open" ? "Open" : "AI"}
+            </Pick>
           ) : (
             <>
-              {/* The host chooses what holds a seat nobody sits in; anyone
-                  may sit in an open one, by clicking anywhere on its row. */}
-              {room.editable && vacant ? (
-                <Pick
-                  label={`${name} seat`}
-                  testId={`lobby-seat-${seat.id}`}
-                  className="lobby-controller"
-                  options={["open", "ai"] as const}
-                  value={vacant}
-                  onChange={(to) => room.setSeat(seat.id, to)}
-                >
-                  {vacant === "open" ? "Open" : "AI"}
-                </Pick>
-              ) : (
-                vacant === "ai" && <span className="lobby-controller">AI</span>
-              )}
+              <span className="lobby-controller">{vacant === "open" ? "Open" : "AI"}</span>
               {vacant === "open" && (
                 <button
                   type="button"
-                  className="lobby-controller online-sit"
-                  aria-label={`Sit ${name}`}
+                  className="lobby-move"
+                  aria-label={`Move here, ${name}`}
                   onClick={sit}
                 >
-                  {room.editable ? "" : "Open"}
+                  Move here
                 </button>
               )}
             </>

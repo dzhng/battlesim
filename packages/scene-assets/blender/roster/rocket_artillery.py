@@ -11,18 +11,17 @@ What the photos settle:
   rear of the hull, the pods' aft caps in its rear face.
 - HIMARS: the FMTV 6x6, its flat-fronted armoured cab, the launcher module
   on a turntable behind: a ribbed box filling the rear deck, one pod in it
-  whose capped face shows at the rear: six GMLRS rounds, or (PrSM) two
+  whose capped face points forward in the game: six GMLRS rounds, or (PrSM) two
   missiles behind two large caps.
 - BM-21: the Ural-375D 6x6 (the roster Ural's chassis and cab), a spare
   wheel behind the cab, flat fenders over the rear bogie, the forty 122 mm
-  tubes in four rows on a cradle with its sector gears, travelling with
-  their muzzles to the rear.
+  tubes in four rows on a cradle with its sector gears, with their muzzles facing the cab.
 - Tornado-S: the MAZ-543M 8x8, its two cabs either side of the engine, the
   twelve 300 mm tubes in three rows lying along the chassis.
 
 Each card's frame is the vehicle's
 published length, width and height (launcher stowed), recorded in its
-receipt as `references`. The launchers use fixed mounts and are drawn stowed.
+receipt as `references`. The launch packs rise from their travel rests.
 """
 import math
 import os
@@ -35,9 +34,10 @@ import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, prism  # noqa: E402
+from parts import box, cyl, empty, prism  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
+from launcher_rig import launcher as articulate_launcher  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -55,28 +55,28 @@ CARDS = {
 # ---------------------------------------------------------------- pods
 def pod(v, name, loc, size, cells, parent, caps=None):
     """A launch pod `size` (x along the rounds, y, z) stowed as the photos
-    show it, its face at its rear (-X) end: `cells` (columns, rows) of rounds
+    show it, its face at its forward (+X) end: `cells` (columns, rows) of rounds
     behind frangible caps in their steel rims, or `caps` large caps (PrSM),
     in a recessed face; stiffening ribs round its body and lifting eyes on
     its top corners."""
     m = v.mats
     sx, sy, sz = size
     x, y, z = loc
-    face = x - sx / 2
+    face = x + sx / 2
     box(f"{name}_body", size, loc, m["paint"], parent, bevel=0.03)
     for k in range(4):
         box(f"{name}_rib_{k}", (0.06, sy + 0.03, sz + 0.03), (x - sx / 2 + 0.25 + k * (sx - 0.4) / 3, y, z),
             m["paint"], parent, bevel=0.01, lods=NEAR)
-    box(f"{name}_face", (0.02, sy - 0.08, sz - 0.08), (face - 0.005, y, z), m["black"], parent, lods=MID)
+    box(f"{name}_face", (0.02, sy - 0.08, sz - 0.08), (face + 0.005, y, z), m["black"], parent, lods=MID)
     cols, rows = cells if caps is None else (caps, 1)
     cell = min(sy / cols, sz / rows) * 0.82
     for i in range(cols):
         for j in range(rows):
             cy = y - sy / 2 + sy * (i + 0.5) / cols
             cz = z - sz / 2 + sz * (j + 0.5) / rows
-            cyl(f"{name}_rim_{i}_{j}", cell / 2 + 0.02, 0.04, (face - 0.02, cy, cz), "X", m["steel"], parent, seg=16,
+            cyl(f"{name}_rim_{i}_{j}", cell / 2 + 0.02, 0.04, (face + 0.02, cy, cz), "X", m["steel"], parent, seg=16,
                 lods=NEAR)
-            cyl(f"{name}_cap_{i}_{j}", cell / 2, 0.03, (face - 0.03, cy, cz), "X", m["dark"], parent, seg=16,
+            cyl(f"{name}_cap_{i}_{j}", cell / 2, 0.03, (face + 0.03, cy, cz), "X", m["dark"], parent, seg=16,
                 bevel=0.008, lods=MID)
     for i, dy in enumerate((-1, 1)):
         for j, dx in enumerate((-1, 1)):
@@ -84,18 +84,17 @@ def pod(v, name, loc, size, cells, parent, caps=None):
                 "Z", m["steel"], parent, seg=8, lods=FINE)
 
 
-REAR_LIP = 0.12
+FRONT_LIP = 0.12
 
 
 def launcher_box(v, name, x0, x1, z0, z1, width, parent):
     """The armoured launcher box a pod rides in (the HIMARS's launcher-loader
     module): upright ribbed sides, its top chamfered down at
-    the front, the loader boom's rail along its top and the cable run down
-    its right side. Open at the rear (-X): its shell starts `REAR_LIP` ahead
-    of `x0`, where the pod's face shows."""
+    the rear, the loader boom's rail along its top and the cable run down
+    its right side. Open at the front (+X), where the capped pod projects past the shell."""
     m = v.mats
-    x0 += REAR_LIP
-    prism(f"{name}_shell", [(x0, z0), (x1, z0), (x1, z1 - 0.30), (x1 - 0.30, z1), (x0, z1)], width, mat=m["paint"],
+    x1 -= FRONT_LIP
+    prism(f"{name}_shell", [(x0, z0), (x1, z0), (x1, z1), (x0 + 0.30, z1), (x0, z1 - 0.30)], width, mat=m["paint"],
           parent=parent, bevel=0.04)
     ribs = max(3, round((x1 - x0) / 0.75))
     for k in range(ribs):
@@ -103,8 +102,8 @@ def launcher_box(v, name, x0, x1, z0, z1, width, parent):
         for side in (-1, 1):
             box(f"{name}_rib_{side}_{k}", (0.07, 0.04, z1 - z0 - 0.10), (x, side * (width / 2 + 0.02), (z0 + z1) / 2 - 0.05),
                 m["paint"], parent, bevel=0.01, lods=NEAR)
-    box(f"{name}_rear_frame", (0.08, width + 0.04, 0.10), (x0 + 0.04, 0, z1 - 0.05), m["paint"], parent, bevel=0.015)
-    box(f"{name}_rear_sill", (0.08, width + 0.04, 0.10), (x0 + 0.04, 0, z0 + 0.05), m["paint"], parent, bevel=0.015)
+    box(f"{name}_front_frame", (0.08, width + 0.04, 0.10), (x1 - 0.04, 0, z1 - 0.05), m["paint"], parent, bevel=0.015)
+    box(f"{name}_front_sill", (0.08, width + 0.04, 0.10), (x1 - 0.04, 0, z0 + 0.05), m["paint"], parent, bevel=0.015)
     # The loader boom stowed along the top's left edge, its hoist at the rear.
     box(f"{name}_boom", (x1 - x0 - 0.50, 0.14, 0.14), ((x0 + x1) / 2 - 0.20, width / 2 - 0.18, z1 + 0.07),
         m["paint"], parent, bevel=0.02, lods=MID)
@@ -123,18 +122,40 @@ def himars(v, prsm):
     box("launcher_base", (1.60, 1.40, 0.22), (-0.60, 0, deck + 0.19), m["dark"], h, bevel=0.02)
     cyl("launcher_turntable", 0.75, 0.12, (-0.60, 0, deck + 0.36), "Z", m["dark"], h, seg=28)
     # The launcher-loader module over the rear deck, one pod in its box.
-    x0, x1 = -half + 0.08, 0.95
+    x0, x1 = -half + 0.08, 0.76
+    hinge_x = x0 + 0.16
+    cyl("cradle_axle", 0.14, 2.24, (hinge_x, 0, deck + 0.54), "Y", m["steel"], h, seg=16)
+    for side in (-1, 1):
+        box(f"cradle_rail_{side}", (-0.6 - hinge_x + 0.4, 0.16, 0.16),
+            ((hinge_x - 0.6) / 2, side * 0.57, deck + 0.46), m["dark"], h)
+        cyl(f"cradle_pin_{side}", 0.17, 0.18, (hinge_x, side * 1.10, deck + 0.54),
+            "Y", m["steel"], h, seg=16)
     launcher_box(v, "launcher", x0, x1, deck + 0.42, 3.06, 2.28, h)
-    pod(v, "pod", (x0 + (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
+    pod(v, "pod", (x1 - (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
         caps=2 if prsm else None)
     for side, s in ((1, "L"), (-1, "R")):
         SW.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-    SW.jerrycan("jerrycan", (0.55, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
+    SW.jerrycan("jerrycan", (0.96, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
     # Behind the cab: the air intake on its stalk and the exhaust stack.
     cyl("air_intake", 0.16, 0.90, (1.05, 0.90, deck + 1.05), "Z", m["paint"], h, seg=16, bevel=0.02)
     cyl("air_intake_cap", 0.20, 0.12, (1.05, 0.90, deck + 1.55), "Z", m["dark"], h, seg=16, lods=MID)
     cyl("exhaust_stack", 0.07, 1.30, (1.08, -0.98, deck + 0.95), "Z", m["dark"], h, seg=12)
+
+    elevation = 32
+    hinge = articulate_launcher(v, (hinge_x, 0, deck + 0.54), elevation,
+                                ("launcher_shell", "launcher_rib", "launcher_front", "launcher_hoist",
+                                 "launcher_boom", "launcher_cable", "pod_"),
+                                ("launcher_turntable", "cradle_"), mount="gun", pitch_with_deploy=True)
+    if hinge is not None:
+        # Equal arm lengths keep the sliding feet on their horizontal cradle rails.
+        arm = 1.3
+        rocker = empty("deploy_lift_arms", (arm, 0, 0), hinge,
+                       props={"deploy_start": 0.0, "deploy_end": 1.0, "deploy_turn_y": 2 * elevation})
+        for side in (-1, 1):
+            y = side * 0.57
+            box(f"lift_arm_{side}", (arm, 0.16, 0.18), (arm / 2, y, 0), m["dark"], rocker, bevel=0.025)
+            cyl(f"lift_roller_{side}", 0.12, 0.22, (arm, y, 0), "Y", m["steel"], rocker, seg=16)
 
 
 def bm21(v):
@@ -152,6 +173,8 @@ def bm21(v):
         box(f"fender_stay_{s}", (0.06, 0.40, 0.18), (-1.62, side * 0.80, 1.26), m["dark"], h, lods=NEAR)
         SW.stowage_box(f"fender_box_{s}", (-2.35, side * 1.0, 1.375), (0.80, 0.40, 0.32), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
+        box(f"tail_lamp_stay_{s}", (0.13, 0.09, 0.28), (-3.55, side * 0.97, 1.00),
+            m["dark"], h, bevel=0.01)
         HF.light_with_guard(f"tail_light_{s}", (-3.62, side * 1.00, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
     box("rear_bumper", (0.12, 2.00, 0.14), (-3.55, 0, 0.88), m["dark"], h, bevel=0.012)
@@ -169,10 +192,9 @@ def bm21(v):
               parent=h, lods=NEAR)
     cyl("elevating_ram", 0.07, 0.95, (tx + 0.45, 0, rail + 0.85), "X", m["steel"], h, seg=10, rot=(0, -0.95, 0),
         lods=MID)
-    # Forty tubes, four rows of ten, travelling with their muzzles to the
-    # rear and the pack rising slightly toward them, as all three photos show.
+    # The forward mouths sit slightly above the breeches in the travel cradle.
     tube_len, rows, cols, r = 3.0, 4, 10, 0.075
-    pitch = math.radians(4)
+    pitch = math.radians(-4)
     cx, cz = -1.85, 2.26
     for j in range(rows):
         for i in range(cols):
@@ -180,7 +202,7 @@ def bm21(v):
             z = cz + j * (2 * r + 0.012)
             cyl(f"grad_tube_{j}_{i}", r, tube_len, (cx, y, z), "X", m["paint"], h, seg=10, rot=(0, pitch, 0),
                 lods=(0, 1, 2) if (i % 2 == 0 or j % 2 == 0) else (0, 1))
-            cyl(f"grad_bore_{j}_{i}", r * 0.82, 0.01, (cx - tube_len / 2 - 0.005, y, z + tube_len / 2 * math.sin(pitch)),
+            cyl(f"grad_bore_{j}_{i}", r * 0.82, 0.01, (cx + tube_len / 2 + 0.005, y, z - tube_len / 2 * math.sin(pitch)),
                 "X", m["black"], h, seg=8, rot=(0, pitch, 0), lods=FINE)
     pack_z = cz + (rows - 1) * (r + 0.006)
     box("tube_pack_hull", (tube_len - 0.2, cols * (2 * r + 0.012), rows * (2 * r + 0.012)), (cx, 0, pack_z), m["paint"],
@@ -189,7 +211,7 @@ def bm21(v):
         box(f"tube_band_{k}", (0.06, cols * (2 * r + 0.012) + 0.06, rows * (2 * r + 0.012) + 0.06),
             (cx + x, 0, pack_z - x * math.sin(pitch)), m["dark"], h, rot=(0, pitch, 0), lods=MID)
     # The travel lock under the pack's front, and the firing cable reel.
-    box("travel_lock", (0.10, 0.70, 2.30 - rail - 0.10), (-0.55, 0, (2.30 + rail) / 2 - 0.05), m["dark"], h, lods=MID)
+    box("travel_lock", (0.10, 0.70, 2.16 - rail - 0.10), (-0.55, 0, (2.16 + rail) / 2 - 0.05), m["dark"], h, lods=MID)
     cyl("cable_reel", 0.16, 0.20, (-3.20, -0.70, rail + 0.35), "Y", m["dark"], h, seg=14, lods=NEAR)
 
 
@@ -215,7 +237,7 @@ def tornado_s(v):
     half = v.length / 2
     deck = maz_543m(v)
     box("deck_plate", (7.0, 2.6, 0.10), (-1.6, 0, deck + 0.05), m["paint"], h, bevel=0.01)
-    SW.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
+    SW.stowage_box("crane_box", (3.05, 0, deck), (0.70, 1.80, 0.65), m, h)
     for side, s in ((1, "L"), (-1, "R")):
         # Stowage along the deck's edges, the rear stabiliser jacks, a ladder.
         for k, x in enumerate((0.9, -0.4)):
@@ -229,9 +251,9 @@ def tornado_s(v):
                 lods=FINE)
     cyl("launcher_turntable", 0.85, 0.25, (-3.4, 0, deck + 0.20), "Z", m["dark"], h, seg=28)
     box("launcher_cradle", (1.8, 1.8, 0.25), (-3.6, 0, deck + 0.30), m["paint"], h, bevel=0.02)
-    cyl("elevating_ram", 0.10, 1.6, (-2.4, 0, deck + 0.45), "X", m["steel"], h, seg=12, lods=MID)
+    cyl("elevating_ram", 0.10, 1.6, (-2.4, 0, deck + 0.33), "X", m["steel"], h, seg=12, lods=MID)
     tube_len, rows, cols, r = 7.6, 3, 4, 0.20
-    cx, cz = -1.15, deck + 0.55
+    cx, cz = -1.15, deck + 0.70
     for j in range(rows):
         for i in range(cols):
             y = (i - (cols - 1) / 2) * (2 * r + 0.03)
@@ -268,6 +290,14 @@ def build(variant, v):
         bm21(v)
     else:
         tornado_s(v)
+
+    if ident in M270:
+        articulate_launcher(v, (-3.21, 0, 1.38), 35, ("gun_body_",), ("turret_body_",), mount="gun")
+    elif ident.startswith("eastern_bm_21"):
+        articulate_launcher(v, (-2.78, 0, 2.15), 24, ("grad_", "tube_"),
+                            ("cradle_plate_", "sector_gear_", "launcher_turntable", "elevating_ram"), mount="gun", pitch_with_deploy=True)
+    elif ident.startswith("eastern_9k515"):
+        articulate_launcher(v, (-3.4, 0, 2.25), 30, ("smerch_", "tube_band_"), (), mount="gun")
 
 
 def wreck(variant, v):

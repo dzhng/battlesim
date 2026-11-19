@@ -8,13 +8,29 @@ import { DeploymentRefusal, prepareDeployment, readSiteBuild } from "./prepare.t
 import { describePush, push } from "./push.ts";
 
 /** A read-only check: no browser credential, player name or presence is made. */
-export async function lobbyInStep(build: BuildIdentity, request = fetch): Promise<boolean> {
+export async function lobbyInStep(
+  build: BuildIdentity,
+  commit: string,
+  request = fetch,
+): Promise<boolean> {
   try {
-    const response = await request(new URL("/build", server.address), {
-      redirect: "error",
-      signal: AbortSignal.timeout(10_000),
-    });
-    return response.ok && sameBuild(await response.json(), build);
+    const [buildResponse, deploymentResponse] = await Promise.all([
+      request(new URL("/build", server.address), {
+        redirect: "error",
+        signal: AbortSignal.timeout(10_000),
+      }),
+      request(new URL("/deployment", server.address), {
+        redirect: "error",
+        signal: AbortSignal.timeout(10_000),
+      }),
+    ]);
+    const deployment = (await deploymentResponse.json()) as { commit?: string };
+    return (
+      buildResponse.ok &&
+      deploymentResponse.ok &&
+      deployment.commit === commit &&
+      sameBuild(await buildResponse.json(), build)
+    );
   } catch {
     return false;
   }
@@ -39,7 +55,7 @@ export async function deployServer(
   try {
     if (options.check) {
       const { build } = await readSiteBuild(options.site, options.commit);
-      if (await lobbyInStep(build, request)) {
+      if (await lobbyInStep(build, build.commit, request)) {
         report("Lobby is in step with the site; no deploy needed.");
         return 0;
       }

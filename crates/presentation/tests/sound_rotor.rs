@@ -50,6 +50,14 @@ fn engine(class: &str, speed: f32) -> (f64, f64) {
 
 #[test]
 fn rotor_gain_and_pitch_follow_the_emitter_to_silence() {
+    for class in [
+        "air_light",
+        "air_light_logistics",
+        "air_medium",
+        "air_heavy",
+    ] {
+        assert_eq!(engine(class, 1.0).1, 1.0, "{class} plays at recorded pitch");
+    }
     let levels: Vec<_> = [1.0, 0.75, 0.5, 0.25, 0.0]
         .map(|s| engine("air_light", s))
         .into();
@@ -158,6 +166,9 @@ fn a_published_landing_carries_the_pose_speed_to_sound() {
         size: [1280, 720],
     };
     let mut publisher = Publisher::new();
+    let mut mix = sound().tables().audio.clone();
+    mix.vehicle_class_overrides
+        .insert("test_transport_heli".into(), "air_heavy".into());
     let mut speeds = Vec::new();
     let mut settled = false;
     for _ in 0..900 {
@@ -170,7 +181,7 @@ fn a_published_landing_carries_the_pose_speed_to_sound() {
             .collect();
         p.push_publication(&words, now).unwrap();
         p.frame(now + 1.0 / hz, &camera, &Ui::default(), 0).unwrap();
-        let motion = p.motion();
+        let motion = p.motion(&mix);
         let vehicle = |id| motion.vehicles.iter().find(|v| v.key == id * 2.0).unwrap();
         speeds.push(vehicle(0.0).rotor_speed.unwrap());
         assert_eq!(
@@ -178,6 +189,7 @@ fn a_published_landing_carries_the_pose_speed_to_sound() {
             Some(1.0),
             "transport stays at flight speed"
         );
+        assert_eq!(vehicle(1.0).vehicle_class, "air_heavy");
         assert_eq!(vehicle(2.0).rotor_speed, None, "jets have no rotor input");
         assert_eq!(
             vehicle(3.0).rotor_speed,
