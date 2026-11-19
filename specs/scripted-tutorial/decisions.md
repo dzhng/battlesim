@@ -167,7 +167,7 @@ hills session was told what the valley needs.
   of the folder (that file belongs to generated maps); the scenario document
   carries its sites. The map and its zones:
   [assets/ferryman-valley.png](assets/ferryman-valley.png),
-  [assets/ferryman-zones.json](assets/ferryman-zones.json).
+  the zones file (since folded into the scenario document, slice 08).
 - **Zone names follow the map, and so do the two spoken lines that named
   them.** An unprimed review of the picture found every story place, and
   flagged that "east woods" lie across the river to the west, and that the tank
@@ -289,3 +289,29 @@ hills session was told what the valley needs.
   (agent, from C7). Header words `scenarioChapter` (−1 without a director) and
   `beatCount`, and a `beats` group. A battle without a director publishes no
   scenario. The parity fixtures were re-blessed once more for the layout.
+
+## Slice 08
+
+- **The solution buys and readies through two more actions, `buy` and
+  `ready`** (agent). Like `order`, they act only for a directed seat, so a
+  person's battle ignores them. `Solution { max_minutes, chapters }` is a
+  contract type; `ScenarioDocument::with_solution` merges its chapters by id
+  and hands every human seat to the director.
+- **Chapters 1–2 play through in 115 game seconds** (about 1.2 s of test time),
+  the baseline for R3. The walkthrough can write its replay
+  (`WALKTHROUGH_REPLAY=<dir>`) to watch with `/battle?replay`.
+- **Three content fixes the walkthrough found** (agent, all lopsiding the story
+  as the spec asks):
+  - The outpost starts with its RPG rounds spent: it killed the Bradley with
+    its launcher before chapter 3 could teach anything.
+  - The solution places the squad and its Bradley at the ridge, not the farm,
+    which is inside the outpost's reach. The farm is chapter 3's.
+  - The river guns stand on clear ground at the woods' edge and fire at a
+    `river_bank` zone they can reach: from inside the woods, and at the first
+    aim point, their trajectory was blocked (`BlockedTrajectory`, never
+    fired). A throwaway probe found which aim points they fire at. The
+    `river_woods` zone was centred on the woods' edge so the heard contact
+    meets it.
+- **The zones live only in the scenario document** (agent): the spec's
+  ferryman-zones.json asset is deleted, since it had drifted; the valley
+  picture keeps the original layout for review.

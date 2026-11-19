@@ -1,5 +1,10 @@
 # 08 Walkthrough harness, chapters 1–2 directed
 
+**Status: shipped 2026-11-19.** `crates/sim/tests/scenario_walkthrough.rs`
+plays every scenario with a solution; `operation-ferryman.json` directs
+chapters 1–2 and `operation-ferryman.solution.json` plays them, in 115 game
+seconds. Deviations: [decisions.md](../decisions.md#slice-08).
+
 **Unlocks:** the standing regression gate for every scenario, proved on chapters
 1–2.
 

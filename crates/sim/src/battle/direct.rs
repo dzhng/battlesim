@@ -178,6 +178,20 @@ impl Battle {
                     }
                 }
             }
+            Action::Buy {
+                player,
+                purchase,
+                at,
+            } => {
+                let destination = run.setup.zones[&at].center;
+                let order = Order::ConfirmPurchase {
+                    variant: purchase.variant,
+                    carrier: purchase.carrier,
+                    destination,
+                };
+                self.order_for(run, beat, &player, order);
+            }
+            Action::Ready { player } => self.order_for(run, beat, &player, Order::Ready),
             Action::Offer { player, purchases } => {
                 let offers: Vec<_> = purchases.iter().filter_map(|p| self.offered(p)).collect();
                 if let Some(skirmish) = &mut self.skirmish {
@@ -186,6 +200,27 @@ impl Battle {
                     }
                 }
             }
+        }
+    }
+}
+
+impl Battle {
+    /// Give a directed seat's player an order of its own (a purchase, its
+    /// ready); a seat that isn't directed gives none.
+    fn order_for(&mut self, run: &mut DirectorRun, beat: &str, player: &str, order: Order) {
+        if self.controller(player) != Some(&ControllerKind::DirectedAi) {
+            return;
+        }
+        let Some(side) = self
+            .skirmish
+            .as_ref()
+            .and_then(|s| s.player_index(player).map(|i| s.players[i].side))
+        else {
+            return;
+        };
+        if let Err(refusal) = self.apply_authored_order(side, Some(player.to_owned()), order, false)
+        {
+            run.refusals.push((beat.to_owned(), refusal));
         }
     }
 }

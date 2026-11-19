@@ -85,6 +85,7 @@ mod ricochet;
 mod rivers;
 mod road_journeys;
 mod route_planning;
+mod scenario_walkthrough;
 mod scenarios;
 mod sensing;
 mod shared_hosts;

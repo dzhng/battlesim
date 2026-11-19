@@ -101,6 +101,32 @@ impl Catalogue {
         })
     }
 
+    /// The map `id`'s scenario `name`'s solution, when it has one: the beats
+    /// the walkthrough plays its human player by.
+    pub fn scenario_solution(
+        &self,
+        id: &str,
+        name: &str,
+    ) -> Result<Option<contract::director::Solution>, ResolveError> {
+        let location = format!("{id}/scenarios/{name}.solution.json");
+        address(name, &location)?;
+        let path = self
+            .folder(id)?
+            .join("scenarios")
+            .join(format!("{name}.solution.json"));
+        if !path.exists() {
+            return Ok(None);
+        }
+        let text = document(&path, &location)?;
+        serde_json::from_str(&text)
+            .map(Some)
+            .map_err(|e| ResolveError {
+                code: ResolveCode::InvalidScenario,
+                location,
+                message: e.to_string(),
+            })
+    }
+
     /// The battle the map `id`'s authored scenario `name` makes under
     /// `rules` and the shipped match rules ([`ScenarioDocument::on`]), or the
     /// refusal naming the scenario. Only a `scenario` map carries one.

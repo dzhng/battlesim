@@ -90,6 +90,27 @@ pub fn credits_covering(catalog: &Catalog, purchases: &[PurchaseSpec]) -> Result
 }
 
 impl ScenarioDocument {
+    /// This scenario played by its solution: each solution chapter's beats
+    /// join the director's chapter of that id, and every human seat is handed
+    /// to the director, so the solution's orders are obeyed.
+    pub fn with_solution(mut self, solution: crate::director::Solution) -> Result<Self, String> {
+        for extra in solution.chapters {
+            let Some(chapter) = self.director.chapters.iter_mut().find(|c| c.id == extra.id) else {
+                return Err(format!(
+                    "solution.{}: the director has no such chapter",
+                    extra.id
+                ));
+            };
+            chapter.beats.extend(extra.beats);
+        }
+        for player in &mut self.players {
+            if player.controller == crate::players::ControllerKind::Human {
+                player.controller = crate::players::ControllerKind::DirectedAi;
+            }
+        }
+        Ok(self)
+    }
+
     /// The battle this scenario makes on `map` under `rules` and the match
     /// rules `base`, or the refusal naming the document's field at fault.
     /// Every reader that plays a scenario makes its battle here.
@@ -176,7 +197,10 @@ impl ScenarioDocument {
                             player,
                             credits: CreditGrant::Covering(purchases),
                         } => check_purchases(&at, player, purchases)?,
-                        Action::Grant { .. } | Action::Order { .. } => {}
+                        Action::Buy {
+                            player, purchase, ..
+                        } => check_purchases(&at, player, std::slice::from_ref(purchase))?,
+                        Action::Grant { .. } | Action::Order { .. } | Action::Ready { .. } => {}
                     }
                 }
             }

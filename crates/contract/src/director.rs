@@ -121,6 +121,15 @@ pub enum Action {
         player: String,
         purchases: Vec<PurchaseSpec>,
     },
+    /// Buy `purchase` for `player`, sent to the zone's centre; only a
+    /// directed seat buys.
+    Buy {
+        player: String,
+        purchase: PurchaseSpec,
+        at: String,
+    },
+    /// Say `player` is ready to start; only a directed seat says so.
+    Ready { player: String },
 }
 
 /// An order a beat gives, in the scenario's own terms.
@@ -133,6 +142,18 @@ pub enum DirectedOrder {
     AttackGround(String),
     /// Take this fire policy.
     Engage(Engagement),
+}
+
+/// A scenario's solution: beats, in the director's own terms, that play its
+/// human player through every chapter. The walkthrough merges them into the
+/// director and hands the human's seat to it; nothing in a played battle
+/// reads it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Solution {
+    /// A loose tripwire on how long the walkthrough may take, never a target.
+    pub max_minutes: f64,
+    pub chapters: Vec<Chapter>,
 }
 
 /// An authored scenario's progress as one side is told it: the open chapter
@@ -262,7 +283,13 @@ impl Names<'_> {
                     DirectedOrder::Engage(_) => Ok(()),
                 }
             }
-            Action::Grant { player, .. } | Action::Offer { player, .. } => self.player(player),
+            Action::Grant { player, .. }
+            | Action::Offer { player, .. }
+            | Action::Ready { player } => self.player(player),
+            Action::Buy { player, at, .. } => {
+                self.player(player)?;
+                self.zone(at)
+            }
         }
     }
 }

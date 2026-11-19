@@ -82,7 +82,10 @@
       ],
       "yaw": 1.75,
       "condition": {
-        "casualties": 3
+        "casualties": 3,
+        "spent": {
+          "rpg_general": 99
+        }
       }
     },
     "river_guns": {
@@ -90,10 +93,10 @@
       "owner": "red-1",
       "kind": "eastern_bmp_ifv_family_bmp_2m_berezhok",
       "position": [
-        278.0,
-        1062.0
+        320.0,
+        1048.0
       ],
-      "yaw": -0.26,
+      "yaw": -0.17,
       "engagement": "return_fire_only"
     }
   },
@@ -152,10 +155,10 @@
     },
     "river_woods": {
       "center": [
-        200.0,
-        1040.0
+        250.0,
+        1045.0
       ],
-      "radius_m": 80.0
+      "radius_m": 90.0
     },
     "north_road": {
       "center": [
@@ -198,6 +201,150 @@
         20.0
       ],
       "radius_m": 40.0
+    },
+    "river_bank": {
+      "center": [
+        470.0,
+        1048.0
+      ],
+      "radius_m": 30.0
     }
+  },
+  "director": {
+    "chapters": [
+      {
+        "id": "briefing",
+        "beats": [
+          {
+            "id": "recon_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_army_scouts_light_patrol"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "carrier_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "battle_started",
+            "when": {
+              "phase": "active"
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "eyes_forward",
+        "beats": [
+          {
+            "id": "recon_at_ridge",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_army_scouts_light_patrol"
+                  }
+                },
+                "are": {
+                  "in": "ridge"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "outpost_seen",
+            "when": {
+              "identifies": {
+                "side": "blue",
+                "who": {
+                  "force": "outpost"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "river_guns_open",
+            "when": {
+              "fired": {
+                "beat": "recon_at_ridge",
+                "after_s": 4
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "river_guns"
+                  },
+                  "order": {
+                    "attack_ground": "river_bank"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "gunfire_heard",
+            "when": {
+              "contact_in": {
+                "side": "blue",
+                "zone": "river_woods"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "recon_holding",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_army_scouts_light_patrol"
+                  }
+                },
+                "are": {
+                  "engagement": "return_fire_only"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
