@@ -264,7 +264,10 @@
               "moved_with_facing"
             ]
           },
-          "card": "Right-click and drag to choose which way they face when they arrive: drag toward the village."
+          "card": "Right-click on the ridge and drag toward the village at flag 1: the drag chooses which way they face when they get there.",
+          "marks": [
+            "ridge"
+          ]
         },
         {
           "id": "spotted",
@@ -302,6 +305,118 @@
           "highlight": [
             "command:toggle_fire_policy"
           ]
+        }
+      ]
+    },
+    {
+      "id": "crossroads",
+      "title": "The crossroads",
+      "steps": [
+        {
+          "id": "drive",
+          "line": "c3.drive",
+          "until": {
+            "beat": "carrier_at_farm"
+          },
+          "marks": [
+            "farm_wall"
+          ],
+          "card": "Select the Bradley and right-click behind the farm wall. The squad rides inside."
+        },
+        {
+          "id": "unload",
+          "line": "c3.unload",
+          "until": {
+            "beat": "squad_unloaded"
+          },
+          "highlight": [
+            "command:unload"
+          ],
+          "card": "With the Bradley selected, press {key:unload}, then click the ground behind the wall: the squad gets out there."
+        },
+        {
+          "id": "garrison",
+          "line": "c3.garrison",
+          "until": {
+            "beat": "squad_garrisoned"
+          },
+          "marks": [
+            "farm"
+          ],
+          "card": "Select the squad and right-click the farmhouse to put them inside. Walls stop bullets that open ground doesn't."
+        },
+        {
+          "id": "suppress",
+          "line": "c3.suppress",
+          "until": {
+            "beat": "outpost_suppressed"
+          },
+          "marks": [
+            "outpost"
+          ],
+          "card": "Select the Bradley and right-click the enemy squad to fire on it. Fire landing close suppresses infantry, even when it misses."
+        },
+        {
+          "id": "pinned",
+          "line": "c3.pinned",
+          "until": {
+            "beat": "outpost_pinned"
+          },
+          "card": "Keep firing until they're pinned: slowed, shooting badly, hugging the ground."
+        },
+        {
+          "id": "attack_move",
+          "line": "c3.attack_move",
+          "until": {
+            "beat": "squad_attack_moving"
+          },
+          "highlight": [
+            "command:attack_move"
+          ],
+          "card": "Select the squad, press {key:attack_move}, then click the crossroads at flag 1. They advance, and stop to fight whatever they meet.",
+          "marks": [
+            "crossroads"
+          ]
+        },
+        {
+          "id": "show_orders",
+          "line": "c3.show_orders",
+          "until": {
+            "ui": [
+              "show_orders"
+            ]
+          },
+          "card": "Hold {key:show_orders} to see every unit's orders at once."
+        },
+        {
+          "id": "capture",
+          "line": "c3.capture",
+          "until": {
+            "beat": "crossroads_capturing"
+          },
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Get the squad inside flag 1's ring. It starts turning yours while no enemy combat unit is in it."
+        },
+        {
+          "id": "captured",
+          "line": "c3.captured",
+          "until": {
+            "beat": "crossroads_contested"
+          },
+          "highlight": [
+            "score"
+          ],
+          "card": "Objective 1 is yours. Your victory score climbs every second you hold it."
+        },
+        {
+          "id": "contested",
+          "line": "c3.contested",
+          "until": {
+            "beat": "crossroads_held"
+          },
+          "card": "Enemy infantry is in the ring: it's contested, and nobody scores. Clear them out."
         }
       ]
     }

@@ -132,7 +132,13 @@ export class BattleAudio {
   /** Speak an authored scenario's narration line; its length in seconds,
    *  or null before sound starts or for a line with no judged take. */
   narrate(speaker: string, line: string): Promise<number | null> {
-    return this.graph?.narration.say(speaker, line) ?? Promise.resolve(null);
+    const graph = this.graph;
+    if (!graph) return Promise.resolve(null);
+    return graph.narration.say(speaker, line).then((seconds) => {
+      // Unit chatter waits while the narrator has the net.
+      if (seconds !== null) graph.voices.hold(graph.sink.now() + seconds);
+      return seconds;
+    });
   }
 
   /** Enemy unit kinds the side identifies: from the first sight of a kind,

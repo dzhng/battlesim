@@ -66,6 +66,10 @@ export interface PrepareReplayMessage {
 export interface ScenarioRequest {
   map: string;
   name: string;
+  /** Start at this chapter, played there by the scenario's solution (the
+   *  chapters' dev loop), or later in it, where its `beat` fires. */
+  chapter?: string;
+  beat?: string;
 }
 
 /** Preparing an authored scenario: the document fixes everything but the
@@ -131,6 +135,8 @@ export interface PreparationReport {
   /** The authored scenario the battle plays, and the seed its document
    *  fixes. */
   scenario?: ScenarioRequest & { battleSeed: number };
+  /** Where a battle started at a chapter takes up live. */
+  resume?: import("../sim/protocol").Resume;
   /** What the resolved map is. */
   identity: MapIdentity;
   /** The playable area, metres. */

@@ -54,6 +54,48 @@ pub fn authored_scenario(
     ))
 }
 
+/// The scenario solved and started at `chapter`, or where its `beat` fires
+/// (the chapters' dev loop):
+/// `{"battle_seed": u64, "resume": {"replay": <Replay as text>, "tick": u64},
+/// "scenario": ScenarioDefinition}`, the scenario last and exactly as a battle
+/// takes it, as `authored_scenario` gives it. The battle resumed from that
+/// replay at that tick stands at the chapter's opening with its people seated.
+#[wasm_bindgen]
+pub fn scenario_chapter(
+    map_json: &str,
+    document_json: &str,
+    solution_json: &str,
+    rules_json: &str,
+    chapter: &str,
+    beat: Option<String>,
+) -> Result<String, JsError> {
+    let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+    let document: contract::scenario_document::ScenarioDocument =
+        serde_json::from_str(document_json).map_err(js_error)?;
+    let solution: contract::director::Solution =
+        serde_json::from_str(solution_json).map_err(js_error)?;
+    let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+    let battle_seed = document.battle_seed.value();
+    let limit = (solution.max_minutes * 60.0) as u64 * u64::from(rules.tick_hz);
+    let setup = document
+        .with_solution(solution)
+        .map_err(js_error)?
+        .on(map, rules, &sim::skirmish::starter_rules())
+        .map_err(js_error)?;
+    sim::admit(&setup.rules).map_err(js_error)?;
+    let (replay, tick) =
+        sim::battle::Battle::chapter_start(&setup, battle_seed, chapter, beat.as_deref(), limit)
+            .map_err(js_error)?;
+    let resume = serde_json::json!({
+        "replay": serde_json::to_string(&replay).map_err(js_error)?,
+        "tick": tick,
+    });
+    let scenario = serde_json::to_string(&setup).map_err(js_error)?;
+    Ok(format!(
+        r#"{{"battle_seed":{battle_seed},"resume":{resume},"scenario":{scenario}}}"#
+    ))
+}
+
 /// The synthetic endurance battle for `seed` on its resolved field
 /// (`map_json`, the catalogue's `endurance`), with the late state's remains
 /// when `late`; rules from the one fixture.

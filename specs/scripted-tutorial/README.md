@@ -21,12 +21,10 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–12 shipped (probes, Guide, directed seats,
-scenario map, scenario document, scenario battle, director, published
-progress, walkthrough with chapters 1–2, coach core, Lantern's voice and comms
-panel, coach direction with the Tutorial tile, chapter restart), and merged to
-`staging` as each lands. Next: [slice 13 (chapter 3)](slices/13-chapter-3.md),
-which also owns the dev loop, `pause` steps and chatter ducking.*
+*Status 2026-11-19: slices 00–13 shipped (through chapter 3, the
+crossroads, with the chapters' dev loop), and merged to `staging` as each
+lands. Next: [slice 14 (chapter 4)](slices/14-chapter-4.md). Start a chapter in
+the browser with `/battle?scenario=ferryman-valley/operation-ferryman&chapter=<id>[&beat=<id>]`.*
 
 Read **Contracts** and **One owner per concept** below before touching code;
 every slice inherits them. The scenario document lives in

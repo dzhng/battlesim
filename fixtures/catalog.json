@@ -7419,9 +7419,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                7.6,
+                5.1081,
                 0.0,
-                0.0
+                2.6225
               ],
               "name": "Rockets",
               "on": null,
@@ -9570,9 +9570,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.37,
+                1.6463,
                 1.12,
-                0.35
+                1.0034
               ],
               "name": "Pantsir-SM",
               "on": null,
@@ -9909,14 +9909,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                6.9,
                 0.0,
-                1.21
+                0.0,
+                6.9
               ],
               "name": "S-300PMU2 Favorit",
               "on": null,
               "pivot_m": [
-                -5.6,
+                -6.81,
                 0.0,
                 1.75
               ],
@@ -9924,7 +9924,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "s300_missile"
               ]
             }
           ],
@@ -10006,14 +10006,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                5.35,
                 0.0,
-                1.0
+                0.0,
+                5.35
               ],
               "name": "S-350",
               "on": null,
               "pivot_m": [
-                -4.9,
+                -5.9,
                 0.0,
                 1.85
               ],
@@ -10021,7 +10021,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "s350_missile"
               ]
             }
           ],
@@ -13112,9 +13112,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.67,
+                0.5861,
                 -1.05,
-                0.23
+                0.5085
               ],
               "name": "Skyranger 30",
               "on": null,
@@ -14959,14 +14959,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.9,
                 0.0,
-                0.51
+                0.0,
+                3.6
               ],
               "name": "IRIS-T SLM",
               "on": null,
               "pivot_m": [
-                -3.3,
+                -5.71,
                 0.0,
                 1.85
               ],
@@ -16063,9 +16063,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.7,
+                2.6734,
                 0.0,
-                0.8
+                2.8158
               ],
               "name": "Rockets",
               "on": null,
@@ -16296,9 +16296,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.75,
+                0.8302,
                 0.0,
-                0.56
+                2.4771
               ],
               "name": "NASAMS 3",
               "on": null,
@@ -21341,9 +21341,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.7,
+                2.6734,
                 0.0,
-                0.8
+                2.8158
               ],
               "name": "Rockets",
               "on": null,
@@ -21914,9 +21914,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.75,
+                0.8302,
                 0.0,
-                0.56
+                2.4771
               ],
               "name": "NASAMS 3",
               "on": null,
@@ -22482,9 +22482,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.02,
+                0.938,
                 0.85,
-                0.42
+                0.7652
               ],
               "name": "Stryker M-SHORAD",
               "on": null,
@@ -27671,9 +27671,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            7.6,
+            5.1081,
             0.0,
-            0.0
+            2.6225
           ],
           "name": "Rockets",
           "on": null,
@@ -30143,9 +30143,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.37,
+            1.6463,
             1.12,
-            0.35
+            1.0034
           ],
           "name": "Pantsir-SM",
           "on": null,
@@ -30727,14 +30727,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            6.9,
             0.0,
-            1.21
+            0.0,
+            6.9
           ],
           "name": "S-300PMU2 Favorit",
           "on": null,
           "pivot_m": [
-            -5.6,
+            -6.81,
             0.0,
             1.75
           ],
@@ -30742,7 +30742,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "s300_missile"
           ]
         }
       ],
@@ -30827,14 +30827,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            5.35,
             0.0,
-            1.0
+            0.0,
+            5.35
           ],
           "name": "S-350",
           "on": null,
           "pivot_m": [
-            -4.9,
+            -5.9,
             0.0,
             1.85
           ],
@@ -30842,7 +30842,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "s350_missile"
           ]
         }
       ],
@@ -34180,9 +34180,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.67,
+            0.5861,
             -1.05,
-            0.23
+            0.5085
           ],
           "name": "Skyranger 30",
           "on": null,
@@ -36085,14 +36085,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.9,
             0.0,
-            0.51
+            0.0,
+            3.6
           ],
           "name": "IRIS-T SLM",
           "on": null,
           "pivot_m": [
-            -3.3,
+            -5.71,
             0.0,
             1.85
           ],
@@ -37313,9 +37313,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.7,
+            2.6734,
             0.0,
-            0.8
+            2.8158
           ],
           "name": "Rockets",
           "on": null,
@@ -37553,9 +37553,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.75,
+            0.8302,
             0.0,
-            0.56
+            2.4771
           ],
           "name": "NASAMS 3",
           "on": null,
@@ -43144,9 +43144,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.7,
+            2.6734,
             0.0,
-            0.8
+            2.8158
           ],
           "name": "Rockets",
           "on": null,
@@ -43985,9 +43985,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.75,
+            0.8302,
             0.0,
-            0.56
+            2.4771
           ],
           "name": "NASAMS 3",
           "on": null,
@@ -44583,9 +44583,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.02,
+            0.938,
             0.85,
-            0.42
+            0.7652
           ],
           "name": "Stryker M-SHORAD",
           "on": null,
@@ -47271,7 +47271,7 @@
     "patriot_pac3": {
       "accel_mps2": 95.0,
       "aim_s": 2.0,
-      "ammo": 6,
+      "ammo": 4,
       "anti_radiation": false,
       "appearance": "sam",
       "armor_piercing": false,
@@ -47637,6 +47637,126 @@
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
+    },
+    "s300_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 4,
+      "anti_radiation": false,
+      "appearance": "sam",
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 220.0,
+      "decoyable": true,
+      "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2400.0
+          }
+        ]
+      },
+      "description": "S-300 long-range aircraft-only missile.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "48N6E2",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 100.0,
+      "proximity_fuse_m": 3.0,
+      "range_m": 2400.0,
+      "reload_s": 15.0,
+      "requires_clear_launch_path": true,
+      "resupply_rounds_per_s": 0.11,
+      "round_cost": 45,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 2400.0,
+          "scatter_mrad": 0.5
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
+    "s350_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 12,
+      "anti_radiation": false,
+      "appearance": "sam",
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 70.0,
+      "decoyable": true,
+      "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2000.0
+          }
+        ]
+      },
+      "description": "S-350 long-range aircraft-only missile.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "9M96E2",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 40.0,
+      "proximity_fuse_m": 3.0,
+      "range_m": 2000.0,
+      "reload_s": 4.0,
+      "requires_clear_launch_path": true,
+      "resupply_rounds_per_s": 0.11,
+      "round_cost": 45,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 2000.0,
+          "scatter_mrad": 0.5
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
     },
     "sead_missile": {
       "accel_mps2": 400.0,
