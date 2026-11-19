@@ -36,7 +36,7 @@ SPEC = dict(
     # The Alligator's two-seat canopy is broad and shallow, with a distinct
     # windscreen bow and a second bow over the rear seat.  A high, continuous
     # bubble loses the side-by-side cockpit's characteristic stepped profile.
-    canopy_finish=dict(name="ka52_canopy_glass", tint=(0.018, 0.034, 0.044), rough=0.16, coverage=0.82),
+    canopy_finish=dict(name="ka52_canopy_glass", tint=(0.030, 0.060, 0.075), rough=0.20, coverage=0.68),
     wing=[(1.4, 0.95, 1.9, 1.7, 0.22), (1.2, 3.5, 1.86, 1.4, 0.14)],
     stab=[(-5.6, 0.3, 2.05, 1.1, 0.12), (-5.7, 1.9, 2.05, 0.9, 0.08)],
     fins=[dict(root_x=-5.2, root_z=2.25, height=1.2, root_chord=1.5, tip_chord=1.0, sweep_m=0.6, thick=0.16),
