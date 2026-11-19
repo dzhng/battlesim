@@ -414,3 +414,28 @@ fn hidden_firing_refreshes_the_last_sighting_and_retains_only_known_type() {
         );
     }
 }
+
+#[test]
+fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
+    let rules = serde_json::from_value(sim::fixtures::rules()).unwrap();
+    let mut b = Battle::new(
+        &sim::maps::encounter_scenario("air", "ground", rules).unwrap(),
+        6,
+    );
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        order: contract::command::Order::Attack {
+            units: vec![contract::ids::UnitId(2)],
+            target: contract::command::TargetRef::Identified {
+                id: contract::observation::ObservedTargetId(9999),
+            },
+        },
+        queued: false,
+    });
+    assert_eq!(
+        ack.error,
+        Some(contract::command::OrderError::UnknownTarget)
+    );
+}

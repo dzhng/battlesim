@@ -9,6 +9,6 @@
   "source": "authored",
   "seed": null,
   "encounters": [],
-  "scenarios": [],
+  "scenarios": ["operation-ferryman"],
   "benchmarks": []
 }

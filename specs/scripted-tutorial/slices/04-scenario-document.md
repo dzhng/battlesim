@@ -1,5 +1,13 @@
 # 04 Scenario document and its resolution
 
+**Status: shipped 2026-11-19.** `contract::scenario_document`
+(`ScenarioDocument`, `CreditGrant`, `PurchaseSpec`, `Zone`, `credits_covering`);
+`MatchRules::patched`; `SkirmishSetup.opening_credits`; owned forces admitted in
+a skirmish at today's price; `sim::maps::{scenario, scenario_document,
+scenarios}` and `encounter_scenario`; `crates/sim/tests/scenarios.rs`;
+`operation-ferryman.json` with chapters 1–2's forces. Deviations are in
+[decisions.md](../decisions.md#slice-04); the director field comes with 06.
+
 **Unlocks:** a general authored-scenario source that resolves under today's
 rules and roster, plus the check that every placement is still legal.
 

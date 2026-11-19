@@ -21,16 +21,15 @@ on explicit maps later.
 
 ## Next Agent Prompt
 
-*Status 2026-11-19: slices 00–03 shipped (probes, Guide, directed seats,
-scenario map). Next: [slice 04 (scenario document)](slices/04-scenario-document.md).*
+*Status 2026-11-19: slices 00–04 shipped (probes, Guide, directed seats,
+scenario map, scenario document). Next: [slice 05 (scenario battle)](slices/05-scenario-battle.md);
+[06 (director)](slices/06-director.md) does not depend on it.*
 
 Read **Contracts** and **One owner per concept** below before touching code;
-every slice inherits them. Slice 04 builds on P3's verdict: authored forces in a
-skirmish are refused by `validate_player_contract` today, so 04 admits owned
-forces and gives each an `EnteredUnit` at its current price (see
-[decisions.md](decisions.md#probes-p3-and-p5-agent-2026-11-19)). Use the zones in
-[assets/ferryman-zones.json](assets/ferryman-zones.json) and the card picks from
-P4. Climb the check ladder only as far as each slice's gate says. The full run
+every slice inherits them. The scenario document lives in
+`crates/contract/src/scenario_document.rs` and resolves through
+`sim::maps::scenario`; slice 05 adds its browser and WASM loaders. The card
+picks for every role are P4's (decisions.md). Climb the check ladder only as far as each slice's gate says. The full run
 happens once, in slice 18. Record every decision the plan didn't make in
 [decisions.md](decisions.md), then update this section (status, next pickup,
 blockers) before you end your pass.
@@ -57,7 +56,7 @@ TODO:
 - [x] [01](slices/01-guide.md) The tutorial page becomes the Guide, reached from Esc
 - [x] [02](slices/02-directed-seats.md) A `DirectedAi` controller: an AI seat the director moves
 - [x] [03](slices/03-scenario-map.md) `scenario` map category and the Ferryman valley
-- [ ] [04](slices/04-scenario-document.md) Scenario document, its resolver and the placement check
+- [x] [04](slices/04-scenario-document.md) Scenario document, its resolver and the placement check
 - [ ] [05](slices/05-scenario-battle.md) Scenario battle playable: address, preparation, offered shop, covering grants
 - [ ] [06](slices/06-director.md) Director: contract and runtime
 - [ ] [07](slices/07-published-progress.md) Director progress published to its audience

@@ -11,7 +11,7 @@ pub fn refresh(capture: &mut Value) {
     let workload = &capture["workload"];
     let mut rules = fixtures::rules();
     rules["catalog"] = json!(fixtures::catalog_documents(CatalogSet::Capture));
-    let scenario = sim::maps::scenario(
+    let scenario = sim::maps::encounter_scenario(
         workload["map"].as_str().unwrap(),
         workload["encounter"].as_str().unwrap(),
         serde_json::from_value(rules).unwrap(),

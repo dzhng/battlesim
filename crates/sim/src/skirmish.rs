@@ -23,6 +23,7 @@ pub fn setup_for<P: AsRef<[Player]>>(
         rules,
         sites,
         openings: BTreeMap::new(),
+        opening_credits: BTreeMap::new(),
     }
 }
 
@@ -233,7 +234,13 @@ impl Skirmish {
         let budget = opening_wallet(&setup.rules);
         let players = source
             .iter()
-            .map(|p| PlayerState::new(p, budget))
+            .map(|p| {
+                let wallet = setup
+                    .opening_credits
+                    .get(&p.id)
+                    .map_or(budget, |credits| credits * CREDIT_SCALE);
+                PlayerState::new(p, wallet)
+            })
             .collect::<Vec<_>>();
         let objectives =
             crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);
@@ -547,20 +554,16 @@ pub fn starter_rules() -> MatchRules {
 /// Resolve the selected override document over the one base match rule record.
 /// Native tools and browser/server preparation all read these authored documents.
 pub fn resolve_rules(selection: MatchRuleSet) -> MatchRules {
-    let mut document: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
-            .expect("authored base match rules");
-    let overrides = match selection {
-        MatchRuleSet::Skirmish => None,
-        MatchRuleSet::Frontline => Some(include_str!("../../../fixtures/frontline.json")),
-    };
-    if let Some(overrides) = overrides {
-        let overrides: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_str(overrides).expect("authored match rule overrides");
-        document
-            .as_object_mut()
-            .expect("base match rule object")
-            .extend(overrides);
+    let base: MatchRules = serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
+        .expect("authored base match rules");
+    match selection {
+        MatchRuleSet::Skirmish => base,
+        MatchRuleSet::Frontline => {
+            let overrides: serde_json::Map<String, serde_json::Value> =
+                serde_json::from_str(include_str!("../../../fixtures/frontline.json"))
+                    .expect("authored match rule overrides");
+            base.patched(&overrides)
+                .expect("authored resolved match rules")
+        }
     }
-    serde_json::from_value(document).expect("authored resolved match rules")
 }

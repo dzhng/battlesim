@@ -288,7 +288,7 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
     .unwrap();
 
     let scenario = catalogue
-        .scenario("geometry", "retuned", rules.clone())
+        .encounter_scenario("geometry", "retuned", rules.clone())
         .unwrap_or_else(|e| panic!("{e}"));
     let mut battle = Battle::new(&scenario, 1);
     // The retuned row changes the field it names and keeps the rest; the
@@ -316,7 +316,7 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
     // shared row.
     assert_eq!(rules.weapons["tank_ap"].reload_s, shared.reload_s);
     let other = catalogue
-        .scenario("geometry", "authority", rules)
+        .encounter_scenario("geometry", "authority", rules)
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(other.rules.weapons["tank_ap"].reload_s, shared.reload_s);
 }
@@ -354,7 +354,7 @@ fn an_override_is_held_to_the_shipped_rules_checks_naming_its_encounter_and_fiel
         )
         .unwrap();
         let error = catalogue
-            .scenario("geometry", "authority", test_rules())
+            .encounter_scenario("geometry", "authority", test_rules())
             .unwrap_err();
         assert_eq!(error.code, ResolveCode::InvalidEncounter, "{error}");
         assert_eq!(error.location, "geometry/encounters/authority.json");

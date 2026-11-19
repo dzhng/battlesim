@@ -183,3 +183,37 @@ hills session was told what the valley needs.
   800 ticks/s (56 s). In the browser, `SimClient.advance` also publishes every
   tick and waits for the page's buffer. **Slice 12 takes the fallback** (see its
   file).
+
+## Slice 04
+
+- **Forces are a map from a name to a unit** (`forces: {name: UnitSetup}`), not
+  a list with an optional tag (agent). Every force has a name its story uses, so
+  the director (06) and the coach can say "the outpost". The battle numbers
+  forces in name order. A tagged list would have needed `#[serde(flatten)]`
+  over `UnitSetup`, which can't keep `deny_unknown_fields`.
+- **The skirmish contract now admits owned authored forces, and refuses authored
+  scripts outright** (agent, from P3). `validate_player_contract` refuses events,
+  scripts, authored scripts, an opponent or an encounter in a skirmish, and any
+  authored unit that isn't one of its players'. One consequence: a
+  scenario-builder Economy bundle may now carry owned forces as well, the same
+  rule for both sources. A bundle test now checks the refusal by its field
+  (`units[0]`) instead of its wording.
+- **A placed force enters at its catalog price, charged to nobody, with no spawn
+  receipt** (agent): it counts for income taper, cap and bounty like a bought
+  unit, but never shows as spending in the match report.
+- **`MatchRules::patched` is the one match-rule patch** (agent). Frontline's
+  resolution now goes through it too, which refuses a key the rules lack.
+- **Bridge and hill are each other's counterparts** (agent). Skirmish site
+  admission wants one central objective and a counterpart pair. Counterparts
+  only matter to map generation and analysis, so pairing them changes no play.
+- **The refusal and price tests live in the sim crate, on test units** (agent).
+  Resolution needs a real catalog, which the contract's tests can't load. They
+  give test units roster membership by catalog patch, as the transport tests
+  do, so no roster unit is pinned.
+- **No `scenario_report` example** (agent). The placement test is the legality
+  oracle and the spec's valley picture is the review surface; a report example
+  would have been a second owner of the same checks.
+- **The browser and WASM scenario loaders move to slice 05** (agent), where
+  they are first used, so this slice adds no unused code.
+- **Red's `river_guns` stands at the edge of `river_woods`, not inside it**
+  (agent): the placement test refused it among the trees, since trees are bodies.

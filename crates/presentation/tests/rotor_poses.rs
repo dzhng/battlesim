@@ -116,7 +116,7 @@ fn an_enemy_landed_heli_s_rotor_follows_its_seen_pose() {
     use std::{path::PathBuf, sync::Arc};
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let rules = presentation::static_world::files::rules(&root, "supply").unwrap();
-    let scenario = sim::maps::scenario("supply", "heli-fire", rules).unwrap();
+    let scenario = sim::maps::encounter_scenario("supply", "heli-fire", rules).unwrap();
     let mut battle = sim::battle::Battle::new(&scenario, 13);
     let kinds = presentation::fielded::encounter_kinds(&root, "supply", "heli-fire").unwrap();
     let f = presentation::fielded::fielded(&root, battle.rules(), &kinds).unwrap();

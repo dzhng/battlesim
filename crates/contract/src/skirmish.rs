@@ -51,6 +51,45 @@ pub struct Upkeep {
     pub floor_percent: u32,
 }
 
+impl MatchRules {
+    /// These rules with `patch` laid over them, key by key: the way a match
+    /// rule document (Frontline, an authored scenario) changes the base. A
+    /// key the rules lack is refused, as is a patch that leaves them invalid.
+    pub fn patched(
+        &self,
+        patch: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<MatchRules, String> {
+        let mut document = serde_json::to_value(self).map_err(|e| e.to_string())?;
+        let fields = document
+            .as_object_mut()
+            .expect("match rules serialize as an object");
+        for (key, value) in patch {
+            // Optional rules are left out when unset, so the struct's own
+            // field list, not the serialized one, says what may be patched.
+            if !MATCH_RULE_FIELDS.contains(&key.as_str()) {
+                return Err(format!("{key}: not a match rule"));
+            }
+            fields.insert(key.clone(), value.clone());
+        }
+        serde_json::from_value(document).map_err(|e| e.to_string())
+    }
+}
+
+/// Every field of [`MatchRules`], in its declaration order.
+const MATCH_RULE_FIELDS: [&str; 11] = [
+    "credits_per_minute",
+    "starting_minutes",
+    "preparation_s",
+    "max_units",
+    "dispatch_interval_s",
+    "capture_s",
+    "majority_s",
+    "victory_score",
+    "all_objectives_victory",
+    "max_players_per_side",
+    "upkeep",
+];
+
 fn all_objectives_victory() -> bool {
     true
 }
@@ -66,6 +105,10 @@ pub struct SkirmishSetup {
     pub sites: SkirmishSites,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
+    /// A player's opening wallet in credits, in place of the rules' opening
+    /// income (an authored scenario's grant). Absent, the rules decide.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub opening_credits: BTreeMap<String, u64>,
 }
 
 #[derive(Deserialize)]
@@ -75,6 +118,8 @@ struct UncheckedSetup {
     sites: SkirmishSites,
     #[serde(default)]
     openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
+    #[serde(default)]
+    opening_credits: BTreeMap<String, u64>,
 }
 
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
@@ -106,6 +151,7 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
             rules: value.rules,
             sites: value.sites,
             openings: value.openings,
+            opening_credits: value.opening_credits,
         })
     }
 }

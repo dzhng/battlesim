@@ -28,6 +28,7 @@ pub mod preparation;
 pub mod random;
 pub mod river;
 pub mod scenario;
+pub mod scenario_document;
 pub mod skirmish;
 pub mod skirmish_sizes;
 pub mod smoke;

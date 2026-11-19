@@ -179,6 +179,9 @@ pub enum ResolveCode {
     MissingDocument,
     /// A saved encounter is not an encounter definition.
     InvalidEncounter,
+    /// A saved scenario is not a scenario document, does not resolve, or
+    /// stands on a map that is not a scenario map.
+    InvalidScenario,
     /// A saved map's listing (`meta.json`) does not say what it is for.
     InvalidListing,
     InvalidMap,
