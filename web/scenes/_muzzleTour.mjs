@@ -24,9 +24,13 @@ const TRACER_M = 1;
 /** Every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
  *  driving and standing, its cupola HMG while driving, the jeep's HMG and a
- *  rifleman's rifle. The cannon and jeep share a road approach; a fresh southern
- *  approach supplies the moving tank HMG. One tank holds throughout; a jeep
- *  approaches the street on a separately admitted move. The rifle fights in
+ *  rifleman's rifle. On the road approach one tank drives east down the road,
+ *  its cannon firing on the move, while the jeep attack-moves into the lane
+ *  south of it and shoots the red AT team at the wood's edge, which gives
+ *  itself away firing at the tank. A second battle stages the same approach
+ *  and sends the other tank into that lane: it halts there and fires its
+ *  cannon standing, then drives on down the lane, its HMG firing on the move
+ *  at the AT team the lane sees past the wood's edge. The rifle fights in
  *  a third battle: the street's houses see the open west and the tank shells
  *  what they see, so a squad crossing it dies short of rifle range. It rounds
  *  the west wood's south holding fire, as the woods tour's walker does, and
@@ -37,9 +41,16 @@ const TRACER_M = 1;
  *  flash's light on screen there. */
 export async function muzzleTour(ctx) {
   let page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
-  const approach = async (southern) => {
+  // The jeep's lane: where the second tank halts, and how far it drives on.
+  const [laneHalt, laneOn] = [
+    [330, 905],
+    [520, 905],
+  ];
+  /** The road approach, and with `lane` the second tank sent to halt in the
+   *  jeep's lane: that tank, or null. */
+  const approach = async (lane) => {
     const o = await obs(page);
-    const driver = o.own.find((u) => u.kind === "test_tank");
+    const [driver, second] = o.own.filter((u) => u.kind === "test_tank");
     const jeep = o.own.find((u) => u.kind === "test_jeep");
     await stageStreetMoves(
       ctx,
@@ -49,13 +60,17 @@ export async function muzzleTour(ctx) {
           kind: "move",
           units: [driver.id],
           gesture: 1,
-          goal: southern ? [720, 910] : [driver.position[0] + 400, driver.position[1]],
+          goal: [driver.position[0] + 400, driver.position[1]],
           route: "shortest",
         },
         { kind: "attack_move", units: [jeep.id], gesture: 2, goal: [690, 910] },
+        ...(lane
+          ? [{ kind: "move", units: [second.id], gesture: 3, goal: laneHalt, route: "shortest" }]
+          : []),
       ],
-      southern ? "muzzle southern approach" : "muzzle road approach",
+      lane ? "muzzle lane approach" : "muzzle road approach",
     );
+    return lane ? second : null;
   };
   const flank = async () => {
     const rifle = (await obs(page)).own.find((u) => u.kind === "test_rifle");
@@ -120,15 +135,16 @@ export async function muzzleTour(ctx) {
     );
   };
   const passes = [
-    { name: "road", subjects: ["tank cannon, driving", "tank cannon, standing", "jeep HMG"] },
-    { name: "southern", subjects: ["tank HMG, driving"] },
+    { name: "road", subjects: ["tank cannon, driving", "jeep HMG"] },
+    { name: "lane", subjects: ["tank cannon, standing", "tank HMG, driving"] },
     { name: "wood", subjects: ["rifle"] },
   ];
   const wanted = new Set(passes.flatMap((p) => p.subjects));
   const found = {};
+  let laneTank = null;
   for (const [k, pass] of passes.entries()) {
-    // Separate controlled fights: the moving tank HMG in physical reach on
-    // the flank, and the rifle's fight in the wood.
+    // Separate controlled fights: the second tank in the jeep's lane, and
+    // the rifle's fight in the wood.
     if (k > 0) {
       await page.close();
       page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
@@ -139,7 +155,7 @@ export async function muzzleTour(ctx) {
       // that battle is drawn with the trees lifted off, as the ground
       // stations do, from before the fight so no capture rebuilds the scene.
       await lab(page, () => window.__lab.suppressTrees(true));
-    } else await approach(pass.name === "southern");
+    } else laneTank = await approach(pass.name === "lane");
     const pending = new Set(pass.subjects);
     let prev = await obs(page);
     for (let t = 0; t < 30 * 180 && pending.size > 0; t++) {
@@ -253,30 +269,43 @@ export async function muzzleTour(ctx) {
       );
       // A hull's round flies first on the next tick, from the simulation's
       // muzzle for that mount: its tracer starts where the flash is.
-      if (name === "rifle" || !muzzle) continue;
-      const endKey = (p) => p.join(",");
-      const flying = new Set(
-        o.projectiles.filter((s) => s.hit === "none").map((s) => endKey(s.path.at(-1))),
-      );
-      await advance(page, 1);
-      prev = await obs(page);
-      const hmg = name.includes("HMG");
-      const starts = prev.projectiles.filter(
-        (s) =>
-          s.own &&
-          s.shooterMember === null &&
-          !flying.has(endKey(s.path[0])) &&
-          (hmg ? s.kind === "hmg" : s.kind.startsWith("tank_")),
-      );
-      const tracer = starts.length
-        ? starts.map((s) => s.path[0]).reduce((a, b) => (dist(b, muzzle) < dist(a, muzzle) ? b : a))
-        : null;
-      const apart = tracer && dist(tracer, muzzle);
-      ctx.check(
-        `a ${name} tracer starts at its flash`,
-        apart !== null && apart <= TRACER_M,
-        JSON.stringify({ muzzle, tracer, apart }),
-      );
+      if (name !== "rifle" && muzzle) {
+        const endKey = (p) => p.join(",");
+        const flying = new Set(
+          o.projectiles.filter((s) => s.hit === "none").map((s) => endKey(s.path.at(-1))),
+        );
+        await advance(page, 1);
+        prev = await obs(page);
+        const hmg = name.includes("HMG");
+        const starts = prev.projectiles.filter(
+          (s) =>
+            s.own &&
+            s.shooterMember === null &&
+            !flying.has(endKey(s.path[0])) &&
+            (hmg ? s.kind === "hmg" : s.kind.startsWith("tank_")),
+        );
+        const tracer = starts.length
+          ? starts
+              .map((s) => s.path[0])
+              .reduce((a, b) => (dist(b, muzzle) < dist(a, muzzle) ? b : a))
+          : null;
+        const apart = tracer && dist(tracer, muzzle);
+        ctx.check(
+          `a ${name} tracer starts at its flash`,
+          apart !== null && apart <= TRACER_M,
+          JSON.stringify({ muzzle, tracer, apart }),
+        );
+      }
+      // Its standing shot fired, the lane's tank drives on down the lane.
+      if (name === "tank cannon, standing" && laneTank) {
+        await stageStreetMoves(
+          ctx,
+          page,
+          [{ kind: "move", units: [laneTank.id], gesture: 4, goal: laneOn, route: "shortest" }],
+          "muzzle lane drive on",
+        );
+        prev = await obs(page);
+      }
     }
   }
   ctx.check(
