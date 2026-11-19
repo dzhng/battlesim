@@ -361,26 +361,8 @@ pub struct Rules {
     pub shouts: ShoutRules,
 }
 
-/// Timing data for simulation-emitted battle barks.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ShoutRules {
-    pub cooldown_s: f64,
-    pub talk_s: f64,
-}
-
-impl ShoutRules {
-    fn check(&self) -> Result<(), String> {
-        if !self.talk_s.is_finite() || self.talk_s <= 0.0 {
-            return Err("shouts: talk_s must be finite and positive".into());
-        }
-        if self.cooldown_s > 0.0 {
-            Ok(())
-        } else {
-            Err("shouts: cooldown_s must be positive".into())
-        }
-    }
-}
+mod shouts;
+pub use shouts::ShoutRules;
 
 mod air;
 pub use air::{AirRules, FixedWingFlight, HighAirLayer, LowAirLayer, RotorFlight};

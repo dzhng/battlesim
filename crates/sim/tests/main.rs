@@ -103,6 +103,7 @@ mod supply;
 mod supply_heli;
 mod suppression;
 mod swamps;
+mod target_priority;
 mod top_attack;
 mod transport;
 mod transport_collect;
