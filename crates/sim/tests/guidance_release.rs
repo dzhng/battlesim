@@ -271,18 +271,14 @@ fn screened_battle(screen_after: u64, seed: u64) -> (Battle, u64) {
             .to_string();
     // Release timing is this experiment's input, independent of gameplay
     // missile tuning: a roughly 300 m/s missile passes the screen before it rises.
+    // Rows that extend the ATGM inherit its launch speed and may cap their own
+    // top speed at the game's 300 m/s, so the launch speed stays under it.
     let setup = |events| {
         let mut setup = common::scenario_with(&map, units.clone(), events, json!([]));
         let mut rules = common::scenario_rules();
-        rules["weapons"]["test_screened_atgm"] = json!({
-            "extends": "atgm", "speed_mps": 300.0, "top_speed_mps": 301.0, "accel_mps2": 1.0
-        });
-        sim::fixtures::patch_catalog(
-            &mut rules,
-            "soldiers",
-            "test_atgm_gunner",
-            json!({"mounts": [{"id": "ATGM launcher", "weapons": ["test_screened_atgm"]}]}),
-        );
+        rules["weapons"]["atgm"]["speed_mps"] = json!(299.0);
+        rules["weapons"]["atgm"]["top_speed_mps"] = json!(300.0);
+        rules["weapons"]["atgm"]["accel_mps2"] = json!(1.0);
         setup.rules = serde_json::from_value(rules).unwrap();
         setup
     };

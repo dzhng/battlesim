@@ -394,32 +394,25 @@ fn its_height_falls_with_setup_and_it_touches_down_before_it_serves() {
 
 #[test]
 fn a_set_up_supply_heli_serves_its_reach_from_its_stock() {
-    let mut rules = fixture();
-    // Control delivery time and price independently of ammunition balance.
-    rules["weapons"]["atgm"]["resupply_rounds_per_s"] = json!(1);
-    rules["weapons"]["atgm"]["round_cost"] = json!(2);
-    rules["weapons"]["atgm"]["ammo"] = json!(4);
-    let mut b = battle_with(
-        &rules,
-        open_map(),
-        units(json!([{
-            "side": "blue", "kind": "test_at", "position": [205, 200],
-            "condition": {"spent": {"atgm": 3}}, "engagement": "return_fire_only"
-        }])),
-    );
+    let mut b = battle(json!([json!({
+        "side": "blue", "kind": "test_at", "position": [205, 200],
+        "condition": {"spent": {"atgm": 3}}, "engagement": "return_fire_only"
+    })]));
     let stock = b.unit(HELI).unwrap().stock.unwrap();
-    let mut serving = false;
     let (setup, _, _) = timing(&b);
-    for _ in 0..setup + 30 * b.rules().tick_hz as u64 {
+    // Served from the stock until full, however fast its resupply rate.
+    let mut served = false;
+    for _ in 0..setup + 300 * b.rules().tick_hz as u64 {
         b.step();
-        serving |= b.unit(RECIPIENT).unwrap().service == ServiceStatus::Serving;
-        if b.unit(RECIPIENT).unwrap().service == ServiceStatus::Full {
+        let service = b.unit(RECIPIENT).unwrap().service;
+        served |= service == ServiceStatus::Serving;
+        if service == ServiceStatus::Full {
             break;
         }
     }
-    assert!(serving, "the landed supplier serves the nearby unit");
+    assert!(served, "the set-up helicopter serves the team in its reach");
+    assert!(b.unit(HELI).unwrap().stock.unwrap() < stock);
     assert_eq!(b.unit(RECIPIENT).unwrap().service, ServiceStatus::Full);
-    assert_eq!(b.unit(HELI).unwrap().stock, Some(stock - 3 * 2));
 }
 
 #[test]

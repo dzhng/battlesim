@@ -63,7 +63,9 @@ async function fixture() {
       ground: { gain: 0.2 },
       hull: { gain: 0.4 },
     },
+    // Only the default vehicle sound, so no airframe is overridden to another.
     vehicles: { default: authoredAudio.vehicles.default },
+    vehicle_class_overrides: {},
     footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
   } as unknown as AudioMix;
   standInPresentationRecordings(baseline, audio);
