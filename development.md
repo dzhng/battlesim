@@ -7,12 +7,12 @@ Subsystem READMEs own commands and contracts for their code.
 | Owner                                                     | Responsibility                                                                                       |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [Contracts](crates/contract/README.md)                    | Shared commands, observations, map admission, physical templates, and exact content identities.      |
-| [Simulation](crates/sim/README.md)                        | Deterministic battle rules, replay digests, encounter placement, and native reports.                 |
+| [Simulation](crates/sim/README.md)                        | Deterministic battle rules, replay digests and resume, encounter placement, the scenario director, and native reports. |
 | [Map generation](crates/mapgen/README.md)                 | Seeded layout, physical compilation, admission, and generation reports.                              |
 | [WebAssembly boundary](crates/game-wasm/README.md)        | Native/browser parity, geometry queries, publication memory, and binding lifetime.                   |
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
-| [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
-| [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
+| [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, the scenario coach, build configuration, and browser verification. |
+| [Battle lab](apps/battle-lab/README.md)                   | Player pages (the tutorial among them), shareable battle addresses, and focused developer fixtures. |
 | [Online servers](apps/game-server/README.md) | The lobby (rooms, Frontline, presence, admission), the battle server each battle runs in, and the deploy step, the only code that knows the host. |
 | [Multiplayer contract](packages/multiplayer/README.md) | The wire types, the record stream and its resume rule, and the room and Frontline rules both ends share. |
 | [Skirmish setup](packages/skirmish-setup/README.md) | Seats, sides and map choice for offline skirmish, rooms and the server, and the battle request they become. |
@@ -148,8 +148,9 @@ the one list of deliberate hard-coded rules:
   authored scenario's director moves its units, and they fight at their own
   engagement;
 - a beat a director fires is authored story, not physics: it triggers on what
-  the battle knows and acts through the battle's own owners (an order, a grant,
-  an offer), never by placing or removing a unit.
+  the battle knows and acts through the battle's own owners (a directed seat's
+  orders, purchases and ready; a player's wallet and shop), never by placing
+  or removing a unit.
 
 ## Check ladder
 

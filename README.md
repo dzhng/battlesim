@@ -60,9 +60,9 @@ second terminal. A page on your own computer finds it by itself; the
 hosted.
 
 A battle's address is shareable: it names the admitted map and the player's
-choices, so a seeded battle opens the same fight again. The main menu teaches
-the game and browses the roster; its developer page holds the battle lab and
-the development tools.
+choices, so a seeded battle opens the same fight again. The main menu's
+Tutorial is a coached battle on a fixed map, and the menu browses the roster;
+its developer page holds the battle lab and the development tools.
 
 ## Find your way around
 

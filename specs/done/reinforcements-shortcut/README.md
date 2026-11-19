@@ -62,7 +62,7 @@ shows the deck for a hint the tooltip already gives.
 - Key, toggle, tooltip: `REINFORCEMENTS_KEY`, `enabled` in
   `web/src/battle/present/purchasePicker.tsx`.
 - Gate: `battleInput` in `apps/battle-lab/src/BattleView.tsx`.
-- Teach: "Buying units" in `apps/battle-lab/src/Tutorial.tsx`.
+- Teach: "Buying units" in `apps/battle-lab/src/Guide.tsx`.
 - Tests: `web/tests/purchasePicker.test.tsx` (the `Tab` cycle, `Escape`
   outside the field, the shop's keys while the battle is covered).
 
