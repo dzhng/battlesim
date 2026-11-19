@@ -66,8 +66,11 @@ def build(variant, v):
                     hull)
     cyl("mast", 0.18, 0.9, (0.3, 0, 3.15), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, 3.7), 8.6, 5, 0.58, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3)
-    A.body("mast_radar", [(0.95, 0.0, 4.35, 4.35), (0.75, 0.48, 4.1, 4.62, 4.36), (-0.15, 0.5, 4.05, 4.7, 4.38),
-                          (-0.35, 0.0, 4.38, 4.38)], m["paint"], hull, seg=16)
+    # The Mi-28NM's radar is a thin flattened housing above the rotor head,
+    # with a shallow crown rather than a spherical sensor ball.
+    A.body("mast_radar", [(0.95, 0.0, 4.08, 4.08), (0.72, 0.46, 4.08, 4.56, 4.32),
+                           (0.18, 0.58, 4.08, 4.62, 4.36), (-0.32, 0.46, 4.08, 4.56, 4.32),
+                           (-0.48, 0.0, 4.08, 4.08)], m["paint"], hull, seg=16)
     cyl("mast_radar_post", 0.12, 0.3, (0.3, 0, 3.95), "Z", m["dark"], hull, seg=10)
     # The X-shaped tail rotor: two two-blade rotors at an angle on one hub.
     A.rotor("tail", (-7.95, -0.3, 3.4), 1.9, 4, 0.28, m, hull, hub=0.16, mast=0.0, droop=0.0,
