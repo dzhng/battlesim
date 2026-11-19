@@ -7667,9 +7667,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.0,
+                1.5574,
                 0.0,
-                0.0
+                0.9606
               ],
               "name": "Rockets",
               "on": null,
@@ -8188,9 +8188,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.3,
+                -0.7019,
                 0.0,
-                0.93
+                3.4412
               ],
               "name": "Buk-M3",
               "on": null,
@@ -13202,9 +13202,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                8.06,
+                7.465,
                 0.0,
-                0.0
+                0.28
               ],
               "name": "Howitzer",
               "on": null,
@@ -20584,9 +20584,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.39,
+                0.4248,
                 0.0,
-                -0.2
+                1.8459
               ],
               "name": "Rockets",
               "on": null,
@@ -20680,9 +20680,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.39,
+                0.4248,
                 0.0,
-                -0.2
+                1.8459
               ],
               "name": "Strike Missile",
               "on": null,
@@ -22009,9 +22009,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.6,
-                0.0,
-                1.4
+                0.6243,
+                0.54,
+                4.4535
               ],
               "name": "Patriot PAC-3",
               "on": null,
@@ -28110,9 +28110,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.0,
+            1.5574,
             0.0,
-            0.0
+            0.9606
           ],
           "name": "Rockets",
           "on": null,
@@ -28648,9 +28648,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.3,
+            -0.7019,
             0.0,
-            0.93
+            3.4412
           ],
           "name": "Buk-M3",
           "on": null,
@@ -34271,9 +34271,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            8.06,
+            7.465,
             0.0,
-            0.0
+            0.28
           ],
           "name": "Howitzer",
           "on": null,
@@ -42363,9 +42363,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.39,
+            0.4248,
             0.0,
-            -0.2
+            1.8459
           ],
           "name": "Rockets",
           "on": null,
@@ -42462,9 +42462,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.39,
+            0.4248,
             0.0,
-            -0.2
+            1.8459
           ],
           "name": "Strike Missile",
           "on": null,
@@ -44081,9 +44081,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.6,
-            0.0,
-            1.4
+            0.6243,
+            0.54,
+            4.4535
           ],
           "name": "Patriot PAC-3",
           "on": null,
@@ -45403,7 +45403,7 @@
           "scatter_mrad": 0.5
         }
       },
-      "top_speed_mps": 400.0,
+      "top_speed_mps": 300.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
     },
@@ -45787,7 +45787,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.15,
       "round_cost": 32,
-      "speed_mps": 460.0,
+      "speed_mps": 300.0,
       "stationary": true,
       "structural_damage": 220.0,
       "suppression_radius_m": 24.0,
@@ -45848,7 +45848,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.28,
       "round_cost": 20,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": true,
       "structural_damage": 150.0,
       "suppression_radius_m": 20.0,
@@ -45905,7 +45905,7 @@
       "requires_clear_launch_path": true,
       "resupply_rounds_per_s": 0.035,
       "round_cost": 48,
-      "speed_mps": 460.0,
+      "speed_mps": 300.0,
       "stationary": true,
       "structural_damage": 300.0,
       "suppression_radius_m": 26.0,
@@ -47430,7 +47430,7 @@
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.75,
       "round_cost": 2,
-      "speed_mps": 450.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 80.0,
       "suppression_radius_m": 15.0,
@@ -47489,7 +47489,7 @@
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
       "round_cost": 10,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
@@ -47547,7 +47547,7 @@
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
       "round_cost": 10,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
@@ -47602,7 +47602,7 @@
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
       "round_cost": 10,
-      "speed_mps": 400.0,
+      "speed_mps": 300.0,
       "stationary": false,
       "structural_damage": 35.0,
       "suppression_radius_m": 8.0,
@@ -47677,7 +47677,7 @@
           "scatter_mrad": 0.5
         }
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 300.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },

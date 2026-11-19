@@ -17,7 +17,7 @@ What the photos settle:
   outside the narrower body (the "breit" track).
 - The launcher: four canisters in two rows of two in one ribbed pack,
   stowed flat over the rear on its elevating beam and ram, the canisters'
-  covered mouths at the rear end in a braced end frame; railings and
+  covered mouths at the forward end in a braced end frame; railings and
   cable reels at the pack's front end.
 - Four stabiliser jacks, raised: one each side behind the cab and at the
   rear corners; ladders folded up at the rear, warning panels and lamps on
@@ -47,7 +47,7 @@ FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 AXLES = [3.55, 1.80, -2.05, -3.65]
 WHEEL_R, WHEEL_W, TRACK = 0.63, 0.40, 1.24
-# The canister pack, stowed: its rear (mouth) end, front end, floor and
+# The canister pack, stowed: its rear end, forward mouth end, floor and
 # each canister's cross-section.
 PACK_REAR, PACK_FRONT, PACK_FLOOR = -5.12, 0.70, 1.97
 CAN_W, CAN_H = 1.00, 0.90
@@ -77,14 +77,14 @@ def build(variant, v):
     cyl("cable_drum", 0.30, 0.34, (0.95, 1.05, deck - 0.30), "Y", m["dark"], h, seg=20, lods=MID)
     # Ladders folded up at the rear, the warning panels on the bumper.
     for side, s in ((1, "L"), (-1, "R")):
-        ladder(v, f"rear_ladder_{s}", (-half + 0.18, side * 0.95, deck + 0.20), 1.70)
+        ladder(v, f"rear_ladder_{s}", (-half + 0.18, side * 0.93, deck - 0.58), 0.65)
         box(f"warning_panel_{s}", (0.03, 0.42, 0.34), (-half + 0.08, side * 0.78, deck - 0.40), m["tail"], h,
             lods=MID)
         box(f"warning_stripe_{s}", (0.035, 0.08, 0.36), (-half + 0.078, side * 0.78, deck - 0.40), m["lamp"], h,
             rot=(0.7 * side, 0, 0), lods=NEAR)
-    articulate_launcher(v, (PACK_FRONT - 0.35, 0, PACK_FLOOR - 0.25), -38,
-                        ("launcher_beam", "canister_", "rear_frame", "front_frame", "side_brace", "lifting_eye", "pack_rail", "rear_ladder", "pack_cable", "cable_reel"),
-                        ("trunnion_", "elevating_ram", "ram_body", "slew_carriage"))
+    articulate_launcher(v, (PACK_REAR + 0.12, 0, PACK_FLOOR - 0.35), 38,
+                        ("launcher_beam", "canister_", "rear_frame", "front_frame", "side_brace", "lifting_eye", "pack_rail"),
+                        ("trunnion_", "elevating_ram", "ram_body", "slew_carriage"), pitch_with_deploy=True)
 
 
 def kat1_cab(v, x0, front, floor, top):
@@ -167,27 +167,27 @@ def module(v, deck):
 
 def launcher(v, deck):
     """The elevating beam and its ram on the deck, the four-canister pack
-    stowed flat on it, mouths to the rear, and its front end's railings and
+    stowed flat on it, mouths forward, and its front end's railings and
     cable reels."""
     m, h = v.mats, v.hull
     length = PACK_FRONT - PACK_REAR
     mid = (PACK_FRONT + PACK_REAR) / 2
     # The beam the pack rides on, its rear trunnion and the elevating ram.
-    box("launcher_beam", (length - 0.40, 1.30, 0.30), (mid + 0.10, 0, PACK_FLOOR - 0.25), m["paint"], h,
+    box("launcher_beam", (length - 0.12, 1.30, 0.30), (mid, 0, PACK_FLOOR - 0.25), m["paint"], h,
         bevel=0.02)
     for side in (-1, 1):
-        box(f"trunnion_{side}", (0.50, 0.20, PACK_FLOOR - deck - 0.1), (PACK_REAR + 0.85, side * 0.70,
+        box(f"trunnion_{side}", (0.50, 0.20, PACK_FLOOR - deck - 0.1), (PACK_REAR + 0.12, side * 0.70,
                                                                   (deck + PACK_FLOOR + 0.1) / 2), m["dark"], h,
             bevel=0.02)
         box(f"beam_rest_{side}", (0.30, 0.25, PACK_FLOOR - deck - 0.40), (PACK_FRONT - 0.70, side * 0.60,
                                                                           deck + (PACK_FLOOR - deck - 0.40) / 2),
             m["dark"], h, lods=MID)
-    cyl("trunnion_axle", 0.10, 1.70, (PACK_REAR + 0.85, 0, PACK_FLOOR - 0.35), "Y", m["steel"], h, seg=14,
+    cyl("trunnion_axle", 0.10, 1.70, (PACK_REAR + 0.12, 0, PACK_FLOOR - 0.35), "Y", m["steel"], h, seg=14,
         lods=MID)
     cyl("elevating_ram", 0.11, 2.10, (-1.30, 0, deck + 0.42), "X", m["steel"], h, seg=14, rot=(0, -0.10, 0))
     cyl("ram_body", 0.16, 1.20, (-0.30, 0, deck + 0.34), "X", m["dark"], h, seg=16, rot=(0, -0.10, 0))
     # The pack: two rows of two canisters, each ribbed round its body, its
-    # covered mouth at the rear end and its breech at the front.
+    # covered mouth at the forward end and its breech at the rear.
     for j in range(2):
         for i in range(2):
             y = (i - 0.5) * (CAN_W + GAP_Y)
@@ -195,7 +195,7 @@ def launcher(v, deck):
             canister(v, f"canister_{j}_{i}", mid, y, z, length)
     # The end frames: a post each side of each end, a beam across the top,
     # and on each side a diagonal brace from the rear post's foot forward
-    # (the mouths at the rear stay open to view).
+    # (the mouths at the front stay open to view).
     span_z = 2 * CAN_H + GAP_Z
     post_y = CAN_W + GAP_Y / 2 + 0.09
     for end, x in (("rear", PACK_REAR - 0.04), ("front", PACK_FRONT + 0.04)):
@@ -229,22 +229,22 @@ def launcher(v, deck):
     mast = empty("dressing_mast", parent=h)
     cyl("mast_tube", 0.07, 2.60, (PACK_FRONT + 0.55, -1.02, deck + 1.30), "Z", m["paint"], mast, seg=12)
     cyl("mast_head", 0.05, 0.60, (PACK_FRONT + 0.55, -1.02, deck + 2.90), "Z", m["steel"], mast, seg=10, lods=MID)
-    HF.cable("pack_cable", [(PACK_FRONT + 0.40, 0.55, deck + 0.40), (PACK_FRONT + 0.20, 0.40, PACK_FLOOR - 0.20),
-                            (PACK_FRONT - 0.10, 0.35, PACK_FLOOR + 0.20)], m, h, radius=0.03)
+    HF.cable("pack_cable", [(PACK_FRONT + 0.40, 0.55, deck + 0.40), (PACK_FRONT + 0.50, 0.40, deck + 0.16),
+                            (PACK_FRONT + 0.58, 0.35, deck + 0.10)], m, h, radius=0.03, eyes=False)
 
 
 def canister(v, name, mid, y, z, length):
-    """One canister: a box ringed by deep stiffening frames, its rear mouth
-    closed by a cover inside a raised rim, a breech plate on its front."""
+    """One canister: a box ringed by deep stiffening frames, its forward mouth
+    closed by a cover inside a raised rim, a breech plate on its rear."""
     m, h = v.mats, v.hull
     box(name, (length, CAN_W, CAN_H), (mid, y, z), m["paint"], h, bevel=0.03)
     for k in range(6):
         x = PACK_REAR + 0.35 + k * (length - 0.70) / 5
         box(f"{name}_rib_{k}", (0.10, CAN_W + 0.06, CAN_H + 0.04), (x, y, z), m["paint"], h, bevel=0.015,
             lods=MID)
-    box(f"{name}_rim", (0.06, CAN_W - 0.04, CAN_H - 0.04), (PACK_REAR + 0.02, y, z), m["dark"], h, lods=MID)
-    box(f"{name}_cover", (0.03, CAN_W - 0.14, CAN_H - 0.14), (PACK_REAR - 0.005, y, z), m["paint"], h, lods=MID)
-    box(f"{name}_breech", (0.03, CAN_W - 0.20, CAN_H - 0.20), (PACK_FRONT + 0.005, y, z), m["dark"], h, lods=MID)
+    box(f"{name}_rim", (0.06, CAN_W - 0.04, CAN_H - 0.04), (PACK_FRONT - 0.02, y, z), m["dark"], h, lods=MID)
+    box(f"{name}_cover", (0.03, CAN_W - 0.14, CAN_H - 0.14), (PACK_FRONT + 0.005, y, z), m["paint"], h, lods=MID)
+    box(f"{name}_breech", (0.03, CAN_W - 0.20, CAN_H - 0.20), (PACK_REAR - 0.005, y, z), m["dark"], h, lods=MID)
 
 
 def jack(v, name, x, y, deck):

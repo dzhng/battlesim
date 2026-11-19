@@ -367,7 +367,14 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 (Some(lock), Some(r), Some(Ok(ready))) => {
                     let (target, k) = (lock.target, ready.kind);
                     engaging = mount.cycles.iter().any(active);
-                    if !engaging {
+                    if unit.hull.is_some()
+                        && unit
+                            .deployment
+                            .as_ref()
+                            .is_some_and(|d| !d.lands() && !d.fully_deployed())
+                    {
+                        ActionReason::ChangingPosition
+                    } else if !engaging {
                         ActionReason::HoldingFire
                     } else if !mount
                         .cycles

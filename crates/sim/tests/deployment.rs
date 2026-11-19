@@ -517,3 +517,45 @@ fn asymmetric_setup_packs_in_one_second_and_reverses_from_remaining_progress() {
     b.step();
     assert_eq!(own(&b, SUPPLY).deployment.unwrap().progress, 0.0);
 }
+
+#[test]
+fn a_vehicle_weapon_waits_for_setup_before_releasing_a_ready_shot() {
+    let mut rules = common::game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({
+            "capabilities": {"deploy": {"seconds": 10, "pack_seconds": 1}}
+        }),
+    );
+    let setup = serde_json::from_value(json!({
+        "rules":rules,
+        "map":{"size":[800,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "units":[{"side":"blue","kind":"test_tank","position":[100,200]}],
+        "events":[]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 12);
+    let id = UnitId(0);
+    common::order(
+        &mut battle,
+        Side::Blue,
+        1,
+        Order::Attack {
+            units: vec![id],
+            target: contract::command::TargetRef::Ground {
+                point: [500.0, 200.0, 0.0],
+            },
+        },
+    );
+    for _ in 0..600 {
+        battle.step();
+        let u = battle.unit(id).unwrap();
+        if u.mounts[0].shots > 0 {
+            assert!(deployment::fully_deployed(u), "first shot during setup");
+            return;
+        }
+    }
+    panic!("gun did not fire after setup");
+}

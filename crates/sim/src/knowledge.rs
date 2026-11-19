@@ -331,10 +331,24 @@ impl SideKnowledge {
             let radius = emitter.contact_radius(rules).max(report.min_radius_m);
             // The report's centre is deliberately displaced inside its area;
             // the exact emitter position never crosses the observation seam.
+            // Keep that sample while the emitter remains inside the existing
+            // area. Refreshing a radar report must not make a stationary
+            // contact jump to a new point every tick.
             let angle = std::f64::consts::TAU * self.rng.unit();
             let offset = radius * self.rng.unit().sqrt();
-            let center = (emitter.position.xy() + v2(libm::cos(angle), libm::sin(angle)) * offset)
+            let sampled_center = (emitter.position.xy()
+                + v2(libm::cos(angle), libm::sin(angle)) * offset)
                 .with_z(emitter.position.z);
+            let center = self
+                .contacts
+                .iter()
+                .find(|c| c.live && c.source == ContactSource::Radar && c.emitter == emitter.id)
+                .filter(|c| (c.center.xy() - emitter.position.xy()).length() <= radius)
+                .map_or(sampled_center, |c| V3 {
+                    x: c.center.x,
+                    y: c.center.y,
+                    z: emitter.position.z,
+                });
             let contact = Contact {
                 id: ContactId(0),
                 source: ContactSource::Radar,
