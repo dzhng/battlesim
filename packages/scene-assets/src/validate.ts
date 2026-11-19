@@ -607,7 +607,7 @@ export function budgetFindings(
         finding(
           "budget.tier_triangles",
           `${label}: tier ${t} draws ${count} triangles, over its budget of ${budget.tier_triangles[t]}`,
-          `simplify the tier${raise("tier_triangles")}`,
+          `simplify the tier until it fits; ${owner} says when its tier_triangles may move`,
         ),
       );
   });

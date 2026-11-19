@@ -2,9 +2,10 @@
 // body: tiers that really reduce, so every unit switches detail with zoom;
 // dressing outside the hull that can't pass for cover; and budgets per class.
 // Like `scenery.ts` for scenery kinds, this table is the art side's, keyed by
-// the class a unit draws as: its vehicle class, or soldier. Every number in it is a loose
-// tripwire against gross regressions, not a target: when real art exceeds one
-// and nothing visibly suffers, raise it (specs/done/unit-models/choices.md).
+// the class a unit draws as: its vehicle class, or soldier. Every number in it is a
+// ceiling, not a target. A model over its class's triangle budget is simplified
+// until it fits, not given more room; a budget moves only when its whole class
+// is re-measured (specs/done/unit-models/choices.md).
 
 import { meshTier, type Scene } from "./scene.ts";
 import type { Budget, Finding } from "./schema.ts";
@@ -35,12 +36,16 @@ export interface UnitArtRule extends Budget {
 
 /** The rules by class: a vehicle class (`vehicle_class`) or `SOLDIER_CLASS`.
  *  A class without a row, and a field a row leaves out, take `default`'s.
- *  The vehicle budgets were set from the first rebuilt vehicles (Abrams,
- *  Stryker, HMMWV, and the test units that share their classes) with about
- *  twice their room; `bundle_bytes` is the whole encoded bundle, its shared
- *  textures included. The classes without a pilot take its nearest one's. */
+ *  A vehicle class's `tier_triangles` hold any one model to about 1.5 times
+ *  its class's median model at the near tiers and twice it at the far ones,
+ *  where the counts are small (measured over the roster, 2026-11-19), so no
+ *  one model draws much more detail than its siblings; `default`'s are the
+ *  heaviest ground class's, so a class without its own row is still held.
+ *  `bundle_bytes` is the whole encoded bundle, its shared textures included,
+ *  set from the first rebuilt vehicles with about twice their room. */
 export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArtRule>> = {
   default: {
+    tier_triangles: [95000, 40000, 16000, 5000],
     tier_ratio: 0.9,
     dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
   },
@@ -52,27 +57,30 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
     textures: 48,
   },
   tracked_heavy: {
-    tier_triangles: [120000, 45000, 13000, 4000],
+    tier_triangles: [95000, 40000, 16000, 5000],
     bundle_bytes: 48_000_000,
     textures: 64,
   },
   tracked_medium: {
-    tier_triangles: [90000, 34000, 10000, 3000],
+    tier_triangles: [85000, 40000, 16000, 5000],
     bundle_bytes: 40_000_000,
     textures: 64,
   },
   wheeled_medium: {
-    tier_triangles: [70000, 27000, 7000, 2000],
+    tier_triangles: [70000, 20000, 6000, 2000],
     bundle_bytes: 40_000_000,
     textures: 64,
   },
   wheeled_light: {
-    tier_triangles: [80000, 24000, 7000, 2500],
+    tier_triangles: [35000, 15000, 5000, 1000],
     bundle_bytes: 36_000_000,
     textures: 64,
   },
+  wheeled_heavy: { tier_triangles: [60000, 20000, 5000, 2000] },
+  air_light: { tier_triangles: [50000, 20000, 8000, 3000] },
+  high_air_light: { tier_triangles: [110000, 30000, 8000, 3000] },
   wheeled_medium_logistics: {
-    tier_triangles: [70000, 27000, 7000, 2000],
+    tier_triangles: [45000, 20000, 4000, 2000],
     bundle_bytes: 40_000_000,
     textures: 64,
   },
