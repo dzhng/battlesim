@@ -921,7 +921,7 @@
       ],
       "objective_yard_m": 14,
       "objective_lane_m": 300,
-      "attempts": 60
+      "attempts": 40
     },
     "depots": {
       "per_road_km": 0.3,
@@ -960,9 +960,9 @@
       "roadside_chance": 0.6,
       "road_gap_m": 8,
       "align_m": 300,
-      "attempts": 60
+      "attempts": 40
     },
-    "copses": { "per_km2": 0.1, "area_m2": [300, 1200], "aspect": [0.5, 1], "outline_points": 12, "attempts": 60 },
+    "copses": { "per_km2": 0.1, "area_m2": [300, 1200], "aspect": [0.5, 1], "outline_points": 12, "attempts": 40 },
     "lone_trees": { "per_km2": 1.2, "plot_m": 9, "attempts": 30 },
     "field_cover": {
       "per_km2": 1.2,
