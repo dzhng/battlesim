@@ -24,6 +24,7 @@ mod fire_point;
 use fire_point::{fire_from, hides_behind, FirePoint};
 mod muzzle;
 mod observation;
+mod overkill;
 mod permission;
 use permission::permitted;
 pub mod operators;
@@ -481,109 +482,6 @@ pub fn guidance_clear(
     };
     world.sight_clear(eye, target)
         && world.sight_depth(eye, target) < rules.sensors.foliage_full_block
-}
-
-/// Whether an identified enemy the unit may fire at stands within reach of
-/// one of this mount's kinds with rounds left. While one does, the mount
-/// never fires at an area on its own (W10): a crew shoots at the enemy it can
-/// see, not at an unknown in a treeline. The hold ends when that enemy dies,
-/// leaves reach or drops out of sight.
-fn enemy_in_reach(
-    ctx: &FireContext,
-    unit: &Unit,
-    units: &[Unit],
-    mount: &Mount,
-    spec: &MountSpec,
-) -> bool {
-    // Only kinds that can be brought to bear on the enemy's height band hold
-    // the mount: a helicopter overhead does not stop a tank shelling a treeline.
-    let reach = |layer| {
-        reach(
-            ctx.arsenal,
-            layer,
-            (0..spec.kinds.len())
-                .filter(|&k| mount.has_rounds(k))
-                .map(|k| spec.kinds[k]),
-        )
-    };
-    ctx.knowledge[unit.side.index()]
-        .identified_now(ctx.tick)
-        .any(|(u, t)| {
-            body_distance(t.position, unit.position) <= reach(units[u.0 as usize].layer())
-                && permitted(ctx, unit, Target::Unit(u))
-        })
-}
-
-/// A known platform can threaten us from its observed pose, independent of
-/// its private ammunition, cycle, orders or current weapon choice. This asks
-/// physical shot geometry, not whether the opposing side would choose to fire.
-fn return_fire_threat(
-    ctx: &FireContext,
-    shooter: &Unit,
-    kind: TypeIndex,
-    track: &crate::knowledge::Track,
-) -> bool {
-    let target = shooter.position + v3(0.0, 0.0, shooter.aim_height(ctx.rules));
-    let delta = target.xy() - track.position.xy();
-    let bearing = libm::atan2(delta.y, delta.x);
-    let eye = track.position
-        + v3(
-            0.0,
-            0.0,
-            ctx.rules.physics.eye_m(ctx.rules.catalog.get(kind)),
-        );
-    let carrier = if matches!(
-        ctx.rules.catalog.get(kind).mobility,
-        contract::catalog::Mobility::Air { .. }
-    ) {
-        v3(track.velocity.x, track.velocity.y, 0.0)
-    } else {
-        V3::default()
-    };
-    ctx.arsenal.specs(kind).iter().any(|spec| {
-        let origin = match spec.muzzle {
-            Some(muzzle) => placed_muzzle(
-                track.position,
-                track.yaw,
-                spec,
-                muzzle,
-                if spec.on.is_some() || ctx.rules.catalog.get(kind).hull().is_none() {
-                    bearing
-                } else {
-                    track.yaw
-                },
-                bearing,
-            ),
-            None => track.position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
-        };
-        spec.kinds.iter().any(|&k| {
-            let weapon = &ctx.arsenal.weapons[k];
-            let distance = (target - origin).length();
-            can_damage(&weapon.def, shooter.armor(ctx.rules), ctx.rules)
-                && distance >= weapon.def.min_range_m
-                && weapon
-                    .def
-                    .engages(shooter.layer(), Some(shooter.target_class(ctx.rules)))
-                    .is_some_and(|fire| distance <= fire.range_m)
-                && (weapon.profile.turn_rad_s.is_none()
-                    || (ctx.world.sight_clear(eye, target)
-                        && ctx.world.sight_depth(eye, target)
-                            < ctx.rules.sensors.foliage_full_block))
-                && crate::flight::solve_launch_past(
-                    ctx.world,
-                    &ctx.arsenal.config,
-                    &weapon.profile,
-                    &Aim {
-                        origin,
-                        target,
-                        target_velocity: v3(0.0, 0.0, 0.0),
-                        carrier,
-                    },
-                    None,
-                )
-                .is_ok()
-        })
-    })
 }
 
 /// What a unit's weapons concluded this tick, read by next tick's movement.

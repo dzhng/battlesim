@@ -119,6 +119,9 @@ pub struct WeaponDefinition {
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
+    /// Counts this row's rounds when automatic fire avoids overkill.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub avoids_overkill: bool,
     /// The altitude layers it can engage (D1), each with how it fires there
     /// and the kinds of target it is brought to bear on. A rifle, a machine
     /// gun or an autocannon swings up at a helicopter, from much closer and

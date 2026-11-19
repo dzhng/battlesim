@@ -1,6 +1,6 @@
 # Fire distribution
 
-**Status:** slice 00 landed; 01 and 02 in progress. **Updated:** 2026-11-19.
+**Status:** slices 00 and 02 landed; 01 in progress. **Updated:** 2026-11-19.
 
 Two changes to how a crew picks and keeps its target in automatic targeting:
 
@@ -17,8 +17,8 @@ Two changes to how a crew picks and keeps its target in automatic targeting:
 
 You are implementing the fire-distribution spec in `crates/sim`. Slice 00 has
 landed: target choice lives in `weapons/choice.rs` and `GroundRules` moved to
-`contract/src/scenario/ground.rs`. Continue with slices 01 and 02 (independent),
-then 03 and 04. Each
+`contract/src/scenario/ground.rs`. Slice 02 has landed: `weapons/overkill.rs` holds the pure ledger and the
+`avoids_overkill` flag exists (no row sets it). Finish 01, then 03 and 04. Each
 slice file names its contract, seam, tests, what stays green and what you may
 decide yourself. Anything else it leaves open is a gap: record it in the
 decisions ledger below rather than inventing it silently.
@@ -43,7 +43,7 @@ TODO:
 
 - [x] [00](slices/00-make-room.md) Move target choice into `weapons/choice.rs`; digests identical.
 - [ ] [01](slices/01-target-spread.md) Target spread: drop the cost key, weighted distance, seeded spread.
-- [ ] [02](slices/02-committed-ledger.md) The committed-fire ledger as a pure, unit-tested owner; the contract flag.
+- [x] [02](slices/02-committed-ledger.md) The committed-fire ledger as a pure, unit-tested owner; the contract flag.
 - [ ] [03](slices/03-overkill-in-play.md) Overkill in play: build the ledger, tally launches, the hold gate, reconsider.
 - [ ] [04](slices/04-author-and-closeout.md) Author the flags, regenerate, full checks, balance report, docs, close.
 
@@ -214,6 +214,8 @@ Where this ledger differs from the map, this ledger wins.
 
 | # | Slice | Decision | Why |
 |---|---|---|---|
+| I1 | 02 | `Committed` keeps each target's hits sorted on insert, with a per-ledger insertion counter breaking equal arrivals. | Deterministic order with the least code; lists are a handful of rounds. |
+| I2 | 02 | `enemy_in_reach` and `return_fire_threat` moved into `choice.rs`. | Only target choice uses them; frees room in `weapons.rs` under the size budget. |
 
 ## Sharp edges
 

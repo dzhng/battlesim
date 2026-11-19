@@ -335,6 +335,25 @@ fn a_field_at_its_default_or_null_is_a_field() {
     );
 }
 
+#[test]
+fn avoids_overkill_inherits_and_defaults_off() {
+    let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"] } }));
+    rows["test_gun"]["avoids_overkill"] = json!(true);
+    rows["test_child"] = json!({ "extends": "test_gun" });
+    let mut plain = rows["test_gun"].clone();
+    plain.as_object_mut().unwrap().remove("avoids_overkill");
+    rows["test_plain"] = plain;
+
+    let loaded = contract::weapons::resolve_weapons(rows).unwrap();
+    assert!(loaded["test_gun"].avoids_overkill);
+    assert!(loaded["test_child"].avoids_overkill);
+    assert!(!loaded["test_plain"].avoids_overkill);
+    assert!(serde_json::to_value(&loaded["test_plain"])
+        .unwrap()
+        .get("avoids_overkill")
+        .is_none());
+}
+
 /// Interception is a target class like any other: `missile`, a round fired
 /// from that layer, may be listed in any layer, guided or not, and is
 /// matched by the one `engages`.
