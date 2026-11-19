@@ -92,7 +92,7 @@
       ],
       "appearance": "europe_ajax_tracked_reconnaissance_vehicle",
       "sensors": {
-        "ground_m": 850,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -420,7 +420,7 @@
       ],
       "appearance": "europe_boxer_rct30",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -582,8 +582,8 @@
       ],
       "appearance": "europe_caesar_88",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -898,7 +898,7 @@
       ],
       "appearance": "europe_challenger_challenger_2_tes",
       "sensors": {
-        "ground_m": 500,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -971,8 +971,8 @@
       ],
       "concealment": 2.8,
       "sensors": {
-        "ground_m": 600,
-        "low_air_m": 600
+        "ground_m": 350,
+        "low_air_m": 350
       },
       "capabilities": {
         "smoke": { "capacity": 3 }
@@ -1160,7 +1160,7 @@
       ],
       "appearance": "europe_cv90_cv9040c",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1254,7 +1254,7 @@
       ],
       "appearance": "europe_cv90_mk_iv",
       "sensors": {
-        "ground_m": 600,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1636,7 +1636,7 @@
       ],
       "appearance": "europe_fennek_reconnaissance_vehicle",
       "sensors": {
-        "ground_m": 850,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -1954,7 +1954,7 @@
       ],
       "appearance": "europe_kf51_panther_prototype_main_battle_tank",
       "sensors": {
-        "ground_m": 600,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2067,7 +2067,7 @@
       ],
       "appearance": "europe_leclerc_xlr",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2180,7 +2180,7 @@
       ],
       "appearance": "europe_leopard_2_2a6",
       "sensors": {
-        "ground_m": 500,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2293,7 +2293,7 @@
       ],
       "appearance": "europe_leopard_2_2a7v",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2347,8 +2347,8 @@
       ],
       "concealment": 2.8,
       "sensors": {
-        "ground_m": 600,
-        "low_air_m": 600
+        "ground_m": 350,
+        "low_air_m": 350
       },
       "capabilities": {
         "smoke": { "capacity": 3 }
@@ -2523,8 +2523,8 @@
       ],
       "appearance": "europe_mars_ii_multiple_launch_rocket_system",
       "sensors": {
-        "ground_m": 450,
-        "low_air_m": 450,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2860,7 +2860,7 @@
       ],
       "appearance": "europe_puma_level_c",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2942,8 +2942,8 @@
       ],
       "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3314,7 +3314,7 @@
       ],
       "appearance": "europe_vbci_infantry_fighting_vehicle",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3342,7 +3342,7 @@
         "variant": "Machine-gun scout",
         "family_name": "VBL"
       },
-      "extends": "roster_profile_light_car",
+      "extends": "roster_profile_wheeled_recon",
       "body": {
         "hull": {
           "half_extents_m": [
@@ -3398,7 +3398,7 @@
       ],
       "appearance": "europe_vbl_machine_gun_scout",
       "sensors": {
-        "ground_m": 700,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
