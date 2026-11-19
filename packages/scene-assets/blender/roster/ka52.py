@@ -30,7 +30,7 @@ from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
 SPEC = dict(
-    fuselage=[(6.98, 0.0, 1.08, 1.08), (6.55, 0.55, 0.88, 1.72, 1.24, 2.0), (5.3, 0.9, 0.82, 2.1, 1.5, 3.0),
+    fuselage=[(6.82, 0.0, 1.08, 1.08), (6.45, 0.55, 0.88, 1.72, 1.24, 2.0), (5.3, 0.9, 0.82, 2.1, 1.5, 3.0),
               (3.6, 1.0, 0.8, 2.55, 1.6, 3.2), (1.2, 1.0, 0.85, 2.6, 1.65, 3.4), (-1.0, 0.82, 1.0, 2.5, 1.75, 3.2),
               (-3.0, 0.4, 1.45, 2.3, 1.85, 2.6), (-5.6, 0.32, 1.6, 2.25, 1.9, 2.4), (-6.76, 0.3, 1.65, 2.35, 1.95)],
     # The Alligator's two-seat canopy is broad and shallow, with a distinct
@@ -91,6 +91,10 @@ def side_by_side_canopy(m, hull):
     for side, suffix in ((1, "L"), (-1, "R")):
         box(f"ka52_canopy_front_post_{suffix}", (.08, .07, .82), (5.78, side * .48, 2.00),
             m["canopy_frame"], hull, bevel=.02, rot=(0, -.30, 0), lods=MID)
+    box("ka52_canopy_forward_bow", (.08, 1.02, .08), (5.72, 0, 2.34), m["canopy_frame"], hull,
+        bevel=.02, lods=MID)
+    box("ka52_canopy_rear_bow", (.08, .92, .08), (4.48, 0, 2.28), m["canopy_frame"], hull,
+        bevel=.02, lods=MID)
     box("ka52_cockpit_deck", (1.75, 1.55, .42), (4.82, 0, 1.34), m["cockpit"], hull,
         bevel=.03, lods=MID)
 
@@ -104,13 +108,13 @@ def build(variant, v):
     m["olive_panel"] = flat_paint("ka52_olive_panel", (0.050, 0.061, 0.056), rough=0.70, grime=0.04, role="paint")
     m["sensor_dark"] = flat_paint("ka52_sensor_dark", (0.018, 0.024, 0.030), rough=0.34, grime=0, role="paint")
     side_by_side_canopy(m, hull)
-    A.body("nose_radar", [(7.02, 0.0, 1.02, 1.02), (6.78, 0.34, 0.86, 1.30, 1.08), (6.35, 0.46, 0.84, 1.62, 1.18)],
+    A.body("nose_radar", [(6.84, 0.0, 1.02, 1.02), (6.66, 0.34, 0.86, 1.30, 1.08), (6.28, 0.46, 0.84, 1.62, 1.18)],
            m["dark"], hull, seg=18)
     A.sensor_ball("sensor", (5.48, 0, 0.66), 0.31, {**m, "dark": m["sensor_dark"]}, hull, window=0.62)
     # The M's nose radar is a separate dark dome, with a narrow fairing seam
     # around its base so it reads as a sensor rather than a blunt cap.
-    A.body("radar_dome", [(7.04, 0.0, 1.00, 1.00), (6.82, 0.34, 0.84, 1.24, 1.06),
-                           (6.56, 0.44, 0.80, 1.48, 1.12)], m["sensor_dark"], hull, seg=18)
+    A.body("radar_dome", [(6.86, 0.0, 1.00, 1.00), (6.70, 0.34, 0.84, 1.24, 1.06),
+                           (6.48, 0.44, 0.80, 1.48, 1.12)], m["sensor_dark"], hull, seg=18)
     # The 30 mm cannon on the right flank.
     box("gun_mount", (1.6, 0.3, 0.35), (2.0, -1.05, 1.15), m["paint"], hull, bevel=0.06)
     # A short receiver fairing seats the fixed cannon in the cheek before the
