@@ -1,5 +1,14 @@
 # 11 Coach direction and the Tutorial tile
 
+**Status: shipped 2026-11-19.** `useCoach`, `useCoachTour`, `CoachHighlights`
+and `hudAnchors`; coach marks in the battle overlay; `MENU_TILES`, with the
+Tutorial tile opening the tutorial battle and the `/tutorial` page removed.
+Evidence: `web/tests/coach.test.ts` (refusals for marks, rings and tours),
+`web/tests/menuRoutes.test.tsx` (the tile leads to a scenario battle, and no
+page is the guide), and the `scenario-battle` scene (each briefing step's
+rings, tours that fly and hand back, a mark painted only while its step
+shows). Deviations: [decisions.md](../decisions.md#slice-11).
+
 **Unlocks:** the coach can show, not only tell. The main menu's Tutorial tile
 opens the battle.
 

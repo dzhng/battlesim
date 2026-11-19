@@ -2,7 +2,6 @@
 // button. Escape is Back, as in a game's menus.
 import { lazy, Suspense, useEffect, useRef, type ComponentType } from "react";
 import { PageHead } from "./PageHead";
-import { Guide } from "../Guide";
 import { DeveloperPage } from "./DeveloperPage";
 import { Home } from "./Home";
 import { useLabLoading } from "../LabLoading";
@@ -25,7 +24,6 @@ const CONTENTS: Record<MenuPageId, ComponentType> = {
   multiplayer: MultiplayerPage,
   room: RoomPage,
   skirmish: SkirmishPage,
-  tutorial: Guide,
   armory: ArmoryVisit,
   settings: SettingsPage,
   developer: DeveloperPage,

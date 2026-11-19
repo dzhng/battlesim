@@ -52,19 +52,130 @@
           "id": "flags",
           "line": "c1.objectives",
           "until": "continue",
-          "card": "The numbered flags are the objectives. Hold them and your score climbs; the first side to the middle of the top bar wins."
+          "card": "The numbered flags are the objectives. Hold them and your victory score climbs; the first side to the winning score takes the battle.",
+          "camera": {
+            "fade_s": 0,
+            "shots": [
+              {
+                "seconds": 4.5,
+                "from": {
+                  "target": [
+                    950,
+                    1212
+                  ],
+                  "distance": 2000,
+                  "yaw": 1.5708,
+                  "pitch": 1.13
+                },
+                "to": {
+                  "target": [
+                    888,
+                    900
+                  ],
+                  "distance": 360,
+                  "yaw": 1.5708,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              },
+              {
+                "seconds": 4,
+                "from": {
+                  "target": [
+                    888,
+                    900
+                  ],
+                  "distance": 360,
+                  "yaw": 1.5708,
+                  "pitch": 0.85
+                },
+                "to": {
+                  "target": [
+                    794,
+                    294
+                  ],
+                  "distance": 420,
+                  "yaw": 1.4,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              },
+              {
+                "seconds": 4,
+                "from": {
+                  "target": [
+                    794,
+                    294
+                  ],
+                  "distance": 420,
+                  "yaw": 1.4,
+                  "pitch": 0.85
+                },
+                "to": {
+                  "target": [
+                    160,
+                    220
+                  ],
+                  "distance": 420,
+                  "yaw": 1.75,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              }
+            ]
+          },
+          "highlight": [
+            "objectives"
+          ]
         },
         {
           "id": "road",
           "line": "c1.entry",
           "until": "continue",
-          "card": "Everything you buy arrives by your road in, at the bottom edge. The enemy comes in from the far side."
+          "card": "Everything you buy arrives by your road in, at the bottom edge. The enemy comes in from the far side.",
+          "camera": {
+            "fade_s": 0,
+            "shots": [
+              {
+                "seconds": 5,
+                "from": {
+                  "target": [
+                    1044,
+                    1450
+                  ],
+                  "distance": 1100,
+                  "yaw": 1.5708,
+                  "pitch": 1.1
+                },
+                "to": {
+                  "target": [
+                    1044,
+                    1665
+                  ],
+                  "distance": 480,
+                  "yaw": 1.5708,
+                  "pitch": 0.95
+                },
+                "ease": "cubic",
+                "logDistance": true
+              }
+            ]
+          },
+          "marks": [
+            "entry"
+          ]
         },
         {
           "id": "credits",
           "line": "c1.credits",
           "until": "continue",
-          "card": "Your credits are at the bottom, beside Reinforcements. They grow every minute once the battle runs."
+          "card": "Your credits are at the bottom, beside Reinforcements. They grow every minute once the battle runs.",
+          "highlight": [
+            "credits"
+          ]
         },
         {
           "id": "shop",
@@ -74,7 +185,10 @@
               "shop_opened"
             ]
           },
-          "card": "Open Reinforcements to see what you can buy."
+          "card": "Open Reinforcements to see what you can buy.",
+          "highlight": [
+            "shop"
+          ]
         },
         {
           "id": "scouts",
@@ -96,7 +210,10 @@
           "id": "orders",
           "line": "c1.orders_not_units",
           "until": "continue",
-          "card": "The greyed cards along the bottom are orders, not units: they drive in from your road when the battle starts."
+          "card": "The greyed cards along the bottom are orders, not units: they drive in from your road when the battle starts.",
+          "highlight": [
+            "army"
+          ]
         },
         {
           "id": "start",
@@ -104,7 +221,10 @@
           "until": {
             "beat": "battle_started"
           },
-          "card": "Press Start battle when you're ready."
+          "card": "Press Start battle when you're ready.",
+          "highlight": [
+            "start"
+          ]
         }
       ]
     },
@@ -120,7 +240,10 @@
               "selected"
             ]
           },
-          "card": "Your units are arriving. Click the scouts, or their card at the bottom, to select them."
+          "card": "Your units are arriving. Click the scouts, or their card at the bottom, to select them.",
+          "highlight": [
+            "army"
+          ]
         },
         {
           "id": "ridge",
@@ -128,7 +251,10 @@
           "until": {
             "beat": "recon_at_ridge"
           },
-          "card": "Right-click the treeline on the ridge to send the scouts there. Double right-click takes the roads; Shift adds a waypoint."
+          "card": "Right-click the treeline on the ridge to send the scouts there. Double right-click takes the roads; Shift adds a waypoint.",
+          "marks": [
+            "ridge"
+          ]
         },
         {
           "id": "facing",
@@ -172,7 +298,10 @@
           "until": {
             "beat": "recon_holding"
           },
-          "card": "With the scouts selected, press {key:toggle_fire_policy} to hold fire: they shoot only when shot at, and stay hidden."
+          "card": "With the scouts selected, press {key:toggle_fire_policy} to hold fire: they shoot only when shot at, and stay hidden.",
+          "highlight": [
+            "command:toggle_fire_policy"
+          ]
         }
       ]
     }

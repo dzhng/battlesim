@@ -26,7 +26,10 @@ and contest, taught in the battle. See [story.md](../story.md#chapter-3-the-cros
      using restart (12) to start at the chapter.
    - Shots of the chapter's steps, screenshot-critique last, shown inline
      (non-blocking).
-5. **Iterate from the chapter's start** with restart's dev loop, never by
+5. **`pause` steps** (from 11): the first chapter whose tour flies over a
+   live battle adds the step's `pause`, holding the offline battle through
+   the session's `SimClient.pause()` the way the pause menu does.
+6. **Iterate from the chapter's start** with restart's dev loop, never by
    replaying earlier chapters by hand.
 
 ## This chapter

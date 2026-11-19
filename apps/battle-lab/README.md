@@ -29,9 +29,15 @@ continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
 The main menu starts fresh generated skirmishes, browses the roster and
-teaches the game. [The Guide](src/Guide.tsx) is the game's reference: a live
+teaches the game. Its Tutorial tile opens an authored scenario's battle, which
+[the coach](../../web/src/battle/coach/) teaches as it is played: a step's card
+and spoken line, a camera tour it flies (`useCoachTour`, a pilot that hands the
+camera back), zones it paints on the ground through the battle overlay, and HUD
+controls it rings, found by the anchor each control declares
+([`hudAnchor`](../../web/src/battle/present/hudAnchors.ts)), never by its
+styling. [The Guide](src/Guide.tsx) is the game's reference: a live
 battle's Esc menu opens it as a modal over the paused battle that closes back to
-that menu, and the main menu's Tutorial page shows the same content. It reads
+that menu, and no menu page shows it. It reads
 its economy and command keys from the skirmish rules and command bindings, and
 its prose must follow the simulation's rules when they change. Its pictures are
 not hand-shot: [the guide shots tool](../../web/guide-shots.mjs) plays one
@@ -42,7 +48,8 @@ it was drawn, so a change to the look, the HUD, the generator or the rules is
 followed by rerunning it and reviewing the pictures; the tool's header says how. A moment the battle no
 longer reaches fails by name rather than shooting something else.
 Every menu page is an address, and [the menu's pages](src/menu/pages.ts) own
-their paths, titles and tiles. Every menu address is a visit inside [one menu
+their paths and titles, and home's tiles: each opens a page or an address
+outside the menu, such as a battle. Every menu address is a visit inside [one menu
 shell](src/menu/MenuShell.tsx): one plate over the backdrop, its tiles
 title-only over generated military art. The shell owns the backdrop, graphics detection and
 the loading covers, so moving between pages replaces only the plate's contents,

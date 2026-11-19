@@ -2390,3 +2390,47 @@ html {
     height: 10px;
   }
 }
+/* The control a coach step points at: the HUD's corner brackets in its
+   accent, standing a little off the control, with one pulse as they appear
+   and a slow breath after, so it reads as "press this" without shouting. */
+.hud-coach-highlight {
+  --corner: rgb(var(--hud-accent));
+  position: fixed;
+  z-index: 5;
+  /* The control's own size, with the brackets' standoff round it. */
+  box-sizing: content-box;
+  margin: -6px 0 0 -6px;
+  padding: 6px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--corner), var(--corner)) top left / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) top left / 2px 12px,
+    linear-gradient(var(--corner), var(--corner)) top right / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) top right / 2px 12px,
+    linear-gradient(var(--corner), var(--corner)) bottom left / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) bottom left / 2px 12px,
+    linear-gradient(var(--corner), var(--corner)) bottom right / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) bottom right / 2px 12px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.8));
+  animation:
+    hud-coach-highlight-in 0.45s ease-out,
+    hud-coach-highlight 1.4s ease-in-out 0.45s infinite alternate;
+}
+@keyframes hud-coach-highlight-in {
+  from {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+@keyframes hud-coach-highlight {
+  to {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-coach-highlight,
+  .hud-coach-signal i {
+    animation: none;
+  }
+}

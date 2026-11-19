@@ -23,6 +23,7 @@ import {
 } from "./purchaseFilter";
 import { optionCarrier, optionPurchasable, TransportMenu, transportOptions } from "./transportMenu";
 import type { PlayerView, SkirmishView } from "../sim/observationView";
+import { hudAnchor } from "./hudAnchors";
 
 /** A request to show one exact card in the store, from a unit card's
  *  right-click. `serial` changes on every request, so asking for the same
@@ -122,6 +123,7 @@ export function PurchasePicker({
           ref={button}
           type="button"
           className="hud-menu-choice"
+          {...hudAnchor("shop")}
           aria-label="Reinforcements"
           aria-keyshortcuts={REINFORCEMENTS_KEY.label}
           aria-expanded={open}
@@ -136,7 +138,7 @@ export function PurchasePicker({
         >
           Reinforcements
         </button>
-        <span className="hud-credits" aria-label="Credits">
+        <span className="hud-credits" aria-label="Credits" {...hudAnchor("credits")}>
           {Math.floor(viewingPlayer.credits)} CR
           <span
             className="hud-income"

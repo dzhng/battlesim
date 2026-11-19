@@ -12,6 +12,8 @@ import {
   type KeyCommand,
 } from "../input/commandBindings";
 import { UI_SIGNALS, type UiSignal } from "../input/uiSignals";
+import { isHudAnchor, type HudAnchor } from "../present/hudAnchors";
+import { validateReel, type Reel } from "@apps/battle-lab/src/capture/capture";
 import type { ScenarioView } from "../sim/observationView";
 
 /** A scenario's coach: `fixtures/maps/<map>/scenarios/<name>.coach.json`. */
@@ -41,6 +43,13 @@ export interface CoachStep {
   /** What finishes it: a beat the player's side is told, every one of these
    *  UI signals since its chapter opened, or the player's own Continue. */
   until: { beat: string } | { ui: UiSignal[] } | "continue";
+  /** A camera tour flown when the step appears, without dips; the player's
+   *  camera takes over where it ends. */
+  camera?: Reel;
+  /** Zones painted on the ground while the step shows, by scenario zone id. */
+  marks?: string[];
+  /** HUD controls ringed while the step shows. */
+  highlight?: HudAnchor[];
 }
 
 /** What the page may know of a scenario before and during its battle: its
@@ -80,8 +89,27 @@ export function validateCoach(
       for (const [, kind, name] of step.card.matchAll(/\{(key|camera):([a-z_]+)\}/g))
         if (keyText(kind as "key" | "camera", name) === null)
           problems.push(`${at}: no ${kind} ${name}`);
+      for (const zone of step.marks ?? [])
+        if (!(zone in outline.zones)) problems.push(`${at}: no zone ${zone}`);
+      for (const anchor of step.highlight ?? [])
+        if (!isHudAnchor(anchor)) problems.push(`${at}: no HUD anchor ${anchor}`);
+      if (step.camera) problems.push(...tourProblems(step.camera, at));
     }
   return problems;
+}
+
+/** A tour is a reel over the world: it never dips to black, and it follows
+ *  no unit, since the coach knows no unit's id. */
+function tourProblems(camera: Reel, at: string): string[] {
+  try {
+    const reel = validateReel(camera, `${at}.camera`);
+    if (reel.fade_s !== 0) return [`${at}: a tour never dips (fade_s 0)`];
+    if (reel.shots.some((shot) => shot.follow !== undefined))
+      return [`${at}: a tour follows no unit`];
+    return [];
+  } catch (error) {
+    return [`${at}: ${(error as Error).message}`];
+  }
 }
 
 /** Letter keys as a keyboard reads them, so a pair shows as W/S and A/D. */

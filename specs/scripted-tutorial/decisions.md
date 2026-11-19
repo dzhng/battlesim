@@ -375,3 +375,56 @@ hills session was told what the valley needs.
   (agent). The fog, smoke and far-zoom variants come with slice 11's camera
   tour, which frames those views on purpose.
 
+## Slice 11
+
+- **`BattleView` owns the coach** (agent): its `coach` prop is the document,
+  and one hook (`useCoach`) gives the step that drives the card, the tour, the
+  marks and the rings. The render-prop slot from slice 09 is gone, and
+  `CoachPanel` only draws the step it's handed.
+- **A tour is one pilot for the battle's life** (`useCoachTour`, agent): the
+  viewport reads its pilot once. The pilot flies a step's reel from the first
+  frame after the step appears and returns nothing once it ends, so the
+  player's camera carries on from the tour's last framing. It doesn't snap
+  back to where the player was. Tours never dip to black and follow no unit,
+  and the validator refuses either.
+- **The cursor's order action follows a flying pilot, not a mounted one**
+  (agent): with a coach pilot always mounted, `!pilot` would have disabled
+  orders for the whole battle.
+- **A coach mark is a dashed ring in the HUD accent** (agent, after an
+  unprimed critique). In the zone colour it read as a fourth objective, since
+  a neutral objective is dashed in that colour. No objective state is dashed
+  in the accent: a held objective is solid. Its geometry comes from the
+  resolved scenario's `director.zones`, which the page already parses for its
+  overlay, so no extra outline was added to the report. The `entry` zone moved
+  28 m inside the map edge, so the border no longer cuts its ring.
+- **HUD anchors are a typed data attribute** (agent): a control spreads
+  `hudAnchor("shop")` where it's drawn, and the coach finds
+  `[data-hud-anchor]`. There's no registry and no class names. A highlight
+  is the HUD's corner brackets in the accent, standing off the control. It
+  follows the control's rectangle each frame, pulses once as it appears, then
+  breathes slowly (still under reduced motion). The critique found the first
+  look, a plain outline, blended into the command grid.
+- **A command button names its binding once** (agent, found while anchoring):
+  `command: "toggle_fire_policy"` gives it the key in its label and its
+  `command:<name>` anchor. The hand-built `(F)` suffixes are gone.
+- **Home's tiles are their own list** (agent): `MENU_TILES` holds
+  `{ id, title, path }`, where a path is a menu page's or any address. The
+  Tutorial tile is the tutorial battle's address, and pages no longer carry a
+  `tile` flag.
+- **The `ui` scene checks the Guide where it now lives** (agent): the pause
+  menu's guide opens with every picture decoded, and the old `menu-tutorial`
+  baseline was deleted with its page.
+- **The flags step points at the objective flags, not the score** (critique):
+  preparation shows no score bar, so the card no longer describes one, and
+  the score gets an anchor of its own for later chapters. The spoken line
+  ("First side to the top wins") still fits and wasn't re-rendered. The tour
+  comes in closer over each flag.
+- **The road in keeps its lane number** (critique, not changed): the "1" on
+  the entry chevrons is the skirmish HUD's lane label, outside this spec.
+- **`pause` steps aren't built yet** (agent): no step in chapters 1–2 needs
+  one. Chapter 1 runs in preparation, where nothing moves. The first chapter
+  slice with a tour over a live battle adds them (see 13's shape).
+- **One tutorial scene** (agent): `scenario-battle` walks the briefing from
+  the coach document itself, step by step (rings, tours, marks), instead of a
+  second `tutorial.mjs`.
+

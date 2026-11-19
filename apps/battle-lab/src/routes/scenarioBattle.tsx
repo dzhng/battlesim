@@ -14,7 +14,6 @@ import { BattleClock } from "../battleStatus";
 import { BattleView } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import { gameCamera } from "../gameCamera";
-import { CoachPanel } from "@web/battle/coach/CoachPanel";
 import type { CoachDocument } from "@web/battle/coach/coach";
 import { loadScenarioCoach } from "@web/maps/browser";
 
@@ -124,15 +123,7 @@ export function ScenarioBattleView({ scenario }: { scenario: ScenarioRequest }) 
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
-      coach={({ sim, audio }) =>
-        coachDoc && (
-          <CoachPanel
-            doc={coachDoc}
-            scenario={sim.observation?.scenario ?? null}
-            speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
-          />
-        )
-      }
+      coach={coachDoc ?? undefined}
       diagnostics={() => ({
         /** What the preparation worker made: the scenario, the map's
          *  identity and counts, and what each stage cost. */

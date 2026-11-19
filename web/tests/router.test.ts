@@ -37,7 +37,6 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   const entries: Record<string, Record<string, string | null>> = {
     // Deploy waits for the lobby's map (its own tests).
     [menuPage("skirmish").title]: { Deploy: null },
-    [menuPage("tutorial").title]: {},
     [menuPage("settings").title]: {},
     [menuPage("developer").title]: {
       "Mechanics editor": "/labs/mechanics",

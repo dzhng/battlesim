@@ -96,6 +96,35 @@ test("a coach that disagrees with its director is refused by step", () => {
   expect(validateCoach({ ...DOC, chapters: [DOC.chapters[1]] }, OUTLINE, "blue")).toHaveLength(1);
 });
 
+test("a step's marks, rings and tour must name what the battle has", () => {
+  const at = { target: [0, 0], distance: 100, yaw: 0, pitch: 1 } as const;
+  const directed = (step: Partial<CoachDocument["chapters"][0]["steps"][0]>) =>
+    validateCoach(
+      {
+        ...DOC,
+        chapters: [
+          { ...DOC.chapters[0], steps: [{ id: "x", card: "", until: "continue", ...step }] },
+          DOC.chapters[1],
+        ],
+      },
+      { ...OUTLINE, zones: { ford: { center: [0, 0], radius_m: 10 } } },
+      "blue",
+    );
+  const tour = (shot: object, fade_s = 0) => ({
+    fade_s,
+    shots: [{ seconds: 2, from: at, to: at, ...shot }],
+  });
+  expect(
+    directed({ marks: ["ford"], highlight: ["shop", "command:unload"], camera: tour({}) }),
+  ).toEqual([]);
+  expect(directed({ marks: ["nowhere"] })).toHaveLength(1);
+  expect(directed({ highlight: ["command:nothing" as "shop"] })).toHaveLength(1);
+  // A tour never dips to black, follows no unit, and is a valid reel.
+  expect(directed({ camera: tour({}, 0.5) })).toHaveLength(1);
+  expect(directed({ camera: tour({ follow: 1 }) })).toHaveLength(1);
+  expect(directed({ camera: tour({ seconds: -1 }) })).toHaveLength(1);
+});
+
 test("a card names keys from their owners", () => {
   expect(cardParts("press {key:unknown}")).toEqual(["press {key:unknown}"]);
   const [words, policy] = cardParts("press {key:toggle_fire_policy}");

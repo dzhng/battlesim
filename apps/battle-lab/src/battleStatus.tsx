@@ -10,6 +10,7 @@ import {
 } from "@web/battle/present/objectiveMarkers";
 import type { ObservationView, SkirmishView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
+import { hudAnchor } from "@web/battle/present/hudAnchors";
 
 /** A tick as the battle's clock reads it: minutes and seconds. */
 export function clock(tick: number, tickHz: number) {
@@ -122,7 +123,7 @@ export function SkirmishStatus({
           PREPARATION · {Math.ceil(match.preparationRemainingS)} s
         </span>
       ) : (
-        <div className="hud-score">
+        <div className="hud-score" {...hudAnchor("score")}>
           <ScoreMeter
             label="Your victory score"
             standing="own"
@@ -140,7 +141,7 @@ export function SkirmishStatus({
           />
         </div>
       )}
-      <div className="hud-objective-flags" aria-label="Objectives">
+      <div className="hud-objective-flags" aria-label="Objectives" {...hudAnchor("objectives")}>
         {match.objectives.map((objective, index) => {
           const standing = objectiveStanding(objective.owner, viewer);
           return (
