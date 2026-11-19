@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "eastern_mi_8_hip_mi_8amtsh",
+    "glb": "assets/source/skins/mi_8_hip/service-airframe.glb",
+    "sha256": "ec51843266f0a785268bdcb9f487b049bb88172e68b3557134ea99b5d76d2406",
+    "title": "Mi-8",
+    "creator": "tiunov.se",
+    "source": "https://sketchfab.com/3d-models/mi-8-5e5e57ef66994c6196a5f5d6b9f50403",
+    "source_sha256": "c7d63e61af4d627681b5e6506710f1e42c6e9df06f2369ddcaa6d87ce1cd01d3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Reworked the windscreen rake and nose fairing, added fitted inspection joints, repainted the cabin and built the rotor assemblies."
+  }
+]

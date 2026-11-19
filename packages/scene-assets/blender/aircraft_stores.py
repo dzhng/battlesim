@@ -19,11 +19,22 @@ from vehicle_parts import ALL, FINE, MID, NEAR  # noqa: E402
 def pylon(name, loc, length, depth, mats, parent):
     """A store pylon hanging `depth` below `loc`, `length` long."""
     x, y, z = loc
+    # The donor stub wing meets the pylon through a shallow root fairing. A
+    # plain vertical box leaves that joint reading as a floating block at the
+    # player's close zoom, so give the attachment a visible cap and fasteners.
+    box(f"{name}_root_fairing", (length * 0.72, 0.18, 0.08),
+        (x, y, z + 0.025), mats["paint"], parent, bevel=0.025, lods=MID)
     box(name, (length, 0.1, depth), (x, y, z - depth / 2), mats["paint"], parent, bevel=0.02, taper=(1.15, 1.0),
         lods=MID)
+    rail_z = z - depth - 0.035
+    box(f"{name}_ejector_rail", (length * 0.72, 0.08, 0.06), (x, y, rail_z), mats["dark"], parent,
+        bevel=0.012, lods=MID)
+    for k, dx in enumerate((-length * 0.27, length * 0.27)):
+        cyl(f"{name}_root_fastener_{k}", 0.026, 0.025, (x + dx, y, z + 0.071), "Z", mats["steel"], parent,
+            seg=8, lods=NEAR)
     # The sway braces either end of the ejector rack, under the pylon.
     for k, dx in enumerate((length * 0.3, -length * 0.3)):
-        box(f"{name}_sway_{k}", (0.05, 0.16, 0.08), (x + dx, y, z - depth - 0.02), mats["dark"], parent, lods=FINE)
+        box(f"{name}_sway_{k}", (0.05, 0.16, 0.08), (x + dx, y, rail_z - 0.035), mats["dark"], parent, lods=FINE)
 
 
 def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False, seg=12):

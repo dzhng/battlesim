@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "europe_ec665_tiger_had",
+    "glb": "assets/source/skins/ec665_tiger/had-airframe.glb",
+    "sha256": "9675cf0eed94b7e32653b93e0633a3b037fefb21dee304086722f9134fdd0a7a",
+    "title": "Eurocopter EC665 \u201cTigre\u201d",
+    "creator": "helijah",
+    "source": "https://sketchfab.com/3d-models/eurocopter-ec665-tigre-71a9db4048f6488fbad922812041d0e6",
+    "source_sha256": "8912c608aacbc50e7c087aa01716fe7f19c90399a2f70e10a872bb859b2f856c",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Prototype airframe adapted to HAD and UHT service variants. Reworked scale, markings, cockpit materials, rotor assemblies and sights."
+  },
+  {
+    "variant": "europe_ec665_tiger_uht",
+    "glb": "assets/source/skins/ec665_tiger/uht-airframe.glb",
+    "sha256": "4ca9c132b910da175f3be501419947b4e7a92f942c1df28f43d5fc95c740bf1f",
+    "title": "Eurocopter EC665 \u201cTigre\u201d",
+    "creator": "helijah",
+    "source": "https://sketchfab.com/3d-models/eurocopter-ec665-tigre-71a9db4048f6488fbad922812041d0e6",
+    "source_sha256": "8912c608aacbc50e7c087aa01716fe7f19c90399a2f70e10a872bb859b2f856c",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Prototype airframe adapted to HAD and UHT service variants. Reworked scale, markings, cockpit materials, rotor assemblies and sights."
+  }
+]

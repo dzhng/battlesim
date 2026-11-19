@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "europe_nh90_tth",
+    "glb": "assets/source/skins/nh90/nh90-fitted.glb",
+    "sha256": "44958b173c822dc333d0582778a1fcda382f2c80d5cea7a2024b63795a50d45d",
+    "title": "NH90 BundesHeer Gear out",
+    "creator": "davidmarton1987",
+    "source": "https://sketchfab.com/3d-models/nh90-bundesheer-gear-out-637145c56b2841a79c5ddc6a0548b794",
+    "source_sha256": "5bd52062bd7c5555a2c1bc7fe57b79d95875731bdfea08dc334f5ed17d182043",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Rescaled and simplified for the Italian TTH, with adapted cabin openings, Italian markings, articulated wheels and replacement rotors."
+  }
+]

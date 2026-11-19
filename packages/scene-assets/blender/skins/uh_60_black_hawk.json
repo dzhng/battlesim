@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "us_uh_60_black_hawk_uh_60m",
+    "glb": "assets/source/skins/uh_60_black_hawk/uh-60m-airframe.glb",
+    "sha256": "db339d62261b9fbb965a1ce286320c773546cefe7235b476a9c1792f68e7963b",
+    "title": "US Army UH-60M Black Hawk low poly model",
+    "creator": "Yi Tsung Lee (@WTigerTw)",
+    "source": "https://sketchfab.com/3d-models/us-army-uh-60m-black-hawk-low-poly-model-854bf0feee5b42dc92ac5329976f7942",
+    "source_sha256": "4a5a4aac85d289e0fba1dda58ebe60f832654932122d1efda6be2ac3921c384f",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Airframe rescaled and rigged for BattleSim. Paint and glazing adapted and mesh detail reduced."
+  }
+]

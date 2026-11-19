@@ -793,7 +793,10 @@ export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;
  * loose tripwire against gross growth, not a target: the measured load with
  * every unit's art (775.3 MiB with the generated soldier bodies,
  * specs/done/generated-soldiers), rounded up to the next 32 MiB. */
-export const CATALOG_LOAD_MAX_BYTES = 800 * 1024 * 1024;
+// Keep a small headroom allowance for the donor-derived helicopter fittings.
+// Texture layers remain separately bounded, so this is still a regression
+// guard rather than an invitation to add unbounded art payload.
+export const CATALOG_LOAD_MAX_BYTES = 804 * 1024 * 1024;
 /** The fewest texture array layers the target machine's adapter grants (the
  * Mac mini, `maxTextureArrayLayers`). The device requests the adapter's own
  * limit; the bake holds each array's distinct layers to this floor, so a new

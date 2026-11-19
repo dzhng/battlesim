@@ -16,86 +16,109 @@ of the rear rotor head): 15.87 x 3.78 x 5.68 m, both.
 The gun in the forward left cabin door, swung out on its pintle, is the
 `door` mount's HMG rig.
 """
+import math
 import os
 import sys
 
+
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
+from aircraft_donor import fitted_airframe  # noqa: E402
+from aircraft_markings import near_shell  # noqa: E402
+from aircraft_panes import panel_shell  # noqa: E402
+from parts import box, flat_paint  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
-from vehicle_parts import MID, NEAR  # noqa: E402
 
 F, HC6 = "us_ch_47_chinook_ch_47f", "europe_ch_47_chinook_hc6"
-# The door gun's elevation on its pintle, degrees.
-DOOR_PITCH_DEG = (-60.0, 20.0)
 SCHEME = {F: "us_desert_tan", HC6: "nato_helicopter_green"}
-SPEC = dict(
-    fuselage=[(7.93, 0.0, 1.4, 1.4), (7.65, 0.8, 0.75, 2.3, 1.5, 2.4), (6.7, 1.15, 0.6, 2.9, 1.6, 3.0),
-              # The side photos: a box cabin, its belly flat from the cockpit aft.
-              (5.0, 1.2, 0.55, 3.0, 1.6, 4.0), (-5.5, 1.2, 0.6, 3.0, 1.6, 4.0), (-7.0, 1.1, 1.05, 3.0, 1.85, 3.5),
-              (-7.93, 1.0, 1.6, 3.0, 2.15, 3.0)],
-    bodies=[("fuselage_pylon_front", [(6.6, 0.0, 3.0, 3.0), (6.2, 0.55, 2.9, 3.7, 3.1, 3.0),
-                                      (4.2, 0.55, 2.9, 3.6, 3.1, 3.0), (3.4, 0.0, 3.0, 3.0)]),
-            ("fuselage_pylon_rear", [(-3.6, 0.0, 3.0, 3.0), (-4.4, 0.7, 2.9, 4.3, 3.2, 3.5),
-                                     (-6.6, 0.7, 2.9, 5.0, 3.3, 3.5), (-7.93, 0.55, 2.9, 4.6, 3.3, 3.0)])],
-    canopy=dict(x_front=7.75, x_back=6.2, sill=1.6, top=2.75, half_width=1.08, peak=0.8, bows=(7.1,)),
-    gear=[dict(name="front_L", x=4.0, y=1.55, top=0.95, radius=0.44, width=0.22, wheels=2, spread=0.5),
-          dict(name="front_R", x=4.0, y=-1.55, top=0.95, radius=0.44, width=0.22, wheels=2, spread=0.5),
-          dict(name="rear_L", x=-3.8, y=1.55, top=0.95, radius=0.44, width=0.24),
-          dict(name="rear_R", x=-3.8, y=-1.55, top=0.95, radius=0.44, width=0.24)],
-)
-# How far forward the airframe's parts (placed in their drawing's frame)
-# move to centre on the hull box.
-AFT_M = 0.207
+
+
+def cabin_seals(hull, seal):
+    skin = near_shell(("fuselage_chinook",))
+    for side, suffix in ((1, "L"), (-1, "R")):
+        faces = []
+        def on_tank(x, z):
+            hit = skin.ray_cast((x, 2.5 * side, z), (0, -side, 0))[0]
+            if hit is None:
+                raise ValueError(f"No fuel sponson at {x}, {z}")
+            return (x, hit.y + side * .004, z)
+
+        for x in (-4.02, -2.28, -.35, 1.64, 3.52):
+            previous = None
+            for z in (.82, .88, .98, 1.10, 1.22, 1.34, 1.44, 1.51):
+                edge = (on_tank(x-.009, z), on_tank(x+.009, z))
+                if previous:
+                    faces.append((*previous, edge[1], edge[0]))
+                previous = edge
+        # The window centres and rake follow the pinned glass on both sides.
+        for x in (-3.365, -1.22, .815, 2.775):
+            def lip(i, radius):
+                angle = math.tau * (i % 32) / 32
+                dz = radius * math.sin(angle)
+                return (x + radius * math.cos(angle), side * (1.375 - .054 * dz), 2.07 + dz)
+            for i in range(32):
+                faces.append((lip(i, .256), lip(i, .274), lip(i+1, .274), lip(i+1, .256)))
+        panel_shell("sponson_joints_and_window_seals_" + suffix,
+                    [f[::-1] for f in faces] if side > 0 else faces, seal, hull)
 
 
 def build(variant, v):
-    m = A.jet(v, SPEC)
-    hull = v.hull
-    for side, k in ((1, "L"), (-1, "R")):
-        # Fuel sponson along the lower side, the engine on the aft pylon.
-        A.body(f"fuselage_sponson_{k}", [(4.6, 0.0, 0.95, 0.95), (4.0, 0.36, 0.55, 1.35, 0.95, 3.0),
-                                          (-4.4, 0.36, 0.55, 1.35, 0.95, 3.0), (-5.0, 0.0, 0.95, 0.95)],
-               m["paint"], hull, seg=14, loc=(0, side * 1.53, 0))
-        A.body(f"nacelle_{k}", [(-3.7, 0.0, 3.55, 3.55), (-4.0, 0.42, 3.13, 3.97, 3.55), (-6.4, 0.42, 3.13, 3.97, 3.55),
-                                (-6.9, 0.3, 3.25, 3.85, 3.55)], m["paint"], hull, seg=14, loc=(0, side * 1.12, 0))
-        cyl(f"nacelle_{k}_intake", 0.34, 0.04, (-3.72, side * 1.12, 3.55), "X", m["black"], hull, seg=14, lods=MID)
-        cyl(f"exhaust_{k}", 0.3, 0.2, (-7.0, side * 1.12, 3.55), "X", m["nozzle"], hull, seg=12, lods=MID)
-        for j in range(6):
-            # The round cabin windows of the side photos.
-            cyl(f"window_{k}_{j}", 0.2, 0.03, (4.4 - j * 1.6, side * 1.215, 2.1), "Y", m["glass"], hull, seg=14,
-                lods=MID)
-        box(f"cabin_door_{k}", (0.9, 0.03, 1.6), (5.4, side * 1.21, 1.6), m["dark"], hull, lods=MID)
-    # The loading ramp under the tail, closed.
-    box("ramp", (0.08, 2.1, 1.6), (-7.96, 0, 1.75), m["dark"], hull, rot=(0, -0.45, 0), lods=MID)
-    cyl("mast_front", 0.2, 0.6, (5.6, 0, 3.9), "Z", m["dark"], hull, seg=12)
-    cyl("mast_rear", 0.2, 0.55, (-6.0, 0, 5.15), "Z", m["dark"], hull, seg=12)
-    A.rotor("front", (5.6, 0, 4.2), 9.14, 3, 0.8, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3)
-    A.rotor("rear", (-6.0, 0, 5.43), 9.14, 3, 0.8, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3 + 1.047)
-    A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (6.2, side * 1.08, 0.85), m["dark"], hull,
-                                   lods=NEAR))
-    A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2)
-
-    # The Army's black lettering on the F; the RAF's roundel, title and
-    # serial on the HC6.
+    mats = A.fit(v)
+    # Keep the cockpit panes dark and reflective without turning them into a
+    # white opaque block in the flank view. Lower coverage exposes cockpit
+    # depth behind the framed glazing.
+    mats["canopy"] = flat_paint("chinook_panes", (0.010, 0.018, 0.022), rough=0.24,
+                               grime=0, coverage=("blended", 0.46), role="glass")
+    mats["radome"] = flat_paint("radome_finish", (0.035, 0.041, 0.040), rough=0.68, grime=0.10,
+                               role="paint")
     if variant["id"] == F:
-        A.markings(v, [
-            ("text", dict(text="U.S. ARMY", height=0.35, centre=(-3.0, 1.2, 2.2), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
-            ("text", dict(text="08-08034", height=0.14, centre=(-6.6, 1.2, 2.6), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
-        ])
-    else:
-        A.markings(v, [
-            ("insignia", dict(kind="uk_lowvis", centre=(-1.5, 1.2, 1.9), normal=(0, 1, 0), up=(0, 0, 1), size=0.4, onto=("fuselage",))),
-            ("text", dict(text="ROYAL AIR FORCE", height=0.22, centre=(2.0, 1.2, 2.5), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
-            ("text", dict(text="ZK558", height=0.3, centre=(-6.0, 1.2, 2.0), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
-        ])
-    # The airframe as drawn runs off the frame's middle; the frame (and the
-    # mounts' pivots in it) is centred on the hull box.
-    v.hull.location.x += AFT_M
+        mats["radome"] = flat_paint("army_nose_fairing", (.134, .122, .081), rough=.64, grime=.08, role="paint")
+    fitted_airframe(v, "chinook", mats)
+    if not v.wreck:
+        gasket = flat_paint("chinook_panel_seals", (.050, .046, .033), rough=.84, grime=0, role="paint")
+        cabin_seals(v.hull, gasket)
+    # The door opening crosses the rounded shoulder of the forward cabin.
+    # The outer lip follows the skin; its return exposes the thickness of the
+    # sill and jambs and leaves the pilot's side window ahead of the opening.
+    for side, suffix in ((1, "L"), (-1, "R")):
+        outline = [(4.567, 1.36, 1.31), (5.56, 1.34, 1.31), (6.057, 1.29, 1.31),
+                   (6.057, 1.30, 1.92), (6.057, 1.24, 2.51), (5.56, 1.28, 2.51),
+                   (4.567, 1.31, 2.51), (4.567, 1.37, 1.92)]
+        outer = [(x, side * y, z) for x, y, z in outline]
+        inner = [(x, side * (y - 0.13), z) for x, y, z in outline]
+        returns = [(outer[i - 1], outer[i], inner[i], inner[i - 1]) for i in range(len(outer))]
+        panel_shell("cabin_door_lining_" + suffix, returns if side == 1 else
+                    [face[::-1] for face in returns], mats["dark"], v.hull)
+    # Each nacelle ends in a heat-darkened, stepped exhaust. Its flange
+    # meets the rear of the cowling and the inner liner recedes into it.
+    for side, suffix in ((1, "L"), (-1, "R")):
+        A.nozzle("exhaust_" + suffix, (-5.65, side * 1.24, 3.52),
+                        0.36, 0.27, 0.51, mats, v.hull)
+    # The donor's hub centres in the registered frame, with the stock blade
+    # names and rig hierarchy that the battle renderer and wreck builder use.
+    for name, x, z, phase in (("front", 6.293, 4.17, 0.3), ("rear", -5.900, 5.63, 0.3 + math.pi / 3)):
+        A.rotor(name, (x, 0, z), 9.14, 3, 0.68, mats, v.hull, hub=0.40, mast=0.25, phase=phase)
+    A.door_guns(v, rig(v.frame, v.root), mats, (-60.0, 20.0), inboard=0.2)
+    if not v.wreck:
+        # A short visible brace seats the forward gun's pintle into the door
+        # jamb. The donor opening is deep and black, so the post otherwise
+        # reads as a loose block suspended in the aperture.
+        A.line("door_gun_pintle_jamb_brace", (5.21, 1.16, 1.48), (5.21, 1.30, 1.48),
+               mats["steel"], v.hull, width=.075, height=.075, lods=A.MID)
+        A.line("door_gun_pintle_sill_brace", (5.30, 1.30, 1.48), (5.30, 1.30, 1.32),
+               mats["steel"], v.hull, width=.06, height=.06, lods=A.MID)
+    if variant["id"] == F:
+        # The side photograph places the title on the fuel tank, beneath the windows.
+        A.markings(v, [("text", dict(text="UNITED STATES ARMY", height=0.17,
+                                         centre=(0, 1.87, 1.25), normal=(0, 1, 0),
+                                         up=(0, 0, 1), onto=("fuselage",), colour="black"))])
 
 
 def wreck(variant, v):
     A.rotorcraft_crash(v, lifting=("front", "rear"), tail_x=-4.6, tail_yaw=0.12, tail_drop=0.05, seed=47)
 
 
-run("chinook", SCHEME, build, wreck, references="assets/references/ch_47_chinook/references.json")
+run("chinook", SCHEME, build, wreck, references="assets/references/ch_47_chinook/references.json",
+    authoring="Both variants adapted from mgg8’s CC0 Bravo November airframe (blender/skins/chinook.json). "
+              "The CH-47F carries Army paint and lettering. The HC6 retains the RAF finish.")

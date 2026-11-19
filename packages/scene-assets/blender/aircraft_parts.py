@@ -63,7 +63,7 @@ CHORD = ((0.0, 0.03, 0.1, 0.22, 0.38, 0.55, 0.72, 0.88, 1.0),
 AIR_DIRT, AIR_RISE, AIR_CHIP = 0.08, 0.5, 0.12
 # The canopy's glass: a smoky, faintly blue tint held as dark as sight glass
 # (`parts.glass`), smoother than it, and partly seen through.
-CANOPY_TINT, CANOPY_ROUGH, CANOPY_OPACITY = (0.016, 0.019, 0.023), 0.04, 0.6
+CANOPY_TINT, CANOPY_ROUGH, CANOPY_OPACITY = (0.006, 0.010, 0.016), 0.08, 0.82
 
 
 def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.052, 0.055)):
@@ -84,11 +84,17 @@ def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.
         store=textured("store_paint", "store_grey", colour=store, chip=0.1, dirt=0, streak=0, role="paint"),
         canopy=flat_paint("canopy_glass", CANOPY_TINT, rough=CANOPY_ROUGH, grime=0, coverage=("blended", CANOPY_OPACITY),
                           role="glass"),
+        canopy_frame=flat_paint("canopy_frame", (0.034, 0.037, 0.041), rough=0.72, grime=0.05, role="paint"),
         cockpit=flat_paint("cockpit", (0.05, 0.052, 0.056), rough=0.7, grime=0),
-        blade=textured("blade_paint", "olive_paint", colour=(0.03, 0.032, 0.033), chip=0.2, dirt=0.1, role="paint"),
+        # Composite rotor blades stay neutral charcoal across nations. The
+        # airframe scheme supplies the identity, while a purple/blue blade
+        # texture makes the rotor disc read as a separate material family.
+        blade=flat_paint("blade_paint", (0.026, 0.029, 0.032), rough=0.78, grime=0.08, role="paint"),
         nav_red=flat_paint("nav_red", (0.42, 0.02, 0.015), rough=0.25, grime=0.05),
         nav_green=flat_paint("nav_green", (0.02, 0.3, 0.06), rough=0.25, grime=0.05),
     )
+    v.mats["canopy"].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*CANOPY_TINT, 1.0)
+    v.mats["canopy"].diffuse_color = (*CANOPY_TINT, 1.0)
     return v.mats
 
 
@@ -210,7 +216,7 @@ def fin(name, root_x, root_z, height, root_chord, tip_chord, sweep_m, mats, pare
 
 
 # ---------------------------------------------------------------- canopy and fittings
-def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="paint",
+def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="canopy_frame",
            tail=0.45, nose=0.05):
     """A bubble canopy on the sill line from `x_front` to `x_back`, highest
     (`top`) at `peak` of the way back, in tinted glass seen through (the
@@ -361,7 +367,7 @@ def wheel(name, loc, radius, width, mats, parent, lods=ALL):
 
 
 def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, tandem=0.0, door=None, rake=0.0,
-         light=False):
+         light=False, load_arm=False, strut_radius=None, strut_material=None):
     """A landing gear leg: the node `gear_<name>` at its top (`x`, `y`,
     `top`), the strut down to wheels resting on the ground, its drag brace
     and torque links. `wheels` side by side `spread` apart (2 for a twin
@@ -370,14 +376,36 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
     carries."""
     node = empty(f"gear_{name}", loc=(x, y, top), parent=parent)
     drop = top - radius
-    r_strut = 0.06 + radius * 0.12
-    cyl(f"gear_{name}_strut", r_strut, drop, (0, 0, -drop / 2), "Z", mats["gear"], node, seg=10,
+    # Aircraft legs need a readable load path at game distance. A thin axial
+    # rod makes the wheel look detached in three-quarter views, so give the
+    # upper leg a substantial collar and a visible trailing arm into the hub.
+    r_strut = strut_radius if strut_radius is not None else 0.09 + radius * 0.16
+    leg_mat = mats[strut_material or "gear"]
+    cyl(f"gear_{name}_strut", r_strut, drop, (0, 0, -drop / 2), "Z", leg_mat, node, seg=10,
         rot=(0, rake, 0), lods=MID)
     cyl(f"gear_{name}_oleo", 0.04 + radius * 0.08, drop * 0.4, (0, 0, -drop * 0.8), "Z", mats["steel"], node, seg=10,
         lods=NEAR)
     # The drag brace, from the strut's middle up and back to the bay's roof.
     tube_part(f"gear_{name}_brace", lambda lod: [(0, 0, -drop * 0.5), (-drop * 0.45, 0, -0.02)], r_strut * 0.45,
               mats["gear"], node, NEAR)
+    # Wide sponson gear already has its own housing and brace. The visible
+    # trailing arm is for narrow cheek-mounted legs where it cannot sink into
+    # that housing.
+    if abs(y) < 1.1:
+        outside = 1 if y >= 0 else -1
+        tube_part(f"gear_{name}_trailing_arm", lambda lod: [(0, outside * 0.16, -drop * 0.48),
+                                                             (0.18, outside * 0.16, -drop * 0.98)],
+                  r_strut * 0.42, leg_mat, node, NEAR)
+    if abs(y) < 1.1 or load_arm:
+        # Close the load path to the hub in oblique views where the axial
+        # strut is hidden by the fuselage cheek.
+        tube_part(f"gear_{name}_load_arm", lambda lod: [(0, 0, -drop * 0.30), (0.22, 0, -drop * 0.98)],
+                  r_strut * 0.55, leg_mat, node, NEAR)
+        if load_arm and abs(y) >= 1.1:
+            outside = 1 if y >= 0 else -1
+            tube_part(f"gear_{name}_sponson_arm",
+                      lambda lod: [(0, 0, -drop * 0.24), (0, outside * 0.30, -drop * 0.96)],
+                      r_strut * 0.48, leg_mat, node, NEAR)
     # The torque links' scissor ahead of the oleo.
     for k, (z0, z1) in enumerate(((-drop * 0.58, -drop * 0.72), (-drop * 0.72, -drop * 0.86))):
         line(f"gear_{name}_link_{k}", (r_strut + 0.03, 0, z0), (r_strut + 0.07 - 0.04 * k, 0, z1), mats["gear"], node,
@@ -416,6 +444,9 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
     a rotor's disc is not its airframe's size). A tail rotor is the same
     rotor turned on its side (`rot`). `tips` paints the blade tips that
     marking colour (a strike warning), where the photos show it."""
+    # Blade paint varies little across the chord. Keep the airfoil stations
+    # and spend vertex colour samples along the span at a coarser interval.
+    mats["blade"]["paint_edge_scale"] = 4.0
     node = empty(f"rotor_{name}", loc=loc, parent=parent, rot=rot)
     if mast:
         cyl(f"rotor_{name}_mast", hub * 0.42, mast, (0, 0, -mast / 2), "Z", mats["dark"], node, seg=12, lods=MID)
@@ -428,19 +459,33 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
             lods=NEAR)
     cyl(f"rotor_{name}_hub", hub, hub * 0.55, (0, 0, 0), "Z", mats["dark"], node, seg=14, bevel=0.02)
     cyl(f"rotor_{name}_cap", hub * 0.55, hub * 0.4, (0, 0, hub * 0.45), "Z", mats["steel"], node, seg=12, lods=MID)
-    tip = tip_chord if tip_chord is not None else chord
+    # The bearing stack and radial hinge sleeves keep each blade root seated in
+    # a recognizable mechanical head. A single cap over a mast reads as a toy
+    # at close range, especially on attack helicopters with exposed heads.
+    cyl(f"rotor_{name}_upper_bearing", hub * 0.68, hub * 0.22,
+        (0, 0, hub * 0.56), "Z", mats["steel"], node, seg=14, bevel=.012, lods=NEAR)
+    # Rotor blades taper and sweep slightly toward the tip. A constant chord
+    # reads as a flat bar in the roster view and overwhelms the airframe.
+    tip = tip_chord if tip_chord is not None else chord * 0.72
     for k in range(blades):
         a = phase + math.tau * k / blades
         ca, sa = math.cos(a), math.sin(a)
         # The blade along its own +X from the hub, its leading edge forward of the axis.
-        root, out = hub * 0.9, radius
+        root, out = hub * (1.70 if swash else 0.9), radius
         dz = -(out - root) * math.sin(droop)
-        sec = [(chord / 2, root, 0.0, chord, chord * thick), (chord / 2, (root + out) / 2, dz / 2 - 0.0, chord,
+        sec = [(chord / 2, root, 0.0, chord, chord * thick), (chord / 2 + 0.03, (root + out) / 2, dz / 2 - 0.0, chord,
                                                               chord * thick * 0.9),
-               (tip / 2, out, dz, tip, tip * thick * 0.8)]
+               (tip / 2 + 0.08, out, dz, tip, tip * thick * 0.8)]
+        if swash:
+            sec[0] = (chord * .17, root, 0, chord * .34, hub * .21)
+            sec.insert(1, (chord * .46, root + chord, -chord * math.sin(droop),
+                           chord * .92, chord * thick))
         # surface() sweeps chords along -X: lay the blade on Y, then turn it to its bearing.
         surface(f"blade_{name}_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
                 rot=(0, 0, a - math.pi / 2))
+        cyl(f"rotor_{name}_root_hinge_{k}", chord * 0.18, hub * 0.78,
+            (ca * (root - hub * 0.14), sa * (root - hub * 0.14), -hub * 0.03), "X", mats["steel"], node,
+            seg=10, rot=(0, 0, a), lods=NEAR)
         # The blade's root cuff and its painted tip (the strike warning).
         tip_len = min(0.3, (out - root) * 0.06)
         if tips:
@@ -448,18 +493,30 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
                                                tip + 0.008, tip * thick * 0.9),
                                               (tip / 2 + 0.004, out + 0.01, dz, tip + 0.008, tip * thick * 0.9)],
                     mark(mats, tips), node, rot=(0, 0, a - math.pi / 2), lods=NEAR)
-        box(f"rotor_{name}_cuff_{k}", (hub * 1.4, chord * 0.85, chord * thick * 1.5),
-            (ca * (root + hub * 0.7), sa * (root + hub * 0.7), 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01,
-            lods=NEAR)
-        box(f"rotor_{name}_grip_{k}", (hub * 1.1, chord * 0.7, hub * 0.4),
-            (ca * hub * 1.2, sa * hub * 1.2, 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01, lods=MID)
         if swash:
-            # The pitch link from the swashplate's rim up to the blade's horn,
-            # just ahead of the grip.
+            # Leave daylight between the arms of the head. The narrow grip
+            # widens around its bearing, then meets the blade's flared cuff.
+            body(f"rotor_{name}_grip_{k}",
+                 [(1.93*hub, .12*chord, -.07*hub, .07*hub),
+                  (1.70*hub, .20*chord, -.15*hub, .15*hub),
+                  (1.32*hub, .23*chord, -.22*hub, .22*hub),
+                  (1.10*hub, .13*chord, -.13*hub, .13*hub),
+                  (.78*hub, .17*chord, -.18*hub, .18*hub)],
+                 mats["dark"], node, seg=12, rot=(0, 0, a), steps=(1, 1, 1, 1))
+            cyl(f"rotor_{name}_bearing_{k}", hub*.145, hub*.09,
+                (ca*hub*1.34, sa*hub*1.34, hub*.235), "Z", mats["steel"], node,
+                seg=10, bevel=.004, lods=NEAR)
             ha = a + 0.35
-            line(f"rotor_{name}_link_{k}", (math.cos(ha) * hub * 0.7, math.sin(ha) * hub * 0.7, swash_z),
-                 (math.cos(ha) * hub * 1.0, math.sin(ha) * hub * 1.0, -hub * 0.1), mats["steel"], node, width=0.04,
-                 height=0.04, lods=NEAR)
+            line(f"rotor_{name}_link_{k}", (math.cos(ha)*hub*.7,math.sin(ha)*hub*.7,swash_z),
+                 (ca*hub*1.30-sa*chord*.17, sa*hub*1.30+ca*chord*.17, -hub*.10),
+                 mats["steel"], node, width=.055,height=.055,lods=NEAR)
+        else:
+            box(f"rotor_{name}_cuff_{k}", (hub*1.4, chord*.85, chord*thick*1.5),
+                (ca*(root+hub*.7), sa*(root+hub*.7), 0), mats["dark"], node,
+                rot=(0, 0, a), bevel=.01, lods=NEAR)
+            box(f"rotor_{name}_grip_{k}", (hub*1.1, chord*.7, hub*.4),
+                (ca*hub*1.2, sa*hub*1.2, 0), mats["dark"], node,
+                rot=(0, 0, a), bevel=.01, lods=MID)
     return node
 
 
@@ -632,6 +689,15 @@ def rotorcraft_crash(v, lifting=("main",), **crash_kw):
     broken = sorted({(r, int(o.name.split("_")[2])) for r in lifting for o in bpy.data.objects
                      if o.name.startswith(f"blade_{r}_")}, key=lambda b: (lifting.index(b[0]), b[1]))
     crash(v, blades_broken=tuple(broken), **crash_kw)
+    # Crash deformation needs a fine grid while it bends the shell. Collapse
+    # shallow bends after the tail break and dents have taken their final shape.
+    from wreckage import parts
+    for panel in parts("fuselage", "tail_", "wing_", "nacelle", "boom", "nose"):
+        if panel.name.endswith(("LOD0", "LOD1")) and len(panel.data.polygons) > 256:
+            reduction = panel.modifiers.new("warped airframe panels", "DECIMATE")
+            reduction.ratio = 0.20
+            bpy.context.view_layer.objects.active = panel
+            bpy.ops.object.modifier_apply(modifier=reduction.name)
     thrown = empty("debris_blades", parent=v.root)
     for o in list(bpy.data.objects):
         if o.name.startswith("litter_blade_") and o.parent == v.root:

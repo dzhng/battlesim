@@ -73,8 +73,8 @@
       ],
       "appearance": "eastern_2s19_msta_s_2s19m2",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -157,8 +157,8 @@
       ],
       "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
       "sensors": {
-        "ground_m": 400,
-        "low_air_m": 400,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -331,8 +331,8 @@
       ],
       "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "sensors": {
-        "ground_m": 400,
-        "low_air_m": 400,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -536,7 +536,7 @@
       ],
       "appearance": "eastern_bmp_ifv_family_bmp_3",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1630,8 +1630,8 @@
       ],
       "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
       "sensors": {
-        "ground_m": 500,
-        "low_air_m": 500,
+        "ground_m": 350,
+        "low_air_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2518,7 +2518,7 @@
       ],
       "appearance": "eastern_t_72_t_72b3_2016",
       "sensors": {
-        "ground_m": 450,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2631,7 +2631,7 @@
       ],
       "appearance": "eastern_t_80_t_80bvm",
       "sensors": {
-        "ground_m": 500,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2744,7 +2744,7 @@
       ],
       "appearance": "eastern_t_90_t_90m_proryv",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2783,7 +2783,7 @@
         "variant": "Tigr-M",
         "family_name": "Tigr"
       },
-      "extends": "roster_profile_light_car",
+      "extends": "roster_profile_wheeled_recon",
       "body": {
         "hull": {
           "half_extents_m": [
@@ -2839,7 +2839,7 @@
       ],
       "appearance": "eastern_tigr_tigr_m",
       "sensors": {
-        "ground_m": 700,
+        "ground_m": 650,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3049,7 +3049,7 @@
       ],
       "appearance": "eastern_type_99_ztz_99a",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 350,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3353,7 +3353,7 @@
       ],
       "appearance": "eastern_zbl_08_wheeled_ifv",
       "sensors": {
-        "ground_m": 550,
+        "ground_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
