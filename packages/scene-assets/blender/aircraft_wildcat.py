@@ -31,7 +31,7 @@ def fit_wildcat(hull, m):
         sill = (4.48, side*.89, 1.31)
         rear = (3.15, side*.92, 1.29)
         rail = (3.15, side*.83, 2.21)
-        faces = [[(5.52, 0, 1.45), corner, brow, (4.52, 0, 2.33)],
+        faces = [[(5.52, 0, 1.42), corner, brow, (4.52, 0, 2.30)],
                  [corner, sill, brow], [sill, rear, rail, brow]]
         # Windshield normals face forward; door glass faces outboard.
         windscreen.extend(f if side > 0 else f[::-1] for f in faces)
@@ -73,7 +73,7 @@ def fit_wildcat(hull, m):
                    (-4.96, side*1.21, 2.25, .34, .045)], m["paint"], hull)
         box("pilot_seat_" + suffix, (.24, .50, .68), (3.68, side*.42, 1.61),
             m["cockpit"], hull, bevel=.06, lods=MID)
-    glazing = flat_paint("wildcat_glazing", (.006, .012, .016), rough=.10, grime=0,
+    glazing = flat_paint("wildcat_glazing", (.010, .020, .028), rough=.16, grime=0,
                          role="glass")
     shell = bpy.data.objects["fuselage_LOD0"]
     lower_panes = []
@@ -97,6 +97,11 @@ def fit_wildcat(hull, m):
         box(f"mfd_{suffix}", (.13, .22, .035), (4.67, side * .27, 1.49), m["glass"], hull,
             bevel=.012, rot=(0, -.08, 0), lods=MID)
     framed_panels(windscreen, glazing, m["paint"], hull, .10)
+    # The Wildcat has a visible centre mullion between the two forward panes.
+    # A solid post keeps the windscreen readable when the glazing is shaded
+    # against the sky, while the side frames remain part of the pane shell.
+    box("windscreen_center_post", (.065, .055, 1.08), (5.43, 0, 1.78), m["paint"], hull,
+        bevel=.018, lods=MID)
     for index, x in enumerate((1.57, 2.32)):
         # Forward-facing folding seats bolt to the cabin floor.
         box(f"troop_seat_base_{index}", (.48, .54, .32), (x, -.32, .93),
