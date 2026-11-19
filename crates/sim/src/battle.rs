@@ -34,6 +34,7 @@ mod casualties;
 mod commands;
 mod controllers;
 mod countermeasures;
+mod direct;
 mod dispatch;
 mod entry_routes;
 mod fire;
@@ -45,6 +46,7 @@ mod purchase_preview;
 mod refusals;
 mod replay;
 mod replay_identity;
+mod resume;
 mod return_to_base;
 mod scripts;
 mod seats;
@@ -57,6 +59,7 @@ use crate::cover;
 use crate::damage::{self, DamageContext, HullResolver};
 use crate::deployment;
 use crate::digest::{self, Digest};
+use crate::director::DirectorRun;
 use crate::encounter::{Defender, Referee};
 use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
@@ -158,6 +161,7 @@ pub struct Load {
 }
 
 pub use replay::{ControllerTransition, Replay, ReplayError, ScriptTrace, ENGINE_BUILD_ID};
+pub use resume::ResumeError;
 pub use seats::{SeatError, SeatEvent};
 
 pub struct Battle {
@@ -240,6 +244,8 @@ pub struct Battle {
     team_tuning: crate::skirmish_ai::team::TeamTuning,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
+    /// An authored scenario's director: its chapters and what has fired.
+    director: Option<DirectorRun>,
     encounter: Option<EncounterStatus>,
     pending: Vec<PreparedCommand>,
     accepted: Vec<(Tick, CommandEnvelope)>,
@@ -481,45 +487,12 @@ impl Battle {
                 EventAction::Burst { point, weapon } => self.burst_event(point, &weapon),
             }
         }
-        // Fixture scripts are authored setup, identical live and in replay.
+        // An authored scenario's director, then fixture scripts: authored
+        // setup, identical live and in replay.
+        self.direct();
         while self.scripts.front().is_some_and(|o| o.tick <= self.tick) {
-            let mut script = self.scripts.pop_front().unwrap();
-            // A fixed script addresses a formation's survivors. Keep invalid
-            // ids for ordinary validation; only its own fallen actors leave.
-            match &mut script.order {
-                Order::Refund { units }
-                | Order::Move { units, .. }
-                | Order::Stop { units }
-                | Order::Attack { units, .. }
-                | Order::AttackMove { units, .. }
-                | Order::SetAfterburner { units, .. }
-                | Order::SetEngagement { units, .. }
-                | Order::SetDeployment { units, .. }
-                | Order::OccupyBuilding { units, .. }
-                | Order::ExitBuilding { units }
-                | Order::Board { units, .. }
-                | Order::Collect { units, .. }
-                | Order::Unload { units, .. }
-                | Order::PopSmoke { units } => units.retain(|id| {
-                    self.units
-                        .get(id.0 as usize)
-                        .is_none_or(|u| u.side != script.side || u.alive())
-                }),
-                Order::UpgradeMove { .. }
-                | Order::Ready
-                | Order::ConfirmPurchase { .. }
-                | Order::CancelPending { .. } => {}
-            }
-            let command = CommandEnvelope {
-                side: script.side,
-                player: None,
-                seq: 0,
-                order: script.order,
-                queued: script.queued,
-            };
-            if let Ok(prepared) = self.prepare(command, self.tick.saturating_sub(1)) {
-                self.pending.push(prepared);
-            }
+            let script = self.scripts.pop_front().unwrap();
+            let _ = self.apply_authored_order(script.side, None, script.order, script.queued);
         }
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
@@ -738,6 +711,12 @@ impl Battle {
     /// match finishes: for native reports, never for a controller.
     pub fn match_report(&self) -> Option<&contract::skirmish::MatchReport> {
         self.skirmish.as_ref().map(|skirmish| &skirmish.report)
+    }
+
+    /// An authored scenario's director: its open chapter, what has fired
+    /// and what it was refused.
+    pub fn director(&self) -> Option<&DirectorRun> {
+        self.director.as_ref()
     }
 
     pub fn script_events(&self) -> &[contract::script::ScriptEvent] {

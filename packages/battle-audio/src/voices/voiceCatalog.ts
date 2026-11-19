@@ -91,6 +91,44 @@ export interface VoiceCatalog {
   sets: Record<string, VoiceSet>;
   assignments: Record<string, string | Record<string, string>>;
   retakes: Record<string, number>;
+  narration: Narration;
+}
+/** An authored scenario's narrators and every line they speak, by id: what
+ *  a scenario's coach plays (`CoachStep.line`). A line carries the story's
+ *  intent, never a key, a price or a stat, which change; the coach's card
+ *  shows those from their owners. */
+export interface Narration {
+  speakers: Record<string, NarrationSpeaker>;
+  lines: Record<string, { speaker: string; text: string }>;
+}
+export interface NarrationSpeaker {
+  /** A shared-library voice, which never expires, so any line can be spoken
+   *  again in the same voice. */
+  voice_id: string;
+  model: string;
+  seed: number;
+  processing: VoiceProfile;
+  description: string;
+}
+/** A narrator's pack: the takes judged on their current bytes, by line. */
+export interface NarrationPack {
+  speaker: string;
+  lines: { line: string; url: string; duration: number }[];
+}
+/** A narrator's pack, at a fixed name: the only builder of this path. */
+export function narrationPackUrl(speaker: string): string {
+  return `/audio/voices/narration/${speaker}/pack.json`;
+}
+function validateNarration(catalog: VoiceCatalog): void {
+  const { speakers, lines } = catalog.narration;
+  own(speakers);
+  own(lines);
+  for (const [id, speaker] of Object.entries(speakers))
+    if (!speaker.voice_id || !(VOICE_PROFILES as readonly string[]).includes(speaker.processing))
+      throw new Error(`narration speaker ${id}: a library voice and a processing profile`);
+  for (const [id, line] of Object.entries(lines))
+    if (!speakers[line.speaker] || !line.text?.trim())
+      throw new Error(`narration line ${id}: a speaker and its text`);
 }
 const own = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -199,14 +237,16 @@ export function validateVoiceCatalog(
   roster: readonly VoiceUnit[] | null,
 ): VoiceCatalog {
   const root = own(value);
-  for (const key of ["roles", "sets", "assignments", "retakes"]) own(root[key]);
-  if (Object.keys(root).some((key) => !["roles", "sets", "assignments", "retakes"].includes(key)))
+  const sections = ["roles", "sets", "assignments", "retakes", "narration"];
+  for (const key of sections) own(root[key]);
+  if (Object.keys(root).some((key) => !sections.includes(key)))
     throw new Error("voice catalog: unknown section");
   const catalog = value as VoiceCatalog;
   validateVoiceRoles(catalog);
   validateVoiceSets(catalog);
   validateVoiceAssignments(catalog);
   validateRosterAssignments(catalog, roster);
+  validateNarration(catalog);
   return catalog;
 }
 /** The set a unit type speaks with when `faction` fields it: its assignment, by

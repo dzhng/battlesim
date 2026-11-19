@@ -15,6 +15,7 @@ import type {
   MoveDestination,
   BuildingPreviewRequest,
   BuildingPlacement,
+  Resume,
   SideName,
   SimReply,
   SimRequest,
@@ -50,6 +51,8 @@ export interface LocalSimClientOptions {
   connect?: SimConnection;
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
+  /** Take a recorded battle up live at a tick. */
+  resume?: Resume;
 }
 
 export interface RemoteSimClientOptions {
@@ -382,6 +385,7 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
       seed: options.seed,
       sides: [options.side],
       replay: options.replay,
+      resume: options.resume,
     });
 
   const send = (request: SimRequest) => {

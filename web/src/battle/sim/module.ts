@@ -11,6 +11,7 @@ export function simModule(memory: WebAssembly.Memory): SimModule {
     memory,
     createBattle: (scenario, seed) => new wasm.Battle(scenario, seed),
     replayBattle: (scenario, replay) => wasm.Battle.from_replay(scenario, replay),
+    resumeBattle: (scenario, replay, tick) => wasm.Battle.resume(scenario, replay, tick),
   };
 }
 

@@ -37,8 +37,6 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   const entries: Record<string, Record<string, string | null>> = {
     // Deploy waits for the lobby's map (its own tests).
     [menuPage("skirmish").title]: { Deploy: null },
-    [menuPage("tutorial").title]: {},
-    [menuPage("settings").title]: {},
     [menuPage("developer").title]: {
       "Mechanics editor": "/labs/mechanics",
       "Map workbench": "/labs/map-workbench",
@@ -70,6 +68,12 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   }
   open(menuPage("settings").title);
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
+  // Settings links only out of the game (its asset credits), in a new tab.
+  for (const link of menu.queryAllByRole("link"))
+    expect([
+      new URL(link.getAttribute("href")!).origin !== window.location.origin,
+      link.getAttribute("target"),
+    ]).toEqual([true, "_blank"]);
   expect(menu.queryByRole("link", { name: "Graphics test" })).toBeNull();
   // Escape is Back, as in a game's menus.
   fireEvent.keyDown(window, { key: "Escape" });

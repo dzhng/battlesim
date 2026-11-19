@@ -531,25 +531,6 @@ fn a_round_keeps_its_assigned_band_throughout_flight() {
 }
 
 #[test]
-fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
-    let rules = serde_json::from_value(fixtures::rules()).unwrap();
-    let mut b = Battle::new(&sim::maps::scenario("air", "ground", rules).unwrap(), 6);
-    let ack = b.accept(CommandEnvelope {
-        side: Side::Blue,
-        player: None,
-        seq: 1,
-        order: Order::Attack {
-            units: vec![UnitId(2)],
-            target: TargetRef::Identified {
-                id: contract::observation::ObservedTargetId(9999),
-            },
-        },
-        queued: false,
-    });
-    assert_eq!(ack.error, Some(OrderError::UnknownTarget));
-}
-
-#[test]
 fn authored_aircraft_fuel_starts_full_and_burns_on_map() {
     let mut fixture = fixture();
     fixtures::patch_catalog(

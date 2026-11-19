@@ -1,37 +1,37 @@
 {
  "entries": [
   {
-   "file": "europe_aw159_wildcat_ah1-three_quarter_front.jpg",
+   "file": "europe_aw159_wildcat_ah1-side.jpg",
    "variant": "europe_aw159_wildcat_ah1",
-   "view": "three_quarter_front",
+   "view": "side",
    "source": "photo",
    "page": "https://commons.wikimedia.org/wiki/File:ZZ406_Wildcat_AH1_of_the_AAC.jpeg",
    "author": "Helmut Visorcover",
    "licence": "CC-BY-SA-4.0",
-   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
-   "note": "Wildcat AH1 front-right three-quarter landing: roof sight, cabin, wheels"
+   "sha256": "37bab9c640985062f660d21dd043446e35b9be2d23246c6ed6121e5d6907b5f9",
+   "note": "Airborne right profile, open cabin door and undercarriage."
+  },
+  {
+   "file": "europe_aw159_wildcat_ah1-three_quarter_front.jpg",
+   "variant": "europe_aw159_wildcat_ah1",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Army_Air_Corps,_ZZ386,_AgustaWestland_AW159_Wildcat_AH1.jpg",
+   "author": "Anna Zvereva from Tallinn, Estonia",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "6c3631f3e1eb969fc7e44a5a63660a10c247d72a7302124773f52169900e197e",
+   "note": "Parked front quarter, nose shelf, cockpit, forward door and wheel geometry."
   },
   {
    "file": "europe_aw159_wildcat_ah1-three_quarter_rear.jpg",
    "variant": "europe_aw159_wildcat_ah1",
    "view": "three_quarter_rear",
    "source": "photo",
-   "page": "https://commons.wikimedia.org/wiki/File:Army_Air_Corps,_ZZ386,_AgustaWestland_AW159_Wildcat_AH1.jpg",
-   "author": "Anna Zvereva from Tallinn, Estonia",
-   "licence": "CC-BY-SA-2.0",
-   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
-   "note": "Wildcat AH1 rear-left three-quarter static: tail boom and pylon, stabiliser, tail rotor"
-  },
-  {
-   "file": "europe_aw159_wildcat_ah1-side.jpg",
-   "variant": "europe_aw159_wildcat_ah1",
-   "view": "side",
-   "source": "photo",
    "page": "https://commons.wikimedia.org/wiki/File:ZZ384_Wildcat_AH1_AAC_RAF_Northolt_5.3.26_(55134103204).jpg",
    "author": "Colin Cooke Photo",
    "licence": "CC-BY-SA-4.0",
-   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
-   "note": "Wildcat AH1 left side static at night"
+   "sha256": "ab9846b5c489888c10442e3918145f3affee8a2b5e728689a218290265fb11db",
+   "note": "Night rear quarter, stabiliser, tailcone and exhausts."
   },
   {
    "file": "europe_aw159_wildcat_ah1-side-2.jpg",
@@ -52,8 +52,8 @@
    "page": "https://commons.wikimedia.org/wiki/File:AgustaWestland_AW159_LHTEC_CTS800_installation.jpg",
    "author": "Lutz Blohm from Schifferstadt, Germany",
    "licence": "CC-BY-SA-2.0",
-   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
-   "note": "AW159 engine installation and fuselage detail"
+   "sha256": "88963693d06356c67f5e5ec39d50e20c04fdefc2270104540420dfa9707127f5",
+   "note": "Parked rear quarter, engine cowling and open cabin door."
   }
  ],
  "gaps": [

@@ -2,9 +2,9 @@ import { Link } from "react-router";
 // The battle's pause menu, in the HUD's look: Esc (one the unit control
 // hasn't taken to disarm a command) or the HUD's menu button opens it and
 // pauses the battle, and closing it resumes a battle it paused. It holds
-// what the player sets between moments of play: the route's own items (the
-// scenario), restart, and the sound. Restart and main menu ask first: either
-// loses the battle in progress.
+// what the player reaches between moments of play: the Guide, the settings,
+// restart, and the route's own items (the scenario). Restart and main menu
+// ask first: either loses the battle in progress.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
@@ -12,7 +12,7 @@ import type { SimClient } from "@web/battle/sim/client";
 import { DiagnosticsControls } from "./DiagnosticsControls";
 import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
-import { Tutorial } from "./Tutorial";
+import { Guide } from "./Guide";
 import { SaveReplayButton } from "./replayFile";
 
 /** The menu's open state over `client`: opening pauses an unpaused battle and
@@ -69,12 +69,14 @@ export function MenuButton({ onOpen }: { onOpen: () => void }) {
 const questions = {
   leave: { title: "Leave the battle?", back: "Stay", go: "Leave battle" },
   restart: { title: "Restart the battle?", back: "Cancel", go: "Restart battle" },
+  chapter: { title: "Restart the chapter?", back: "Cancel", go: "Restart chapter" },
 };
 
 export function PauseMenu({
   onClose,
   online = false,
   onRestart,
+  onRestartChapter,
   onLeave,
   onSettingsApply,
   onSaveReplay,
@@ -84,30 +86,33 @@ export function PauseMenu({
   online?: boolean;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
+  /** Take an authored scenario back to its open chapter's start; none
+   *  before that start is ready to restart. */
+  onRestartChapter?: () => void;
   onLeave?: () => void;
   onSettingsApply?: () => void | Promise<void>;
   onSaveReplay?: () => Promise<unknown>;
   /** The route's own items. */
   children?: ReactNode;
 }) {
-  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [asking, setAsking] = useState<keyof typeof questions | null>(null);
   const question = asking && questions[asking];
   // Escape closes what is open above the menu, or backs out of a question.
   useEffect(() => {
-    if (!tutorialOpen && !settingsOpen && !asking) return;
+    if (!guideOpen && !settingsOpen && !asking) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Escape" || e.repeat || e.defaultPrevented) return;
       e.preventDefault();
       e.stopPropagation();
-      setTutorialOpen(false);
+      setGuideOpen(false);
       setSettingsOpen(false);
       setAsking(null);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [tutorialOpen, settingsOpen, asking]);
+  }, [guideOpen, settingsOpen, asking]);
   return (
     <>
       <div className="hud-veil" data-occludes-readouts>
@@ -116,8 +121,8 @@ export function PauseMenu({
           role="dialog"
           aria-modal="true"
           aria-label={question ? question.title : online ? "Menu" : "Paused"}
-          aria-hidden={tutorialOpen || settingsOpen || undefined}
-          inert={tutorialOpen || settingsOpen || undefined}
+          aria-hidden={guideOpen || settingsOpen || undefined}
+          inert={guideOpen || settingsOpen || undefined}
         >
           {question ? (
             <>
@@ -125,7 +130,9 @@ export function PauseMenu({
               <div className="hud-menu-note">
                 {online
                   ? "An AI will take command of your units."
-                  : "Progress in this battle will be lost."}
+                  : asking === "chapter"
+                    ? "Progress since the chapter began will be lost."
+                    : "Progress in this battle will be lost."}
               </div>
               <button
                 type="button"
@@ -144,7 +151,11 @@ export function PauseMenu({
                   {question.go}
                 </Link>
               ) : (
-                <button type="button" className="hud-menu-item" onClick={onRestart}>
+                <button
+                  type="button"
+                  className="hud-menu-item"
+                  onClick={asking === "chapter" ? onRestartChapter : onRestart}
+                >
                   {question.go}
                 </button>
               )}
@@ -155,8 +166,8 @@ export function PauseMenu({
               <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
                 {online ? "Back to battle" : "Resume"}
               </button>
-              <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
-                Tutorial
+              <button type="button" className="hud-menu-item" onClick={() => setGuideOpen(true)}>
+                Guide
               </button>
               <button type="button" className="hud-menu-item" onClick={() => setSettingsOpen(true)}>
                 Settings
@@ -170,6 +181,15 @@ export function PauseMenu({
                   Restart
                 </button>
               )}
+              {onRestartChapter && (
+                <button
+                  type="button"
+                  className="hud-menu-item"
+                  onClick={() => setAsking("chapter")}
+                >
+                  Restart chapter
+                </button>
+              )}
               {children}
               <button type="button" className="hud-menu-item" onClick={() => setAsking("leave")}>
                 {onLeave ? "Multiplayer" : "Main menu"}
@@ -178,38 +198,33 @@ export function PauseMenu({
           )}
         </div>
       </div>
-      {tutorialOpen && (
-        <div className="hud-veil hud-tutorial-veil" data-occludes-readouts>
-          <div
-            className="hud-panel hud-tutorial-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Tutorial"
-          >
-            <header className="hud-tutorial-head">
-              <strong className="hud-menu-title">Tutorial</strong>
+      {guideOpen && (
+        <div className="hud-veil hud-modal-veil" data-occludes-readouts>
+          <div className="hud-panel hud-modal" role="dialog" aria-modal="true" aria-label="Guide">
+            <header className="hud-modal-head">
+              <strong className="hud-menu-title">Guide</strong>
               <button
                 type="button"
                 className="hud-menu-item"
-                onClick={() => setTutorialOpen(false)}
+                onClick={() => setGuideOpen(false)}
                 autoFocus
               >
-                Close tutorial
+                Close guide
               </button>
             </header>
-            <Tutorial />
+            <Guide />
           </div>
         </div>
       )}
       {settingsOpen && (
-        <div className="hud-veil hud-tutorial-veil" data-occludes-readouts>
+        <div className="hud-veil hud-modal-veil" data-occludes-readouts>
           <div
-            className="hud-panel hud-tutorial-modal hud-settings-modal"
+            className="hud-panel hud-modal hud-settings-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Settings"
           >
-            <header className="hud-tutorial-head">
+            <header className="hud-modal-head">
               <strong className="hud-menu-title">Settings</strong>
               <button
                 type="button"

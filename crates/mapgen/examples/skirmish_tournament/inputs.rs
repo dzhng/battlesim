@@ -174,6 +174,7 @@ pub(crate) fn prepare_row(
         victory: None,
         opponent: None,
         encounter: None,
+        director: None,
     };
     Ok((setup, prepared, identity))
 }

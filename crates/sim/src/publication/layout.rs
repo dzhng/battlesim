@@ -42,6 +42,17 @@ pub fn layout_json(battle: &Battle) -> String {
     player_ids.sort_by_key(|(index, _)| *index);
     player_ids.dedup_by_key(|(index, _)| *index);
     let player_ids: Vec<_> = player_ids.into_iter().map(|(_, id)| id).collect();
+    // An authored scenario's chapter and beat ids, in its director's order.
+    let chapters = battle
+        .director()
+        .map(|run| &run.setup.chapters[..])
+        .unwrap_or_default();
+    let chapter_ids: Vec<_> = chapters.iter().map(|c| &c.id).collect();
+    let beat_ids: Vec<_> = chapters
+        .iter()
+        .flat_map(|c| &c.beats)
+        .map(|b| &b.id)
+        .collect();
     serde_json::json!({
         "header": HEADER.as_slice(),
         "groups": groups,
@@ -84,7 +95,9 @@ pub fn layout_json(battle: &Battle) -> String {
         "hitKinds": names(&SEGMENT_HITS),
         "unitKinds": battle.rules().catalog.ids(),
         "playerIds": player_ids,
-        "controllers": names(&[ControllerKind::Human, ControllerKind::ActiveAi, ControllerKind::PassiveAi]),
+        "chapters": chapter_ids,
+        "beats": beat_ids,
+        "controllers": names(&ControllerKind::ALL),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),

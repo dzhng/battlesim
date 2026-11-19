@@ -11,7 +11,7 @@ fn a_helicopters_pick_is_aloft_only_until_touchdown_for_either_side() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     for side in [Side::Blue, Side::Red] {
         let rules = presentation::static_world::files::rules(&root, "supply").unwrap();
-        let scenario = sim::maps::scenario("supply", "heli-fire", rules).unwrap();
+        let scenario = sim::maps::encounter_scenario("supply", "heli-fire", rules).unwrap();
         let mut battle = sim::battle::Battle::new(&scenario, 13);
         let kinds = presentation::fielded::encounter_kinds(&root, "supply", "heli-fire").unwrap();
         let fielded = presentation::fielded::fielded(&root, battle.rules(), &kinds).unwrap();

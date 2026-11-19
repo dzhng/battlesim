@@ -168,6 +168,13 @@ impl Battle {
                     && u.owner.as_deref() == command.player.as_deref()
             })
             .count() as u32;
+        let offered = contract::skirmish::OfferedPurchase {
+            kind: preview.kind,
+            carrier: preview.carrier,
+        };
+        if !self.skirmish.as_ref().unwrap().offers(player, offered) {
+            return Err(OrderError::NotOffered);
+        }
         let cost = |kind: TypeIndex| self.rules.catalog.get(kind).cost;
         let purchase = crate::skirmish::Purchase {
             kind: preview.kind,

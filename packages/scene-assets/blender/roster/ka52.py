@@ -24,15 +24,20 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
+from parts import box, cyl, flat_paint  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
 SPEC = dict(
-    fuselage=[(6.77, 0.0, 1.45, 1.45), (6.4, 0.55, 1.0, 1.9, 1.45, 2.2), (5.3, 0.9, 0.82, 2.1, 1.5, 3.0),
+    fuselage=[(6.98, 0.0, 1.08, 1.08), (6.55, 0.55, 0.88, 1.72, 1.24, 2.0), (5.3, 0.9, 0.82, 2.1, 1.5, 3.0),
               (3.6, 1.0, 0.8, 2.55, 1.6, 3.2), (1.2, 1.0, 0.85, 2.6, 1.65, 3.4), (-1.0, 0.82, 1.0, 2.5, 1.75, 3.2),
               (-3.0, 0.4, 1.45, 2.3, 1.85, 2.6), (-5.6, 0.32, 1.6, 2.25, 1.9, 2.4), (-6.76, 0.3, 1.65, 2.35, 1.95)],
-    canopy=dict(x_front=6.1, x_back=3.6, sill=1.62, top=2.8, half_width=0.98, peak=0.6, bows=(5.6, 4.9), tail=0.8),
+    # The Alligator's two-seat canopy is broad and shallow, with a distinct
+    # windscreen bow and a second bow over the rear seat.  A high, continuous
+    # bubble loses the side-by-side cockpit's characteristic stepped profile.
+    canopy=dict(x_front=6.12, x_back=3.58, sill=1.58, top=2.54, half_width=1.01, peak=0.49,
+                bows=(5.72, 5.16, 4.52), tail=0.42, nose=0.12),
+    canopy_finish=dict(name="ka52_canopy_glass", tint=(0.012, 0.024, 0.030), rough=0.16, coverage=0.46),
     wing=[(1.4, 0.95, 1.9, 1.7, 0.22), (1.2, 3.5, 1.86, 1.4, 0.14)],
     stab=[(-5.6, 0.3, 2.05, 1.1, 0.12), (-5.7, 1.9, 2.05, 0.9, 0.08)],
     fins=[dict(root_x=-5.2, root_z=2.25, height=1.2, root_chord=1.5, tip_chord=1.0, sweep_m=0.6, thick=0.16),
@@ -51,20 +56,61 @@ SPEC = dict(
 AFT_M = -0.025
 
 
+def service_panel_details(m, h):
+    """Add shallow, side-seated maintenance breaks to the broad Ka-52 cheeks."""
+    for side, label in ((1, "L"), (-1, "R")):
+        y = side * 1.06
+        for index, x in enumerate((2.02, 2.88)):
+            A.line(f"cheek_panel_seam_{label}_v{index}", (x, y, 1.64), (x, y, 2.14), m["dark"], h,
+                   width=0.028, height=0.018, lods=MID)
+        for index, z in enumerate((1.64, 2.14)):
+            A.line(f"cheek_panel_seam_{label}_h{index}", (2.02, y, z), (2.88, y, z), m["dark"], h,
+                   width=0.028, height=0.018, lods=MID)
+        for index, (x, z) in enumerate(((2.14, 1.76), (2.76, 1.76), (2.14, 2.02), (2.76, 2.02))):
+            cyl(f"cheek_panel_fastener_{label}_{index}", 0.025, 0.008, (x, side * 1.045, z), "Y",
+                m["panel"], h, seg=8, lods=MID)
+
+
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    A.body("nose_radar", [(6.85, 0.0, 1.45, 1.45), (6.6, 0.4, 1.12, 1.78, 1.45), (6.2, 0.48, 1.05, 1.85, 1.45)],
+    # Russian grey is a low-contrast finish, but maintenance panels and
+    # sensor housings still have distinct satin and rubberized coatings.
+    m["panel"] = flat_paint("ka52_panel_grey", (0.072, 0.081, 0.091), rough=0.58, grime=0.03, role="paint")
+    m["olive_panel"] = flat_paint("ka52_olive_panel", (0.050, 0.061, 0.056), rough=0.70, grime=0.04, role="paint")
+    m["sensor_dark"] = flat_paint("ka52_sensor_dark", (0.018, 0.024, 0.030), rough=0.34, grime=0, role="paint")
+    A.body("nose_radar", [(7.02, 0.0, 1.02, 1.02), (6.78, 0.34, 0.86, 1.30, 1.08), (6.35, 0.46, 0.84, 1.62, 1.18)],
            m["dark"], hull, seg=18)
-    A.sensor_ball("sensor", (5.6, 0, 0.7), 0.32, m, hull)
+    A.sensor_ball("sensor", (5.48, 0, 0.66), 0.31, {**m, "dark": m["sensor_dark"]}, hull, window=0.62)
+    # The M's nose radar is a separate dark dome, with a narrow fairing seam
+    # around its base so it reads as a sensor rather than a blunt cap.
+    A.body("radar_dome", [(7.04, 0.0, 1.00, 1.00), (6.82, 0.34, 0.84, 1.24, 1.06),
+                           (6.56, 0.44, 0.80, 1.48, 1.12)], m["sensor_dark"], hull, seg=18)
     # The 30 mm cannon on the right flank.
-    box("gun_mount", (1.6, 0.3, 0.35), (2.0, -1.05, 1.15), m["paint"], hull, bevel=0.03)
-    cyl("gun_barrel", 0.06, 2.0, (3.6, -1.05, 1.15), "X", m["steel"], hull, seg=8, lods=MID)
+    box("gun_mount", (1.6, 0.3, 0.35), (2.0, -1.05, 1.15), m["paint"], hull, bevel=0.06)
+    # A short receiver fairing seats the fixed cannon in the cheek before the
+    # barrel emerges.  This keeps the weapon from reading as a floating tube.
+    box("gun_receiver", (0.55, 0.22, 0.24), (2.82, -1.05, 1.15), m["dark"], hull, bevel=0.04, lods=MID)
+    cyl("gun_barrel", 0.06, 1.35, (3.62, -1.05, 1.15), "X", m["steel"], hull, seg=10, lods=MID)
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(1.9, 0.0, 2.55, 2.55), (1.6, 0.36, 2.2, 2.9, 2.55), (-0.8, 0.36, 2.2, 2.9, 2.55),
                                 (-1.3, 0.26, 2.3, 2.8, 2.55)], m["paint"], hull, seg=14, loc=(0, side * 0.82, 0))
-        box(f"exhaust_{k}", (0.7, 0.3, 0.4), (-1.2, side * 1.0, 2.65), m["nozzle"], hull, rot=(0, -0.3, side * 0.4),
-            lods=MID)
+        # Raised intake lips and dark ducts separate the two engines from the
+        # fuselage in the front three-quarter view.
+        A.round_intake(f"intake_{k}", (1.78, side * 1.10, 2.67), 0.34, 0.16, m, hull, lods=MID)
+        A.cyl(f"exhaust_{k}_lip", 0.29, 0.14, (-1.54, side * 1.0, 2.65), "X", m["nozzle"], hull,
+               seg=18, rot=(0, -0.3, side * 0.4), lods=MID)
+        A.cyl(f"exhaust_{k}_duct", 0.22, 0.04, (-1.62, side * 1.0, 2.65), "X", m["black"], hull,
+               seg=16, rot=(0, -0.3, side * 0.4), lods=MID)
+    # Shallow side panels and cooling vents break the uninterrupted grey shell
+    # while staying seated against the fuselage's broad cheeks.
+    for side in (-1, 1):
+        box(f"access_panel_{side}", (0.86, 0.035, 0.54), (2.45, side * 1.025, 1.88), m["panel"], hull,
+            bevel=0.025, lods=MID)
+        for k in range(3):
+            box(f"cooling_vent_{side}_{k}", (0.34, 0.025, 0.045), (-0.52 - k * 0.16, side * 1.205, 2.50),
+                m["black"], hull, bevel=0.01, lods=MID)
+    service_panel_details(m, hull)
     cyl("mast", 0.2, 2.2, (0.3, 0, 3.75), "Z", m["dark"], hull, seg=12)
     A.rotor("lower", (0.3, 0, 3.5), 7.25, 3, 0.5, m, hull, hub=0.42, mast=0.0, droop=0.02, phase=0.0)
     A.rotor("upper", (0.3, 0, 4.7), 7.25, 3, 0.5, m, hull, hub=0.42, mast=0.0, droop=0.02, phase=1.047)

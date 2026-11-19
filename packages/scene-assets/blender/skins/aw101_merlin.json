@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "europe_aw101_merlin_hc4",
+    "glb": "assets/source/skins/aw101_merlin/commando-airframe.glb",
+    "sha256": "cdd6592d7120b354e0befb4fd57f812b8136da88f94cf9a6e95a967253cc3afd",
+    "creator": "mgg8 / Aviation Gazetteer",
+    "source": "https://airmuseums.co.uk/models/aircraft/eh-industries-eh101-merlin.glb",
+    "source_sha256": "8a9b1e06e836fe3bb63c76fdd8b4af62ee6cf12acbe512bab9b153403832af01",
+    "listing": "https://sketchfab.com/3d-models/e7739dd602224e76be2d504479d18148",
+    "license": "CC0-1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "adaptation": "HM.1 body adapted to represent the HC4 transport. Naval belly radar removed, paint regraded, port cabin door opened and rotor geometry supplied by the game rig."
+  }
+]

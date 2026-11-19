@@ -1,0 +1,350 @@
+{
+  "battle_seed": "1944",
+  "players": [
+    {
+      "id": "blue-1",
+      "side": "blue",
+      "faction": "us",
+      "controller": "human",
+      "human_capable": true
+    },
+    {
+      "id": "red-1",
+      "side": "red",
+      "faction": "eastern",
+      "controller": "directed_ai"
+    }
+  ],
+  "match_rules": {
+    "preparation_s": 3600,
+    "majority_s": 36000
+  },
+  "sites": {
+    "entries": [
+      {
+        "side": "blue",
+        "center": [
+          1044.15,
+          1792.0
+        ],
+        "yaw": -1.5707963267948966
+      },
+      {
+        "side": "red",
+        "center": [
+          731.35,
+          8.0
+        ],
+        "yaw": 1.5707963267948966
+      }
+    ],
+    "objectives": [
+      {
+        "id": "crossroads",
+        "center": [
+          887.75,
+          900.0
+        ],
+        "radius_m": 50.0,
+        "kind": "junction",
+        "counterpart": null
+      },
+      {
+        "id": "bridge",
+        "center": [
+          794.0,
+          294.0
+        ],
+        "radius_m": 50.0,
+        "kind": "field",
+        "counterpart": "hill"
+      },
+      {
+        "id": "hill",
+        "center": [
+          160.0,
+          220.0
+        ],
+        "radius_m": 50.0,
+        "kind": "field",
+        "counterpart": "bridge"
+      }
+    ]
+  },
+  "forces": {
+    "outpost": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rifle_squad",
+      "position": [
+        952.0,
+        1060.0
+      ],
+      "yaw": 1.75,
+      "condition": {
+        "casualties": 3,
+        "spent": {
+          "rpg_general": 99
+        }
+      }
+    },
+    "river_guns": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "position": [
+        320.0,
+        1048.0
+      ],
+      "yaw": -0.17,
+      "engagement": "return_fire_only"
+    }
+  },
+  "opening_credits": {
+    "blue-1": {
+      "covering": [
+        {
+          "variant": "us_army_scouts_light_patrol"
+        },
+        {
+          "variant": "rifle_squad",
+          "carrier": "us_m2_bradley_ifv_m2a4"
+        }
+      ]
+    }
+  },
+  "offered": {
+    "blue-1": [
+      {
+        "variant": "us_army_scouts_light_patrol"
+      },
+      {
+        "variant": "rifle_squad",
+        "carrier": "us_m2_bradley_ifv_m2a4"
+      }
+    ]
+  },
+  "zones": {
+    "entry": {
+      "center": [
+        1044.0,
+        1752.0
+      ],
+      "radius_m": 40.0
+    },
+    "ridge": {
+      "center": [
+        1150.0,
+        1580.0
+      ],
+      "radius_m": 45.0
+    },
+    "farm": {
+      "center": [
+        975.0,
+        1240.0
+      ],
+      "radius_m": 45.0
+    },
+    "crossroads": {
+      "center": [
+        888.0,
+        900.0
+      ],
+      "radius_m": 50.0
+    },
+    "river_woods": {
+      "center": [
+        250.0,
+        1045.0
+      ],
+      "radius_m": 90.0
+    },
+    "north_road": {
+      "center": [
+        840.0,
+        640.0
+      ],
+      "radius_m": 60.0
+    },
+    "ambush_woods": {
+      "center": [
+        698.0,
+        806.0
+      ],
+      "radius_m": 30.0
+    },
+    "far_treeline": {
+      "center": [
+        1178.0,
+        682.0
+      ],
+      "radius_m": 35.0
+    },
+    "bridge": {
+      "center": [
+        794.0,
+        294.0
+      ],
+      "radius_m": 50.0
+    },
+    "hill": {
+      "center": [
+        160.0,
+        220.0
+      ],
+      "radius_m": 50.0
+    },
+    "red_entry": {
+      "center": [
+        731.0,
+        20.0
+      ],
+      "radius_m": 40.0
+    },
+    "river_bank": {
+      "center": [
+        470.0,
+        1048.0
+      ],
+      "radius_m": 30.0
+    }
+  },
+  "director": {
+    "chapters": [
+      {
+        "id": "briefing",
+        "beats": [
+          {
+            "id": "recon_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_army_scouts_light_patrol"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "carrier_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "battle_started",
+            "when": {
+              "phase": "active"
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "eyes_forward",
+        "beats": [
+          {
+            "id": "recon_at_ridge",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_army_scouts_light_patrol"
+                  }
+                },
+                "are": {
+                  "in": "ridge"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "outpost_seen",
+            "when": {
+              "identifies": {
+                "side": "blue",
+                "who": {
+                  "force": "outpost"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "river_guns_open",
+            "when": {
+              "fired": {
+                "beat": "recon_at_ridge",
+                "after_s": 4
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "river_guns"
+                  },
+                  "order": {
+                    "attack_ground": "river_bank"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "gunfire_heard",
+            "when": {
+              "contact_in": {
+                "side": "blue",
+                "zone": "river_woods"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "recon_holding",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_army_scouts_light_patrol"
+                  }
+                },
+                "are": {
+                  "engagement": "return_fire_only"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

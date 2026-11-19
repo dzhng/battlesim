@@ -87,7 +87,7 @@ fn watch(
 #[test]
 fn a_squad_riding_in_an_apc_makes_no_wake_and_the_apc_does() {
     let rules = presentation::static_world::files::rules(&root(), "transport").unwrap();
-    let board = sim::maps::scenario("transport", "board", rules).unwrap();
+    let board = sim::maps::encounter_scenario("transport", "board", rules).unwrap();
     // The squads board where they stand, in a marsh; the red squad waits
     // in another, far off.
     let scenario = flooded(

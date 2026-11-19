@@ -20,7 +20,7 @@ const BOARDED_TICKS: u64 = 600;
 fn passengers_riding_a_carrier_have_no_body_to_draw() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
-    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let scenario = sim::maps::encounter_scenario(MAP, ENCOUNTER, rules).unwrap();
     let mut battle = Battle::new(&scenario, SEED);
     for _ in 0..BOARDED_TICKS {
         battle.step();
@@ -71,7 +71,7 @@ fn passengers_riding_a_carrier_have_no_body_to_draw() {
 fn identified_deployment_blends_between_publications() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
-    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let scenario = sim::maps::encounter_scenario(MAP, ENCOUNTER, rules).unwrap();
     let mut battle = Battle::new(&scenario, SEED);
     for _ in 0..BOARDED_TICKS {
         battle.step();

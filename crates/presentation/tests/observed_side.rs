@@ -76,7 +76,7 @@ fn a_side_switched_back_to_smokes_at_once_over_what_it_saw_destroyed() {
     let game: Value =
         serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
-    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let scenario = sim::maps::encounter_scenario(MAP, ENCOUNTER, rules).unwrap();
     let mut battle = Battle::new(&scenario, SEED);
     for _ in 0..SHELLED_TICKS {
         battle.step();
@@ -141,7 +141,7 @@ fn a_side_switch_starts_the_wave_field_over_before_the_new_side_loads() {
     let game: Value =
         serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
-    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let scenario = sim::maps::encounter_scenario(MAP, ENCOUNTER, rules).unwrap();
     let mut battle = Battle::new(&scenario, SEED);
     battle.step();
     let mut publisher = Publisher::new();

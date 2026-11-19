@@ -95,6 +95,8 @@ export interface BattleOverlayScenario {
   side: SideName;
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
+  /** An authored scenario's named zones, which a coach step can mark. */
+  zones?: Record<string, { center: readonly [number, number]; radius: number }>;
   /** The viewer's side's roads in, each pointing into the map. */
   deployments: EntryMarker[];
 }
@@ -108,6 +110,7 @@ export interface OverlayScenarioSource {
   skirmish?: {
     sites: { entries: { side: SideName; center: [number, number]; yaw: number }[] };
   } | null;
+  director?: { zones: Record<string, { center: [number, number]; radius_m: number }> } | null;
 }
 
 /** The scenario's own marks as `side` sees them. A side's players share
@@ -125,6 +128,12 @@ export function battleOverlayScenario(
     zone: s.encounter
       ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
       : null,
+    zones: Object.fromEntries(
+      Object.entries(s.director?.zones ?? {}).map(([id, z]) => [
+        id,
+        { center: z.center, radius: z.radius_m },
+      ]),
+    ),
     // Each marker faces the way its road runs in, as the entry does.
     deployments: (s.skirmish?.sites.entries ?? []).flatMap(({ side: entrySide, center, yaw }, i) =>
       entrySide === side ? [{ center, facing: yaw, lane: lanes[i].lane }] : [],
@@ -520,6 +529,7 @@ export function battleOverlayParts(
     allies,
     hovered = null,
     buildings = null,
+    marks = [],
   }: {
     showOrders: boolean;
     reveal: RevealedOrders;
@@ -531,6 +541,8 @@ export function battleOverlayParts(
     hovered?: number | null;
     /** The map's buildings and their parts, which held buildings' outlines trace. */
     buildings?: Pick<BuildingIndex, "partBuilding" | "parts"> | null;
+    /** The scenario zones a coach step marks: rings like the hold zone's. */
+    marks?: readonly string[];
   },
   border: Mesh | null = null,
   stroke = gameStroke(OPENING_METRES_PER_PX),
@@ -548,7 +560,10 @@ export function battleOverlayParts(
     buildDeploymentMarker(marker, z, gameOrderStyle, gameHud.accent, { stroke }),
   );
   // The hold zone, a line of the orders' weight: dashed while blue is not
-  // holding it. The zone and the border are paint, like the orders.
+  // holding it. The zone and the border are paint, like the orders. A zone a
+  // coach step marks is a place for the player: dashed in the HUD's own
+  // colour, which no objective's ring is (neutral is dashed in the zone
+  // colour, held is solid).
   const line = stroke(gameOrderStyle.line_px);
   const zone = scenario.zone
     ? buildZoneRing(
@@ -560,6 +575,11 @@ export function battleOverlayParts(
         z,
       )
     : null;
+  const marked = marks.flatMap((id) => {
+    const mark = scenario.zones?.[id];
+    const cue: Rgba = [...gameHud.accent, 1];
+    return mark ? [{ painted: buildZoneRing(mark.center, mark.radius, line, cue, false, z) }] : [];
+  });
   // A capture area's ring takes its flag's colour: the HUD's own colour for
   // the viewer's side, the enemy's for the other. A held one (a solid ring)
   // gives off a faint curtain of the same light.
@@ -586,6 +606,7 @@ export function battleOverlayParts(
   return [
     ...objectives,
     ...(zone ? [{ painted: zone }] : []),
+    ...marked,
     ...(border ? [{ painted: border }] : []),
     ...(buildings ? [heldBuildingsLayer(o, buildings, line, z)] : []),
     contactMarks,

@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "eastern_mi_24_mi_35_hind_mi_35m",
+    "glb": "assets/source/skins/mi_24_mi_35_hind/service-airframe.glb",
+    "sha256": "1902430513dac2b16e803fca065ef340cb962f22007fd6f260787c25cc979617",
+    "title": "Mi-24 Hind",
+    "creator": "Duane's Mind",
+    "source": "https://sketchfab.com/3d-models/mi-24-hind-004d68143e1a4df88e136dbc0a05f181",
+    "source_sha256": "c393886267fb9541a624d513c91b990430aad3475d760915c65980f9db7e112d",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Mi-35M adaptation with raised tandem cockpit crowns, individually cut cabin windows, service paint, crew and rebuilt rotors. Reprofiled all four tyres around the donor axle axes, retained the hub texture, fitted the axle ends and repainted the intake caps, exhausts and chin housing."
+  }
+]

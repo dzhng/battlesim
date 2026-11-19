@@ -8,7 +8,9 @@ import { useEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { useLabLoading } from "@apps/battle-lab/src/LabLoading";
-import { menuPage, type MenuPageId } from "@apps/battle-lab/src/menu/pages";
+import { MENU_PAGES, menuPage, type MenuPageId } from "@apps/battle-lab/src/menu/pages";
+import { askedBattle } from "@apps/battle-lab/src/battleLinks";
+import { categoryMap, listMaps } from "@web/maps/catalogue";
 import { PreviewWorker } from "./support/previewWorker";
 import { visitApp } from "./support/router";
 
@@ -122,4 +124,26 @@ test("an address that names no page opens home", async () => {
   await openAt("/no/such/page");
   await home();
   expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+});
+
+test("the Tutorial tile opens an authored scenario's battle, and no menu page is the guide", async () => {
+  await openAt("/");
+  const tile = screen.getByRole("button", { name: "Tutorial" });
+  // Hold the battle back: only where the tile leads is under test.
+  const leave = vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+  fireEvent.click(tile);
+  const [, , address] = leave.mock.calls.at(-1)!;
+  leave.mockRestore();
+  const url = new URL(String(address), window.location.origin);
+  expect(url.pathname).toBe("/battle");
+  const asked = askedBattle(url.search);
+  expect(asked).toMatchObject({ kind: "scenario" });
+  const { map, name } = asked as { map: string; name: string };
+  expect(categoryMap(listMaps(), map, "scenario").scenarios).toContain(name);
+  // The guide lives in the battle's pause menu now, never on a menu page.
+  for (const page of MENU_PAGES) {
+    cleanup();
+    await openAt(page.path);
+    expect(screen.queryByRole("article", { name: "How to play" })).toBeNull();
+  }
 });

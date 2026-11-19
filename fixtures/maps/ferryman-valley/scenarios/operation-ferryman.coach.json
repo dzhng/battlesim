@@ -1,0 +1,309 @@
+{
+  "title": "Operation Ferryman",
+  "speaker": {
+    "id": "lantern",
+    "name": "Lantern",
+    "post": "HQ",
+    "portrait": "/portraits/lantern.jpg"
+  },
+  "chapters": [
+    {
+      "id": "briefing",
+      "title": "Briefing",
+      "steps": [
+        {
+          "id": "open",
+          "line": "c1.open",
+          "until": "continue",
+          "card": "This is Lantern, at HQ. Nothing moves until you start the battle, so take your time and look over the ground."
+        },
+        {
+          "id": "pan",
+          "line": "c1.camera_pan",
+          "until": {
+            "ui": [
+              "camera_pan"
+            ]
+          },
+          "card": "Pan the view with {camera:forward} and {camera:right}, or rest the pointer at the edge of the screen."
+        },
+        {
+          "id": "turn",
+          "line": "c1.camera_turn",
+          "until": {
+            "ui": [
+              "camera_rotate",
+              "camera_tilt"
+            ]
+          },
+          "card": "Turn the view with {camera:turn} and tilt it with {camera:pitch}."
+        },
+        {
+          "id": "zoom",
+          "line": "c1.camera_zoom",
+          "until": {
+            "ui": [
+              "camera_zoom"
+            ]
+          },
+          "card": "Zoom with the mouse wheel: out to see the whole valley, in to see a squad."
+        },
+        {
+          "id": "flags",
+          "line": "c1.objectives",
+          "until": "continue",
+          "card": "The numbered flags are the objectives. Hold them and your victory score climbs; the first side to the winning score takes the battle.",
+          "camera": {
+            "fade_s": 0,
+            "shots": [
+              {
+                "seconds": 4.5,
+                "from": {
+                  "target": [
+                    950,
+                    1212
+                  ],
+                  "distance": 2000,
+                  "yaw": 1.5708,
+                  "pitch": 1.13
+                },
+                "to": {
+                  "target": [
+                    888,
+                    900
+                  ],
+                  "distance": 360,
+                  "yaw": 1.5708,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              },
+              {
+                "seconds": 4,
+                "from": {
+                  "target": [
+                    888,
+                    900
+                  ],
+                  "distance": 360,
+                  "yaw": 1.5708,
+                  "pitch": 0.85
+                },
+                "to": {
+                  "target": [
+                    794,
+                    294
+                  ],
+                  "distance": 420,
+                  "yaw": 1.4,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              },
+              {
+                "seconds": 4,
+                "from": {
+                  "target": [
+                    794,
+                    294
+                  ],
+                  "distance": 420,
+                  "yaw": 1.4,
+                  "pitch": 0.85
+                },
+                "to": {
+                  "target": [
+                    160,
+                    220
+                  ],
+                  "distance": 420,
+                  "yaw": 1.75,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              }
+            ]
+          },
+          "highlight": [
+            "objectives"
+          ]
+        },
+        {
+          "id": "road",
+          "line": "c1.entry",
+          "until": "continue",
+          "card": "Everything you buy arrives by your road in, at the bottom edge. The enemy comes in from the far side.",
+          "camera": {
+            "fade_s": 0,
+            "shots": [
+              {
+                "seconds": 5,
+                "from": {
+                  "target": [
+                    1044,
+                    1450
+                  ],
+                  "distance": 1100,
+                  "yaw": 1.5708,
+                  "pitch": 1.1
+                },
+                "to": {
+                  "target": [
+                    1044,
+                    1665
+                  ],
+                  "distance": 480,
+                  "yaw": 1.5708,
+                  "pitch": 0.95
+                },
+                "ease": "cubic",
+                "logDistance": true
+              }
+            ]
+          },
+          "marks": [
+            "entry"
+          ]
+        },
+        {
+          "id": "credits",
+          "line": "c1.credits",
+          "until": "continue",
+          "card": "Your credits are at the bottom, beside Reinforcements. They grow every minute once the battle runs.",
+          "highlight": [
+            "credits"
+          ]
+        },
+        {
+          "id": "shop",
+          "line": "c1.buy_recon",
+          "until": {
+            "ui": [
+              "shop_opened"
+            ]
+          },
+          "card": "Open Reinforcements to see what you can buy.",
+          "highlight": [
+            "shop"
+          ]
+        },
+        {
+          "id": "scouts",
+          "line": "c1.place",
+          "until": {
+            "beat": "recon_bought"
+          },
+          "card": "Choose the scouts, then click the ground where they should go."
+        },
+        {
+          "id": "squad",
+          "line": "c1.buy_carrier",
+          "until": {
+            "beat": "carrier_bought"
+          },
+          "card": "Now a rifle squad: hover its card, choose the Bradley it rides in, and place it. One purchase, two units."
+        },
+        {
+          "id": "orders",
+          "line": "c1.orders_not_units",
+          "until": "continue",
+          "card": "The greyed cards along the bottom are orders, not units: they drive in from your road when the battle starts.",
+          "highlight": [
+            "army"
+          ]
+        },
+        {
+          "id": "start",
+          "line": "c1.start",
+          "until": {
+            "beat": "battle_started"
+          },
+          "card": "Press Start battle when you're ready.",
+          "highlight": [
+            "start"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eyes_forward",
+      "title": "Eyes forward",
+      "steps": [
+        {
+          "id": "select",
+          "line": "c2.arrive",
+          "until": {
+            "ui": [
+              "selected"
+            ]
+          },
+          "card": "Your units are arriving. Click the scouts, or their card at the bottom, to select them.",
+          "highlight": [
+            "army"
+          ]
+        },
+        {
+          "id": "ridge",
+          "line": "c2.move",
+          "until": {
+            "beat": "recon_at_ridge"
+          },
+          "card": "Right-click the treeline on the ridge to send the scouts there. Double right-click takes the roads; Shift adds a waypoint.",
+          "marks": [
+            "ridge"
+          ]
+        },
+        {
+          "id": "facing",
+          "line": "c2.facing",
+          "until": {
+            "ui": [
+              "moved_with_facing"
+            ]
+          },
+          "card": "Right-click and drag to choose which way they face when they arrive: drag toward the village."
+        },
+        {
+          "id": "spotted",
+          "line": "c2.spotted",
+          "until": {
+            "beat": "outpost_seen"
+          },
+          "card": "Enemies your units can see show their names in red. You see only what your own units see."
+        },
+        {
+          "id": "gunfire",
+          "line": "c2.gunfire",
+          "until": {
+            "beat": "gunfire_heard"
+          },
+          "card": "A red area is a contact: something was heard or last seen there, not an exact position."
+        },
+        {
+          "id": "jump",
+          "line": "c2.jump",
+          "until": {
+            "ui": [
+              "contact_focus"
+            ]
+          },
+          "card": "Press {key:contact_focus} to jump the view to your newest contact."
+        },
+        {
+          "id": "hold",
+          "line": "c2.hidden",
+          "until": {
+            "beat": "recon_holding"
+          },
+          "card": "With the scouts selected, press {key:toggle_fire_policy} to hold fire: they shoot only when shot at, and stay hidden.",
+          "highlight": [
+            "command:toggle_fire_policy"
+          ]
+        }
+      ]
+    }
+  ]
+}

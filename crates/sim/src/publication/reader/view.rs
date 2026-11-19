@@ -22,7 +22,7 @@ macro_rules! view {
 view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, contacts: Vec<Contact>,
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
-    refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
+    refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>, scenario: Option<Scenario>,
     fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose>, grinds: Vec<Grind>,
     smoke_clouds: Vec<SmokeCloud>, flares: Vec<Flare> });
 pub use contract::observation::Flare;
@@ -188,13 +188,27 @@ view!(Shout {
     trigger: Name,
     intensity: Name
 });
+// An authored scenario's progress: the open chapter (none once every chapter
+// closed) and the beats this side was told of, with the tick each fired.
+view!(Scenario { chapter: Option<Name>, beats: Vec<ScenarioBeat> });
+view!(ScenarioBeat {
+    beat: Name,
+    tick: f64
+});
 view!(Encounter {
     held_s: f64,
     result: Name
 });
 view!(Skirmish { phase: Option<&'static str>, players: Vec<Player>, preparation_remaining_s: f64,
     scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, report: Option<Report> });
-view!(Player { index: f64, id: Name, controller: Name, ready: bool, credits: f64, income_per_minute: f64, unit_count: f64, cap: f64, pending: Vec<PendingPurchase> });
+view!(Player { index: f64, id: Name, controller: Name, ready: bool, credits: f64, income_per_minute: f64, unit_count: f64, cap: f64, pending: Vec<PendingPurchase>,
+    // What a shop an authored scenario narrowed sells; none where it is not narrowed.
+    offered: Option<Vec<Offer>> });
+view!(Offer {
+    kind: Name,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    carrier: Option<Name>
+});
 view!(Objective { id: Name, center: Point2, radius_m: f64, owner: Option<&'static str>,
     capturing: Option<&'static str>, capture_progress: f64, contested: bool });
 view!(PendingPurchase {

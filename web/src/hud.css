@@ -1049,11 +1049,11 @@ html {
   display: grid;
   gap: 6px;
 }
-.hud-veil.hud-tutorial-veil {
+.hud-veil.hud-modal-veil {
   z-index: 30;
   background: rgb(var(--hud-glass) / 0.72);
 }
-.hud-panel.hud-tutorial-modal {
+.hud-panel.hud-modal {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(760px, 100%);
@@ -1071,18 +1071,18 @@ html {
 .hud-settings-modal .hud-menu-section:last-child {
   padding-bottom: 0;
 }
-.hud-tutorial-head {
+.hud-modal-head {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
   padding-bottom: 8px;
 }
-.hud-tutorial-head .hud-menu-title {
+.hud-modal-head .hud-menu-title {
   padding-bottom: 0;
   text-align: left;
 }
-.hud-tutorial-head .hud-menu-item {
+.hud-modal-head .hud-menu-item {
   width: auto;
   white-space: nowrap;
 }
@@ -2268,5 +2268,169 @@ html {
     width: 34px;
     height: 34px;
     flex-basis: 34px;
+  }
+}
+/* The tutorial's coach, a transmission: its speaker's portrait beside what
+   they say, one transient card at the top left, flush with the screen's top
+   edge like the HUD's other panels. */
+.hud-coach {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(380px, calc(100vw - 24px));
+  padding: 10px 14px 12px 10px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.hud-coach-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hud-coach-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.hud-coach-name {
+  color: rgb(var(--hud-text));
+  font: 700 11px/1.2 var(--hud-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.hud-coach-chapter {
+  margin-left: auto;
+  color: rgb(var(--hud-dim));
+  font: 700 10px/1.2 var(--hud-font);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.hud-coach-card {
+  margin: 0;
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+/* A key in the card, as a pair or a single key: the guide's key tabs. */
+.hud-coach-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+.hud-panel button.hud-coach-continue {
+  align-self: flex-end;
+  width: auto;
+  padding-inline: 18px;
+}
+/* The portrait in the HUD's accent: the photo's light over the accent, behind
+   scan lines and a vignette that read at normal size. */
+.hud-coach-portrait {
+  position: relative;
+  flex: none;
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgb(var(--hud-accent) / 0.55);
+  background: rgb(var(--hud-accent));
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.25);
+}
+.hud-coach-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.15);
+  mix-blend-mode: luminosity;
+}
+.hud-coach-portrait::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.35) 2px 3px),
+    radial-gradient(closest-side, transparent 60%, rgb(0 0 0 / 0.55));
+}
+/* Five bars that run while a line plays, and are gone when it ends. */
+.hud-coach-signal {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 10px;
+  visibility: hidden;
+}
+.hud-coach-signal[data-speaking] {
+  visibility: visible;
+}
+.hud-coach-signal i {
+  width: 3px;
+  height: 3px;
+  background: rgb(var(--hud-accent));
+  animation: hud-coach-signal 0.6s ease-in-out infinite alternate;
+}
+.hud-coach-signal i:nth-child(2) {
+  animation-delay: -0.15s;
+}
+.hud-coach-signal i:nth-child(3) {
+  animation-delay: -0.4s;
+}
+.hud-coach-signal i:nth-child(4) {
+  animation-delay: -0.25s;
+}
+.hud-coach-signal i:nth-child(5) {
+  animation-delay: -0.5s;
+}
+@keyframes hud-coach-signal {
+  from {
+    height: 3px;
+  }
+  to {
+    height: 10px;
+  }
+}
+/* The control a coach step points at: the HUD's corner brackets in its
+   accent, standing a little off the control, with one pulse as they appear
+   and a slow breath after, so it reads as "press this" without shouting. */
+.hud-coach-highlight {
+  --corner: rgb(var(--hud-accent));
+  position: fixed;
+  z-index: 5;
+  /* The control's own size, with the brackets' standoff round it. */
+  box-sizing: content-box;
+  margin: -6px 0 0 -6px;
+  padding: 6px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--corner), var(--corner)) top left / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) top left / 2px 12px,
+    linear-gradient(var(--corner), var(--corner)) top right / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) top right / 2px 12px,
+    linear-gradient(var(--corner), var(--corner)) bottom left / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) bottom left / 2px 12px,
+    linear-gradient(var(--corner), var(--corner)) bottom right / 12px 2px,
+    linear-gradient(var(--corner), var(--corner)) bottom right / 2px 12px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.8));
+  animation:
+    hud-coach-highlight-in 0.45s ease-out,
+    hud-coach-highlight 1.4s ease-in-out 0.45s infinite alternate;
+}
+@keyframes hud-coach-highlight-in {
+  from {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+@keyframes hud-coach-highlight {
+  to {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-coach-highlight,
+  .hud-coach-signal i {
+    animation: none;
   }
 }

@@ -62,6 +62,7 @@ function voiceCatalog(): VoiceCatalog {
     },
     assignments: {},
     retakes: {},
+    narration: { speakers: {}, lines: {} },
   };
 }
 function takeRecord(text: string, served: string, flagged = false): TakeRecord {

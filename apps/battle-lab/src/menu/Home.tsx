@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Wordmark } from "../Wordmark";
 import { APP_COMMIT, simFingerprint } from "../buildIdentity";
-import { MENU_PAGES, menuPage, type MenuPageId } from "./pages";
+import { MENU_TILES, menuPage } from "./pages";
 import { FROM_MENU, useMenuShell } from "./MenuShell";
 
 /** Which build is running: the app's commit and the simulation module's
@@ -41,7 +41,7 @@ export function Home() {
   const navigate = useNavigate();
   // Back to the list, onto the entry of the page just left.
   const { left } = useMenuShell();
-  const open = (page: MenuPageId) => void navigate(menuPage(page).path, FROM_MENU);
+  const open = (path: string) => void navigate(path, FROM_MENU);
   return (
     <>
       <h1>
@@ -50,7 +50,7 @@ export function Home() {
       </h1>
       <nav aria-label="Main menu">
         <ul>
-          {MENU_PAGES.filter((row) => row.tile).map((row) => (
+          {MENU_TILES.map((row) => (
             <li key={row.id}>
               <button
                 className="menu-card"
@@ -58,7 +58,7 @@ export function Home() {
                 type="button"
                 data-page={row.id}
                 autoFocus={left === row.id}
-                onClick={() => open(row.id)}
+                onClick={() => open(row.path)}
               >
                 <span className="menu-card-label">{row.title}</span>
               </button>
@@ -72,7 +72,7 @@ export function Home() {
         className="menu-dev"
         data-page="developer"
         autoFocus={left === "developer"}
-        onClick={() => open("developer")}
+        onClick={() => open(menuPage("developer").path)}
       >
         {menuPage("developer").title}
       </button>

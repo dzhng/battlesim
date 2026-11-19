@@ -1,0 +1,107 @@
+{
+  "max_minutes": 10,
+  "chapters": [
+    {
+      "id": "briefing",
+      "beats": [
+        {
+          "id": "buy_scouts",
+          "when": "chapter_opens",
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_army_scouts_light_patrol"
+                },
+                "at": "ridge"
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_squad",
+          "when": {
+            "fired": {
+              "beat": "buy_scouts"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "rifle_squad",
+                  "carrier": "us_m2_bradley_ifv_m2a4"
+                },
+                "at": "ridge"
+              }
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": {
+            "fired": {
+              "beat": "buy_squad"
+            }
+          },
+          "then": [
+            {
+              "ready": {
+                "player": "blue-1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eyes_forward",
+      "beats": [
+        {
+          "id": "scouts_to_ridge",
+          "when": "chapter_opens",
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_army_scouts_light_patrol"
+                  }
+                },
+                "order": {
+                  "move_to": "ridge"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "scouts_hold_fire",
+          "when": {
+            "fired": {
+              "beat": "gunfire_heard"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_army_scouts_light_patrol"
+                  }
+                },
+                "order": {
+                  "engage": "return_fire_only"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

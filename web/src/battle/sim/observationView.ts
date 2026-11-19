@@ -5,6 +5,7 @@
 
 import type { OrderStepKind } from "@packages/battle-renderer/src/orderSteps";
 import type { MoveDirection } from "./protocol";
+import type { ControllerKind } from "../prepare/protocol";
 
 /** The ground grid and exact tile-local run packing. */
 export interface GroundLayout {
@@ -580,7 +581,7 @@ export interface SkirmishView {
 export interface PlayerView {
   index: number;
   id: string;
-  controller: "human" | "active_ai" | "passive_ai";
+  controller: ControllerKind;
   ready: boolean;
   credits: number;
   /** The passive income this player's army now leaves it, per minute. */
@@ -588,6 +589,15 @@ export interface PlayerView {
   unitCount: number;
   cap: number;
   pending: PendingPurchaseView[];
+  /** What a shop an authored scenario narrowed sells; null where the player
+   *  buys whatever its faction sells. */
+  offered: OfferView[] | null;
+}
+
+/** A narrowed shop's purchase: a unit type, and the carrier a squad rides. */
+export interface OfferView {
+  kind: string;
+  carrier?: string;
 }
 
 export interface PendingPurchaseView {
@@ -644,6 +654,14 @@ export type MatchEventView =
       } | null;
     };
 
+/** An authored scenario's progress as one side is told it: the open chapter
+ *  (null once every chapter has closed) and the beats this side was told of,
+ *  with the tick each fired. */
+export interface ScenarioView {
+  chapter: string | null;
+  beats: { beat: string; tick: number }[];
+}
+
 export interface ObservationView {
   tick: number;
   own: OwnUnitView[];
@@ -667,6 +685,8 @@ export interface ObservationView {
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
   skirmish: SkirmishView | null;
+  /** An authored scenario's progress as this side is told it. */
+  scenario: ScenarioView | null;
   fog: VisibilityView;
   /** Which patch of the side's learned ground this publication carried
    *  (the presentation applies its runs: `LearnedGround`). */

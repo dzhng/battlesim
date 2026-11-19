@@ -165,7 +165,7 @@ fn dist(a: [f64; 2], b: [f64; 2]) -> f64 {
 fn movement_battle() -> Battle {
     let rules = serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     Battle::new(
-        &sim::maps::scenario("movement", "movement", rules).unwrap(),
+        &sim::maps::encounter_scenario("movement", "movement", rules).unwrap(),
         4,
     )
 }

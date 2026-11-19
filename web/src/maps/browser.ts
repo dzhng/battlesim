@@ -22,6 +22,8 @@ const URLS = import.meta.glob<string>(
   [
     "../../../fixtures/maps/*/{map,SOURCES}.json",
     "../../../fixtures/maps/*/encounters/*.json",
+    "../../../fixtures/maps/*/scenarios/*.json",
+    "!../../../fixtures/maps/*/scenarios/*.solution.json",
     "../../../fixtures/prototype-building-templates.json",
   ],
   { query: "?url&no-inline", import: "default", eager: true },
@@ -82,6 +84,25 @@ export function loadMap(id: string): Promise<ResolvedMap> {
     maps.set(id, map);
   }
   return map;
+}
+
+/** Map `id`'s authored scenario `name`, as written: the simulation's
+ *  resolver (`authored_scenario`) reads it. */
+export async function loadScenarioDocument(id: string, name: string): Promise<string> {
+  const location = `${id}/scenarios/${name}.json`;
+  checkAddress(id, id);
+  checkAddress(name, location);
+  return document(`maps/${id}/scenarios/${name}.json`, location);
+}
+
+/** Map `id`'s scenario `name`'s coach, or null when it has none. */
+export async function loadScenarioCoach(
+  id: string,
+  name: string,
+): Promise<import("../battle/coach/coach").CoachDocument | null> {
+  const path = `maps/${id}/scenarios/${name}.coach.json`;
+  if (!URLS[`${FIXTURES}${path}`]) return null;
+  return JSON.parse(await document(path, `${id}/scenarios/${name}.coach.json`));
 }
 
 /** Map `id`'s saved encounter `name`. */

@@ -58,6 +58,7 @@ fn frame(
                 unit_count: count(index),
                 cap: 30,
                 pending: vec![],
+                offered: None,
             })
             .collect(),
         preparation_remaining_s: 0.0,

@@ -155,6 +155,19 @@ map's high-x end, the slot each player holds, and where a seated player's view
 opens. The planner, the lobby picture and the page (through one Wasm call) all
 read lanes from it, and none numbers a road itself.
 
+An authored scenario is a skirmish laid out in advance
+([`contract::scenario_document`](../contract/src/scenario_document.rs)): its forces
+stand from the first tick, entered at today's price for income, cap and bounty,
+and a player's shop may be narrowed to the cards it offers (`NotOffered`
+otherwise, and published so the shop shows only those). Its
+[director](src/director.rs) is the scenario's rules of progression: chapters of
+beats, each firing once when its trigger holds on authoritative facts (where
+units are, what a side knows, the phase) while its chapter is open, and acting
+through the battle's own owners: an order to a `DirectedAi` seat's units through
+the same path fixed scripts use (`apply_authored_order`, unrecorded since a
+replay reruns the director), a grant into a wallet, an offer into a shop. It runs
+before orders apply each tick, and its state is in the digest.
+
 [The skirmish AI](src/skirmish_ai/) plays one player from its side's
 observation, and everything it decides is an ordinary command. A unit of its
 own that is losing a fight pops its smoke and reverses out of the cloud

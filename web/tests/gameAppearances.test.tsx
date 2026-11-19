@@ -96,6 +96,7 @@ test("learned and fallen unit art stays until the battle or observing side chang
     flares: [],
     encounter: null,
     skirmish: null,
+    scenario: null,
     fog: { cellM: 1, nx: 1, ny: 1, bits: new Uint32Array(1) },
     groundPatch: { epoch: 1, side: "blue", baseRevision: 0, revision: 1, full: true },
   };

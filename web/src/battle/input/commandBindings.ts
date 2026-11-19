@@ -47,6 +47,9 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
  *  routes and cover icons. */
 export const ShowOrdersBinding: CommandBinding = { code: "Space", label: "Hold Space" };
 
+/** The view to the newest contact, then each older one (Shift: newer). */
+export const ContactFocusBinding: CommandBinding = { code: "KeyN", label: "N" };
+
 const BY_CODE = new Map(
   (Object.entries(CommandBindings) as [KeyCommand, CommandBinding][]).map(([c, b]) => [b.code, c]),
 );

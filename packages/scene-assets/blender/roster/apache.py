@@ -1,119 +1,76 @@
-"""AH-64E Apache Guardian, from assets/references/ah_64_apache/.
-
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/apache.py -- [--wreck]
-
-What the photos settle: the narrow fuselage with the gunner forward and the
-pilot raised behind under flat-paned canopies, the TADS/PNVS turret on the
-nose, the M230 chain gun under the chin, engine nacelles on both flanks
-behind the cockpit with their exhaust suppressors, stub wings with Hellfire
-racks and rocket pods, the Longbow radar dome over the rotor head, four
-blades, the tail fin with the scissor tail rotor on its left and the
-stabilator at its foot; trailing-arm main wheels and a tail wheel. Army green.
-
-Built to the catalog frame, from published figures (fuselage length without
-blades, width over the stub wings' stores, height to the top of the Longbow
-dome): 14.7 x 5.23 x 4.72 m, Boeing's length and height (the sources are in
-the library's gaps).
-
-The chain gun is the `chin` mount's rig: the turret yaws under the chin at
-the mount's pivot, the gun pitches on the bore, which the model lets fall to
-60 degrees below the airframe (the M230's own depression) and rise to 11
-(`pitch_min_deg`/`pitch_max_deg` on the gun node), and the muzzle is at the
-barrel's tip. The rockets and missiles are fixed in the hull, so the hull
-draws them: the rocket mount's muzzle is the left inboard pod's mouth, the
-missile mount's the right outboard rack's front.
-"""
+"""AH-64E Guardian. The fitted donor supplies the tandem cockpit, airframe,
+undercarriage, wings and stores. The game supplies the crew, articulated
+rotors, chin rig, markings and wreck."""
 import math
 import os
 import sys
 
+import bpy
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
+from aircraft_donor import fitted_airframe  # noqa: E402
+from parts import cyl, flat_paint, mesh_part  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
-from vehicle_parts import MID  # noqa: E402
 
-# The M230's elevation, degrees: the gun node's custom properties, which the
-# renderer's rig clamps the drawn gun to.
-GUN_PITCH_DEG = (-60.0, 11.0)
-# How far the chain gun's barrel runs back on a shot: a short stroke, not a
-# tank gun's.
-GUN_STROKE_M = 0.06
-# How far forward the airframe's parts (placed in their drawing's frame)
-# move to centre on the hull box.
-AFT_M = 0.305
-SPEC = dict(
-    fuselage=[(6.65, 0.0, 1.42, 1.42), (6.38, 0.44, 1.05, 1.86, 1.4, 2.4), (5.36, 0.56, 0.95, 2.04, 1.45, 3.0),
-              (3.7, 0.62, 0.95, 2.3, 1.55, 3.0), (1.85, 0.75, 0.95, 2.62, 1.6, 3.5), (0.0, 0.7, 1.0, 2.52, 1.65, 3.5),
-              (-1.39, 0.5, 1.2, 2.36, 1.75, 3.0), (-3.7, 0.25, 1.55, 2.16, 1.85, 2.4), (-6.28, 0.2, 1.7, 2.2, 1.95),
-              (-7.02, 0.18, 1.75, 2.42, 2.0)],
-    wing=[(1.62, 0.65, 1.95, 1.29, 0.18), (1.34, 2.42, 1.86, 1.02, 0.12)],
-    stab=[(-6.1, 0.2, 1.95, 0.92, 0.1), (-6.24, 1.7, 1.95, 0.74, 0.06)],
-    fins=[dict(root_x=-5.82, root_z=2.15, height=1.8, root_chord=1.48, tip_chord=1.02, sweep_m=0.83, thick=0.16)],
-    gear=[dict(name="main_L", x=3.1, y=1.0, top=1.1, radius=0.4, width=0.22),
-          dict(name="main_R", x=3.1, y=-1.0, top=1.1, radius=0.4, width=0.22),
-          dict(name="tail", x=-5.64, y=0.0, top=1.7, radius=0.2, width=0.12)],
-    pylons=[((1.29, 1.35, 1.86), 0.83, 0.3), ((1.2, 2.15, 1.82), 0.83, 0.3)],
-    stores=[("pod", (1.2, 1.35, 1.32), 1.57, 0.27)],
-)
+
+def cheek_panels(hull):
+    shell = bpy.data.objects["fuselage_LOD0"]
+    seal = flat_paint("access_seals", (.034, .031, .024), rough=.85, grime=0, role="paint")
+    fastener = flat_paint("flush_fasteners", (.085, .079, .063), rough=.59, grime=0, role="paint")
+    for side in (1, -1):
+        def surface(x, z, lift=.003):
+            hit, point, _, _ = shell.ray_cast((x, 1.2 * side, z), (0, -side, 0))
+            if not hit or point.y * side < .6:
+                raise ValueError(f"Apache cheek fitting misses the fairing at {x}, {z}, side {side}")
+            return (x, point.y + side * lift, z)
+
+        # Project onto each side independently. The cheek fairings are asymmetric.
+        strips = []
+        for x, top, bottom in ((2.98, 1.49, .98), (3.27, 1.46, .98), (4.16, 1.51, 1.02), (5.41, 1.48, 1.11)):
+            strip = [surface(x-.009, bottom), surface(x+.009, bottom), surface(x+.009, top), surface(x-.009, top)]
+            strips.append(strip[::-1] if side > 0 else strip)
+
+        def seals(bm, lod):
+            for strip in strips:
+                bm.faces.new([bm.verts.new(point) for point in strip])
+
+        mesh_part(f"cheek_access_seals_{side}", seals, seal, hull, lods=A.NEAR)
+        locks = ((3.42, 1.43), (3.99, 1.46), (4.32, 1.52), (5.21, 1.43),
+                 (3.42, 1.06), (3.99, 1.06), (4.32, 1.10), (5.21, 1.14))
+        for i, (x, z) in enumerate(locks):
+            cyl(f"cheek_lock_{side}_{i}", .034, .008, surface(x, z, .006), "Y", fastener, hull, seg=8, lods=A.NEAR)
 
 
 def build(variant, v):
-    m = A.jet(v, SPEC)
+    m = A.fit(v)
     hull = v.hull
-    # The side photo: the gunner's glass from 1.3 m behind the sensor
-    # turret, the pilot's stepped up behind it, the mains under the gunner.
-    A.canopy("canopy", 5.74, 4.4, 1.9, 2.62, 0.56, m, hull, bows=(5.6, 5.0), peak=0.6, tail=0.7)
-    A.canopy("canopy_glass_rear", 4.4, 3.0, 2.14, 3.0, 0.6, m, hull, bows=(4.32, 3.65), peak=0.5, tail=0.75)
-    # TADS/PNVS on the nose: the turret and its sensor windows.
-    A.sensor_ball("tads", (6.7, 0, 1.25), 0.36, m, hull)
-    box("pnvs", (0.4, 0.3, 0.3), (6.51, 0, 1.78), m["dark"], hull, bevel=0.03, lods=MID)
-    # The M230 under the chin, on the chin mount's rig: its turret at the
-    # pivot, the cradle and barrel on the bore out to the muzzle.
-    A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M)
-    # Engines on the flanks with their exhaust suppressors, and the rotor
-    # mast's fairing.
-    for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(1.94, 0.0, 2.4, 2.4), (1.66, 0.34, 2.06, 2.74, 2.4), (-0.55, 0.34, 2.06, 2.74, 2.4),
-                                (-1.11, 0.22, 2.2, 2.6, 2.4)], m["paint"], hull, seg=14, loc=(0, side * 0.92, 0))
-        box(f"exhaust_{k}", (0.65, 0.2, 0.3), (-1.02, side * 1.15, 2.42), m["nozzle"], hull, rot=(0, 0, side * 0.5),
-            lods=MID)
-        # Hellfire rack on the outer pylon: four rails.
-        for j, (dy, dz) in enumerate(((0.16, 0.18), (-0.16, 0.18), (0.16, -0.12), (-0.16, -0.12))):
-            A.store(f"hellfire_{k}_{j}", "missile", (1.2, side * 2.15 + dy, 1.36 + dz), 1.63, 0.09, m, hull)
-        box(f"hellfire_rack_{k}", (0.92, 0.1, 0.5), (1.2, side * 2.15, 1.42), m["dark"], hull, lods=MID)
-        box(f"wing_tip_station_{k}", (0.5, 0.18, 0.2), (1.11, side * 2.52, 1.86), m["dark"], hull, lods=MID)
-    A.body("mast_fairing", [(1.29, 0.0, 2.55, 2.55), (0.92, 0.45, 2.45, 2.95, 2.6), (-0.55, 0.45, 2.45, 2.9, 2.6),
-                            (-1.11, 0.0, 2.6, 2.6)], m["paint"], hull, seg=14)
-    cyl("mast", 0.15, 0.85, (0.18, 0, 3.11), "Z", m["dark"], hull, seg=12)
-    A.rotor("main", (0.18, 0, 3.61), 7.32, 4, 0.53, m, hull, hub=0.4, mast=0.0, droop=0.025, phase=0.3)
-    # The Longbow fire-control radar's dome over the hub.
-    A.body("longbow", [(0.88, 0.0, 4.31, 4.31), (0.69, 0.5, 4.06, 4.61, 4.34), (-0.32, 0.55, 4.01, 4.71, 4.36),
-                       (-0.55, 0.0, 4.36, 4.36)], m["paint"], hull, seg=16)
-    cyl("longbow_post", 0.12, 0.3, (0.18, 0, 3.96), "Z", m["dark"], hull, seg=10)
-    A.rotor("tail", (-6.61, 0.3, 3.5), 1.4, 4, 0.25, m, hull, hub=0.14, mast=0.0, droop=0.0,
-            rot=(-math.pi / 2, 0, 0), thick=0.12, phase=0.35)
-    A.blade_antenna("antenna_belly", (0.0, 0, 1.0), 0.25, m, hull, down=True)
-    A.nav_lights(m, hull, left=(1.11, 2.56, 1.98), right=(1.11, -2.56, 1.98), tail=(-6.4, 0.0, 3.9))
-    # The Army's black lettering on the boom, the serial on the fin and the
-    # photo's 53 on the engines.
+    m["canopy"] = flat_paint("apache_laminated_glass", (.019, .027, .030), rough=.15,
+                             grime=0, coverage=("blended", .28), role="glass")
+    m["blade"] = flat_paint("composite_blades", (.026, .028, .027), rough=.59, grime=.12, role="paint")
+    fitted_airframe(v, "ah_64_apache", m)
+    if not v.wreck:
+        cheek_panels(hull)
+        for name, x, z in (("gunner", 5.10, 1.38), ("pilot", 3.80, 1.80)):
+            v.crew.append((name, hull, (x, 0, z),
+                           ((x+.30, .17, z+.25), (x+.30, -.14, z+.24)),
+                           ((x+.53, .17, z-.35), (x+.53, -.17, z-.35))))
+    A.rotor("main", (2.60, .025, 3.46), 7.32, 4, .53, m, hull, hub=.40, mast=.38, droop=.025, phase=.3)
+    A.rotor("tail", (-6.53, .33, 2.92), 1.4, 4, .25, m, hull, hub=.14, mast=.12, droop=0,
+            rot=(-math.pi/2, 0, 0), thick=.12, phase=.35)
+    A.chin_gun(v, rig(v.frame, v.root), m, (-60, 11), .06)
     A.markings(v, [
-        ("text", dict(text="U.S. ARMY", height=0.24, centre=(-3.2, 0.6, 1.88), normal=(0, 1, 0), up=(0, 0, 1),
+        ("text", dict(text="U.S. ARMY", height=.19, centre=(-3.50, .8, 1.52), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",), colour="black")),
-        ("text", dict(text="18-03053", height=0.12, centre=(-6.3, 0.4, 2.75), normal=(0, 1, 0), up=(0, 0, 1),
-                      onto=("tail_fin_0",), colour="black")),
-        ("text", dict(text="53", height=0.32, centre=(0.6, 1.5, 2.4), normal=(0, 1, 0), up=(0, 0, 1),
-                      onto=("nacelle_",), colour="lowvis_light")),
+        ("text", dict(text="53", height=.23, centre=(1.55, 1.65, 2.13), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("fuselage",), colour="lowvis_light")),
     ])
-    # The airframe as drawn above runs 0.3 m aft of the frame's middle; the
-    # frame (and the mounts' pivots in it) is centred on the hull box.
-    hull.location.x += AFT_M
 
 
 def wreck(variant, v):
-    # The chin gun stays bolted under the wreck's nose; every main blade
-    # snapped off and lies thrown clear.
-    A.rotorcraft_crash(v, tail_x=-2.6, tail_yaw=-0.4, tail_drop=0.1, seed=64)
+    A.rotorcraft_crash(v, tail_x=-2.6, tail_yaw=-.4, tail_drop=.1, seed=64)
 
 
-run("apache", "us_army_aviation", build, wreck, references="assets/references/ah_64_apache/references.json")
+run("apache", "us_army_aviation", build, wreck, crew_army="us_army_ocp",
+    references="assets/references/ah_64_apache/references.json",
+    authoring="Adapted from Muhamad Mirza Arrafi’s CC BY 4.0 AH-64D for the AH-64E roster.")
