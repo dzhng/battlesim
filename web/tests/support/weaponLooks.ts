@@ -1,7 +1,12 @@
 // Small authored test looks: reports stay synthetic unless a test selects a recording.
 import { presentationSettings } from "@web/presentationSettings";
 import { shippedRules } from "@web/shippedRules";
+import shippedCatalog from "@fixtures/catalog.json";
 import type { NearFar } from "@packages/battle-audio/src/audioMix";
+
+/** A shipped weapon's look, resolved through what it extends. */
+export const appearanceOf = (kind: string): string =>
+  (shippedCatalog.weapons as Record<string, { appearance: string }>)[kind].appearance;
 
 type Choice = Pick<NearFar, "near" | "far" | "gain">;
 export function testWeaponLooks(
@@ -22,8 +27,7 @@ export function testWeaponLooks(
     atgm: "launch",
   };
   for (const [kind, baseline] of Object.entries(bases)) {
-    const source = shippedRules.weapons[kind as keyof typeof shippedRules.weapons].appearance;
-    const look = library[source];
+    const look = library[appearanceOf(kind)];
     look.sound.shot.near = baseline;
     look.sound.shot.far = baseline === "launch" ? baseline : `${baseline}_far`;
     look.sound.impacts = {};
@@ -34,7 +38,7 @@ export function testWeaponLooks(
   ])) {
     const row = shippedRules.weapons[kind as keyof typeof shippedRules.weapons];
     const name = `test_${kind}`;
-    const look = structuredClone(library[row?.appearance ?? "rifle"]);
+    const look = structuredClone(library[row ? appearanceOf(kind) : "rifle"]);
     if (reports[kind]) Object.assign(look.sound.shot, reports[kind]);
     for (const [surface, choices] of Object.entries(contacts))
       if (choices[kind])
