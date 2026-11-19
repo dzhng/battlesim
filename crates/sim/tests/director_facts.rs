@@ -19,14 +19,17 @@ fn battle(forces: Value, zones: Value, chapters: Value) -> Battle {
         doc["zones"][name] = zone.clone();
     }
     doc["director"] = json!({ "chapters": chapters });
-    // The smoke tank joins the roster for the facts about smoke.
+    // The smoke tank and the supply truck join the roster for the facts
+    // about smoke and supply.
     let rules = rules_with(|fixture| {
-        sim::fixtures::patch_catalog(
-            fixture,
-            "units",
-            "test_smoke_tank",
-            json!({"roster":{"factions":["us"],"category":"veh","family_name":"Test","variant":"Smoke"}}),
-        );
+        for (kind, variant) in [("test_smoke_tank", "Smoke"), ("test_supply", "Supply")] {
+            sim::fixtures::patch_catalog(
+                fixture,
+                "units",
+                kind,
+                json!({"roster":{"factions":["us"],"category":"sup","family_name":"Test","variant":variant}}),
+            );
+        }
     });
     let mut b = Battle::new(&resolve(doc, rules).unwrap(), 9);
     blue(&mut b, Order::Ready);
@@ -217,5 +220,73 @@ fn a_recovery_beat_answers_a_loss_and_is_not_waited_for() {
     assert!(
         wallet(&lost) >= before + 500.0,
         "the loss is answered with credits"
+    );
+}
+
+#[test]
+fn a_deployed_truck_services_a_worn_squad_and_fire_on_ground_is_ordered() {
+    // Forces number by name: the rifles 0, red's tank 1 (holding fire), the
+    // truck 2.
+    let mut b = battle(
+        json!({"rifles": {"side":"blue","owner":"blue-1","kind":"test_rifle","position":[100.0,212.0],
+                          "engagement":"return_fire_only","condition":{"casualties":3}},
+               "truck": {"side":"blue","owner":"blue-1","kind":"test_supply","position":[100.0,200.0],"stock":400},
+               "tank": {"side":"red","owner":"red-1","kind":"test_tank","position":[380.0,280.0],
+                        "yaw":3.0,"engagement":"return_fire_only"}}),
+        json!({"far": {"center":[200.0,250.0],"radius_m":20.0}}),
+        json!([{"id":"one","beats":[
+            {"id":"set_up","when":{"units":{"who":{"force":"truck"},"are":"deployed"}}},
+            {"id":"served","when":{"units":{"who":{"force":"rifles"},"are":"serviced"}}},
+            {"id":"shelling","when":{"units":{"who":{"force":"rifles"},"are":{"ordered":{"attack_ground":"far"}}}}}
+        ]}]),
+    );
+    blue(
+        &mut b,
+        Order::SetDeployment {
+            units: vec![UnitId(2)],
+            deployed: true,
+        },
+    );
+    until(&mut b, "set_up", 60);
+    until(&mut b, "served", 60);
+    blue(
+        &mut b,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: contract::command::TargetRef::Ground {
+                point: [200.0, 250.0, 0.0],
+            },
+        },
+    );
+    until(&mut b, "shelling", 2);
+}
+
+#[test]
+fn a_top_up_grant_adds_only_the_shortfall() {
+    let grant = |to_cover: bool| {
+        let credits = if to_cover {
+            json!({"to_cover":[{"variant":"test_rifle"}]})
+        } else {
+            json!({"covering":[{"variant":"test_rifle"}]})
+        };
+        let mut b = battle(
+            json!({}),
+            json!({}),
+            json!([{"id":"one","beats":[{"id":"grant","when":"chapter_opens",
+                "then":[{"grant":{"player":"blue-1","credits":credits}}]}]}]),
+        );
+        let wallet =
+            |b: &Battle| b.observe(Side::Blue).skirmish.as_ref().unwrap().players[0].credits;
+        let before = wallet(&b);
+        until(&mut b, "grant", 1);
+        (before, wallet(&b))
+    };
+    // The opening wallet already covers a rifle squad and its ride.
+    let (before, covered) = grant(false);
+    assert!(covered > before, "covering adds the price");
+    let (before, topped) = grant(true);
+    assert_eq!(
+        topped, before,
+        "a wallet that already covers it gets nothing"
     );
 }

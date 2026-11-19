@@ -400,9 +400,13 @@
         {
           "id": "spring_it",
           "when": {
-            "fired": {
-              "beat": "tank_advances",
-              "after_s": 5
+            "units": {
+              "who": {
+                "force": "tank"
+              },
+              "are": {
+                "in": "west_lane"
+              }
             }
           },
           "then": [
@@ -442,6 +446,159 @@
             }
           ],
           "recovery": true
+        }
+      ]
+    },
+    {
+      "id": "keep_running",
+      "beats": [
+        {
+          "id": "buy_supply",
+          "when": {
+            "fired": {
+              "beat": "supplies_offered"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_m977_hemtt_general_resupply"
+                },
+                "at": "supply_point"
+              }
+            }
+          ]
+        },
+        {
+          "id": "buy_mortar",
+          "when": {
+            "fired": {
+              "beat": "buy_supply"
+            }
+          },
+          "then": [
+            {
+              "buy": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                },
+                "at": "supply_point"
+              }
+            }
+          ]
+        },
+        {
+          "id": "set_up_supply",
+          "when": {
+            "units": {
+              "who": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "us_m977_hemtt_general_resupply"
+                }
+              },
+              "are": {
+                "in": "supply_point"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m977_hemtt_general_resupply"
+                  }
+                },
+                "order": "deploy"
+              }
+            }
+          ]
+        },
+        {
+          "id": "bradley_in",
+          "when": {
+            "fired": {
+              "beat": "supply_deployed"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "order": {
+                  "move_to": "supply_point"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "set_up_mortar",
+          "when": {
+            "units": {
+              "who": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                }
+              },
+              "are": {
+                "in": "supply_point"
+              }
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                  }
+                },
+                "order": "deploy"
+              }
+            }
+          ]
+        },
+        {
+          "id": "shell_treeline",
+          "when": {
+            "units": {
+              "who": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                }
+              },
+              "are": "deployed"
+            }
+          },
+          "then": [
+            {
+              "order": {
+                "units": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                  }
+                },
+                "order": {
+                  "attack_ground": "far_treeline"
+                }
+              }
+            }
+          ]
         }
       ]
     }

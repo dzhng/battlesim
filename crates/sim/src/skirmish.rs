@@ -299,6 +299,11 @@ impl Skirmish {
     pub fn grant(&mut self, player: usize, credits: u64) {
         self.players[player].wallet += credits * CREDIT_SCALE;
     }
+    /// Top `player`'s wallet up to `credits`: only the shortfall.
+    pub fn top_up(&mut self, player: usize, credits: u64) {
+        let wallet = &mut self.players[player].wallet;
+        *wallet = (*wallet).max(credits * CREDIT_SCALE);
+    }
     /// Add `purchases` to `player`'s narrowed shop; a shop nobody narrowed
     /// already sells them.
     pub fn offer(&mut self, player: usize, purchases: &[OfferedPurchase]) {

@@ -106,6 +106,15 @@ impl Battle {
                     .is_some_and(|(left, c)| left.charges < c.capacity)
             }
             UnitFact::Reversing => unit.reversing,
+            UnitFact::Deployed => unit.deployment.as_ref().is_some_and(|d| d.fully_deployed()),
+            UnitFact::Serviced => unit.service == contract::observation::ServiceStatus::Serving,
+            UnitFact::Ordered(OrderFact::AttackGround(zone)) => match unit.orders.front() {
+                Some(UnitOrder::Attack {
+                    target: Target::Ground(at),
+                    ..
+                }) => inside(&run.setup.zones[zone], at.xy()),
+                _ => false,
+            },
             UnitFact::Ordered(OrderFact::Attack(target)) => match unit.orders.front() {
                 Some(UnitOrder::Attack {
                     target: Target::Unit(id),
@@ -222,6 +231,10 @@ impl Battle {
                         },
                         DirectedOrder::Withdraw => Order::Refund { units },
                         DirectedOrder::PopSmoke => Order::PopSmoke { units },
+                        DirectedOrder::Deploy => Order::SetDeployment {
+                            units,
+                            deployed: true,
+                        },
                         DirectedOrder::ReverseTo(zone) => Order::Move {
                             units,
                             gesture: 0,
@@ -291,16 +304,22 @@ impl Battle {
                 }
             }
             Action::Grant { player, credits } => {
-                let credits = match credits {
-                    CreditGrant::Exactly(credits) => credits,
-                    CreditGrant::Covering(purchases) => {
-                        credits_covering(&self.rules.catalog, &purchases)
-                            .expect("admitted purchases")
-                    }
+                let covering = |purchases: &[PurchaseSpec]| {
+                    credits_covering(&self.rules.catalog, purchases).expect("admitted purchases")
                 };
-                if let Some(skirmish) = &mut self.skirmish {
-                    if let Some(index) = skirmish.player_index(&player) {
-                        skirmish.grant(index, credits);
+                let Some(skirmish) = &mut self.skirmish else {
+                    return;
+                };
+                let Some(index) = skirmish.player_index(&player) else {
+                    return;
+                };
+                match credits {
+                    CreditGrant::Exactly(credits) => skirmish.grant(index, credits),
+                    CreditGrant::Covering(purchases) => {
+                        skirmish.grant(index, covering(&purchases));
+                    }
+                    CreditGrant::ToCover(purchases) => {
+                        skirmish.top_up(index, covering(&purchases));
                     }
                 }
             }

@@ -470,13 +470,13 @@
           "highlight": [
             "shop"
           ],
-          "card": "Open Reinforcements and buy the Javelin team. Place it at the edge of the copse west of the crossroads, and set it to hold fire with {key:toggle_fire_policy}."
+          "card": "Open Reinforcements and buy the Javelin team. Place it just outside the copse west of the crossroads, facing north, and set it to hold fire with {key:toggle_fire_policy}."
         },
         {
           "id": "at_team",
           "line": "c4.at_team",
           "until": "continue",
-          "card": "Holding fire, the team stays hidden. Let the tank drive past the copse."
+          "card": "Holding fire, the team stays hidden. Let the tank come round past the copse to the north."
         },
         {
           "id": "ambush",
@@ -493,6 +493,76 @@
             "beat": "tank_destroyed"
           },
           "card": "Infantry beats armour from cover, and from the side."
+        }
+      ]
+    },
+    {
+      "id": "keep_running",
+      "title": "Keep it running",
+      "steps": [
+        {
+          "id": "spend",
+          "line": "c5.credits",
+          "until": "continue",
+          "highlight": [
+            "credits"
+          ],
+          "card": "Your credits grow every minute you hold ground. There's enough now to spend."
+        },
+        {
+          "id": "supply",
+          "line": "c5.supply",
+          "until": {
+            "beat": "supply_bought"
+          },
+          "marks": [
+            "supply_point"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the supply truck. Place it behind the farm."
+        },
+        {
+          "id": "deploy",
+          "line": "c5.deploy",
+          "until": {
+            "beat": "supply_deployed"
+          },
+          "highlight": [
+            "command:toggle_deployment"
+          ],
+          "card": "Select the truck and press {key:toggle_deployment} to set it up. It can't serve anyone on the move."
+        },
+        {
+          "id": "resupply",
+          "line": "c5.resupply",
+          "until": {
+            "beat": "unit_serviced"
+          },
+          "card": "Bring a damaged or worn unit next to the truck and let it stand. Ammunition, repairs and replacement soldiers arrive while it stays."
+        },
+        {
+          "id": "mortar",
+          "line": "c5.mortar",
+          "until": {
+            "beat": "mortar_firing"
+          },
+          "marks": [
+            "far_treeline"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Buy the mortar and set it up with {key:toggle_deployment}. Then press {key:attack_ground} and click the far treeline."
+        },
+        {
+          "id": "done",
+          "line": "c5.mortar_done",
+          "until": {
+            "beat": "treeline_gone"
+          },
+          "card": "Indirect fire reaches what nobody can see, as long as you know where to aim."
         }
       ]
     }
