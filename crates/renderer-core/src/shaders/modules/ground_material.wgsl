@@ -331,10 +331,12 @@ fn groundTint(albedo: vec3f, dry: f32) -> vec3f {
 }
 
 // @block ground_material_groundVerge
+/** The grass strip along a plot's edge; none round an unedged plot (a
+ *  hill's meadow: its record's detail.w is 0). */
 fn groundVerge(site: vec4f, footprint: f32) -> f32 {
   let terrain = (&terrainParams);
   let vergeHalf = (*terrain).verge.w;
-  return (1f - smoothstep(vergeHalf, (vergeHalf + max((*terrain).feathers.x, footprint)), site.y));
+  return (plots[i32(site.x)].detail.w * (1f - smoothstep(vergeHalf, (vergeHalf + max((*terrain).feathers.x, footprint)), site.y)));
 }
 
 // @block ground_material_groundWheeling

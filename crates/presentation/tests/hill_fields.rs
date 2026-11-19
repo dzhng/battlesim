@@ -1,5 +1,6 @@
-//! No crop is drilled on a hill: every plot on rising ground is the biome's
-//! surround meadow, where the same ground left flat is cut into crops.
+//! No crop is drilled on a hill and no field edge runs over one: every plot
+//! on rising ground is the biome's surround meadow with no verge along its
+//! edges, where the same ground left flat is cut into edged crops.
 use contract::map::MapDefinition;
 use presentation::static_world::ground::biome::Biome;
 use presentation::static_world::ground::{self, Ground, Tuning};
@@ -37,8 +38,8 @@ fn ground(relief: Value, seed: u32) -> (Ground, Biome) {
     (Ground::new(source, biome.clone(), tuning).unwrap(), biome)
 }
 
-/// The kinds of the plots whose middle lies within `reach` of the hill's.
-fn kinds_on_the_hill(g: &Ground, biome: &Biome, reach: f64) -> Vec<String> {
+/// The plots whose middle lies within `reach` of the hill's.
+fn on_the_hill(g: &Ground, reach: f64) -> Vec<&presentation::static_world::ground::plots::Plot> {
     g.plots
         .plots
         .iter()
@@ -52,26 +53,29 @@ fn kinds_on_the_hill(g: &Ground, biome: &Biome, reach: f64) -> Vec<String> {
             });
             (c[0] - HILL[0]).hypot(c[1] - HILL[1]) < reach
         })
-        .map(|p| biome.plots[p.kind].name.clone())
         .collect()
 }
 
 #[test]
-fn no_crop_is_drilled_on_a_hill() {
+fn no_crop_is_drilled_and_no_field_edged_on_a_hill() {
     let hill = json!([{ "kind": "ridge", "center": HILL, "peak_m": 6.0, "radius_m": 110.0 }]);
     let mut cropped = false;
     for seed in 0..8 {
         let (flat, biome) = ground(json!([]), seed);
         let surround = &biome.field_rules.surround_kind;
-        cropped |= kinds_on_the_hill(&flat, &biome, 90.0)
-            .iter()
-            .any(|k| k != surround);
+        let level = on_the_hill(&flat, 90.0);
+        cropped |= level.iter().any(|p| &biome.plots[p.kind].name != surround);
+        assert!(
+            level.iter().all(|p| p.edged),
+            "seed {seed}: flat plots are edged"
+        );
         let (hilly, biome) = ground(hill.clone(), seed);
-        let on = kinds_on_the_hill(&hilly, &biome, 90.0);
+        let on = on_the_hill(&hilly, 90.0);
         assert!(!on.is_empty(), "seed {seed}: plots lie on the hill");
         assert!(
-            on.iter().all(|k| k == surround),
-            "seed {seed}: every plot on the hill is {surround}, not {on:?}"
+            on.iter()
+                .all(|p| &biome.plots[p.kind].name == surround && !p.edged),
+            "seed {seed}: every plot on the hill is unedged {surround}"
         );
     }
     assert!(cropped, "the same ground left flat is cut into crops");

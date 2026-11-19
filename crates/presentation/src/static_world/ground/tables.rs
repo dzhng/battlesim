@@ -105,7 +105,12 @@ impl Ground {
             records.push(PlotRecord {
                 colour: f4(rgb(linear(p.colour), k.roughness)),
                 rows: f4([p.across[0], p.across[1], k.furrow_m, k.furrow_contrast]),
-                detail: f4([k.mottle, p.kind as f64, on(k.row_break), 0.0]),
+                detail: f4([
+                    k.mottle,
+                    p.kind as f64,
+                    on(k.row_break),
+                    f64::from(u8::from(p.edged)),
+                ]),
                 grain: f4([1.0 / k.grain_m, on(k.grain), 1.0 / k.grain_stretch, 0.0]),
                 dry: f4([1.0 / k.patch_m[0], 1.0 / k.patch_m[1], 0.0, 0.0]),
                 tram: f4([on(k.tram.rows), k.tram.width_m / 2.0, k.tram.contrast, 0.0]),
