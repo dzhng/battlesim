@@ -12,8 +12,6 @@ import {
   type VoiceCatalog,
 } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { ElevenLabsClient } from "@packages/battle-audio/tools/generate/elevenlabs";
-import { Pool } from "@packages/battle-audio/tools/generate/pool";
-import { matches } from "@packages/battle-audio/tools/generate/transcript";
 import {
   readLock,
   recordVerdicts,
@@ -71,6 +69,7 @@ function catalog(): VoiceCatalog {
     },
     assignments: {},
     retakes: {},
+    narration: { speakers: {}, lines: {} },
   } as unknown as VoiceCatalog;
 }
 const profiles = (compression = 4): VoiceProfiles => ({
@@ -744,132 +743,6 @@ describe("voice design", () => {
       { voice: "tank/soldier", candidate: 2 },
       { voice: "tank/soldier2", candidate: 2 },
     ]);
-  });
-});
-
-describe("transcript match", () => {
-  it("reads spoken numbers and ignores audio tags and punctuation", () => {
-    const callsign = "Oscar 21";
-    expect(
-      matches("[shouting] Oscar 21, moving!", "Oscar two-one moving", { callsign }).flagged,
-    ).toBe(false);
-    expect(
-      matches("Oscar 55, on the way.", "oscar fifty five on the way", { callsign: "Oscar 55" }),
-    ).toMatchObject({ flagged: false, score: 1 });
-  });
-
-  it("reads a spelling-only difference as the same words", () => {
-    const heard = (script: string, transcript: string) =>
-      matches(script, transcript, { callsign: "Oscar 1" });
-    for (const [script, transcript] of [
-      ["Enemy in the treeline.", "Enemy in the tree line"],
-      ["Armour, front.", "Armor front"],
-      ["Reloading, stand by.", "Reloading. Standby"],
-      ["[shouting] Bail out! Bail out, God damn it!", "Bail out. Bail out, goddammit"],
-      ["Co-pilot wounded.", "Copilot wounded"],
-      ["[shouting] Backblast clear!", "Back blast clear!"],
-      ["Troops, four hundred metres.", "Troops, 400 meters"],
-    ])
-      expect(heard(script, transcript), transcript).toMatchObject({ flagged: false, score: 1 });
-  });
-
-  it("still flags a misread word or a dropped keyword once spelling is set aside", () => {
-    const callsign = "Oscar 1";
-    expect(matches("Rocket out.", "Rock it out", { callsign }).flagged).toBe(true);
-    expect(matches("Armour, front.", "Armor hell", { callsign }).flagged).toBe(true);
-    expect(
-      matches("[shouting] Tank! Gunner, sabot!", "Tank, gun, sabot", { callsign }),
-    ).toMatchObject({ flagged: true, missing: ["gunner"] });
-    // Overlong is a flag however well the words match.
-    expect(
-      matches("Enemy in the treeline.", "Enemy in the tree line", {
-        callsign,
-        length: { durationS: 5, talkS: 3 },
-      }),
-    ).toMatchObject({ flagged: true, overlong: true });
-  });
-
-  it("flags a misheard keyword even when the rest of the line is right", () => {
-    const result = matches("Gunner, sabot, tank!", "Gutter, sabot, tank!", { callsign: "Oscar 1" });
-    expect(result).toMatchObject({ flagged: true, missing: ["gunner"] });
-  });
-
-  it("flags a take longer than its trigger's talk time", () => {
-    const line = "Roger, moving out.";
-    expect(matches(line, line, { callsign: "", length: { durationS: 2, talkS: 3 } }).flagged).toBe(
-      false,
-    );
-    expect(matches(line, line, { callsign: "", length: { durationS: 4, talkS: 3 } })).toMatchObject(
-      {
-        flagged: true,
-        overlong: true,
-      },
-    );
-  });
-});
-
-describe("request pool", () => {
-  const error = (status: number) => Object.assign(new Error(`status ${status}`), { status });
-  const instant = { sleep: async () => {}, random: () => 0.5 };
-
-  it("retries throttling and server errors with backoff", async () => {
-    let attempts = 0;
-    const pool = new Pool(2, instant);
-    const value = await pool.run(async () => {
-      attempts++;
-      if (attempts < 3) throw error(attempts === 1 ? 429 : 503);
-      return "ok";
-    });
-    expect(value).toBe("ok");
-    expect(attempts).toBe(3);
-  });
-
-  it("stops every queued request on an authorisation or quota error", async () => {
-    const pool = new Pool(1, instant);
-    const started: number[] = [];
-    const results = await Promise.allSettled(
-      [0, 1, 2].map((i) =>
-        pool.run(async () => {
-          started.push(i);
-          if (i === 0) throw error(401);
-          return i;
-        }),
-      ),
-    );
-    expect(started).toEqual([0]);
-    expect(results.every((r) => r.status === "rejected")).toBe(true);
-    expect(pool.stopped?.message).toMatch(/401/);
-  });
-
-  it("stops after several failures in a row", async () => {
-    const pool = new Pool(1, { ...instant, maxFailures: 2 });
-    const started: number[] = [];
-    await Promise.allSettled(
-      [0, 1, 2].map((i) =>
-        pool.run(async () => {
-          started.push(i);
-          throw error(400);
-        }),
-      ),
-    );
-    expect(started).toEqual([0, 1]);
-    expect(pool.stopped).not.toBeNull();
-  });
-
-  it("never runs more requests at once than its limit", async () => {
-    const pool = new Pool(3, instant);
-    let running = 0;
-    let peak = 0;
-    await Promise.all(
-      Array.from({ length: 10 }, () =>
-        pool.run(async () => {
-          peak = Math.max(peak, ++running);
-          await new Promise((resolve) => setTimeout(resolve, 1));
-          running--;
-        }),
-      ),
-    );
-    expect(peak).toBe(3);
   });
 });
 

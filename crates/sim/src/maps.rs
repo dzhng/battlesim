@@ -14,6 +14,7 @@ use contract::maps::{
     resolve, MapAdmission, MapCategory, MapId, MapSources, ResolveCode, ResolveError, ResolvedMap,
 };
 use contract::scenario::{EncounterDefinition, Rules, ScenarioDefinition};
+use contract::scenario_document::ScenarioDocument;
 
 /// A catalogue of saved maps and the physical template libraries they pin.
 pub struct Catalogue {
@@ -66,6 +67,97 @@ impl Catalogue {
         resolve(&map, &sources, &library, MapAdmission::CATALOGUE).map_err(located)
     }
 
+    /// The names of the map's authored scenarios, in order: each
+    /// `scenarios/<name>.json`, beside which its coach and solution files
+    /// (`<name>.coach.json`, `<name>.solution.json`) are not scenarios.
+    pub fn scenarios(&self, id: &str) -> Result<Vec<String>, ResolveError> {
+        Ok(names(&self.folder(id)?.join("scenarios"), |path| {
+            path.extension().is_some_and(|e| e == "json")
+                && path
+                    .file_stem()
+                    .is_some_and(|stem| !stem.to_string_lossy().contains('.'))
+        }))
+    }
+
+    /// The map `id`'s authored scenario `name`, as written.
+    pub fn scenario_document(
+        &self,
+        id: &str,
+        name: &str,
+    ) -> Result<ScenarioDocument, ResolveError> {
+        let location = format!("{id}/scenarios/{name}.json");
+        address(name, &location)?;
+        let text = document(
+            &self
+                .folder(id)?
+                .join("scenarios")
+                .join(format!("{name}.json")),
+            &location,
+        )?;
+        serde_json::from_str(&text).map_err(|e| ResolveError {
+            code: ResolveCode::InvalidScenario,
+            location,
+            message: e.to_string(),
+        })
+    }
+
+    /// The map `id`'s scenario `name`'s solution, when it has one: the beats
+    /// the walkthrough plays its human player by.
+    pub fn scenario_solution(
+        &self,
+        id: &str,
+        name: &str,
+    ) -> Result<Option<contract::director::Solution>, ResolveError> {
+        let location = format!("{id}/scenarios/{name}.solution.json");
+        address(name, &location)?;
+        let path = self
+            .folder(id)?
+            .join("scenarios")
+            .join(format!("{name}.solution.json"));
+        if !path.exists() {
+            return Ok(None);
+        }
+        let text = document(&path, &location)?;
+        serde_json::from_str(&text)
+            .map(Some)
+            .map_err(|e| ResolveError {
+                code: ResolveCode::InvalidScenario,
+                location,
+                message: e.to_string(),
+            })
+    }
+
+    /// The battle the map `id`'s authored scenario `name` makes under
+    /// `rules` and the shipped match rules ([`ScenarioDocument::on`]), or the
+    /// refusal naming the scenario. Only a `scenario` map carries one.
+    pub fn scenario(
+        &self,
+        id: &str,
+        name: &str,
+        rules: Rules,
+    ) -> Result<AuthoredScenario, ResolveError> {
+        let location = format!("{id}/scenarios/{name}.json");
+        let refused = |message: String| ResolveError {
+            code: ResolveCode::InvalidScenario,
+            location: location.clone(),
+            message,
+        };
+        if self.category(id)? != MapCategory::Scenario {
+            return Err(refused(format!("{id} is not a scenario map")));
+        }
+        let document = self.scenario_document(id, name)?;
+        let battle_seed = document.battle_seed.value();
+        let map = self.load(id)?.definition;
+        let setup = document
+            .on(map, rules, &crate::skirmish::starter_rules())
+            .and_then(|setup| {
+                crate::admit(&setup.rules).map_err(|e| e.to_string())?;
+                Ok(setup)
+            })
+            .map_err(refused)?;
+        Ok(AuthoredScenario { setup, battle_seed })
+    }
+
     /// The names of the map's saved encounters, in order.
     pub fn encounters(&self, id: &str) -> Result<Vec<String>, ResolveError> {
         Ok(names(&self.folder(id)?.join("encounters"), |path| {
@@ -95,7 +187,7 @@ impl Catalogue {
     /// The map `id`'s saved encounter `name` laid on it under `rules`: the
     /// scenario it plays, the encounter's overrides merged in
     /// ([`EncounterDefinition::on`]), or the refusal naming the encounter.
-    pub fn scenario(
+    pub fn encounter_scenario(
         &self,
         id: &str,
         name: &str,
@@ -141,6 +233,13 @@ impl Catalogue {
     }
 }
 
+/// An authored scenario ready to play: its battle and the seed it is
+/// played with.
+pub struct AuthoredScenario {
+    pub setup: ScenarioDefinition,
+    pub battle_seed: u64,
+}
+
 /// The shipped catalogue's map `id`, resolved.
 pub fn load(id: &str) -> Result<ResolvedMap, ResolveError> {
     Catalogue::shipped().load(id)
@@ -159,7 +258,17 @@ pub fn encounter(id: &str, name: &str) -> Result<EncounterDefinition, ResolveErr
 
 /// The shipped catalogue's encounter `name` of map `id`, laid on it under
 /// `rules`.
-pub fn scenario(id: &str, name: &str, rules: Rules) -> Result<ScenarioDefinition, ResolveError> {
+pub fn encounter_scenario(
+    id: &str,
+    name: &str,
+    rules: Rules,
+) -> Result<ScenarioDefinition, ResolveError> {
+    Catalogue::shipped().encounter_scenario(id, name, rules)
+}
+
+/// The shipped catalogue's authored scenario `name` of map `id`, under
+/// `rules` and the shipped match rules.
+pub fn scenario(id: &str, name: &str, rules: Rules) -> Result<AuthoredScenario, ResolveError> {
     Catalogue::shipped().scenario(id, name, rules)
 }
 

@@ -29,20 +29,31 @@ continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
 The main menu starts fresh generated skirmishes, browses the roster and
-teaches the game: [the tutorial](src/Tutorial.tsx) reads its economy and command keys from
-the skirmish rules and command bindings, and its prose must follow the simulation's
-rules when they change. Its pictures are not hand-shot: [the tutorial shots
-tool](../../web/tutorial-shots.mjs) plays one seeded skirmish with the faction roster
-through the ordinary picker, cursor and orders, finds each moment by what the
-observation shows, and writes stills and gesture loops to the served
-`assets/runtime/tutorial-media/`. They show the game as it was drawn, so a change to
-the look, the HUD, the generator or the rules is followed by rerunning it and
-reviewing the pictures; the tool's header says how. A moment the battle no
+teaches the game. Its Tutorial tile opens an authored scenario's battle, which
+[the coach](../../web/src/battle/coach/) teaches as it is played: a step's card
+and spoken line, a camera tour it flies (`useCoachTour`, a pilot that hands the
+camera back), zones it paints on the ground through the battle overlay, and HUD
+controls it rings, found by the anchor each control declares
+([`hudAnchor`](../../web/src/battle/present/hudAnchors.ts)), never by its
+styling. Its pause menu restarts the open chapter: a standby battle,
+resumed from the playing battle's replay at the chapter's start in a worker of
+its own (`Battle::resume`), takes over as the session's client. Adding `&chapter=<id>`, optionally `&beat=<id>`, to a
+scenario's address starts it there, played that far by the scenario's solution
+and handed back to the player, which is how a chapter is iterated. [The Guide](src/Guide.tsx) is the game's reference: a live
+battle's Esc menu opens it as a modal over the paused battle that closes back to
+that menu, and no menu page shows it. It reads
+its economy and command keys from the skirmish rules and command bindings, and
+its prose must follow the simulation's rules when they change. Its pictures are
+not hand-shot: [the guide shots tool](../../web/guide-shots.mjs) plays one
+seeded skirmish with the faction roster through the ordinary picker, cursor and
+orders, finds each moment by what the observation shows, and writes stills and
+gesture loops to the served `assets/runtime/guide-media/`. They show the game as
+it was drawn, so a change to the look, the HUD, the generator or the rules is
+followed by rerunning it and reviewing the pictures; the tool's header says how. A moment the battle no
 longer reaches fails by name rather than shooting something else.
-The same tutorial is available from a live battle's pause menu; it opens as a
-modal over the paused battle and closes back to that menu.
 Every menu page is an address, and [the menu's pages](src/menu/pages.ts) own
-their paths, titles and tiles. Every menu address is a visit inside [one menu
+their paths and titles, and home's tiles: each opens a page or an address
+outside the menu, such as a battle. Every menu address is a visit inside [one menu
 shell](src/menu/MenuShell.tsx): one plate over the backdrop, its tiles
 title-only over generated military art. The shell owns the backdrop, graphics detection and
 the loading covers, so moving between pages replaces only the plate's contents,
@@ -71,6 +82,11 @@ map type, size, map seed and battle seed default when left out, the size to the
 smallest map that fits the players. A link may place several humans on either side. An old-shape link (its `faction` or `enemy`, or no players), a wrong
 value, or a parameter the battle does not read is refused by name, never
 ignored, and a refused seed never silently becomes another battle.
+An authored scenario's address names only its map and scenario
+(`/battle?scenario=<map>/<name>`): its document fixes the players, the seed and
+the forces, and preparation resolves it under the build's own rules. Its shop
+shows only what the scenario offers, under only the tabs those cards stand
+under.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own `capture` map

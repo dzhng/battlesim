@@ -15,6 +15,7 @@ pub mod crash;
 pub mod damage;
 pub mod deployment;
 pub mod digest;
+pub mod director;
 pub mod encounter;
 pub mod endurance;
 pub mod entries;

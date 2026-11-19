@@ -31,6 +31,12 @@ import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
 import { useReplayCamera } from "./useReplayCamera";
+import { useCoachTour } from "./useCoachTour";
+import type { CoachDocument } from "@web/battle/coach/coach";
+import { CoachPanel } from "@web/battle/coach/CoachPanel";
+import { CoachHighlights } from "@web/battle/coach/CoachHighlights";
+import { useCoach } from "@web/battle/coach/useCoach";
+import { hudAnchor } from "@web/battle/present/hudAnchors";
 import type { ReplayCameraTrack } from "./replayCamera";
 import { ReplayCameraButton } from "./replayFile";
 import type { ScriptedSim } from "./useSimSession";
@@ -71,6 +77,7 @@ export function BattleView({
   cameraConfig,
   status,
   menu,
+  coach,
   diagnostics,
   cover,
   onLoadStage,
@@ -112,6 +119,9 @@ export function BattleView({
   status: (session: BattleSession) => ReactNode;
   /** The route's own pause menu items. */
   menu?: (session: BattleSession) => ReactNode;
+  /** An authored scenario's coach, over the battle while it is played: its
+   *  card, its camera tours, its marks on the ground and its HUD rings. */
+  coach?: CoachDocument;
   /** Route-specific lab probes, merged into the shared ones. */
   diagnostics?: (session: BattleSession) => Record<string, unknown>;
   /** A loading screen shown over the view until the battle is playable. */
@@ -201,7 +211,21 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
-  const overlay = useBattleOverlay(session, { scenario, camera });
+  const coached = useCoach(
+    input ? (coach ?? null) : null,
+    observation?.scenario ?? null,
+    sim.client,
+  );
+  // Each chapter's start waits in a standby battle, so restarting it is a swap.
+  const chapter = coach && input ? observation?.scenario?.chapter : undefined;
+  const { standAt, latest } = sim;
+  useEffect(() => {
+    const opened = latest.current?.tick;
+    if (chapter && opened !== undefined) standAt(opened);
+  }, [chapter, standAt, latest]);
+  const step = coached.view?.step ?? null;
+  const tour = useCoachTour(step);
+  const overlay = useBattleOverlay(session, { scenario, camera, marks: step?.marks });
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.
@@ -267,7 +291,7 @@ export function BattleView({
             session.viewport.onReady(gpu);
             setViewportReady(true);
           }}
-          pilot={scripted?.pilot ?? cameraReplay.pilot}
+          pilot={scripted?.pilot ?? cameraReplay.pilot ?? (coach && input ? tour : undefined)}
           onFrame={(project, view, pointer, scale, time) => {
             cameraReplay.record(time, view);
             session.hear();
@@ -310,6 +334,7 @@ export function BattleView({
             <button
               type="button"
               className="hud-menu-choice hud-purchase-ready"
+              {...hudAnchor("start")}
               disabled={viewingPlayer?.ready ?? false}
               onClick={session.purchase.ready}
             >
@@ -318,6 +343,17 @@ export function BattleView({
           </div>
         )}
         <MenuButton onOpen={() => pause.show(true)} />
+        {input && coach && (
+          <>
+            <CoachPanel
+              doc={coach}
+              view={coached.view}
+              onContinue={coached.dismiss}
+              speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
+            />
+            <CoachHighlights anchors={step?.highlight ?? []} />
+          </>
+        )}
         {cameraReplay.pilot && (
           <ReplayCameraButton
             following={cameraReplay.following}
@@ -370,6 +406,14 @@ export function BattleView({
               : () => {
                   pause.show(false);
                   sim.restart();
+                }
+          }
+          onRestartChapter={
+            sim.standbyAt === null
+              ? undefined
+              : () => {
+                  pause.show(false);
+                  sim.restartChapter();
                 }
           }
           onSettingsApply={() => window.__lab?.rebuild?.()}

@@ -114907,6 +114907,1746 @@
         "raw_sha256": "8eb00294f59ea3053c25305058af915ccd5d3a4e66e0349f8bf2fe6b7d7256c0"
       }
     },
+    "narration/lantern/any.retry": {
+      "text": "Not quite. Let's run that again.",
+      "generation_key": "0eb6a0fe95d31b8eb0990c76f65297ea632393232925b6eeb1cb0ee4c630f5e5",
+      "raw": "assets/source/audio/voices/narration/lantern/any.retry.0eb6a0fe.mp3",
+      "raw_sha256": "b98ec3bfda94a4477b42f9da7a08227207120e5d426c54aeb81e7b01c2f6b7bf",
+      "processing_key": "b309549be1e0c2cdeba54162213c8f2f19b7a2401dc5d5758d6675f984eb3b83",
+      "served_sha256": "8f993e15f81d66dc746ca0aaf122c40ff7b2bcced647480bc2ef14d599176da5",
+      "duration_s": 2.56,
+      "transcript": "Not quite. Let's run that again",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Not quite. Let's run that again.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "b98ec3bfda94a4477b42f9da7a08227207120e5d426c54aeb81e7b01c2f6b7bf"
+      }
+    },
+    "narration/lantern/any.take_your_time": {
+      "text": "Take your time. Nothing moves until you're ready.",
+      "generation_key": "d45d3b28a105739e1f973f1635ac76a98d0ba76813e3524514970c9dddcb76d4",
+      "raw": "assets/source/audio/voices/narration/lantern/any.take_your_time.d45d3b28.mp3",
+      "raw_sha256": "a0fa94a6755296a7a976991c0526635f410c8efb3c809f5f64a9b19b41dbd59e",
+      "processing_key": "61ede49e2a58a1056f1a1cab8d1dea3ee84e6519228ce81853b6facf0ad04d43",
+      "served_sha256": "1a11ca3f216d26f46a392cffaf3f3076a6bd5694276d7f6c18416330e4a01a14",
+      "duration_s": 3.04,
+      "transcript": "Take your time. Nothing moves until you're ready",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Take your time. Nothing moves until you're ready.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "a0fa94a6755296a7a976991c0526635f410c8efb3c809f5f64a9b19b41dbd59e"
+      }
+    },
+    "narration/lantern/any.unit_lost": {
+      "text": "We lost one. It happens. Keep your head.",
+      "generation_key": "67c8a37a8e3e8111d2038d8e52ed7248fdca9993be6d08a0ebad59d40497548d",
+      "raw": "assets/source/audio/voices/narration/lantern/any.unit_lost.67c8a37a.mp3",
+      "raw_sha256": "95ae187b0e288aff4660e6e5c5e1ad8017ba79bdbf26cca23b9a3d7b77a10bd4",
+      "processing_key": "a8eeb1d2a97c769d5c467c23b3226868a5ac9f5fcf23b0ef5426474cb03c4e60",
+      "served_sha256": "38e0f3258f889cd367be4bf66765160a2461bc95e625c7c0b28773000ea41522",
+      "duration_s": 3.76,
+      "transcript": "We lost one. It happens. Keep your head",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "We lost one. It happens. Keep your head.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "95ae187b0e288aff4660e6e5c5e1ad8017ba79bdbf26cca23b9a3d7b77a10bd4"
+      }
+    },
+    "narration/lantern/c1.buy_carrier": {
+      "text": "Now a rifle squad, riding in its carrier. One purchase, two units.",
+      "generation_key": "d2da861d0c793933064eaeee60e6074088e6d456d312265fe51dcdb5ba7d817c",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.buy_carrier.d2da861d.mp3",
+      "raw_sha256": "10acb9ce6ee973e24daaa27d0f3ceba446add33a2ec27bb869785ca793cb3d23",
+      "processing_key": "7428c0abf4e4d0de5361f9973948c27ca129fab399e7ab86d1010e1d33e34f60",
+      "served_sha256": "c8036b26c85878a60a26963d9a8f837213b5d92737c6d6a9e92ccec584432bfe",
+      "duration_s": 5.2,
+      "transcript": "Now a rifle squad riding in its carrier. One purchase, two units",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Now a rifle squad, riding in its carrier. One purchase, two units.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "10acb9ce6ee973e24daaa27d0f3ceba446add33a2ec27bb869785ca793cb3d23"
+      }
+    },
+    "narration/lantern/c1.buy_recon": {
+      "text": "Open reinforcements and buy us some eyes. Scouts first.",
+      "generation_key": "e859d150074834f652046d9bde67e02561404c5b893a242a9715c338d28b51f1",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.buy_recon.e859d150.mp3",
+      "raw_sha256": "d1d1298c46321beb990c612a1c8d9bebe97cbe87c1aab111f438d5e4aee47bc5",
+      "processing_key": "c699d29a1a1c3d0724c67d386e885ba1d87054053a1afd694567244d48b19312",
+      "served_sha256": "aaecc11b4fc3b648b3b28061f4b6df437684110944cacba5da577fe5974d5512",
+      "duration_s": 3.44,
+      "transcript": "Open reinforcements and buy us some eyes. Scouts first",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Open reinforcements and buy us some eyes. Scouts first.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "d1d1298c46321beb990c612a1c8d9bebe97cbe87c1aab111f438d5e4aee47bc5"
+      }
+    },
+    "narration/lantern/c1.camera_pan": {
+      "text": "Slide the map around. Get a feel for how far it runs.",
+      "generation_key": "33b19dc072021c7249c112f488c6964bb9fa0bb0ac2eed8fb267d511d52cf427",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.camera_pan.33b19dc0.mp3",
+      "raw_sha256": "2a0b40b8f8202157efc32664221c9c423d3d5450e23b92bd2d04affe427b107d",
+      "processing_key": "e487a637483c8d61a1578aaa6f3c124980279cb0de1c11e598e4caf7bb167ae1",
+      "served_sha256": "1bc4b9de6387ae28415368e286f1433a2baa8943621adca565a1e62f1cd3ea58",
+      "duration_s": 3.2,
+      "transcript": "Slide the map around. Get a feel for how far it runs",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Slide the map around. Get a feel for how far it runs.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "2a0b40b8f8202157efc32664221c9c423d3d5450e23b92bd2d04affe427b107d"
+      }
+    },
+    "narration/lantern/c1.camera_turn": {
+      "text": "Now turn the view, and tilt it. Hills hide things. Look at them from more than one side.",
+      "generation_key": "17658abf0b99d16aa6e3110a570e84453ed5ab127daaf13ea785d6149c2b35f0",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.camera_turn.17658abf.mp3",
+      "raw_sha256": "7fa3eba3eebcddc276b4ab4c25b336da159fcc472d9cbcf088136006f6cfac4c",
+      "processing_key": "b1957bf5b615d63f16b475196d014c4e9cce53ffd98df3142458e041ce946c53",
+      "served_sha256": "4cff5630d68c75dfade53ff7319093e69537fd19784f0436764e2f84b5cfd321",
+      "duration_s": 7.44,
+      "transcript": "Now turn the view and tilt it. Hills hide things. Look at them from more than one side",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Now turn the view, and tilt it. Hills hide things. Look at them from more than one side.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "7fa3eba3eebcddc276b4ab4c25b336da159fcc472d9cbcf088136006f6cfac4c"
+      }
+    },
+    "narration/lantern/c1.camera_zoom": {
+      "text": "Pull right back and see the whole valley. Then come in close.",
+      "generation_key": "e3f2a55a48bb870f0630dc4f3b66dd1de5f96987cacfcfa0e153567e1cab2624",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.camera_zoom.e3f2a55a.mp3",
+      "raw_sha256": "55d101106391aeedca53268559aa135e5e899a27556b9123ae451c389c42ba4f",
+      "processing_key": "147c439c8ca1154876c3a8b8c40ee6445dd3b082560836c5d7d3c46494c983ed",
+      "served_sha256": "26c8cd3a5089f930d771fe89aa1d8d17640eab0f96a3e7c98962b09206069a68",
+      "duration_s": 4.48,
+      "transcript": "Pull right back and see the whole valley, then come in close",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Pull right back and see the whole valley. Then come in close.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "55d101106391aeedca53268559aa135e5e899a27556b9123ae451c389c42ba4f"
+      }
+    },
+    "narration/lantern/c1.credits": {
+      "text": "Command has given us a budget. That's what we have to spend, and it keeps growing while the battle runs.",
+      "generation_key": "2e70f3666ae54d214720f7d8333b7b0b89effc76c41af12d34633fdda9da9296",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.credits.2e70f366.mp3",
+      "raw_sha256": "40321a1f3ba5dd14b2ce51cdc385fa3353dceb2e3051dfa87a8f9ee85e3d026f",
+      "processing_key": "811d3fe994dae3ec26a332f31c56750b0d7fb2b379ca0ff418bf1d45e6acf0ed",
+      "served_sha256": "1b8928a9189a1351ad9e900716f135df867cc05743ce5f2624474ddc01ceb45b",
+      "duration_s": 6.08,
+      "transcript": "Command has given us a budget. That's what we have to spend, and it keeps growing while the battle runs",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Command has given us a budget. That's what we have to spend, and it keeps growing while the battle runs.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "40321a1f3ba5dd14b2ce51cdc385fa3353dceb2e3051dfa87a8f9ee85e3d026f"
+      }
+    },
+    "narration/lantern/c1.entry": {
+      "text": "This is our road in. Everything we buy arrives here. The enemy comes in from the far side.",
+      "generation_key": "87f69a59252196c52e3a13807bc54aa2fffd67750e9a28d692054a2f33d70b64",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.entry.87f69a59.mp3",
+      "raw_sha256": "567d9b7f5b05fec6781780b6637b3cf59f2e8565491d330870d07486c03dc11b",
+      "processing_key": "85e18556773df9344e39953bf26a773a574aad3c776ada669e00da404d880a18",
+      "served_sha256": "6c3a5d7907c3f9efbe429ec1944f0f1a51658ae0bac3c6124084467cc49dc587",
+      "duration_s": 5.84,
+      "transcript": "This is our road in. Everything we buy arrives here. The enemy comes in from the far side",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "This is our road in. Everything we buy arrives here. The enemy comes in from the far side.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "567d9b7f5b05fec6781780b6637b3cf59f2e8565491d330870d07486c03dc11b"
+      }
+    },
+    "narration/lantern/c1.objectives": {
+      "text": "Those numbered flags are what this fight is about. Hold them, and the score runs our way. First side to the top wins.",
+      "generation_key": "1e29d8f2c65de347b19772ec14ab96a68443ce3c0749eb169d0bc75225c1e980",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.objectives.1e29d8f2.mp3",
+      "raw_sha256": "5b9017b2f0d309b7b19b4f11e99a6d98acada4671f04d14cae9c36f82b4f82d1",
+      "processing_key": "5387565ea34f1254c0192feb1423956800ef56c0e0ef5fa4cb01bdfac35dab58",
+      "served_sha256": "784c730c3ab8feda8a7ec52dd25e04b6d2a846e4029cbe6c8c47f271b6ee0fcf",
+      "duration_s": 7.84,
+      "transcript": "Those numbered flags are what this fight is about. Hold them and the score runs our way. First side to the top wins",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Those numbered flags are what this fight is about. Hold them, and the score runs our way. First side to the top wins.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "5b9017b2f0d309b7b19b4f11e99a6d98acada4671f04d14cae9c36f82b4f82d1"
+      }
+    },
+    "narration/lantern/c1.open": {
+      "text": "Ferryman, this is Lantern. Dawn is breaking over the valley. Before anyone moves, take a good look at the ground.",
+      "generation_key": "a55503cd0c97f04cca28c99fd4c5f257ae74bdfcaa6863202e01bdc6584ee2a1",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.open.a55503cd.mp3",
+      "raw_sha256": "5e088ab44ad7c8c0907f95c9656a0070be77549507acc84cc47b3a92e35b7036",
+      "processing_key": "76e25905f50017853c14032cfa010f573ff9f8d555f4708d3dbd76dd96af4afe",
+      "served_sha256": "761e78b47e5f5168ad81f36c6bbb91b3f93352acc3b4c9dc4ae0f9d494f9f241",
+      "duration_s": 7.52,
+      "transcript": "Ferryman, this is Lantern. Dawn is breaking over the valley. Before anyone moves, take a good look at the ground",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Ferryman, this is Lantern. Dawn is breaking over the valley. Before anyone moves, take a good look at the ground.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "5e088ab44ad7c8c0907f95c9656a0070be77549507acc84cc47b3a92e35b7036"
+      }
+    },
+    "narration/lantern/c1.orders_not_units": {
+      "text": "Nothing is on the field yet. Those are orders, not units. When the battle starts, they drive in from the road.",
+      "generation_key": "887927fa72474b57fa8a18d5bbf364bffe18abe5d7e1a58267af7826cc65a394",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.orders_not_units.887927fa.mp3",
+      "raw_sha256": "f865ca81a39606a930f1ec5a3d99d17e7769f6265e52a257d44b0d6eb07e157a",
+      "processing_key": "893cb5493a5ffc5e3c96d08d8d6fd361e5647ac547560f05e37df49c10d199b6",
+      "served_sha256": "e799cc3c8aaf77c1991d2adb64d83a989db50036244be85d9af55aef5bc4d472",
+      "duration_s": 6.8,
+      "transcript": "Nothing is on the field yet. Those are orders, not units. When the battle starts, they drive in from the road",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Nothing is on the field yet. Those are orders, not units. When the battle starts, they drive in from the road.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "f865ca81a39606a930f1ec5a3d99d17e7769f6265e52a257d44b0d6eb07e157a"
+      }
+    },
+    "narration/lantern/c1.place": {
+      "text": "Place them where you want them to go. Once the battle starts, they drive there from our road.",
+      "generation_key": "fedd1506ef8de352add79e96002dc813828b0141967dd1c6822997ec7555debb",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.place.fedd1506.mp3",
+      "raw_sha256": "9af8137215eff6387f1f4ee744c14fe26e95f4e9c10c351077adbeef804bf7cf",
+      "processing_key": "97049ddf576ef332e21013d6ba58829862d1d24dd384b6c3a176a59ece1b5223",
+      "served_sha256": "6eee3032715c9a794ed92acdc278aa776946d8a87203d1fcb63607eed224e976",
+      "duration_s": 5.28,
+      "transcript": "Place them where you want them to go. Once the battle starts, they drive there from our road",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Place them where you want them to go. Once the battle starts, they drive there from our road.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "9af8137215eff6387f1f4ee744c14fe26e95f4e9c10c351077adbeef804bf7cf"
+      }
+    },
+    "narration/lantern/c1.start": {
+      "text": "Start the battle when you're ready. If the clock runs out first, it starts anyway.",
+      "generation_key": "cb38bf255beb4ba44f7b0585cab49eac5d0d5816087836efe6b837771f14ceda",
+      "raw": "assets/source/audio/voices/narration/lantern/c1.start.cb38bf25.mp3",
+      "raw_sha256": "8979150e9314eee8f74907b6a862a3a903c7e6e0fd1f6d17b9247bd1bcc4951b",
+      "processing_key": "78ecd153255733c98be76e174cc27ee61dbc035e526a55bf54b6e6efae02640c",
+      "served_sha256": "a42239400aab53aec64bf855f3c535e405cc436fb5caecf2cbc7a1175711dda3",
+      "duration_s": 5.04,
+      "transcript": "Start the battle when you're ready. If the clock runs out first, it starts anyway",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Start the battle when you're ready. If the clock runs out first, it starts anyway.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "8979150e9314eee8f74907b6a862a3a903c7e6e0fd1f6d17b9247bd1bcc4951b"
+      }
+    },
+    "narration/lantern/c2.arrive": {
+      "text": "Here they come. Click the scouts to take command. Or use their card along the bottom.",
+      "generation_key": "7ba121cb5e6f82fd2946263d273acb2337abab1137cda1c4212bc9e6934d1364",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.arrive.7ba121cb.mp3",
+      "raw_sha256": "4ad9c5454615e9cca150b263d5d467130cb8b31bd680997ebcec14fa8d8bfb17",
+      "processing_key": "f9563810b68209c708fa6b45c47b453b04a3908ac499ebd759a63b9be895c7eb",
+      "served_sha256": "7c6dd33af2bcd1ee0df5060d1c4ad8b10a8bf89f526d57fc1bcac5262dfdf12f",
+      "duration_s": 6.32,
+      "transcript": "Here they come. Click the scouts to take command or use their card along the bottom",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Here they come. Click the scouts to take command. Or use their card along the bottom.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "4ad9c5454615e9cca150b263d5d467130cb8b31bd680997ebcec14fa8d8bfb17"
+      }
+    },
+    "narration/lantern/c2.facing": {
+      "text": "Good. Now face them toward the village. Drag the order out to set where they look.",
+      "generation_key": "fbd26decddc24fdeca797ae01cefcf65754e5cbcd68c28514cf3bddac1c452a3",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.facing.fbd26dec.mp3",
+      "raw_sha256": "34d13dfc61fee75d515166a049987510ded0ffb3766b787f92e999793d4dcc90",
+      "processing_key": "2c2d59322658df0cff637e7d256f94b1f56d96c1c3475ed3f80ff86fc1354f2d",
+      "served_sha256": "69a39f061a620e14930e7ea0caf3dd772c42240d2660c726b4472e5728797399",
+      "duration_s": 5.6,
+      "transcript": "Good. Now face them toward the village. Drag the order out to set where they look",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Good. Now face them toward the village. Drag the order out to set where they look.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "34d13dfc61fee75d515166a049987510ded0ffb3766b787f92e999793d4dcc90"
+      }
+    },
+    "narration/lantern/c2.gunfire": {
+      "text": "Gunfire, across the river. We can't see who's shooting, but we heard it. That red patch is a contact. Something is out there.",
+      "generation_key": "c5e78c3b813ffe6068c741740150e1f1e188f0b2af9282ee6a4f1a1fa85b173a",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.gunfire.c5e78c3b.mp3",
+      "raw_sha256": "ad1d49e5064559cc05ef0441a8482a8d1d23927f2be5eb9ccb255f75e58afb99",
+      "processing_key": "9b6daecbb6ac828751c1cb9312f6c641301d975192e4f28f7b0f1124ac18790f",
+      "served_sha256": "6f07748bac157029ffb5ac46461e1e98a11ac9165747d4d9de9a84cb15c0fe5b",
+      "duration_s": 8,
+      "transcript": "Gunfire across the river. We can't see who's shooting, but we heard it. That red patch is a contact. Something is out there",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Gunfire, across the river. We can't see who's shooting, but we heard it. That red patch is a contact. Something is out there.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "ad1d49e5064559cc05ef0441a8482a8d1d23927f2be5eb9ccb255f75e58afb99"
+      }
+    },
+    "narration/lantern/c2.hidden": {
+      "text": "Your scouts are hidden in those trees. Keep them that way. Tell them to hold fire unless they're fired on. A scout that shoots is a scout that's seen.",
+      "generation_key": "4574de77f9084c04624f9aa4ced7942747f9b33a579067c25d02a67b99f5ba46",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.hidden.4574de77.mp3",
+      "raw_sha256": "9cec0b535dcbfb5915d21ce881d982efc9361475aadce3438b3f1b32a154c23d",
+      "processing_key": "3720af1444c14f7e401d4d18ebca8806d66dbfa397e347a65ce7a9b90964fe0a",
+      "served_sha256": "e6c1c6985ab87af81fad6ddc35a07da8d7134b8b05b9a30febedcfb435b9ffe7",
+      "duration_s": 10.16,
+      "transcript": "Your scouts are hidden in those trees. Keep them that way. Tell them to hold fire unless they're fired on. A scout that shoots is a scout that's seen",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Your scouts are hidden in those trees. Keep them that way. Tell them to hold fire unless they're fired on. A scout that shoots is a scout that's seen.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "9cec0b535dcbfb5915d21ce881d982efc9361475aadce3438b3f1b32a154c23d"
+      }
+    },
+    "narration/lantern/c2.jump": {
+      "text": "Jump the camera to the contact. Then bring it back.",
+      "generation_key": "244cc978a89d52fa2322c50d4a52f08e2c52b27df98c85c35c4ac970de0d35f0",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.jump.244cc978.mp3",
+      "raw_sha256": "5eb9f4150a4a30955b50bf79512a522ec011f42412ee3f8ba6b9ff5a90353e86",
+      "processing_key": "ec400f7e085f6c4d167cd843c172630d79d1d1e3e235486a418ab47ccbd6651b",
+      "served_sha256": "2620c04fdb2f6550379f810f66f70c998a286b2c4af55017b4974a8d82ad7314",
+      "duration_s": 2.96,
+      "transcript": "Jump the camera to the contact, then bring it back",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Jump the camera to the contact. Then bring it back.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "5eb9f4150a4a30955b50bf79512a522ec011f42412ee3f8ba6b9ff5a90353e86"
+      }
+    },
+    "narration/lantern/c2.move": {
+      "text": "See the treeline on the ridge? Send the scouts up there.",
+      "generation_key": "0d346cc07ed733ba1e425331b1bee8f59b8d1fa562892ae16a9e3cd97ab5f786",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.move.0d346cc0.mp3",
+      "raw_sha256": "91d229f2eb4307d7c1f2c51b926b24bb32eda9ebd5f03f6117e628310eaa8b0d",
+      "processing_key": "2aa2be0c1b19f7a897945c3f9b0d0ce742a9147a4a9141cf7723390a76aafb28",
+      "served_sha256": "0bbef0f8a8a90f990af91a4b0bef0b11b9383e79a33738ceeb9d70688765e8c6",
+      "duration_s": 3.28,
+      "transcript": "See the tree line on the ridge? Send the scouts up there",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "See the treeline on the ridge? Send the scouts up there.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "91d229f2eb4307d7c1f2c51b926b24bb32eda9ebd5f03f6117e628310eaa8b0d"
+      }
+    },
+    "narration/lantern/c2.spotted": {
+      "text": "Contact. Enemy outpost in the village. When you see a name in red, we can see them clearly.",
+      "generation_key": "08ea9cd131a28dab3815d1006b810f7e11888722d0e61cfccf49e3ed354f2ff9",
+      "raw": "assets/source/audio/voices/narration/lantern/c2.spotted.08ea9cd1.mp3",
+      "raw_sha256": "684f0cdf38d9eca0e4658e6d19d92b92e8dd473a33d4eebc2f8af42b6dbb68c1",
+      "processing_key": "a51cc776beb2dbc0764818ecd5e686de7f793f69bcd1b3d0eeb694bd100b1186",
+      "served_sha256": "7e7dd44c91024c59a98bb3025f03038dfb100d5985fece7037c0ad354cd20279",
+      "duration_s": 6.72,
+      "transcript": "Contact. Enemy outpost in the village. When you see a name in red, we can see them clearly",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Contact. Enemy outpost in the village. When you see a name in red, we can see them clearly.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "684f0cdf38d9eca0e4658e6d19d92b92e8dd473a33d4eebc2f8af42b6dbb68c1"
+      }
+    },
+    "narration/lantern/c3.attack_move": {
+      "text": "Out of the farmhouse and forward. Advance, and fight as you go. Use the walls.",
+      "generation_key": "36250e673e2d2a6d66eb20d06dfcace2a57239bd83b3007fa7b77fd93fa4681f",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.attack_move.36250e67.mp3",
+      "raw_sha256": "572c735e936e62119ad06567d84815cbefa8ee1081150093ba40f35a4c9afeca",
+      "processing_key": "c000b2f14d7171a49c3493c33bc1de78e75c59fd104bff5b915fffecc4a429cf",
+      "served_sha256": "026e28f30efaa5514aca1d3eb6622edc5e17d80c914fc421bfa4cd42e9c7194e",
+      "duration_s": 5.52,
+      "transcript": "Out of the farmhouse and forward. Advance and fight as you go. Use the walls",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Out of the farmhouse and forward. Advance, and fight as you go. Use the walls.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "572c735e936e62119ad06567d84815cbefa8ee1081150093ba40f35a4c9afeca"
+      }
+    },
+    "narration/lantern/c3.capture": {
+      "text": "The crossroads is clear. Stand inside the ring, and the flag turns ours, as long as nobody else is in it.",
+      "generation_key": "8118a6a2b4daaae0f2f6cb7a0c5674e9b6bef048e02b2984ef3d8b0fd2fb929f",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.capture.8118a6a2.mp3",
+      "raw_sha256": "3d8211bbde0324dcf78f2ab989e1064ecdbddb1f41518ab49288048ac9ed754f",
+      "processing_key": "b1d4b0e513460fd192dfc59580b5681616506cbbe8ac0b34cdd7914729433f2a",
+      "served_sha256": "9eefff0e4d6a4aefc9789fedaffde9b7f7ee42606fe94cb080120ea08e8a37d3",
+      "duration_s": 6.64,
+      "transcript": "The crossroads is clear. Stand inside the ring and the flag turns ours, as long as nobody else is in it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "The crossroads is clear. Stand inside the ring, and the flag turns ours, as long as nobody else is in it.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "3d8211bbde0324dcf78f2ab989e1064ecdbddb1f41518ab49288048ac9ed754f"
+      }
+    },
+    "narration/lantern/c3.captured": {
+      "text": "Objective one is ours. Every second we hold it, the score climbs.",
+      "generation_key": "168abe4b83a23d8d5a5de1e35cf99118a2fc71ffcbca561e2138f80471f2bf80",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.captured.168abe4b.mp3",
+      "raw_sha256": "151d99700429d01fdfa8dad5b97f146534fd8dd5a8a750955d6c2a9cbbfd8328",
+      "processing_key": "350255b128607b49aaed986da170c4b93f164e6d3bfee9b0ca2454481dbe1303",
+      "served_sha256": "00855c28b2fc6ad5aa07ed05b74a3335219fe9f6b867bd2ddea0d01185cbdfaa",
+      "duration_s": 4.64,
+      "transcript": "Objective one is ours. Every second we hold it, the score climbs",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Objective one is ours. Every second we hold it, the score climbs.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "151d99700429d01fdfa8dad5b97f146534fd8dd5a8a750955d6c2a9cbbfd8328"
+      }
+    },
+    "narration/lantern/c3.contested": {
+      "text": "Enemy squad pushing back in. With both sides in the ring, it's contested, and nobody scores. Clear them out.",
+      "generation_key": "dd8692f7d3b8d13086c65d73b2fdd23cfbb7d5b7751d50c45659765f8babaf65",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.contested.dd8692f7.mp3",
+      "raw_sha256": "6b552e3db90064f8f683464f0d6004cb2be96425fc8391dabf79c9137e039fb1",
+      "processing_key": "c6bd5a5c79c35fc6c06047b115a298d07f7eec07e97bbeb5e589be785fe1bbfb",
+      "served_sha256": "a02d5745eca71000de49904ce9943b36018a27f3c589209673d38e1b651973d5",
+      "duration_s": 7.12,
+      "transcript": "Enemy squad pushing back in. With both sides in the ring, it's contested and nobody scores. Clear them out",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Enemy squad pushing back in. With both sides in the ring, it's contested, and nobody scores. Clear them out.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "6b552e3db90064f8f683464f0d6004cb2be96425fc8391dabf79c9137e039fb1"
+      }
+    },
+    "narration/lantern/c3.drive": {
+      "text": "The carrier's up next. Take the squad down to that stone wall by the farm.",
+      "generation_key": "fea0a2ff7ef61d2c309ee068ed0745cd796009f6b6ca159e80ef19b2c765dae8",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.drive.fea0a2ff.mp3",
+      "raw_sha256": "7cbca86734a82e3db4e8a12e4067eacf5de672769f69509cb436f16aa90e91f4",
+      "processing_key": "93cdc5137320f0cbcaf7bc711b340a20f806fdb634572c9ce133cd15b2770252",
+      "served_sha256": "98f5d1a94641d93bfbc7f13c8b26a908e42e92d0f3fbbeb1dfd52b78983b18ce",
+      "duration_s": 4.4,
+      "transcript": "The carrier's up next. Take the squad down to that stone wall by the farm",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "The carrier's up next. Take the squad down to that stone wall by the farm.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "7cbca86734a82e3db4e8a12e4067eacf5de672769f69509cb436f16aa90e91f4"
+      }
+    },
+    "narration/lantern/c3.garrison": {
+      "text": "That farmhouse makes a fine fighting position. Put the squad inside.",
+      "generation_key": "6717e7efaa3ceb5bb54f8575ae0b4b8b4e735f417c4fbf32f32bdea481db4388",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.garrison.6717e7ef.mp3",
+      "raw_sha256": "64724df5434f3164e46f93e4b76cd478acd3dc5c7d29b0bbf3bba5c71b8e8699",
+      "processing_key": "cf5b230513c66057e8214cb4104a5ccef787b4885eef81b65f4e937515be30dd",
+      "served_sha256": "49be7fe6c1d7eb9cea88fce686eab3828f300bb1e725b6e86fb95a715ad1c8dd",
+      "duration_s": 4.16,
+      "transcript": "That farmhouse makes a fine fighting position. Put the squad inside",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "That farmhouse makes a fine fighting position. Put the squad inside.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "64724df5434f3164e46f93e4b76cd478acd3dc5c7d29b0bbf3bba5c71b8e8699"
+      }
+    },
+    "narration/lantern/c3.pinned": {
+      "text": "They're pinned. Pinned soldiers move slowly and shoot badly. This is your moment.",
+      "generation_key": "63abf46d3d433f1d028a7558a1a5d5e9b085216410e8152493a1d86f2bd40a65",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.pinned.63abf46d.mp3",
+      "raw_sha256": "f3ad9d66133c0001c3033aeed6b982b730e972e16ad68b72d52c70fbddaa7c93",
+      "processing_key": "c722cde21e880248427798ee1e8cb3de5ad0b8b83d44215505d436656a583b06",
+      "served_sha256": "8b2ae87edea226043e4c812e9f59423ce871a64e260a5773eacdf19decdccc11",
+      "duration_s": 6.24,
+      "transcript": "They're pinned. Pinned soldiers move slowly and shoot badly. This is your moment",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "They're pinned. Pinned soldiers move slowly and shoot badly. This is your moment.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "f3ad9d66133c0001c3033aeed6b982b730e972e16ad68b72d52c70fbddaa7c93"
+      }
+    },
+    "narration/lantern/c3.show_orders": {
+      "text": "Hold it down and you see every order at once: the routes, where everyone ends up, and how much cover each soldier will have.",
+      "generation_key": "334790b0e7f30f913b4d0c5cdf71a0d924e63cc0b1b4a5182b68a24bfd5a0a85",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.show_orders.334790b0.mp3",
+      "raw_sha256": "1727141bb30aefb5d7b98dfb912c5b6a9a019a1e06dfb8b7023a0ca48d766fe7",
+      "processing_key": "95f989ee4f7c99fd9432671d90a5a2ef6b208bbb2c4d5c7742ae134f8f7eb838",
+      "served_sha256": "adfae251793d5dd3fd4e2e05df90323c1fb2134a6e73fbdf3fa26c93490bb00a",
+      "duration_s": 7.52,
+      "transcript": "Hold it down and you see every order at once. The routes, where everyone ends up, and how much cover each soldier will have",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Hold it down and you see every order at once: the routes, where everyone ends up, and how much cover each soldier will have.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "1727141bb30aefb5d7b98dfb912c5b6a9a019a1e06dfb8b7023a0ca48d766fe7"
+      }
+    },
+    "narration/lantern/c3.suppress": {
+      "text": "There's a squad dug in at the crossroads. Put the carrier's gun on them. Keep their heads down.",
+      "generation_key": "0de6a9174a8d43a3da4cfc1cb423bc0dd71745b5409d305dc9d6464567414e17",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.suppress.0de6a917.mp3",
+      "raw_sha256": "7c773c0f457ffe1e6f3f192539faaab911045ea1bb7a056f73e7a32b5021f7a1",
+      "processing_key": "28bcba4ce78c5ad42dd1b13441a8fa9992a4630c49509288c82b33c53186ab45",
+      "served_sha256": "86498285379cd28d52b890f7f4553e511a79564670f2dd2a0e61287fde26b3a9",
+      "duration_s": 5.04,
+      "transcript": "There's a squad dug in at the crossroads. Put the carrier's gun on them. Keep their heads down",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "There's a squad dug in at the crossroads. Put the carrier's gun on them. Keep their heads down.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "7c773c0f457ffe1e6f3f192539faaab911045ea1bb7a056f73e7a32b5021f7a1"
+      }
+    },
+    "narration/lantern/c3.unload": {
+      "text": "Let them out behind the wall. Nobody fights from inside the carrier.",
+      "generation_key": "43b0cfeafaf34225dc2017af35a45d2f5dda073b5d0540acf97cbb225193286b",
+      "raw": "assets/source/audio/voices/narration/lantern/c3.unload.43b0cfea.mp3",
+      "raw_sha256": "a4a30330b271a968c7dd6c45678ffeb8982b4009defc4d76fab9c7b706c437e1",
+      "processing_key": "521266176593a86f1fa4f90e05d46b6b831ba06e4df17636eb6a2c29b7e3efc5",
+      "served_sha256": "1c88476458ea4b662680f843e9a200d06342bac504dcbcbab2b1634ca6bf70e1",
+      "duration_s": 3.6,
+      "transcript": "Let them out behind the wall. Nobody fights from inside the carrier",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Let them out behind the wall. Nobody fights from inside the carrier.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "a4a30330b271a968c7dd6c45678ffeb8982b4009defc4d76fab9c7b706c437e1"
+      }
+    },
+    "narration/lantern/c4.ambush": {
+      "text": "Now! Order the attack on that tank.",
+      "generation_key": "a558695038549a770c494b26ff459b2c37463673cf6895be2d1cefc401b5c3c1",
+      "raw": "assets/source/audio/voices/narration/lantern/c4.ambush.a5586950.mp3",
+      "raw_sha256": "e321d7cfd3351a9c1a197a823d934fa257974bad396406a3cd4e645616aba251",
+      "processing_key": "0d56625e263d879abb9ff1d4a0ef3dbc7f288dacb6b6bcf78f259bfe5ba1b88a",
+      "served_sha256": "fbba079af5845d2b970203a901ef5e11f19a47d6da372bfd59300f9bf0b99a66",
+      "duration_s": 2.64,
+      "transcript": "Now! Order the attack on that tank",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Now! Order the attack on that tank.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "e321d7cfd3351a9c1a197a823d934fa257974bad396406a3cd4e645616aba251"
+      }
+    },
+    "narration/lantern/c4.at_team": {
+      "text": "We have an anti-tank team in the woods, holding fire. Let the tank come to them.",
+      "generation_key": "978caff2d00d59eaa2c7cd4062ee44e79d2a9dafddba2fe2033a48bd85674f6e",
+      "raw": "assets/source/audio/voices/narration/lantern/c4.at_team.978caff2.mp3",
+      "raw_sha256": "e1489dcd3a3b3591d83df9463dbd802cfdd721f1006bc1e1e8066c9ed707e72b",
+      "processing_key": "ea7f9aaa2b37bb13ad0c4c53ee92730893adbc8077c1f397c79bc293041c925b",
+      "served_sha256": "2d14c6320e2ac2a178a7ba70a7dcbf324ee0558d84e79d0539801ea506f3a796",
+      "duration_s": 4.88,
+      "transcript": "We have an anti-tank team in the woods holding fire. Let the tank come to them",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "We have an anti-tank team in the woods, holding fire. Let the tank come to them.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "e1489dcd3a3b3591d83df9463dbd802cfdd721f1006bc1e1e8066c9ed707e72b"
+      }
+    },
+    "narration/lantern/c4.groups": {
+      "text": "Before it gets busy: make your infantry one group, and your vehicles another. One key brings each of them back.",
+      "generation_key": "bc1f9cc27fc2f91a18f74e2f6f47f9fa895eefc331c82b54366c4435fdfff0cf",
+      "raw": "assets/source/audio/voices/narration/lantern/c4.groups.bc1f9cc2.mp3",
+      "raw_sha256": "f66e919d25214dd3fa4a19d464a2869895f7d190f06cbba5ea6f2e5096fe5118",
+      "processing_key": "ce581ce00ba6542ccb10ed4e2fa98a8aa3283463c73cf5668e8d20546be7f304",
+      "served_sha256": "20d9d83d69d89bc19afbf6f37115dd9a92b16c8248142c38843e3c04ec65792f",
+      "duration_s": 7.44,
+      "transcript": "Before it gets busy, make your infantry one group and your vehicles another. One key brings each of them back",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Before it gets busy: make your infantry one group, and your vehicles another. One key brings each of them back.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "f66e919d25214dd3fa4a19d464a2869895f7d190f06cbba5ea6f2e5096fe5118"
+      }
+    },
+    "narration/lantern/c4.killed": {
+      "text": "Tank down. An ambush from cover. That's how infantry beats steel.",
+      "generation_key": "3c8a40fc26cf34ce3473b2ce5d003db027b10edf15a849f0795cb79ec54da932",
+      "raw": "assets/source/audio/voices/narration/lantern/c4.killed.3c8a40fc.mp3",
+      "raw_sha256": "b1ff50ea4f6b0ff954d323fcba569c6f5b819ff2417238886f21ef2196531bfa",
+      "processing_key": "b4cd624c98b411a2449f2af5e2f98fc6e1eea3a0001cff459368e85c721e6f4b",
+      "served_sha256": "af0924a295ea8e8bed8229437816d912ba752f9d7c943414f0afa50dfc9b7cac",
+      "duration_s": 6,
+      "transcript": "Tank down, an ambush from cover. That's how infantry beats steel",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Tank down. An ambush from cover. That's how infantry beats steel.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "b1ff50ea4f6b0ff954d323fcba569c6f5b819ff2417238886f21ef2196531bfa"
+      }
+    },
+    "narration/lantern/c4.smoke": {
+      "text": "Pop smoke on the carrier and back out. Reverse, don't turn. Keep the thick armour toward the threat.",
+      "generation_key": "ad1c28a6f51f44f08e162d8d2c9560d5df940fd28e2cfb5453ebca54f0d47034",
+      "raw": "assets/source/audio/voices/narration/lantern/c4.smoke.ad1c28a6.mp3",
+      "raw_sha256": "7f221d57394c93ae58af80d765a096610f5d6d7cb1b691295a39d7a6c493a7fb",
+      "processing_key": "e5082616bfca00f8d6261494d0ba51c3f1e3600e3a76e74b873ac5a6a9954352",
+      "served_sha256": "0e6ca09defb03f77fe2741259b5f0d6bed060551019a746957f3837f3876f38c",
+      "duration_s": 6.56,
+      "transcript": "Pop smoke on the carrier and back out. Reverse. Don't turn. Keep the thick armor toward the threat",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Pop smoke on the carrier and back out. Reverse, don't turn. Keep the thick armour toward the threat.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "7f221d57394c93ae58af80d765a096610f5d6d7cb1b691295a39d7a6c493a7fb"
+      }
+    },
+    "narration/lantern/c4.tank": {
+      "text": "Armour on the north road! Enemy tank. Your carrier can't trade blows with that.",
+      "generation_key": "f220c63cc1caf87c94c72f7570d51eb0ac1712a2abb2022b183e2f00f7d422a7",
+      "raw": "assets/source/audio/voices/narration/lantern/c4.tank.f220c63c.mp3",
+      "raw_sha256": "8bd4e86fae053ceaf3d3742446828d2c904505dbb972fe3b8c7e3b862f9d02e3",
+      "processing_key": "c2f59f633850059db40ccfa5d42831f8912edeb4ca7d947532cbfc68a53e6d80",
+      "served_sha256": "8ba3f53943b0b2c3fd71f337cacf8c46d6db7c700f92cb1af08a680dfe8834f4",
+      "duration_s": 5.04,
+      "transcript": "Armor on the north road. Enemy tank. Your carrier can't trade blows with that",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Armour on the north road! Enemy tank. Your carrier can't trade blows with that.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "8bd4e86fae053ceaf3d3742446828d2c904505dbb972fe3b8c7e3b862f9d02e3"
+      }
+    },
+    "narration/lantern/c5.credits": {
+      "text": "Our budget grows while we hold ground. Time to spend it.",
+      "generation_key": "5b6ccb1822a6a18ed1e510494fa080db5326089292dd3d3f7dfc799d6d953f38",
+      "raw": "assets/source/audio/voices/narration/lantern/c5.credits.5b6ccb18.mp3",
+      "raw_sha256": "c9f19417779bc89651b7324b69cb28ef035199768cacb553f943a720ba75d1b9",
+      "processing_key": "422cb73ed4a98cdd20f7518bbda20cde1660d565c771a67790e4a6f37c3851e2",
+      "served_sha256": "ef9c52cf8f9ebb766c49f822f64b97f340021a650cdccd4efb490e2beec5806e",
+      "duration_s": 3.92,
+      "transcript": "Our budget grows while we hold ground. Time to spend it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Our budget grows while we hold ground. Time to spend it.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "c9f19417779bc89651b7324b69cb28ef035199768cacb553f943a720ba75d1b9"
+      }
+    },
+    "narration/lantern/c5.deploy": {
+      "text": "Set it up. Anything that stops nearby gets ammunition, repairs, and fresh soldiers for the ones we've lost.",
+      "generation_key": "102edc7b4756d31505cebf38f5f5d8cf79bdeb6a8c48c027702b600d4b089019",
+      "raw": "assets/source/audio/voices/narration/lantern/c5.deploy.102edc7b.mp3",
+      "raw_sha256": "93e5c5b06c504d9c87a707b64549e1c4d1b4a812576cc580ce5351287e26da13",
+      "processing_key": "24c72204ad7dc6eee76e59486862fac76fe588310ab97a32a51f7d2943b4a2ab",
+      "served_sha256": "a5d868cfcc7a5e91dc18a4d6936423cdb88367d89532d253640668a12635aae0",
+      "duration_s": 6.4,
+      "transcript": "Set it up. Anything that stops nearby gets ammunition, repairs, and fresh soldiers for the ones we've lost",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Set it up. Anything that stops nearby gets ammunition, repairs, and fresh soldiers for the ones we've lost.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "93e5c5b06c504d9c87a707b64549e1c4d1b4a812576cc580ce5351287e26da13"
+      }
+    },
+    "narration/lantern/c5.mortar": {
+      "text": "Something is hiding in that far treeline. We can't see it, but we can shell it. Buy a mortar, and fire on the ground there.",
+      "generation_key": "7ccff4b0c017955bc87964e6cae1ab4e5bd2e46a5b585da15f84997c3a9feb05",
+      "raw": "assets/source/audio/voices/narration/lantern/c5.mortar.7ccff4b0.mp3",
+      "raw_sha256": "5b496d78ba15b2aa1a097dc8a14d07eeab4ccb2292bd8d8e03d9ba6ee9de8bab",
+      "processing_key": "f1c3c935cfdf73ad33e648bf5d2ef260c5b85010a902aaedec5de9ac217275d7",
+      "served_sha256": "2f16fddf9e50893a3bcbda3a4a07fd20e553bb9093680c547d71d92788c975ee",
+      "duration_s": 8.48,
+      "transcript": "Something is hiding in that far tree line. We can't see it, but we can shell it. Buy a mortar and fire on the ground there",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Something is hiding in that far treeline. We can't see it, but we can shell it. Buy a mortar, and fire on the ground there.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "5b496d78ba15b2aa1a097dc8a14d07eeab4ccb2292bd8d8e03d9ba6ee9de8bab"
+      }
+    },
+    "narration/lantern/c5.mortar_done": {
+      "text": "Whatever was in there won't be bothering us now.",
+      "generation_key": "5b57411f0761b6da4c7aca8eae1b53c7775061ac8d845b35337c6cee3c71732d",
+      "raw": "assets/source/audio/voices/narration/lantern/c5.mortar_done.5b57411f.mp3",
+      "raw_sha256": "a28e57a2921de2306799f58b26eb26b581c37173c74ba9cc6972036555e9594f",
+      "processing_key": "798708f2ce18d05deba5bfc16081a11dca9b4fec0fc5f62debe33cd9926a0acb",
+      "served_sha256": "d0b22a0cf8af26a84194224f6612c7149aa876ecefd54ef4fab818b63c3e7a0f",
+      "duration_s": 2.64,
+      "transcript": "Whatever was in there won't be bothering us now",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Whatever was in there won't be bothering us now.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "a28e57a2921de2306799f58b26eb26b581c37173c74ba9cc6972036555e9594f"
+      }
+    },
+    "narration/lantern/c5.resupply": {
+      "text": "Bring your battered units in. They get patched up even while they fight.",
+      "generation_key": "ded5f08d76d31e13a019b10c037d7c0a514087973a26cae12a405b75403625b1",
+      "raw": "assets/source/audio/voices/narration/lantern/c5.resupply.ded5f08d.mp3",
+      "raw_sha256": "c7208aba39c73b77a8c03957c0f02c81735b880b2f946a1c8130de0d22af39b1",
+      "processing_key": "bc0e53b53e78b6500564ff468e1773965e6bf4e5e2f17813d4bbed003195f09b",
+      "served_sha256": "ec7e962de5cb1be49b17d8d319fa1a3f77641c06a5ad757628f5096548b30c8b",
+      "duration_s": 4.08,
+      "transcript": "Bring your battered units in. They get patched up even while they fight",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Bring your battered units in. They get patched up even while they fight.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "c7208aba39c73b77a8c03957c0f02c81735b880b2f946a1c8130de0d22af39b1"
+      }
+    },
+    "narration/lantern/c5.supply": {
+      "text": "Buy a supply truck, and bring it up behind the farm.",
+      "generation_key": "2a86bc741692e131db77a586c539391045b884d154b86da638ae339bd0e7d6d3",
+      "raw": "assets/source/audio/voices/narration/lantern/c5.supply.2a86bc74.mp3",
+      "raw_sha256": "0c56c5bde3384df9987043d3a3dcf8194821ca18d3141c3e9af46cf540f3799a",
+      "processing_key": "b78822ab21f95c6033c735643c4e12f6729096bf59bc2d8a969be52a6138ebeb",
+      "served_sha256": "4d87357fc2dc7a4ff6f23f742e6bc111ea6c5050d3b0cf3d842d978509f38fd4",
+      "duration_s": 2.72,
+      "transcript": "Buy a supply truck and bring it up behind the farm",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Buy a supply truck, and bring it up behind the farm.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "0c56c5bde3384df9987043d3a3dcf8194821ca18d3141c3e9af46cf540f3799a"
+      }
+    },
+    "narration/lantern/c6.air_defence": {
+      "text": "Get air defence up, and bring it down.",
+      "generation_key": "bd57ddc4c1dc6c46af14665be52bdb83a3c77b087112c69c716aa4d704dd2bd3",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.air_defence.bd57ddc4.mp3",
+      "raw_sha256": "7c83503944966cff586657d98bbabeb137567e0dfdf87e8c7fcc735af8e0c23f",
+      "processing_key": "aa5b01a3ce279470ed0b6f94f1b834110ec071b46a3adf09bdcd17d4ff8eae09",
+      "served_sha256": "b44179e83e20c7b4f370adf9173413267440803a52beedc43d9feaaca55095d9",
+      "duration_s": 2.56,
+      "transcript": "Get air defense up and bring it down",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Get air defence up, and bring it down.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "7c83503944966cff586657d98bbabeb137567e0dfdf87e8c7fcc735af8e0c23f"
+      }
+    },
+    "narration/lantern/c6.helicopter": {
+      "text": "Rotors! Enemy helicopter, coming in low.",
+      "generation_key": "b1abebef47a2a78067f817d671a4df2942749b3e236b86e19e033ac858a6aaf6",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.helicopter.b1abebef.mp3",
+      "raw_sha256": "7dac72463225f21771c52461c8836d7608eb6075ff8b9d03bc5106f1549928a5",
+      "processing_key": "d775903feb792b50c46b12be39dbafaf09d7c169d59b52114315d541e7131e4a",
+      "served_sha256": "7ce809eed4490259e1ca151c22d727002fe8095a87b7948629e228c0cd5b7ad1",
+      "duration_s": 3.04,
+      "transcript": "Rotors. Enemy helicopter coming in low",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Rotors! Enemy helicopter, coming in low.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "7dac72463225f21771c52461c8836d7608eb6075ff8b9d03bc5106f1549928a5"
+      }
+    },
+    "narration/lantern/c6.helicopter_down": {
+      "text": "Splash one. Good shooting.",
+      "generation_key": "c71df68881c8f3bff28da589b6814b7f6bf103428553e9531fab8a7716ae0a22",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.helicopter_down.c71df688.mp3",
+      "raw_sha256": "ed8e1fd37dcfa00bc372b0736c9c3c90d327f37ea888a47327d903eb58ab12d1",
+      "processing_key": "891ac5addbbfde8f43916349d6d49845ac63b5a5f4749fac53857a6fe1b9e961",
+      "served_sha256": "06fbaefc5f79bfc260c66c2003afe93d4933de2d423ef2ff01ceb297c877395b",
+      "duration_s": 2.08,
+      "transcript": "Splash one. Good shooting",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Splash one. Good shooting.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "ed8e1fd37dcfa00bc372b0736c9c3c90d327f37ea888a47327d903eb58ab12d1"
+      }
+    },
+    "narration/lantern/c6.jet": {
+      "text": "Command is offering us a jet. Jets take a while to arrive. Watch its card count down.",
+      "generation_key": "0717c7528539e42d2c1a78b093f7ccad7764a5cd74a4b66c3fd8f426cc34d914",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.jet.0717c752.mp3",
+      "raw_sha256": "4aa6255a56a48f2458acd661e7c21f3573b8eb37d596671ba5a240071841050c",
+      "processing_key": "5c946027a26d4009f5aceb918fd9061b9771540f0eefcbe877c71d9e1c6ce28c",
+      "served_sha256": "c7f61596a3bed0de631c23a1cfc65f546341a77c7450d8fc0d256c4e6970342e",
+      "duration_s": 5.92,
+      "transcript": "Command is offering us a jet. Jets take a while to arrive. Watch its card countdown",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Command is offering us a jet. Jets take a while to arrive. Watch its card count down.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "4aa6255a56a48f2458acd661e7c21f3573b8eb37d596671ba5a240071841050c"
+      }
+    },
+    "narration/lantern/c6.jet_attack": {
+      "text": "A jet never stops. Send it in to attack, and it makes passes: in, fire, out, and around again. Mind its fuel. When it runs low, it heads home.",
+      "generation_key": "18a67a9a21f6e9188e17af1fbdadc185a22da7e7d34e5239c184fc2329c74a8d",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.jet_attack.18a67a9a.mp3",
+      "raw_sha256": "bb6430a59d6156d93fb92b8b8c92ab67b9e43c03ae894dc1246334a20cc78822",
+      "processing_key": "58d92f986e90285dc23409d413bbc16f6e5b7aca38aa5ca724d7b3d528227caa",
+      "served_sha256": "bcf7a3813ee418d5026a942f44fa818b01f1bf01b381ae1e99ffa0c0ffd79e4d",
+      "duration_s": 12.24,
+      "transcript": "A jet never stops. Send it in to attack and it makes passes. In, fire, out, and around again. Mind its fuel. When it runs low, it heads home",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "A jet never stops. Send it in to attack, and it makes passes: in, fire, out, and around again. Mind its fuel. When it runs low, it heads home.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "bb6430a59d6156d93fb92b8b8c92ab67b9e43c03ae894dc1246334a20cc78822"
+      }
+    },
+    "narration/lantern/c6.own_helicopter": {
+      "text": "Our turn. Buy a helicopter. It lifts off from our edge straight away.",
+      "generation_key": "82df590e870d029368f093328e1d9aa60fbae9d10ab3fdc0c46e3e1f25fa92aa",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.own_helicopter.82df590e.mp3",
+      "raw_sha256": "a6a51d0e94c0265e5afab134219650b8489188299119f6502ca48c0b838fed7e",
+      "processing_key": "e408e2ec1c30e876ae5aadb6cb18b1128adcb4ebe758f08ecb0f333d3b498361",
+      "served_sha256": "8f67efd4f115d643d181b1a05ca5941dc35ad54031a184a79e83a02043a939a6",
+      "duration_s": 7.12,
+      "transcript": "Our turn. Buy a helicopter. It lifts off from our edge straight away",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Our turn. Buy a helicopter. It lifts off from our edge straight away.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "a6a51d0e94c0265e5afab134219650b8489188299119f6502ca48c0b838fed7e"
+      }
+    },
+    "narration/lantern/c6.radar": {
+      "text": "There's an air-defence site on that hill, and we can't see it. It's hunting our aircraft. A radar-hunting jet will find it.",
+      "generation_key": "a2d7a7478165671dabfc1bc181fd14d41988bfb2ede501436e1ffe06c942676f",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.radar.a2d7a747.mp3",
+      "raw_sha256": "0c396655f7cdcf61a928c02851d9b21e765f08448d3c067ecbba9602a2b82b9d",
+      "processing_key": "74c1b4f45d7d874d7bdde186669d1cafc8f3fba61a4e3e08dab6a3cbfea3bb44",
+      "served_sha256": "6075c70c39474b0c953c8f9b3af3bf52e47cdbc8e48e714c8e8d4ae699168509",
+      "duration_s": 8.32,
+      "transcript": "There's an air defense site on that hill, and we can't see it. It's hunting our aircraft. A radar-hunting jet will find it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "There's an air-defence site on that hill, and we can't see it. It's hunting our aircraft. A radar-hunting jet will find it.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "0c396655f7cdcf61a928c02851d9b21e765f08448d3c067ecbba9602a2b82b9d"
+      }
+    },
+    "narration/lantern/c6.radar_down": {
+      "text": "Their radar's gone quiet. The sky is ours.",
+      "generation_key": "ef4dc05135df51f7632e38fb22441c0fc5c443d3455a37f97b4647642acfcfa6",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.radar_down.ef4dc051.mp3",
+      "raw_sha256": "41f182a51472f76be46518b161ce131cdf5be3503b08a48896c278588cffd19c",
+      "processing_key": "3907e3e74e90b8417ae5dcca3ec1705781457e1292e032f460f4dc02f96ad843",
+      "served_sha256": "2c6f707c6c662710c7f2cfbd4bd80a80fa44276f5fec4f70308bbc9c8e786f25",
+      "duration_s": 3.12,
+      "transcript": "Their radar's gone quiet. The sky is ours",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Their radar's gone quiet. The sky is ours.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "41f182a51472f76be46518b161ce131cdf5be3503b08a48896c278588cffd19c"
+      }
+    },
+    "narration/lantern/c6.radar_found": {
+      "text": "There. A radar contact. We don't know exactly where it is, but we know the area. Fire into it.",
+      "generation_key": "a7b05b1a1fa2a2a10cb2c3d4ec9ce27a538bae60bd682cb35d10aaef0901c103",
+      "raw": "assets/source/audio/voices/narration/lantern/c6.radar_found.a7b05b1a.mp3",
+      "raw_sha256": "729cf71a39afc178b9fced6426c0e043620fc378261141789f2eb7158c64a148",
+      "processing_key": "6a232cfe1a880a6bdf152c652d7afa6a6f75fae2d1b8deba4406908adb0fe075",
+      "served_sha256": "099c006216a5111111f8f4014112cbe355091050562c4d47c3d0583576d5a6f8",
+      "duration_s": 6.48,
+      "transcript": "There, a radar contact. We don't know exactly where it is, but we know the area. Fire into it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "There. A radar contact. We don't know exactly where it is, but we know the area. Fire into it.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "729cf71a39afc178b9fced6426c0e043620fc378261141789f2eb7158c64a148"
+      }
+    },
+    "narration/lantern/c7.contested": {
+      "text": "They're fighting us for that flag. While it's contested, nobody scores.",
+      "generation_key": "cb60b2e05e36b19e792dafa303f0af7d9e00ffa6940bb2a83868c5a16df1f00e",
+      "raw": "assets/source/audio/voices/narration/lantern/c7.contested.cb60b2e0.mp3",
+      "raw_sha256": "0a43e8eabbdbf52c937911c2b1b22f8a8fcf1e27cad70222b121be6533bf17a6",
+      "processing_key": "ff40e6f0bcc4b1f021fe09b057f6a3bf9659388ad1509e3d11a0fcc1d136b2f8",
+      "served_sha256": "2ab06913718fbcf0f6857d9b9406389a1404d9aab6e1560410bc01f77e4ab768",
+      "duration_s": 5.04,
+      "transcript": "They're fighting us for that flag. While it's contested, nobody scores",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "They're fighting us for that flag. While it's contested, nobody scores.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "0a43e8eabbdbf52c937911c2b1b22f8a8fcf1e27cad70222b121be6533bf17a6"
+      }
+    },
+    "narration/lantern/c7.guide": {
+      "text": "If you want a refresher on anything, the guide is in the menu. Lantern out.",
+      "generation_key": "f8e1d778912fbc83f969157dcc00561b17084a4dc6056e54570244970d964234",
+      "raw": "assets/source/audio/voices/narration/lantern/c7.guide.f8e1d778.mp3",
+      "raw_sha256": "2bf9c0b3a8adb815befc92c51a3e8c7b6b66ba4e0ed99a5230fbb317eac79217",
+      "processing_key": "8f573c9a50f88a8e30b5d050adc0c6d2ce1be14aba5e87abb532bb144ffe36cb",
+      "served_sha256": "964ea991ce90691c1d012964a6d22a32f44603d49d4f80f813991b18ec72bddc",
+      "duration_s": 4.48,
+      "transcript": "If you want a refresher on anything, the guide is in the menu. Lantern out",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "If you want a refresher on anything, the guide is in the menu. Lantern out.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "2bf9c0b3a8adb815befc92c51a3e8c7b6b66ba4e0ed99a5230fbb317eac79217"
+      }
+    },
+    "narration/lantern/c7.push": {
+      "text": "Ferryman, the bridge and the hill are all that's left. Take them. Your call how.",
+      "generation_key": "e1ad95f8d4d2e95eb188af2bc8a4ae1bb49082599f6fbb116ca0e640546b70b9",
+      "raw": "assets/source/audio/voices/narration/lantern/c7.push.e1ad95f8.mp3",
+      "raw_sha256": "364c8ee136a02559eb2aad1402bcd5b3d72491bba82da9bff0425d7782a601fd",
+      "processing_key": "eb7cbf91be88ac953fc584e04bf1f85578415bc9acf74116129868443dc3f65a",
+      "served_sha256": "41f7c20da653b0117add17cdbb3c19714400b70106baabd0696b4d3ccf8b3710",
+      "duration_s": 5.6,
+      "transcript": "Ferryman, the bridge and the hill are all that's left. Take them. Your call how",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Ferryman, the bridge and the hill are all that's left. Take them. Your call how.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "364c8ee136a02559eb2aad1402bcd5b3d72491bba82da9bff0425d7782a601fd"
+      }
+    },
+    "narration/lantern/c7.score": {
+      "text": "Watch the bar up top. Ours fills from the left, theirs from the right. First to the middle wins.",
+      "generation_key": "7ef9eaacc790c38dfc8a340801b27d90ebd2c597840098735281331d67788efe",
+      "raw": "assets/source/audio/voices/narration/lantern/c7.score.7ef9eaac.mp3",
+      "raw_sha256": "febb79252db486523057459d87d7ff263ccd8998f2039c18e970f3e284f7a65d",
+      "processing_key": "e464e7fae63c4e4553303392bc3256ef08f5fab5dc1205c5f9e55da9926a6347",
+      "served_sha256": "56c0747c20c976ad0d5f7a4fcacb4561219b28f650f2ad7e02b069e3da5980ad",
+      "duration_s": 6.48,
+      "transcript": "Watch the bar up top. Ours fills from the left, theirs from the right. First to the middle wins",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Watch the bar up top. Ours fills from the left, theirs from the right. First to the middle wins.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "febb79252db486523057459d87d7ff263ccd8998f2039c18e970f3e284f7a65d"
+      }
+    },
+    "narration/lantern/c7.victory": {
+      "text": "Every flag is ours. Total control. Outstanding work, Ferryman.",
+      "generation_key": "95347b9701ce7a2a7d2c2347ecef619bcac09167ec598ad9a4207b708d93812e",
+      "raw": "assets/source/audio/voices/narration/lantern/c7.victory.95347b97.mp3",
+      "raw_sha256": "d5e2197fe2760fcc18e33345d75ba417adc54ee2691ce97679ee0ba8ea5f9c32",
+      "processing_key": "ca5f1956910d7850a3ea431c65ce29fbf1c88339c64395f8e923f730ef73993a",
+      "served_sha256": "01cb762369bcbfed65f325251bf5d048b71c8506433ac52bd2dbce64a0eb47b4",
+      "duration_s": 5.2,
+      "transcript": "Every flag is ours. Total control. Outstanding work, ferryman",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Every flag is ours. Total control. Outstanding work, Ferryman.",
+        "voice_id": "wa4sQVgbDDzUDEzJwch3",
+        "voice_description": "Lantern, the HQ operations officer the tutorial's player hears: ElevenLabs shared-library voice Eryn, a strong American female commander, calm and clear.",
+        "date": "2026-11-19",
+        "plan": "Bento ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "raw_sha256": "d5e2197fe2760fcc18e33345d75ba417adc54ee2691ce97679ee0ba8ea5f9c32"
+      }
+    },
     "ru_air_defense_crew/lead/arrived/steady/0": {
       "text": "Vostok 39, in position.",
       "generation_key": "20d7f9cccb217608131fdd4bcd75fe116aed091d042ef36bbdeb0c9c18462460",

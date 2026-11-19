@@ -222,6 +222,17 @@ from the takes judged ok on the bytes served and spoken by the voice
 regeneration finishes; before review, `--unreviewed` also lists unjudged takes
 the transcript check passed.
 
+A scenario's narrator is a speaker in `voices.json`'s `narration` section, not
+a unit: a shared-library `voice_id` (never designed, so it never expires), a
+processing profile, and lines by id that the scenario's coach names. Its takes
+sit in the same lock as `narration/<speaker>/<line>`, bought, transcribed and
+judged under the same rules, but through [the `bento` CLI](tools/generate/bento.ts)
+rather than Duet: `generate narration` buys only lines whose text or voice
+changed, and `--import` takes review takes of the same text in place of a
+purchase. Each speaker's `pack.json` lists its takes judged ok, and
+[the narration player](src/voices/narration.ts) plays a line once on the voices
+bus when the coach asks (`BattleAudio.narrate`).
+
 An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
 it plays a stressed bark from a generic pool of the enemy faction's sets, never
 the speaker's own voice, muffled past understanding. [The shout pool](src/voices/shoutPool.ts)

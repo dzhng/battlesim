@@ -1,5 +1,17 @@
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 
+/** The battlefield the pointer acts on at `target`: the view's `canvas`, or
+ *  a callout over it. The HUD's controls are not: over them the ground
+ *  neither hovers nor measures, and the app's cursor (AppCursor) shows there
+ *  regardless. */
+export function interactionSurface(
+  canvas: HTMLCanvasElement,
+  target: EventTarget | null,
+): HTMLElement | null {
+  if (target === canvas) return canvas;
+  return target instanceof Element ? target.closest<HTMLElement>(".ro-layer .ro-unit") : null;
+}
+
 /** One snapshot shared by hover, the ruler and the held facing preview. */
 export interface ViewportPointer {
   position: { x: number; y: number } | null;

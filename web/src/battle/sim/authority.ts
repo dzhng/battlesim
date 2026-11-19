@@ -7,7 +7,7 @@
  *
  * The host supplies the clock, the timer, the channel and the module loader,
  * so this state machine runs the same in a worker, in-thread, and in a test. */
-import type { AuthorityStatus, SideName, SimReply, SimRequest } from "./protocol";
+import type { AuthorityStatus, Resume, SideName, SimReply, SimRequest } from "./protocol";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "./timing";
 
 /** The slice of the WASM module the authority needs. */
@@ -16,6 +16,9 @@ export interface SimModule {
   /** A live battle. */
   createBattle(scenario: string, seed: number): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
+  /** A recorded battle replayed to a tick, then live; absent where no
+   *  battle resumes (a server's). */
+  resumeBattle?(scenario: string, replay: string, tick: number): SimBattle;
 }
 
 export interface SimBattle {
@@ -246,9 +249,12 @@ export function createAuthority(host: AuthorityHost): Authority {
             .load()
             .then((module) => {
               if (lifetime.kind === "closed") return;
-              const battle = request.replay
-                ? module.replayBattle(request.scenario, request.replay)
-                : module.createBattle(request.scenario, request.seed);
+              const { resume } = request;
+              const battle = resume
+                ? resumed(module, request.scenario, resume)
+                : request.replay
+                  ? module.replayBattle(request.scenario, request.replay)
+                  : module.createBattle(request.scenario, request.seed);
               lifetime = { kind: "live", resources: { sim: module, battle } };
               for (let i = 0; i < PUBLICATION_POOL * sides.length; i++)
                 credits.push(new ArrayBuffer(4096));
@@ -396,4 +402,9 @@ export function createAuthority(host: AuthorityHost): Authority {
   }
 
   return { handle, pump };
+}
+
+function resumed(module: SimModule, scenario: string, { replay, tick }: Resume): SimBattle {
+  if (!module.resumeBattle) throw new Error("this authority can't resume a battle");
+  return module.resumeBattle(scenario, replay, tick);
 }

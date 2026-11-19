@@ -743,6 +743,9 @@ pub struct ScenarioDefinition {
     /// An encounter's local completion condition (holding its objective).
     #[serde(default)]
     pub encounter: Option<EncounterRules>,
+    /// An authored scenario's director, with the zones and forces it names.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub director: Option<crate::director::DirectorSetup>,
 }
 
 impl ScenarioDefinition {
@@ -827,6 +830,7 @@ impl EncounterDefinition {
             victory: None,
             opponent: self.opponent,
             encounter: self.encounter,
+            director: None,
         })
     }
 }

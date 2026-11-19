@@ -50,12 +50,15 @@ function storedReplay(text?: string): Promise<string | undefined> {
 /** A replay file's text, parsed; throws when it is not one. */
 export function parseReplayFile(text: string): ReplayFile {
   const file = JSON.parse(text) as Partial<ReplayFile> | null;
+  // An authored scenario's battle replays within its session (chapter
+  // restart), not from a file: a saved battle is a generated one.
   const named = typeof file?.battle?.scenario === "string" && !!file.battle.report?.request;
   if (!file || typeof file.replay !== "string" || !named) throw new Error("not a saved battle");
   if (file.camera !== undefined) {
     validateReplayCamera(file.camera);
     // A human can take a seat that began under AI; the recording owns that history.
-    const player = file.battle!.report.request.players?.find((p) => p.id === file.camera!.player);
+    // `named` admits only a generated battle's file, which names its request.
+    const player = file.battle!.report.request!.players?.find((p) => p.id === file.camera!.player);
     if (!player || player.side !== file.camera.side)
       throw new Error("replay camera does not belong to a battle player");
   }

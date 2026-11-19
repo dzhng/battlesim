@@ -1,6 +1,6 @@
 export type { ViewportGpu } from "./viewportRender";
 import type { LabViewportProps, FrameCounts, FramePlate } from "./viewportRender";
-import { ViewportGestureOwner, type ViewportPointer } from "./viewportInput";
+import { interactionSurface, ViewportGestureOwner, type ViewportPointer } from "./viewportInput";
 export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 export type { ViewportCursor } from "./viewportRender";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
@@ -28,6 +28,7 @@ import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/vie
 import {
   CAMERA_KEYS,
   CameraController,
+  edgePan,
   type CameraIntent,
   type CameraPose,
 } from "@packages/renderer-core/src/cameraController";
@@ -39,8 +40,7 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
-import { focusStep, type FocusTarget } from "@web/battle/input/contactFocus";
-import { isGameKey } from "@web/battle/input/keyGuard";
+import { listenContactFocus } from "@web/battle/input/contactFocus";
 import type { Project } from "@web/battle/present/readouts";
 import { highAirCanvas } from "./highAirCanvas";
 import { gameCamera } from "./gameCamera";
@@ -67,14 +67,12 @@ import { pickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { detailScales, testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
 import { ViewportSubmittedView } from "./viewportSubmittedView";
+import { emitCameraMoves } from "@web/battle/input/uiSignals";
 
 const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
-
-/** Screen-edge band that pans the camera like a held key. */
-const EDGE_PAN_PX = 14;
 
 export function LabViewport({
   fixture,
@@ -255,15 +253,6 @@ export function LabViewport({
     const { signal } = lifetime;
     let raf = 0;
     const setCursorAction = setCursorActionRef.current;
-    // The battlefield the pointer acts on: the canvas, or a callout over it.
-    // The HUD's controls are not: over them the ground neither hovers nor
-    // measures, and the app's cursor (AppCursor) shows there regardless.
-    const interactionSurface = (target: EventTarget | null) =>
-      target === canvas
-        ? canvas
-        : target instanceof Element
-          ? target.closest<HTMLElement>(".ro-layer .ro-unit")
-          : null;
     // The pose input and scripts ask for, and the pose drawn for it: the
     // same one unless camera clearance holds it off an obstacle.
     let asked = initialCamera;
@@ -326,27 +315,15 @@ export function LabViewport({
     const steer = (intent: CameraIntent, dt: number) => {
       if (piloted || !inputEnabledRef.current) return;
       const next = controller.step(asked, intent, dt);
-      if (next !== asked) place(next);
+      if (next === asked) return;
+      emitCameraMoves(asked, next);
+      place(next);
     };
-    /** The contact last visited; null before any. */
-    let focused: Pick<FocusTarget, "id" | "evidenceTick"> | null = null;
-    /** Jump to the next (older) or previous (newer) contact; angle and zoom kept. */
-    const jumpToEvidence = (newer: boolean) => {
-      if (piloted || !inputEnabledRef.current) return;
-      const targets = focusTargetsRef.current ?? [];
-      const index = focusStep(targets, focused, newer);
-      const target = index < 0 ? undefined : targets[index];
-      if (!target) return;
-      focused = target;
-      centerOn(target.target);
-    };
-    window.addEventListener(
-      "keydown",
-      (e) => {
-        if (e.code !== "KeyN" || !isGameKey(e)) return;
-        jumpToEvidence(e.shiftKey);
-      },
-      { signal },
+    listenContactFocus(
+      signal,
+      () => focusTargetsRef.current ?? [],
+      () => piloted || !inputEnabledRef.current,
+      centerOn,
     );
     let dirty = true;
 
@@ -639,22 +616,11 @@ export function LabViewport({
           let edge: [number, number] = [0, 0];
           if (
             pointer &&
-            (interactionSurface(document.elementFromPoint(pointer.x, pointer.y)) === canvas ||
+            (interactionSurface(canvas, document.elementFromPoint(pointer.x, pointer.y)) ===
+              canvas ||
               gestures.active)
           ) {
-            const rect = canvas.getBoundingClientRect();
-            edge = [
-              pointer.x - rect.left < EDGE_PAN_PX
-                ? -1
-                : rect.right - pointer.x < EDGE_PAN_PX
-                  ? 1
-                  : 0,
-              pointer.y - rect.top < EDGE_PAN_PX
-                ? 1
-                : rect.bottom - pointer.y < EDGE_PAN_PX
-                  ? -1
-                  : 0,
-            ];
+            edge = edgePan(pointer, canvas.getBoundingClientRect());
           }
           const framing = pilot?.pose(now) ?? null;
           piloted = framing !== null;
@@ -790,7 +756,7 @@ export function LabViewport({
           }
           frameRate.current?.frame(now, drawn);
           const surface = pointer
-            ? interactionSurface(document.elementFromPoint(pointer.x, pointer.y))
+            ? interactionSurface(canvas, document.elementFromPoint(pointer.x, pointer.y))
             : null;
           const pointerState: ViewportPointer = {
             position: surface || gestures.rightPressRay ? pointer : null,
@@ -807,8 +773,8 @@ export function LabViewport({
           onFrameRef.current?.(project, shownCamera, pointerState, renderScale, clock);
           const action =
             onCursorRef.current?.(pointerState, shownCamera, project, renderScale) ?? null;
-          // The app cursor always shows; the battle only chooses its action.
-          const active = surface && !gestures.cameraDragging && !pilot;
+          // The app cursor always shows; the battle chooses its action.
+          const active = surface && !gestures.cameraDragging && !piloted;
           setCursorAction((active && action) || "default");
           pilot?.frame?.({
             now,
@@ -1016,7 +982,7 @@ export function LabViewport({
           // Let the HUD own its native click sequence. Capturing a HUD press
           // on the canvas drops the button's pointerup and prevents clicks.
           if (e.target instanceof Element && e.target.closest(".hud")) return;
-          if (!interactionSurface(e.target)) return;
+          if (!interactionSurface(canvas, e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
             gestures.down({
@@ -1053,7 +1019,7 @@ export function LabViewport({
         const onMove = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
-          const over = interactionSurface(e.target);
+          const over = interactionSurface(canvas, e.target);
           pointer = over || gestures.active ? { x: e.clientX, y: e.clientY } : null;
           gestures.move({ x: e.clientX, y: e.clientY });
         };
@@ -1085,12 +1051,7 @@ export function LabViewport({
         cancelInputRef.current = cancelGesture;
         const onWheel = (e: WheelEvent) => {
           if (!inputEnabledRef.current) return;
-          const target = e.target;
-          if (
-            target !== canvas &&
-            !(target instanceof Element && target.closest(".ro-layer .ro-unit"))
-          )
-            return;
+          if (!interactionSurface(canvas, e.target)) return;
           e.preventDefault();
           steer({ wheel: e.deltaY }, 0);
           see(0);

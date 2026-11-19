@@ -57,6 +57,23 @@ export interface CameraIntent {
   drag?: readonly [number, number];
 }
 
+/** The screen-edge band that pans the camera like a held key, in CSS px. */
+const EDGE_PAN_PX = 14;
+
+/** `CameraIntent.edge` for a pointer resting at `point` over a view laid out
+ *  in `rect`: which way each axis pans, if the pointer is in the edge band. */
+export function edgePan(
+  point: { x: number; y: number },
+  rect: { left: number; right: number; top: number; bottom: number },
+): [number, number] {
+  const axis = (low: number, high: number) => (low < EDGE_PAN_PX ? -1 : high < EDGE_PAN_PX ? 1 : 0);
+  // Forward is up the screen: the top band pans forward.
+  return [
+    axis(point.x - rect.left, rect.right - point.x),
+    axis(rect.bottom - point.y, point.y - rect.top),
+  ];
+}
+
 /** A framing asked for by a script rather than input: the orbit target on the
  *  ground plane, distance in metres, yaw and pitch in radians. */
 export interface CameraPose {

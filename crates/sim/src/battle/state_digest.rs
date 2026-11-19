@@ -124,6 +124,9 @@ impl Battle {
         if let Some((_, referee)) = &self.referee {
             referee.digest(&mut d);
         }
+        if let Some(director) = &self.director {
+            director.digest(&mut d);
+        }
         d.finish()
     }
 }

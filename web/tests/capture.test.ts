@@ -28,6 +28,7 @@ const listing = (capture: string[], test: string[] = []): MapEntry[] =>
     source: "authored",
     seed: null,
     encounters: ["e"],
+    scenarios: [],
     benchmarks: [],
   }));
 

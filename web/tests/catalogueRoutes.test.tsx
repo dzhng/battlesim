@@ -19,6 +19,7 @@ const entry = (id: string, status: catalogue.MapStatus): catalogue.MapEntry => (
   source: "authored",
   seed: null,
   encounters: ["assault"],
+  scenarios: [],
   benchmarks: [],
 });
 

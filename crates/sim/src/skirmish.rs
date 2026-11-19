@@ -4,8 +4,8 @@ use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
 use contract::players::{ControllerKind, Player, Seating};
 use contract::skirmish::{
-    MatchEvent, MatchReport, MatchRuleSet, MatchRules, MatchTotals, MatchUnit, PendingPurchase,
-    Phase, PurchaseId, SkirmishSetup, SkirmishView,
+    MatchEvent, MatchReport, MatchRuleSet, MatchRules, MatchTotals, MatchUnit, OfferedPurchase,
+    PendingPurchase, Phase, PurchaseId, SkirmishSetup, SkirmishView,
 };
 use std::collections::{BTreeMap, VecDeque};
 
@@ -23,6 +23,8 @@ pub fn setup_for<P: AsRef<[Player]>>(
         rules,
         sites,
         openings: BTreeMap::new(),
+        opening_credits: BTreeMap::new(),
+        offered: BTreeMap::new(),
     }
 }
 
@@ -184,6 +186,9 @@ pub struct Skirmish {
     pub dispatch_turn: Vec<usize>,
     pub entered: BTreeMap<UnitId, EnteredUnit>,
     pub report: MatchReport,
+    /// Each player's narrowed shop, or none where it buys what its faction
+    /// sells ([`SkirmishSetup::offered`], resolved to unit types).
+    pub offers: Vec<Option<Vec<OfferedPurchase>>>,
 }
 
 impl PlayerState {
@@ -201,6 +206,12 @@ impl PlayerState {
             totals: MatchTotals::default(),
             income_remainder: 0,
         }
+    }
+
+    /// Whether this player lets preparation end: it said so, or its seat is
+    /// directed and so never decides it for itself.
+    pub fn is_ready(&self) -> bool {
+        self.ready || self.controller == ControllerKind::DirectedAi
     }
 
     /// The places pending purchases hold under the unit cap: a squad bought
@@ -227,7 +238,13 @@ impl Skirmish {
         let budget = opening_wallet(&setup.rules);
         let players = source
             .iter()
-            .map(|p| PlayerState::new(p, budget))
+            .map(|p| {
+                let wallet = setup
+                    .opening_credits
+                    .get(&p.id)
+                    .map_or(budget, |credits| credits * CREDIT_SCALE);
+                PlayerState::new(p, wallet)
+            })
             .collect::<Vec<_>>();
         let objectives =
             crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);
@@ -251,6 +268,7 @@ impl Skirmish {
                 totals: vec![MatchTotals::default(); players.len()],
                 events: Vec::new(),
             },
+            offers: vec![None; players.len()],
             players,
             next_dispatch: vec![0; entry_count],
             dispatch_turn,
@@ -268,6 +286,34 @@ impl Skirmish {
             fielded[player].cost += self.entered.get(&unit.id).map_or(0, |e| u64::from(e.price));
         }
         fielded
+    }
+    /// Whether `player`'s shop sells `purchase`: anything its faction sells,
+    /// unless an authored scenario narrowed it.
+    pub fn offers(&self, player: usize, purchase: OfferedPurchase) -> bool {
+        self.offers
+            .get(player)
+            .and_then(Option::as_ref)
+            .is_none_or(|offered| offered.contains(&purchase))
+    }
+    /// Add `credits` to `player`'s wallet: a scenario's grant.
+    pub fn grant(&mut self, player: usize, credits: u64) {
+        self.players[player].wallet += credits * CREDIT_SCALE;
+    }
+    /// Top `player`'s wallet up to `credits`: only the shortfall.
+    pub fn top_up(&mut self, player: usize, credits: u64) {
+        let wallet = &mut self.players[player].wallet;
+        *wallet = (*wallet).max(credits * CREDIT_SCALE);
+    }
+    /// Add `purchases` to `player`'s narrowed shop; a shop nobody narrowed
+    /// already sells them.
+    pub fn offer(&mut self, player: usize, purchases: &[OfferedPurchase]) {
+        if let Some(offered) = &mut self.offers[player] {
+            for purchase in purchases {
+                if !offered.contains(purchase) {
+                    offered.push(*purchase);
+                }
+            }
+        }
     }
     pub fn player_index(&self, id: &str) -> Option<usize> {
         self.players.iter().position(|p| p.id == id)
@@ -298,7 +344,7 @@ impl Skirmish {
     }
     pub fn advance(&mut self, tick: Tick, hz: u32, fielded: &[Fielded]) {
         if self.phase == Phase::Preparation {
-            if self.players.iter().all(|p| p.ready)
+            if self.players.iter().all(PlayerState::is_ready)
                 || tick >= u64::from(self.setup.rules.preparation_s) * u64::from(hz)
             {
                 self.phase = Phase::Active;
@@ -321,13 +367,14 @@ impl Skirmish {
                 index: contract::players::PlayerIndex(index as u16),
                 id: p.id.clone(),
                 controller: p.controller.clone(),
-                ready: p.ready,
+                ready: p.is_ready(),
                 credits: p.wallet as f64 / CREDIT_SCALE as f64,
                 income_per_minute: income_per_minute(&self.setup.rules, p.army(fielded.cost))
                     as f64
                     / CREDIT_SCALE as f64,
                 unit_count: fielded.units + p.reserved_units(),
                 cap: self.setup.rules.max_units,
+                offered: self.offers[index].clone(),
                 pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
             })
             .collect();
@@ -507,6 +554,18 @@ impl Skirmish {
         for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
             d.u64(*clock).u64(*turn as u64);
         }
+        // Only a narrowed shop hashes, so other battles keep their digests.
+        for (index, offered) in self.offers.iter().enumerate() {
+            if let Some(offered) = offered {
+                d.bytes(b"offered")
+                    .u64(index as u64)
+                    .u64(offered.len() as u64);
+                for o in offered {
+                    d.u64(o.kind.0 as u64)
+                        .u64(o.carrier.map_or(u64::MAX, |c| c.0 as u64));
+                }
+            }
+        }
         d.u64(self.entered.len() as u64);
         for (id, u) in &self.entered {
             d.u64(id.0 as u64)
@@ -541,20 +600,16 @@ pub fn starter_rules() -> MatchRules {
 /// Resolve the selected override document over the one base match rule record.
 /// Native tools and browser/server preparation all read these authored documents.
 pub fn resolve_rules(selection: MatchRuleSet) -> MatchRules {
-    let mut document: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
-            .expect("authored base match rules");
-    let overrides = match selection {
-        MatchRuleSet::Skirmish => None,
-        MatchRuleSet::Frontline => Some(include_str!("../../../fixtures/frontline.json")),
-    };
-    if let Some(overrides) = overrides {
-        let overrides: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_str(overrides).expect("authored match rule overrides");
-        document
-            .as_object_mut()
-            .expect("base match rule object")
-            .extend(overrides);
+    let base: MatchRules = serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
+        .expect("authored base match rules");
+    match selection {
+        MatchRuleSet::Skirmish => base,
+        MatchRuleSet::Frontline => {
+            let overrides: serde_json::Map<String, serde_json::Value> =
+                serde_json::from_str(include_str!("../../../fixtures/frontline.json"))
+                    .expect("authored match rule overrides");
+            base.patched(&overrides)
+                .expect("authored resolved match rules")
+        }
     }
-    serde_json::from_value(document).expect("authored resolved match rules")
 }

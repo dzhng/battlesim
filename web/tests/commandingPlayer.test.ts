@@ -55,6 +55,7 @@ const economy = (id: string, index: number, credits: number, ready: boolean): Pl
       blocked: false,
     },
   ],
+  offered: null,
 });
 const match = {
   phase: "preparation",

@@ -23,6 +23,7 @@ import type { SeatClient } from "../sim/client";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
+import { emitUiSignal } from "./uiSignals";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import {
@@ -161,6 +162,12 @@ export function useUnitControl(
   clientRef.current = client;
   /** Space held (D2+): the order overlay shows every own unit. */
   const showOrders = useHeldKey(ShowOrdersBinding.code, enabled ? window : null);
+  useEffect(() => {
+    if (showOrders) emitUiSignal("show_orders");
+  }, [showOrders]);
+  useEffect(() => {
+    if (selectedUnits.length) emitUiSignal("selected");
+  }, [selectedUnits]);
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
@@ -247,6 +254,7 @@ export function useUnitControl(
     async (order: Order, queued = false) => {
       if (!client || !enabledRef.current) return null;
       eventsRef.current?.onIssue?.(order, queued);
+      if (order.kind === "move" && order.facing != null) emitUiSignal("moved_with_facing");
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
       if (clientRef.current === client) {
@@ -452,6 +460,7 @@ export function useUnitControl(
       if (action !== "recall") {
         const units = selectedUnitsRef.current.map((u) => u.id);
         setStored((current) => storeGroup(current, key, units, action === "add"));
+        if (units.length) emitUiSignal("group_set");
         return;
       }
       // A key with no group leaves the selection alone (RTS convention).

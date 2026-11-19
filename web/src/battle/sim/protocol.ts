@@ -187,6 +187,9 @@ export type SimRequest =
       sides: SideName[];
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
+      /** Replay `replay` to `tick` with nothing published, then play live
+       *  from there (`Battle::resume`). */
+      resume?: Resume;
     }
   /** The battle is on screen: nothing ticks before this. */
   | { type: "start" }
@@ -269,3 +272,9 @@ export type SimReply =
   | { type: "seat_reset"; id: number }
   | { type: "order_applied"; player: string }
   | { type: "error"; message: string };
+
+/** A recorded battle and the tick to take it up live from. */
+export interface Resume {
+  replay: string;
+  tick: number;
+}

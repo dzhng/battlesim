@@ -4,12 +4,29 @@ use crate::catalog::Faction;
 use crate::ids::Side;
 use serde::{Deserialize, Serialize};
 
+/// Who commands a player's units, and what an AI controller does with them.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ControllerKind {
     Human,
+    /// The battle's AI plays the seat (the skirmish doctrine).
     ActiveAi,
+    /// The seat does nothing and holds its units at return fire.
     PassiveAi,
+    /// The seat decides nothing itself: its units fight at their own
+    /// engagement, and only an authored scenario's director orders them. It
+    /// never holds a skirmish's preparation open.
+    DirectedAi,
+}
+
+impl ControllerKind {
+    /// Every controller, in the order the publication's layout names them.
+    pub const ALL: [ControllerKind; 4] = [
+        ControllerKind::Human,
+        ControllerKind::ActiveAi,
+        ControllerKind::PassiveAi,
+        ControllerKind::DirectedAi,
+    ];
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -156,31 +173,44 @@ pub fn validate_entry_counts(
 }
 
 impl crate::scenario::ScenarioDefinition {
-    /// A skirmish's contract: who may play, that its players buy every force
-    /// (nothing is authored), that each opening names a player, and that the
-    /// map has the roads the players need.
+    /// A skirmish's contract: who may play, that every authored force is
+    /// one of its players' (an authored scenario places some; a generated
+    /// skirmish none, its players buy every unit), that it carries no events,
+    /// scripts, opponent or encounter, that each opening and opening wallet
+    /// names a player, and that the map has the roads the players need.
     pub fn validate_player_contract(&self) -> Result<(), String> {
         let Some(skirmish) = &self.skirmish else {
             return Ok(());
         };
         validate_players(&self.players, Seating::Skirmish)?;
         validate_players_per_side(&self.players, skirmish.rules.max_players_per_side as usize)?;
-        if !self.units.is_empty()
-            || !self.events.is_empty()
+        if !self.events.is_empty()
             || !self.scripts.is_empty()
+            || !self.authored_scripts.is_empty()
             || self.opponent.is_some()
             || self.encounter.is_some()
         {
-            return Err(
-                "a skirmish carries no authored forces, events, scripts, opponent or \
-                 encounter: its players buy what it fields"
-                    .into(),
-            );
+            return Err("a skirmish carries no events, scripts, opponent or encounter".into());
+        }
+        let seated = |id: &str| self.players.iter().any(|player| player.id == id);
+        for (i, unit) in self.units.iter().enumerate() {
+            if !unit.owner.as_deref().is_some_and(seated) {
+                return Err(format!(
+                    "units[{i}]: a skirmish's authored force must be one of its players'"
+                ));
+            }
         }
         for player_id in skirmish.openings.keys() {
-            if !self.players.iter().any(|player| player.id == *player_id) {
+            if !seated(player_id) {
                 return Err(format!(
                     "opening {player_id} does not name a skirmish player"
+                ));
+            }
+        }
+        for player_id in skirmish.opening_credits.keys() {
+            if !seated(player_id) {
+                return Err(format!(
+                    "opening credits {player_id} do not name a skirmish player"
                 ));
             }
         }

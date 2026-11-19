@@ -74,6 +74,7 @@ function fixture() {
     },
     assignments: {},
     retakes: {},
+    narration: { speakers: {}, lines: {} },
   };
   const snapshot: VoiceSnapshot = {
     revision: "voices-1",
