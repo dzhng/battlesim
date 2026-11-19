@@ -66,23 +66,61 @@ fn existing_binary_path_proves_observation_and_replay_baseline() {
 
 #[test]
 fn neutral_is_visible_as_a_third_slot_and_only_returns_fire() {
-    let setup = scenario(serde_json::json!([
-        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
+    let mut setup = scenario(serde_json::json!([
+        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0],
+          "engagement": "return_fire_only" },
         { "side": "neutral", "kind": "test_rifle", "position": [220.0, 100.0] },
-        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0],
+          "engagement": "return_fire_only" }
     ]));
+    // Test permission to answer fire, independently of casualties and pinning.
+    for weapon in setup.rules.weapons.values_mut() {
+        weapon.damage = 0.0;
+        weapon.near_miss_suppression = 0.0;
+    }
     let mut battle = Battle::new(&setup, 19);
     assert_eq!(battle.observe(Side::Blue).own.len(), 1);
     assert_eq!(battle.observe(Side::Red).own.len(), 1);
     assert_eq!(battle.observe(Side::Neutral).own.len(), 1);
 
+    for _ in 0..120 {
+        battle.step();
+        assert!(
+            battle
+                .unit(UnitId(1))
+                .unwrap()
+                .mounts
+                .iter()
+                .all(|m| m.shots == 0),
+            "neutral must not start the fight"
+        );
+    }
+    assert_eq!(
+        battle
+            .accept(CommandEnvelope {
+                side: Side::Blue,
+                player: None,
+                seq: 1,
+                order: Order::SetEngagement {
+                    units: vec![UnitId(0)],
+                    policy: contract::command::Engagement::FireAtWill,
+                },
+                queued: false,
+            })
+            .error,
+        None
+    );
     let mut neutral_shots = 0;
     for _ in 0..120 {
         battle.step();
-        neutral_shots += battle
-            .rounds()
-            .filter(|(_, round)| round.unit == UnitId(1))
-            .count();
+        for (_, round) in battle.rounds().filter(|(_, round)| round.unit == UnitId(1)) {
+            assert_eq!(
+                round.aimed_at,
+                Some(UnitId(0)),
+                "neutral only answers its attacker"
+            );
+            neutral_shots += 1;
+        }
     }
     assert!(
         neutral_shots > 0,
