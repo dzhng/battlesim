@@ -507,9 +507,9 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
                 (ca*hub*1.34, sa*hub*1.34, hub*.235), "Z", mats["steel"], node,
                 seg=10, bevel=.004, lods=NEAR)
             ha = a + 0.35
-            line(f"rotor_{name}_link_{k}", (math.cos(ha)*hub*.7, math.sin(ha)*hub*.7, swash_z),
+            line(f"rotor_{name}_link_{k}", (math.cos(ha)*hub*.7,math.sin(ha)*hub*.7,swash_z),
                  (ca*hub*1.30-sa*chord*.17, sa*hub*1.30+ca*chord*.17, -hub*.10),
-                 mats["steel"], node, width=.040, height=.040, lods=NEAR)
+                 mats["steel"], node, width=.055,height=.055,lods=NEAR)
         else:
             box(f"rotor_{name}_cuff_{k}", (hub*1.4, chord*.85, chord*thick*1.5),
                 (ca*(root+hub*.7), sa*(root+hub*.7), 0), mats["dark"], node,
