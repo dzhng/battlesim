@@ -56,6 +56,7 @@ fn lethal_damage_keeps_the_rounds_dead_shooter() {
             seeker_target: None,
             aimed_at: None,
             layer: contract::catalog::AltitudeLayer::Ground,
+            expected_arrival_tick: 0.0,
         },
     )]);
     let outcome = damage::resolve(
@@ -129,6 +130,7 @@ fn direct_and_blast_structural_damage_keep_the_same_round_source() {
             seeker_target: None,
             aimed_at: None,
             layer: contract::catalog::AltitudeLayer::Ground,
+            expected_arrival_tick: 0.0,
         },
     )]);
     let outcome = damage::resolve(
@@ -332,6 +334,7 @@ fn pass_through_structural_hit_keeps_round_source() {
             seeker_target: None,
             aimed_at: None,
             layer: contract::catalog::AltitudeLayer::Ground,
+            expected_arrival_tick: 0.0,
         },
     )]);
     let outcome = damage::resolve(
@@ -593,6 +596,7 @@ fn squad_emits_one_death_only_when_its_last_soldier_dies() {
                 seeker_target: None,
                 aimed_at: None,
                 layer: contract::catalog::AltitudeLayer::Ground,
+                expected_arrival_tick: 0.0,
             },
         )]);
         let outcome = damage::resolve(
@@ -673,6 +677,7 @@ fn one_blast_preserves_source_for_multiple_full_unit_deaths() {
             seeker_target: None,
             aimed_at: None,
             layer: contract::catalog::AltitudeLayer::Ground,
+            expected_arrival_tick: 0.0,
         },
     )]);
     let outcome = damage::resolve(

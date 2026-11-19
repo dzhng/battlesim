@@ -1,5 +1,5 @@
-//! Committed fire's pure damage ledger (slice 03 is its consumer).
-#![allow(dead_code)]
+//! Committed fire: the side's flagged rounds on their way to each target,
+//! and whether a shot would only add to a kill they already cover.
 use std::collections::BTreeMap;
 
 use contract::ids::{Side, UnitId};
@@ -9,6 +9,7 @@ use contract::weapons::WeaponDefinition;
 use crate::damage::pierce_share;
 use crate::math::V3;
 use crate::units::Unit;
+use crate::weapons::{FireContext, MountSpec, Ready, Target};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Hit {
@@ -103,6 +104,30 @@ pub fn hit_damage(def: &WeaponDefinition, rules: &Rules, target: &Unit, from: V3
 pub fn doomed(committed: &Committed, side: Side, target: &Unit, arrive_tick: f64) -> bool {
     let charges = target.protection.as_ref().map_or(0, |state| state.charges);
     committed.landing_by(side, target.id, arrive_tick, charges) >= remaining_hp(target)
+}
+
+/// Whether a flagged kind's shot at `target`, landing after its time of
+/// flight, would only add to damage already committed to kill it.
+pub(super) fn overkill(
+    ctx: &FireContext,
+    units: &[Unit],
+    side: Side,
+    spec: &MountSpec,
+    ready: &Ready,
+    target: Target,
+) -> bool {
+    let Target::Unit(target) = target else {
+        return false;
+    };
+    ctx.arsenal.weapons[spec.kinds[ready.kind]]
+        .def
+        .avoids_overkill
+        && doomed(
+            ctx.committed,
+            side,
+            &units[target.0 as usize],
+            ctx.tick as f64 + ready.time_of_flight_s * f64::from(ctx.rules.tick_hz),
+        )
 }
 
 #[cfg(test)]

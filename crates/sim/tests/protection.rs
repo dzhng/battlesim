@@ -298,6 +298,7 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
             seeker_target: None,
             aimed_at: None,
             layer: contract::catalog::AltitudeLayer::Ground,
+            expected_arrival_tick: 0.0,
         },
     )]);
     let mut events = Vec::new();
@@ -574,6 +575,7 @@ fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
             seeker_target: None,
             aimed_at: None,
             layer: contract::catalog::AltitudeLayer::Ground,
+            expected_arrival_tick: 0.0,
         },
     )]);
     let mut events = vec![];

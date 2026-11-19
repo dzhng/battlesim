@@ -17,6 +17,8 @@ pub struct Round {
     /// The higher launch/target band, or LowAir for deliberately lofted
     /// ground fire, fixed for its whole flight. Never read from its height.
     pub layer: AltitudeLayer,
+    /// Launch tick plus the assessed flight time, in simulation ticks.
+    pub expected_arrival_tick: f64,
 }
 
 impl Battle {
@@ -263,6 +265,48 @@ impl Battle {
                     })
             })
             .collect();
+        let mut committed = weapons::overkill::Committed::default();
+        for (id, round) in &self.rounds {
+            let Some(target) = round.aimed_at else {
+                continue;
+            };
+            let Some(target_unit) = self.units.get(target.0 as usize) else {
+                continue;
+            };
+            if !target_unit.on_field() || round.expected_arrival_tick < self.tick as f64 {
+                continue;
+            }
+            let def = &self.arsenal.weapons[round.weapon].def;
+            if !def.avoids_overkill {
+                continue;
+            }
+            let Some(projectile) = self.projectiles.get(*id) else {
+                continue;
+            };
+            let steering = if def.seeker.is_some() {
+                round.seeker_target.is_some()
+            } else if def.ballistics.guidance.is_some() {
+                projectile.guidance.is_some_and(|g| g.supported)
+            } else {
+                true
+            };
+            if steering {
+                committed.add(
+                    round.side,
+                    target,
+                    weapons::overkill::Hit {
+                        arrive_tick: round.expected_arrival_tick,
+                        damage: weapons::overkill::hit_damage(
+                            def,
+                            &self.rules,
+                            target_unit,
+                            projectile.position,
+                        ),
+                        interceptable: def.interceptable,
+                    },
+                );
+            }
+        }
         // Windows change between choosing them and firing, so each step
         // borrows them afresh.
         macro_rules! context {
@@ -278,6 +322,7 @@ impl Battle {
                     seed: self.seed,
                     knowledge: &self.knowledge,
                     rounds: &rounds,
+                    committed: &committed,
                 }
             };
         }
@@ -335,6 +380,8 @@ impl Battle {
                             _ => None,
                         },
                         layer,
+                        expected_arrival_tick: self.tick as f64
+                            + shot.time_of_flight_s * self.rules.tick_hz as f64,
                     },
                 );
                 // A guided round is supported by the mount that launched it.

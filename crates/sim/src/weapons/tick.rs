@@ -154,6 +154,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
     let turret_rate = ctx.rules.movement.turret_turn_deg_s.to_radians() * dt;
     let tolerance = ctx.rules.movement.bearing_tolerance_deg.to_radians();
     let mut shots = Vec::new();
+    let mut tally = ctx.committed.clone();
     for i in 0..units.len() {
         if !units[i].on_field() {
             continue;
@@ -185,6 +186,10 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
         let (mut ordered_working, mut can_damage) = (0u64, false);
         let mut plans = Vec::with_capacity(units[i].mounts.len());
         for m in 0..units[i].mounts.len() {
+            let ctx = &FireContext {
+                committed: &tally,
+                ..*ctx
+            };
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
@@ -355,6 +360,11 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             else {
                 continue;
             };
+            let ctx = &FireContext {
+                committed: &tally,
+                ..*ctx
+            };
+            let mut launch_hits = Vec::new();
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
@@ -434,6 +444,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             mount.reason = match (&mount.lock, &resolved, assessment) {
                 (Some(lock), Some(r), Some(Ok(ready))) => {
                     let (target, k) = (lock.target, ready.kind);
+                    let overkill_hold = Some(target) != ordered
+                        && overkill::overkill(ctx, units, unit.side, spec, &ready, target);
                     engaging = mount.cycles.iter().any(active);
                     if unit.hull.is_some()
                         && unit
@@ -463,6 +475,10 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                     } else if mount.support.is_some() {
                         // One missile guided at a time: the next waits, loaded and aimed.
                         ActionReason::Guiding
+                    } else if overkill_hold {
+                        // Keep the lock and the engagement cycle alive while
+                        // committed fire is enough to finish the target.
+                        ActionReason::HoldingFire
                     } else if unit.garrisoned()
                         && !participants(unit, &mount, spec)
                             .any(|k| ctx.windows.faces(unit, k, r.point, ctx.rules, ctx.tick))
@@ -479,7 +495,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                         }
                     } else {
                         let moving = moved.carrier(i, unit, &mount);
-                        shots.extend(fire(
+                        let fired = fire(
                             ctx,
                             unit,
                             units,
@@ -492,7 +508,34 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                             moving,
                             rng,
                             &mut leaned,
-                        ));
+                        );
+                        if let Some(shot) = &fired {
+                            let def = &ctx.arsenal.weapons[shot.weapon].def;
+                            if def.avoids_overkill {
+                                if let Target::Unit(target) = shot.target {
+                                    let target_unit = &units[target.0 as usize];
+                                    for launch in &shot.launches {
+                                        launch_hits.push((
+                                            unit.side,
+                                            target,
+                                            overkill::Hit {
+                                                arrive_tick: ctx.tick as f64
+                                                    + shot.time_of_flight_s
+                                                        * ctx.rules.tick_hz as f64,
+                                                damage: overkill::hit_damage(
+                                                    def,
+                                                    ctx.rules,
+                                                    target_unit,
+                                                    launch.origin,
+                                                ),
+                                                interceptable: def.interceptable,
+                                            },
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                        shots.extend(fired);
                         ActionReason::Firing
                     }
                 }
@@ -520,6 +563,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 ordered_working |= 1 << m;
             }
             units[i].mounts[m] = mount;
+            for (side, target, hit) in launch_hits {
+                tally.add(side, target, hit);
+            }
         }
         // Who fired from his lean point stays out on it a while; after a
         // burst out he tucks back in for a spell.

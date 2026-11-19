@@ -88,19 +88,27 @@ pub(super) fn select(
         .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)))
         .chain(areas.iter().map(|&(_, c)| (Target::Contact(c), true)));
     let mut reason = None;
+    let mut doomed = Vec::new();
     for (target, must_damage) in stages {
         // An area centred off the map, or an air contact, has no ground to aim at.
         let Some(r) = resolve(ctx, unit.side, target, units) else {
             continue;
         };
-        match assessed.target(ctx, unit, units, mount, spec, target, &r) {
-            Ok(k) => {
+        match assessed.shot(ctx, unit, units, mount, spec, target, &r) {
+            Ok(ready) => {
                 // The middle stage is only the unlimited default gun against
                 // what it cannot hurt.
-                let harms = hurts(ctx, spec, k, target, units);
-                if harms == must_damage && (harms || weapons[spec.kinds[k]].def.fires_regardless())
+                let harms = hurts(ctx, spec, ready.kind, target, units);
+                if harms == must_damage
+                    && (harms || weapons[spec.kinds[ready.kind]].def.fires_regardless())
                 {
-                    return (Some(target), ActionReason::Aiming);
+                    let target_doomed =
+                        overkill::overkill(ctx, units, unit.side, spec, &ready, target);
+                    if target_doomed {
+                        doomed.push(target);
+                    } else {
+                        return (Some(target), ActionReason::Aiming);
+                    }
                 }
             }
             Err(e) => {
@@ -108,7 +116,11 @@ pub(super) fn select(
             }
         }
     }
-    (None, reason.unwrap_or(ActionReason::NoCompatibleTarget))
+    let current = mount.lock.as_ref().map(|lock| lock.target);
+    let fallback = current
+        .filter(|target| doomed.contains(target))
+        .or_else(|| doomed.first().copied());
+    (fallback, reason.unwrap_or(ActionReason::NoCompatibleTarget))
 }
 
 /// How many other units of the chooser's side have a mount locked on `target`.
@@ -319,9 +331,13 @@ pub(super) fn automatic_lock(
         // (out of range, obstructed, dead): a crew does not swap targets as
         // the ranking shifts. The one exception is the default gun working on
         // what it cannot hurt, which takes anything it can.
-        Some((t, r)) => match assessed.target(ctx, unit, units, mount, spec, *t, r) {
+        Some((t, r)) => match assessed.shot(ctx, unit, units, mount, spec, *t, r) {
             Err(_) => true,
-            Ok(k) => !hurts(ctx, spec, k, *t, units),
+            Ok(ready) => {
+                !hurts(ctx, spec, ready.kind, *t, units)
+                    || (mount.support.is_none()
+                        && overkill::overkill(ctx, units, unit.side, spec, &ready, *t))
+            }
         },
     };
     if !reconsider {

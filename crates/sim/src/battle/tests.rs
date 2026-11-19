@@ -195,6 +195,7 @@ fn a_seeker_flies_at_its_own_sides_contact() {
                 seeker_target: Some(Target::Contact(blue_id)),
                 aimed_at: None,
                 layer: AltitudeLayer::Ground,
+                expected_arrival_tick: 0.0,
             },
         );
         projectile
@@ -512,6 +513,7 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
                         seeker_target: None,
                         aimed_at: None,
                         layer: AltitudeLayer::Ground,
+                        expected_arrival_tick: 0.0,
                     },
                 );
                 FlightEvent::Impact(flight::Impact {

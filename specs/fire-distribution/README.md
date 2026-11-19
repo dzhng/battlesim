@@ -1,6 +1,6 @@
 # Fire distribution
 
-**Status:** slices 00, 01 and 02 landed; 03 in progress. **Updated:** 2026-11-19.
+**Status:** slices 00–03 landed; 04 (authoring and closeout) next. **Updated:** 2026-11-19.
 
 Two changes to how a crew picks and keeps its target in automatic targeting:
 
@@ -19,7 +19,10 @@ You are implementing the fire-distribution spec in `crates/sim`. Slice 00 has
 landed: target choice lives in `weapons/choice.rs` and `GroundRules` moved to
 `contract/src/scenario/ground.rs`. Slice 02 has landed: `weapons/overkill.rs` holds the pure ledger and the
 `avoids_overkill` flag exists (no row sets it). Slice 01 has landed: target spread ranks by weighted distance with the
-`targeting` rules section. Next: 03, then 04. Each
+`targeting` rules section. Slice 03 has landed: overkill runs in battle for any flagged row (rounds
+carry `expected_arrival_tick`, `Shot` carries `time_of_flight_s`, and
+`overkill::overkill` is the one check target choice and the fire gate share).
+Next: 04. Each
 slice file names its contract, seam, tests, what stays green and what you may
 decide yourself. Anything else it leaves open is a gap: record it in the
 decisions ledger below rather than inventing it silently.
@@ -45,7 +48,7 @@ TODO:
 - [x] [00](slices/00-make-room.md) Move target choice into `weapons/choice.rs`; digests identical.
 - [x] [01](slices/01-target-spread.md) Target spread: drop the cost key, weighted distance, seeded spread.
 - [x] [02](slices/02-committed-ledger.md) The committed-fire ledger as a pure, unit-tested owner; the contract flag.
-- [ ] [03](slices/03-overkill-in-play.md) Overkill in play: build the ledger, tally launches, the hold gate, reconsider.
+- [x] [03](slices/03-overkill-in-play.md) Overkill in play: build the ledger, tally launches, the hold gate, reconsider.
 - [ ] [04](slices/04-author-and-closeout.md) Author the flags, regenerate, full checks, balance report, docs, close.
 
 Update this section (status, date, ticks, warnings) before you end each pass.
@@ -219,6 +222,9 @@ Where this ledger differs from the map, this ledger wins.
 | I3 | 01 | The spread draw is keyed by the mount's spec index (`Mount.spec`), unique per mount within a unit type. | A mount's index in its unit; the first draft compared a cloned mount by pointer, which always read 0. |
 | I4 | 01 | Tests that pinned cost ranking were renamed to the mechanic they still prove; the exact-tie test zeroes the spread to test the id tie-break. | Cost no longer ranks (T1); a tie is now broken by the seeded spread first. |
 | I5 | 01 | `TargetingRules` is refused at admission unless both keys are finite and non-negative and the spread is below 1. | Keeps the spread factor positive. |
+| I6 | 03 | The hold gate sits after `Guiding` and before the garrison window check. | A held garrison reports the hold, not a window it would not use. |
+| I7 | 03 | One check, `overkill::overkill`, answers "would this flagged shot only add to a covered kill?" for target choice, reconsider and the gate. | One owner instead of three copies. |
+| I8 | 03 | When only doomed targets qualify, `select` returns the current lock if doomed, else the first doomed one, with the idle reason unchanged. | A4; the tick recomputes the shown reason from the assessment. |
 | I2 | 02 | `enemy_in_reach` and `return_fire_threat` moved into `choice.rs`. | Only target choice uses them; frees room in `weapons.rs` under the size budget. |
 
 ## Sharp edges

@@ -106,6 +106,7 @@ fn launch_red_round(
             seeker_target: None,
             aimed_at: None,
             layer,
+            expected_arrival_tick: 0.0,
         },
     );
     projectile

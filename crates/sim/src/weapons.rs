@@ -24,7 +24,7 @@ mod fire_point;
 use fire_point::{fire_from, hides_behind, FirePoint};
 mod muzzle;
 mod observation;
-mod overkill;
+pub(crate) mod overkill;
 mod permission;
 use permission::permitted;
 pub mod operators;
@@ -237,12 +237,15 @@ pub struct Shot {
     pub mount: usize,
     pub weapon: usize,
     pub launches: Vec<Launch>,
+    /// Seconds for the assessed round to reach its target.
+    pub time_of_flight_s: f64,
     pub target: Target,
     /// A gun finished a firing cycle with this shot ([`Cycle::spend_round`]),
     /// or the mount ran dry.
     pub cycle_ended: bool,
 }
 
+#[derive(Clone, Copy)]
 pub struct FireContext<'a> {
     pub world: &'a WorldGeometry,
     pub windows: &'a crate::garrison::Windows,
@@ -255,6 +258,7 @@ pub struct FireContext<'a> {
     pub knowledge: &'a [SideKnowledge; 3],
     /// The interceptable rounds in flight.
     pub rounds: &'a [IncomingRound],
+    pub committed: &'a overkill::Committed,
 }
 
 /// How far a squad's own weapons reach: its squad mount's longest range
@@ -784,6 +788,7 @@ fn fire(
         mount: m,
         weapon: weapon_index,
         launches,
+        time_of_flight_s: ready.time_of_flight_s,
         target,
         cycle_ended,
     })
