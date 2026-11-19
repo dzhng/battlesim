@@ -1,6 +1,6 @@
 export type { ViewportGpu } from "./viewportRender";
 import type { LabViewportProps, FrameCounts, FramePlate } from "./viewportRender";
-import { ViewportGestureOwner, type ViewportPointer } from "./viewportInput";
+import { interactionSurface, ViewportGestureOwner, type ViewportPointer } from "./viewportInput";
 export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 export type { ViewportCursor } from "./viewportRender";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
@@ -253,15 +253,6 @@ export function LabViewport({
     const { signal } = lifetime;
     let raf = 0;
     const setCursorAction = setCursorActionRef.current;
-    // The battlefield the pointer acts on: the canvas, or a callout over it.
-    // The HUD's controls are not: over them the ground neither hovers nor
-    // measures, and the app's cursor (AppCursor) shows there regardless.
-    const interactionSurface = (target: EventTarget | null) =>
-      target === canvas
-        ? canvas
-        : target instanceof Element
-          ? target.closest<HTMLElement>(".ro-layer .ro-unit")
-          : null;
     // The pose input and scripts ask for, and the pose drawn for it: the
     // same one unless camera clearance holds it off an obstacle.
     let asked = initialCamera;
@@ -625,7 +616,8 @@ export function LabViewport({
           let edge: [number, number] = [0, 0];
           if (
             pointer &&
-            (interactionSurface(document.elementFromPoint(pointer.x, pointer.y)) === canvas ||
+            (interactionSurface(canvas, document.elementFromPoint(pointer.x, pointer.y)) ===
+              canvas ||
               gestures.active)
           ) {
             edge = edgePan(pointer, canvas.getBoundingClientRect());
@@ -764,7 +756,7 @@ export function LabViewport({
           }
           frameRate.current?.frame(now, drawn);
           const surface = pointer
-            ? interactionSurface(document.elementFromPoint(pointer.x, pointer.y))
+            ? interactionSurface(canvas, document.elementFromPoint(pointer.x, pointer.y))
             : null;
           const pointerState: ViewportPointer = {
             position: surface || gestures.rightPressRay ? pointer : null,
@@ -990,7 +982,7 @@ export function LabViewport({
           // Let the HUD own its native click sequence. Capturing a HUD press
           // on the canvas drops the button's pointerup and prevents clicks.
           if (e.target instanceof Element && e.target.closest(".hud")) return;
-          if (!interactionSurface(e.target)) return;
+          if (!interactionSurface(canvas, e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
             gestures.down({
@@ -1027,7 +1019,7 @@ export function LabViewport({
         const onMove = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
-          const over = interactionSurface(e.target);
+          const over = interactionSurface(canvas, e.target);
           pointer = over || gestures.active ? { x: e.clientX, y: e.clientY } : null;
           gestures.move({ x: e.clientX, y: e.clientY });
         };
@@ -1059,12 +1051,7 @@ export function LabViewport({
         cancelInputRef.current = cancelGesture;
         const onWheel = (e: WheelEvent) => {
           if (!inputEnabledRef.current) return;
-          const target = e.target;
-          if (
-            target !== canvas &&
-            !(target instanceof Element && target.closest(".ro-layer .ro-unit"))
-          )
-            return;
+          if (!interactionSurface(canvas, e.target)) return;
           e.preventDefault();
           steer({ wheel: e.deltaY }, 0);
           see(0);
