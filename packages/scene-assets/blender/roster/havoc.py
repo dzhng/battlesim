@@ -38,8 +38,8 @@ def build(variant, v):
     # Keep the donor's framed panes while using the same controlled glass
     # finish as the other attack helicopters, so cockpit depth survives close
     # views without turning the windows into black holes.
-    m["canopy"] = flat_paint("havoc_laminated_glass", (0.014, 0.022, 0.028), rough=0.16,
-                             grime=0, coverage=("blended", 0.52), role="glass")
+    m["canopy"] = flat_paint("havoc_laminated_glass", (0.018, 0.028, 0.034), rough=0.13,
+                             grime=0, coverage=("blended", 0.38), role="glass")
     fitted_airframe(v, "mi_28_havoc", m)
     if not v.wreck:
         # Keep the donor glazing, but give each tandem station a visible seat,
@@ -65,6 +65,7 @@ def build(variant, v):
     # fixed to the mast and remains facing forward as the blades turn.
     A.rotor("main", (3.315, 0, 3.74), 8.6, 5, 0.58, m, hull, hub=.44, mast=.33,
             droop=.03, phase=.3)
+    cyl("main_rotor_gearbox", .29, .22, (3.315, 0, 3.98), "Z", m["dark"], hull, seg=16, bevel=.025, lods=MID)
     cyl("mast_radar_post", .18, .65, (3.315, 0, 4.20), "Z", m["dark"], hull, seg=12)
     radome = m["paint"]
     sections = []

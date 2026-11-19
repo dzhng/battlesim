@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from aircraft_donor import fitted_airframe
-from parts import box, flat_paint
+from parts import box, cyl, flat_paint
 from vehicle_parts import MID
 from vehicle_export import run, rig
 
@@ -18,8 +18,8 @@ def build(variant, v):
     # The donor has separate cockpit and cabin panes. Keep the shared glass
     # role, but give these armored windows a controlled blue-grey tint and
     # enough coverage for the crew and seat silhouettes to read through them.
-    m["canopy"] = flat_paint("hind_laminated_glass", (0.014, 0.022, 0.028), rough=0.16,
-                             grime=0, coverage=("blended", 0.52), role="glass")
+    m["canopy"] = flat_paint("hind_laminated_glass", (0.018, 0.028, 0.034), rough=0.13,
+                             grime=0, coverage=("blended", 0.38), role="glass")
     fitted_airframe(v, "mi_24_mi_35_hind", m)
     if not v.wreck:
         # The donor canopy is the shell. These restrained interior pieces sit
