@@ -9924,7 +9924,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "s300_missile"
               ]
             }
           ],
@@ -10021,7 +10021,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "s350_missile"
               ]
             }
           ],
@@ -30742,7 +30742,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "s300_missile"
           ]
         }
       ],
@@ -30842,7 +30842,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "s350_missile"
           ]
         }
       ],
@@ -47271,7 +47271,7 @@
     "patriot_pac3": {
       "accel_mps2": 95.0,
       "aim_s": 2.0,
-      "ammo": 6,
+      "ammo": 4,
       "anti_radiation": false,
       "appearance": "sam",
       "armor_piercing": false,
@@ -47637,6 +47637,126 @@
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
+    },
+    "s300_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 4,
+      "anti_radiation": false,
+      "appearance": "sam",
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 220.0,
+      "decoyable": true,
+      "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2400.0
+          }
+        ]
+      },
+      "description": "S-300 long-range aircraft-only missile.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "48N6E2",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 100.0,
+      "proximity_fuse_m": 3.0,
+      "range_m": 2400.0,
+      "reload_s": 15.0,
+      "requires_clear_launch_path": true,
+      "resupply_rounds_per_s": 0.11,
+      "round_cost": 45,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 2400.0,
+          "scatter_mrad": 0.5
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
+    "s350_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 12,
+      "anti_radiation": false,
+      "appearance": "sam",
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 70.0,
+      "decoyable": true,
+      "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2000.0
+          }
+        ]
+      },
+      "description": "S-350 long-range aircraft-only missile.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "9M96E2",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 40.0,
+      "proximity_fuse_m": 3.0,
+      "range_m": 2000.0,
+      "reload_s": 4.0,
+      "requires_clear_launch_path": true,
+      "resupply_rounds_per_s": 0.11,
+      "round_cost": 45,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 2000.0,
+          "scatter_mrad": 0.5
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
     },
     "sead_missile": {
       "accel_mps2": 400.0,

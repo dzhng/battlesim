@@ -527,10 +527,30 @@
       "seeker_fov_deg": 100,
       "decoyable": true
     },
+    "s300_missile": {
+      "extends": "aa_long",
+      "name": "48N6E2",
+      "description": "S-300 long-range aircraft-only missile.",
+      "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2400, "scatter_mrad": 0.5 } },
+      "ammo": 4,
+      "reload_s": 15,
+      "penetration": 100,
+      "damage": 220
+    },
+    "s350_missile": {
+      "extends": "aa_long",
+      "name": "9M96E2",
+      "description": "S-350 long-range aircraft-only missile.",
+      "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2000, "scatter_mrad": 0.5 } },
+      "ammo": 12,
+      "reload_s": 4,
+      "damage": 70
+    },
     "patriot_pac3": {
       "appearance": "sam",
       "proximity_fuse_m": 5,
       "extends": "aa_long",
+      "ammo": 4,
       "name": "PAC-3 MSE",
       "description": "Long-range missile that also shoots down missiles fired from aircraft.",
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }

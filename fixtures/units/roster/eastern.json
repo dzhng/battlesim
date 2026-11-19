@@ -3394,7 +3394,7 @@
           "id": "launcher",
           "name": "S-300PMU2 Favorit",
           "weapons": [
-            "aa_long"
+            "s300_missile"
           ],
           "turret": true,
           "pivot_m": [
@@ -3476,7 +3476,7 @@
           "id": "launcher",
           "name": "S-350",
           "weapons": [
-            "aa_long"
+            "s350_missile"
           ],
           "turret": true,
           "pivot_m": [
