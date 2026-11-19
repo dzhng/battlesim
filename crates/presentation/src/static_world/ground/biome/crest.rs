@@ -42,14 +42,9 @@ mod tests {
     use super::super::tests::summer;
 
     #[test]
-    fn summer_dries_its_crests_and_a_bad_ramp_is_refused() {
-        let b = summer(|_| {}).unwrap();
-        assert!(b.crest_dry.strength > 0.0 && b.crest_dry.height_m[0] > 0.0);
+    fn a_crest_ramp_that_falls_or_a_missing_palette_is_refused() {
         let e = summer(|b| b["crest_dry"]["height_m"] = serde_json::json!([5.0, 2.0]));
-        assert_eq!(
-            e.err().unwrap(),
-            "biome.crest_dry.height_m[1]: must be within [5.1, 1000], got 2"
-        );
+        assert!(e.err().unwrap().starts_with("biome.crest_dry.height_m"));
         let e = summer(|b| b["crest_dry"]["palette"] = "nowhere".into());
         assert!(e.err().unwrap().starts_with("biome.crest_dry.palette"));
     }

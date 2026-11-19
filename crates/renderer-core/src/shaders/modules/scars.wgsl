@@ -233,7 +233,7 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   // The tread: pads across the track's axis every pitch, angled back from
   // the middle of each track (chevrons), wandering in phase and some barely
   // pressed. The axis is the wear's slope turned square, taken without its
-  // sign (it flips across a band's middle) and in steps of 1/32 turn so the
+  // sign (it flips across a band's middle) and in steps of 1/64 turn so the
   // prints stay straight. Gone before a pad is a few pixels deep.
   let T = P.look.tread;
   let shown = (1.0 - smoothstep(GROUND_SCARS_TREAD_SHOWN_FROM, GROUND_SCARS_TREAD_SHOWN_TO, footprint / T.x)) * detail;

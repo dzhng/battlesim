@@ -45,6 +45,8 @@ crate::records! {
     Struct PlotRecord {
         colour: [f32; 4],
         rows: [f32; 4],
+        /// Mottle, kind, row break, and whether the plot is edged (1) or
+        /// runs over a hill with no verge (0).
         detail: [f32; 4],
         grain: [f32; 4],
         dry: [f32; 4],

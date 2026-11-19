@@ -357,7 +357,8 @@ fn growTile(wg: vec3u, li: u32, emit: bool, first: vec2u) -> vec2u {
     // and half with the tussock beneath it: the grain a field keeps when
     // it is too far to show blades. Dry grass is paler, never darker.
     let tussock = valueNoise(p * (*P).grain.x + vec2f(63.9, 27.4));
-    // The ground's dry crests, as the terrain under the clump draws them.
+    // The ground's dry crests, by the terrain's rule on the clump's grid
+    // cell's mean slope.
     var parchedCrest = 0.0;
     if (terrainParams.crestDry.x > 0.0) {
       parchedCrest = groundCrest(root.z, dot(grassGroundNormal(p), (*P).sun.xyz));

@@ -205,14 +205,16 @@ impl Ground {
     }
 
     /// The window of tiles a camera at `eye` grows grass over, by the
-    /// rules the field grows by and down to the map's lowest ground.
+    /// rules the field grows by, out to where the highest ground within its
+    /// reach still stands in it.
     pub fn grass_window(&self, eye: [f64; 3], metres_per_px: f64) -> Window {
-        // The lowest ground the grass could reach, not the whole map's: a
-        // deep valley elsewhere must not lift the strategic cut-off.
+        // Higher ground stands nearer the eye, so it keeps grass farther out:
+        // the highest ground within reach sizes the window, and a hilltop's
+        // clumps never end at a tile edge.
         let reach = self.biome.grass.fade_m_per_px[1] / metres_per_px;
         window(
             eye,
-            self.source.grid.lowest_within(eye[0], eye[1], reach),
+            self.source.grid.highest_within(eye[0], eye[1], reach),
             metres_per_px,
             &self.biome.grass,
         )
@@ -499,11 +501,11 @@ pub fn metres_per_pixel(fov_y: f64, height_px: f64) -> f64 {
 }
 
 /// The tiles round `eye` within the grass's reach: where one pixel spans
-/// less than the fade's end, down to the `lowest` ground. None when the eye
-/// is higher than that (the strategic height).
-pub fn window(eye: [f64; 3], lowest: f64, metres_per_px: f64, rules: &GrassRules) -> Window {
+/// less than the fade's end, on `ground` as high as the highest it covers.
+/// None when the eye is higher than that (the strategic height).
+pub fn window(eye: [f64; 3], ground: f64, metres_per_px: f64, rules: &GrassRules) -> Window {
     let reach = rules.fade_m_per_px[1] / metres_per_px;
-    let drop = (eye[2] - lowest).max(0.0);
+    let drop = (eye[2] - ground).max(0.0);
     if drop >= reach {
         return Window {
             reach,

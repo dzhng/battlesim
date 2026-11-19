@@ -109,7 +109,7 @@ impl Ground {
                     k.mottle,
                     p.kind as f64,
                     on(k.row_break),
-                    f64::from(u8::from(p.edged)),
+                    if p.edged { 1.0 } else { 0.0 },
                 ]),
                 grain: f4([1.0 / k.grain_m, on(k.grain), 1.0 / k.grain_stretch, 0.0]),
                 dry: f4([1.0 / k.patch_m[0], 1.0 / k.patch_m[1], 0.0, 0.0]),
@@ -384,8 +384,8 @@ pub struct Grid {
     pub page_ids: Vec<u32>,
     /// `page_size²` row-major heights per present page.
     pub heights: Vec<f32>,
-    /// Each page's lowest height (absent pages 0), filled on first use.
-    pub page_mins: std::sync::OnceLock<Vec<f32>>,
+    /// Each page's highest height (absent pages 0), filled on first use.
+    pub page_tops: std::sync::OnceLock<Vec<f32>>,
 }
 
 impl Grid {
@@ -417,21 +417,21 @@ impl Grid {
         }
     }
 
-    /// The lowest ground within `radius` metres (a square round `(x, y)`,
-    /// clamped to the grid) by its pages' minima: never above the true
-    /// lowest there, and never below `min_height`.
-    pub fn lowest_within(&self, x: f64, y: f64, radius: f64) -> f64 {
+    /// The highest ground within `radius` metres (a square round `(x, y)`,
+    /// clamped to the grid) by its pages' maxima: never below the true
+    /// highest there.
+    pub fn highest_within(&self, x: f64, y: f64, radius: f64) -> f64 {
         if self.nx < 2 || self.ny < 2 || self.page_size == 0 || self.spacing <= 0.0 {
-            return self.min_height;
+            return 0.0;
         }
         let size = self.page_size;
         let cols = self.nx.div_ceil(size);
         let rows = self.ny.div_ceil(size);
-        let mins = self.page_mins.get_or_init(|| {
+        let tops = self.page_tops.get_or_init(|| {
             let mut out = vec![0f32; cols * rows];
             for (p, &id) in self.page_ids.iter().enumerate() {
                 let page = &self.heights[p * size * size..(p + 1) * size * size];
-                out[id as usize] = page.iter().copied().fold(f32::INFINITY, f32::min);
+                out[id as usize] = page.iter().copied().fold(f32::NEG_INFINITY, f32::max);
             }
             out
         });
@@ -439,17 +439,10 @@ impl Grid {
             |v: f64, n: usize| ((v / self.spacing).floor().max(0.0) as usize).min(n - 1) / size;
         let (i0, i1) = (cell(x - radius, self.nx), cell(x + radius, self.nx));
         let (j0, j1) = (cell(y - radius, self.ny), cell(y + radius, self.ny));
-        let mut lowest = f64::INFINITY;
-        for j in j0..=j1 {
-            for i in i0..=i1 {
-                lowest = lowest.min(f64::from(mins[j * cols + i]));
-            }
-        }
-        if lowest.is_finite() {
-            lowest.max(self.min_height)
-        } else {
-            self.min_height
-        }
+        (j0..=j1)
+            .flat_map(|j| (i0..=i1).map(move |i| j * cols + i))
+            .map(|k| f64::from(tops[k]))
+            .fold(f64::NEG_INFINITY, f64::max)
     }
 
     /// The ground's height at `(x, y)`, clamped to the grid's edge, by the

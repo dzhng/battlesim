@@ -253,39 +253,41 @@ impl Split<'_> {
     /// The ground round a building is the settlement's own, and the land
     /// round that its surround, where no crop is drilled; a swamp floods the
     /// ground its look names; on a hill (any corner or the middle above
-    /// `HILL_PLOT_M`) it is the surround's meadow, never a drilled crop,
-    /// and unedged. Its kind, and whether it is edged.
+    /// `HILL_PLOT_M`) it is the surround's meadow, never a drilled crop.
+    /// Its kind, and whether it is edged: every plot is, but on a hill.
     fn pick_kind(&mut self, poly: &[f64]) -> (usize, bool) {
         let centre = centroid(poly);
-        if let Some(ground) = self.water.flooded(centre[0], centre[1]) {
-            if let Some(p) = self.biome.plots.iter().position(|p| p.name == ground) {
-                return (p, true);
-            }
-        }
-        if self.near_building(centre, libm::pow(self.rules.yard_m, 2.0), true) {
-            return (self.out.settlement, true);
-        }
-        if self.near_building(centre, libm::pow(self.rules.settlement_m, 2.0), false) {
-            return (self.surround, true);
-        }
         let grid = &self.source.grid;
-        if grid.nx >= 2
+        let on_hill = grid.nx >= 2
             && grid.ny >= 2
             && std::iter::once(centre)
                 .chain(poly.as_chunks::<2>().0.iter().copied())
-                .any(|p| grid.height(p[0], p[1]) > HILL_PLOT_M)
+                .any(|p| grid.height(p[0], p[1]) > HILL_PLOT_M);
+        let flooded = self
+            .water
+            .flooded(centre[0], centre[1])
+            .and_then(|ground| self.biome.plots.iter().position(|p| p.name == ground));
+        let kind = if let Some(p) = flooded {
+            p
+        } else if self.near_building(centre, libm::pow(self.rules.yard_m, 2.0), true) {
+            self.out.settlement
+        } else if on_hill
+            || self.near_building(centre, libm::pow(self.rules.settlement_m, 2.0), false)
         {
-            return (self.surround, false);
-        }
-        let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
-        let mut roll = self.rng.sample() * total;
-        for (k, p) in self.biome.plots.iter().enumerate() {
-            roll -= p.weight;
-            if roll < 0.0 {
-                return (k, true);
-            }
-        }
-        (self.biome.plots.len() - 1, true)
+            self.surround
+        } else {
+            let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
+            let mut roll = self.rng.sample() * total;
+            self.biome
+                .plots
+                .iter()
+                .position(|p| {
+                    roll -= p.weight;
+                    roll < 0.0
+                })
+                .unwrap_or(self.biome.plots.len() - 1)
+        };
+        (kind, !on_hill)
     }
 
     fn leaf(&mut self, poly: Vec<f64>, heading: f64) -> f64 {
