@@ -5,6 +5,7 @@
 mod crossings;
 mod forests;
 pub(crate) mod geometry;
+mod hills;
 mod measure;
 mod presets;
 mod rivers;
@@ -27,7 +28,7 @@ use contract::ground::GroundShape;
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-22";
+pub const GENERATOR_VERSION: &str = "layout-23";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
@@ -159,7 +160,25 @@ pub fn generate_layout(
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
+    // Hill country is settled before the skirmish's farms, the swamps and
+    // the woods: farms and swamps keep to the flat, woods may climb.
+    let central: Vec<_> = crate::skirmish::central_objectives(request, skeleton.hub)
+        .into_iter()
+        .map(|c| (c, crate::skirmish::OBJECTIVE_RADIUS_M))
+        .collect();
+    let relief = hills::place(
+        &context,
+        &hills::Clear {
+            towns: &towns,
+            water: &water,
+            bridges: &bridges,
+            objectives: &central,
+        },
+    );
     let outlines: Vec<_> = towns.iter().map(|t| t.outline.as_slice()).collect();
+    let flat = |p: geometry::Point, radius: f64| {
+        hills::clear_of(&relief, p, radius + presets.hills.objective_gap_m)
+    };
     let mut skirmish = crate::skirmish::reserve(
         request,
         &mut surfaces,
@@ -167,6 +186,7 @@ pub fn generate_layout(
         skeleton.hub,
         &outlines,
         presets.joints.edge_run_m,
+        &flat,
     )?;
     placed.reserved.extend(
         crate::skirmish::objective_clearances(skirmish.as_ref(), outlines)
@@ -196,6 +216,7 @@ pub fn generate_layout(
             roads: &surfaces,
             woods: &forests,
             skirmish: skirmish.as_ref(),
+            relief: &relief,
         },
     );
     let settlements = placed
@@ -224,6 +245,7 @@ pub fn generate_layout(
         lots: Vec::new(),
         regional_family: None,
         courts: Vec::new(),
+        relief,
         unsupported_fields: BTreeMap::new(),
     };
     plan.approaches = measure::approaches(&plan, presets);

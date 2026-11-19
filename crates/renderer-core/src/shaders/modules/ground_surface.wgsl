@@ -43,6 +43,25 @@ fn grassGround(q: vec2f) -> f32 {
     fx - f32(i), fy - f32(j));
 }
 
+// @block ground_surface_grassGroundNormal
+/** The ground's normal over the height cell under `q`, as `grassGround`
+ *  reads it: the cell's mean slope, for its facing to the sun. */
+fn grassGroundNormal(q: vec2f) -> vec3f {
+  let P = &grassParams;
+  let nx = (*P).counts.x;
+  let ny = (*P).counts.y;
+  let s = (*P).ground.x;
+  let i = min(u32(clamp(q.x / s, 0.0, f32(nx - 1u))), nx - 2u);
+  let j = min(u32(clamp(q.y / s, 0.0, f32(ny - 1u))), ny - 2u);
+  let h00 = heightSample(i, j);
+  let h10 = heightSample(i + 1u, j);
+  let h01 = heightSample(i, j + 1u);
+  let h11 = heightSample(i + 1u, j + 1u);
+  let dx = (h10 - h00 + h11 - h01) * 0.5 / s;
+  let dy = (h01 - h00 + h11 - h10) * 0.5 / s;
+  return normalize(vec3f(-dx, -dy, 1.0));
+}
+
 // @block ground_surface_groundSite
 fn groundSite(xy: vec2f, cell: vec4u, paved: GroundPaved) -> vec4f {
   let terrain = (&terrainParams);

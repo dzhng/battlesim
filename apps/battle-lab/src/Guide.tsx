@@ -347,8 +347,8 @@ export function Guide() {
             attack-move) without using it.
           </li>
           <li>
-            <kbd>{ShowOrdersBinding.label}</kbd> to see every unit&apos;s route, destination and
-            cover at once.
+            Hold <kbd>{ShowOrdersBinding.label}</kbd> to see every unit&apos;s route, destination
+            and cover at once.
           </li>
         </ul>
         <p>

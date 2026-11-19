@@ -65,6 +65,9 @@ pub enum CreditGrant {
     Covering(Vec<PurchaseSpec>),
     /// This many credits.
     Exactly(u64),
+    /// The wallet topped up until it covers these purchases at today's
+    /// prices: only the shortfall, since it may already hold income.
+    ToCover(Vec<PurchaseSpec>),
 }
 
 /// A named place on the map: a circle.
@@ -158,7 +161,8 @@ impl ScenarioDocument {
             };
             let credits = match grant {
                 CreditGrant::Exactly(credits) => *credits,
-                CreditGrant::Covering(purchases) => {
+                // An empty wallet's shortfall is the whole price.
+                CreditGrant::Covering(purchases) | CreditGrant::ToCover(purchases) => {
                     for (i, purchase) in purchases.iter().enumerate() {
                         for kind in std::iter::once(&purchase.variant).chain(&purchase.carrier) {
                             sold_to(&rules.catalog, kind, seat.faction).map_err(|e| {
@@ -186,7 +190,9 @@ impl ScenarioDocument {
             .enumerate()
             .map(|(i, name)| (name.clone(), UnitId(i as u32)))
             .collect();
-        self.director.admit(&self.zones, &forces, &self.players)?;
+        let objectives: Vec<String> = self.sites.objectives.iter().map(|o| o.id.clone()).collect();
+        self.director
+            .admit(&self.zones, &forces, &self.players, &objectives)?;
         for chapter in &self.director.chapters {
             for beat in &chapter.beats {
                 for action in &beat.then {
@@ -195,12 +201,16 @@ impl ScenarioDocument {
                         Action::Offer { player, purchases }
                         | Action::Grant {
                             player,
-                            credits: CreditGrant::Covering(purchases),
+                            credits:
+                                CreditGrant::Covering(purchases) | CreditGrant::ToCover(purchases),
                         } => check_purchases(&at, player, purchases)?,
                         Action::Buy {
                             player, purchase, ..
                         } => check_purchases(&at, player, std::slice::from_ref(purchase))?,
-                        Action::Grant { .. } | Action::Order { .. } | Action::Ready { .. } => {}
+                        Action::Grant { .. }
+                        | Action::Order { .. }
+                        | Action::Ready { .. }
+                        | Action::OpenShop { .. } => {}
                     }
                 }
             }

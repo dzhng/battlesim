@@ -1,5 +1,14 @@
 # 13 Chapter 3: The crossroads
 
+**Status: shipped 2026-11-19.** Chapter 3's director beats, forces, zones,
+solution and coach steps; the vocabulary in `contract::director` and
+`battle/direct.rs`; the dev loop (`Battle::chapter_start`, `scenario_chapter`,
+`&chapter=…&beat=…`); chatter's hold under narration. Evidence:
+`crates/sim/tests/director_facts.rs`; the walkthrough plays chapter 3 and
+starts there; the `scenario-battle` scene plays every later UI step from the
+dev loop; `web/tests/battleAudio.test.ts` (no answer over the narrator).
+Deviations: [decisions.md](../decisions.md#slice-13).
+
 **Unlocks:** transport, garrison, suppression, attack-move, show orders, capture
 and contest, taught in the battle. See [story.md](../story.md#chapter-3-the-crossroads).
 

@@ -155,3 +155,51 @@ fn remembering_ai(setup: &ScenarioDefinition, replay: &Replay, tick: Tick) -> Op
         .find(|(_, controller)| **controller == ControllerKind::ActiveAi)
         .map(|(player, _)| player.clone())
 }
+
+impl Battle {
+    /// Where `chapter` of a solved scenario opens, or where its `beat` fires,
+    /// for starting there (the chapters' dev loop): the battle its solution
+    /// plays to that point, as a replay to resume at the returned tick, with
+    /// every human-capable seat handed back to a person then. A human seat
+    /// takes no director orders, so the solution's later beats leave the
+    /// person's units alone.
+    pub fn chapter_start(
+        solved: &ScenarioDefinition,
+        seed: u64,
+        chapter: &str,
+        beat: Option<&str>,
+        limit: Tick,
+    ) -> Result<(Replay, Tick), String> {
+        let director = solved
+            .director
+            .as_ref()
+            .ok_or("the scenario has no director")?;
+        let index = (director.chapters.iter())
+            .position(|c| c.id == chapter)
+            .ok_or(format!("no chapter {chapter:?}"))?;
+        let mut battle = Battle::new(solved, seed);
+        let there = |battle: &Battle| {
+            battle.director().is_some_and(|run| {
+                run.chapter() >= index && beat.is_none_or(|beat| run.fired_at(beat).is_some())
+            })
+        };
+        while !there(&battle) {
+            if battle.finished() || battle.tick() >= limit {
+                return Err(format!("chapter {chapter:?} never reached {beat:?}"));
+            }
+            battle.step();
+        }
+        // A start on the tick that decided the match resumes the tick before,
+        // which decides it again: a battle resumes only before its end.
+        let tick = battle.tick() - Tick::from(battle.finished());
+        let mut replay = battle.replay();
+        for player in solved.players.iter().filter(|p| p.human_capable) {
+            replay.controller_transitions.push(ControllerTransition {
+                tick,
+                player: player.id.clone(),
+                controller: ControllerKind::Human,
+            });
+        }
+        Ok((replay, tick))
+    }
+}

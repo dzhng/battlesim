@@ -98,6 +98,98 @@
       ],
       "yaw": -0.17,
       "engagement": "return_fire_only"
+    },
+    "counter": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rifle_squad",
+      "position": [
+        852.0,
+        836.0
+      ],
+      "yaw": -1.57,
+      "condition": {
+        "casualties": 4,
+        "spent": {
+          "rpg_general": 99
+        }
+      },
+      "engagement": "return_fire_only"
+    },
+    "tank": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_t_72_t_72b3_2016",
+      "position": [
+        794.0,
+        214.0
+      ],
+      "yaw": 1.57,
+      "engagement": "return_fire_only",
+      "condition": {
+        "hp": 10.0
+      }
+    },
+    "treeline": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rpg_team_rpg_7",
+      "position": [
+        1180.0,
+        684.0
+      ],
+      "yaw": -1.57,
+      "engagement": "return_fire_only"
+    },
+    "sam": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_buk_buk_m3_medium_range_air_defense",
+      "position": [
+        150.0,
+        205.0
+      ],
+      "yaw": -0.8,
+      "engagement": "return_fire_only",
+      "condition": {
+        "spent": {
+          "aa_medium": 99
+        }
+      }
+    },
+    "bridge_guard": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rifle_squad",
+      "position": [
+        800.0,
+        240.0
+      ],
+      "yaw": 1.57,
+      "engagement": "return_fire_only",
+      "condition": {
+        "casualties": 4,
+        "spent": {
+          "rpg_general": 99
+        }
+      }
+    },
+    "hill_guard": {
+      "side": "red",
+      "owner": "red-1",
+      "kind": "eastern_rifle_squad",
+      "position": [
+        150.0,
+        170.0
+      ],
+      "yaw": 1.57,
+      "engagement": "return_fire_only",
+      "condition": {
+        "casualties": 4,
+        "spent": {
+          "rpg_general": 99
+        }
+      }
     }
   },
   "opening_credits": {
@@ -169,10 +261,10 @@
     },
     "ambush_woods": {
       "center": [
-        698.0,
+        741.0,
         806.0
       ],
-      "radius_m": 30.0
+      "radius_m": 8.0
     },
     "far_treeline": {
       "center": [
@@ -206,6 +298,34 @@
       "center": [
         470.0,
         1048.0
+      ],
+      "radius_m": 30.0
+    },
+    "outpost": {
+      "center": [
+        952.0,
+        1060.0
+      ],
+      "radius_m": 20.0
+    },
+    "farm_wall": {
+      "center": [
+        992.0,
+        1284.0
+      ],
+      "radius_m": 25.0
+    },
+    "supply_point": {
+      "center": [
+        1000.0,
+        1325.0
+      ],
+      "radius_m": 30.0
+    },
+    "west_lane": {
+      "center": [
+        700.0,
+        620.0
       ],
       "radius_m": 30.0
     }
@@ -325,6 +445,25 @@
             ]
           },
           {
+            "id": "river_guns_withdraw",
+            "when": {
+              "fired": {
+                "beat": "gunfire_heard",
+                "after_s": 6
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "river_guns"
+                  },
+                  "order": "withdraw"
+                }
+              }
+            ]
+          },
+          {
             "id": "recon_holding",
             "when": {
               "units": {
@@ -337,6 +476,1054 @@
                 "are": {
                   "engagement": "return_fire_only"
                 }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "crossroads",
+        "beats": [
+          {
+            "id": "carrier_at_farm",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "are": {
+                  "in": "farm_wall"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "squad_unloaded",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "carrier_at_farm"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "rifle_squad"
+                      }
+                    },
+                    "are": {
+                      "in": "farm_wall"
+                    }
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "squad_garrisoned",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "rifle_squad"
+                  }
+                },
+                "are": {
+                  "inside": "building"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "outpost_suppressed",
+            "when": {
+              "units": {
+                "who": {
+                  "force": "outpost"
+                },
+                "are": {
+                  "suppression": "suppressed"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "outpost_pinned",
+            "when": {
+              "units": {
+                "who": {
+                  "force": "outpost"
+                },
+                "are": {
+                  "suppression": "pinned"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "squad_attack_moving",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "squad_garrisoned"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "rifle_squad"
+                      }
+                    },
+                    "are": "attack_moving"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "crossroads_capturing",
+            "when": {
+              "objective": {
+                "id": "crossroads",
+                "is": {
+                  "capturing": "blue"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "crossroads_taken",
+            "when": {
+              "objective": {
+                "id": "crossroads",
+                "is": {
+                  "owned_by": "blue"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ],
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "counter"
+                  },
+                  "order": {
+                    "engage": "fire_at_will"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "counter"
+                  },
+                  "order": {
+                    "move_to": "crossroads"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "crossroads_contested",
+            "when": {
+              "objective": {
+                "id": "crossroads",
+                "is": "contested"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "crossroads_held",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "crossroads_contested"
+                  }
+                },
+                {
+                  "objective": {
+                    "id": "crossroads",
+                    "is": {
+                      "owned_by": "blue"
+                    }
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "steel",
+        "beats": [
+          {
+            "id": "tank_rolls",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "offer": {
+                  "player": "blue-1",
+                  "purchases": [
+                    {
+                      "variant": "fgm_148_javelin_team"
+                    }
+                  ]
+                }
+              },
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "tank"
+                  },
+                  "order": {
+                    "move_to": "north_road"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "tank_seen",
+            "when": {
+              "identifies": {
+                "side": "blue",
+                "who": {
+                  "force": "tank"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "carrier_smoked",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m2_bradley_ifv_m2a4"
+                  }
+                },
+                "are": "popped_smoke"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "carrier_reversed",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "carrier_smoked"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m2_bradley_ifv_m2a4"
+                      }
+                    },
+                    "are": "reversing"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "at_team_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fgm_148_javelin_team"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "at_team_in_woods",
+            "when": {
+              "all": [
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    },
+                    "are": {
+                      "in": "ambush_woods"
+                    }
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    },
+                    "are": {
+                      "engagement": "return_fire_only"
+                    }
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "tank_advances",
+            "when": {
+              "fired": {
+                "beat": "at_team_in_woods"
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "tank"
+                  },
+                  "order": {
+                    "move_to": "west_lane"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "tank_halts",
+            "when": {
+              "units": {
+                "who": {
+                  "force": "tank"
+                },
+                "are": {
+                  "in": "west_lane"
+                }
+              }
+            }
+          },
+          {
+            "id": "tank_turns",
+            "when": {
+              "fired": {
+                "beat": "tank_halts",
+                "after_s": 15
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "tank"
+                  },
+                  "order": {
+                    "move_to": "crossroads"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "at_team_attacking",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "fgm_148_javelin_team"
+                  }
+                },
+                "are": {
+                  "ordered": {
+                    "attack": {
+                      "force": "tank"
+                    }
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "tank_destroyed",
+            "when": {
+              "destroyed": {
+                "force": "tank"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "at_team_replaced",
+            "when": {
+              "destroyed": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "fgm_148_javelin_team"
+                }
+              }
+            },
+            "recovery": true,
+            "audience": [
+              "blue"
+            ],
+            "then": [
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "keep_running",
+        "beats": [
+          {
+            "id": "supplies_offered",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "offer": {
+                  "player": "blue-1",
+                  "purchases": [
+                    {
+                      "variant": "us_m977_hemtt_general_resupply"
+                    },
+                    {
+                      "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                    }
+                  ]
+                }
+              },
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "to_cover": [
+                      {
+                        "variant": "us_m977_hemtt_general_resupply"
+                      },
+                      {
+                        "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "supply_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_m977_hemtt_general_resupply"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "supply_deployed",
+            "when": {
+              "all": [
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m977_hemtt_general_resupply"
+                      }
+                    },
+                    "are": "deployed"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m977_hemtt_general_resupply"
+                      }
+                    },
+                    "are": {
+                      "in": "supply_point"
+                    }
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "unit_serviced",
+            "when": {
+              "any": [
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_m2_bradley_ifv_m2a4"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "rifle_squad"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_army_scouts_light_patrol"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "fgm_148_javelin_team"
+                      }
+                    },
+                    "are": "serviced"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "mortar_firing",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier"
+                  }
+                },
+                "are": {
+                  "ordered": {
+                    "attack_ground": "far_treeline"
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "treeline_broken",
+            "when": {
+              "units": {
+                "who": {
+                  "force": "treeline"
+                },
+                "are": {
+                  "suppression": "suppressed"
+                }
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "treeline"
+                  },
+                  "order": "withdraw"
+                }
+              }
+            ]
+          },
+          {
+            "id": "treeline_gone",
+            "when": {
+              "any": [
+                {
+                  "destroyed": {
+                    "force": "treeline"
+                  }
+                },
+                {
+                  "fired": {
+                    "beat": "treeline_broken",
+                    "after_s": 3
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sky",
+        "beats": [
+          {
+            "id": "sky_opens",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "offer": {
+                  "player": "blue-1",
+                  "purchases": [
+                    {
+                      "variant": "fim_92_stinger_team"
+                    },
+                    {
+                      "variant": "us_ah_1z_viper_attack_helicopter"
+                    },
+                    {
+                      "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                    },
+                    {
+                      "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                    }
+                  ]
+                }
+              },
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "to_cover": [
+                      {
+                        "variant": "fim_92_stinger_team"
+                      },
+                      {
+                        "variant": "us_ah_1z_viper_attack_helicopter"
+                      },
+                      {
+                        "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                      },
+                      {
+                        "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "grant": {
+                  "player": "red-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "eastern_mi_8_hip_mi_8amtsh"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "buy": {
+                  "player": "red-1",
+                  "purchase": {
+                    "variant": "eastern_mi_8_hip_mi_8amtsh"
+                  },
+                  "at": "crossroads"
+                }
+              }
+            ]
+          },
+          {
+            "id": "heli_seen",
+            "when": {
+              "identifies": {
+                "side": "blue",
+                "who": {
+                  "bought": {
+                    "player": "red-1",
+                    "variant": "eastern_mi_8_hip_mi_8amtsh"
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "air_defence_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "fim_92_stinger_team"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "heli_down",
+            "when": {
+              "destroyed": {
+                "bought": {
+                  "player": "red-1",
+                  "variant": "eastern_mi_8_hip_mi_8amtsh"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "air_defence_replaced",
+            "when": {
+              "destroyed": {
+                "bought": {
+                  "player": "blue-1",
+                  "variant": "fim_92_stinger_team"
+                }
+              }
+            },
+            "recovery": true,
+            "audience": [
+              "blue"
+            ],
+            "then": [
+              {
+                "grant": {
+                  "player": "blue-1",
+                  "credits": {
+                    "covering": [
+                      {
+                        "variant": "fim_92_stinger_team"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "own_heli_up",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_ah_1z_viper_attack_helicopter"
+                  }
+                },
+                "are": "airborne"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "jet_on_its_way",
+            "when": {
+              "pending": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "jet_arrived",
+            "when": {
+              "all": [
+                {
+                  "fired": {
+                    "beat": "jet_on_its_way"
+                  }
+                },
+                {
+                  "units": {
+                    "who": {
+                      "bought": {
+                        "player": "blue-1",
+                        "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                      }
+                    },
+                    "are": "arrived"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "jet_attacking",
+            "when": {
+              "units": {
+                "who": {
+                  "bought": {
+                    "player": "blue-1",
+                    "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
+                  }
+                },
+                "are": {
+                  "ordered": {
+                    "attack_ground": "bridge"
+                  }
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "sead_bought",
+            "when": {
+              "bought": {
+                "player": "blue-1",
+                "purchase": {
+                  "variant": "us_ea_18g_growler_electronic_warfare_aircraft"
+                }
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "radar_found",
+            "when": {
+              "radar_contact": {
+                "side": "blue"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "sam_down",
+            "when": {
+              "destroyed": {
+                "force": "sam"
+              }
+            },
+            "audience": [
+              "blue"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "push",
+        "beats": [
+          {
+            "id": "shop_open",
+            "when": "chapter_opens",
+            "then": [
+              {
+                "open_shop": {
+                  "player": "blue-1"
+                }
+              }
+            ]
+          },
+          {
+            "id": "defenders_stand",
+            "when": {
+              "fired": {
+                "beat": "shop_open",
+                "after_s": 30
+              }
+            },
+            "then": [
+              {
+                "order": {
+                  "units": {
+                    "force": "bridge_guard"
+                  },
+                  "order": {
+                    "engage": "fire_at_will"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "bridge_guard"
+                  },
+                  "order": {
+                    "move_to": "bridge"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "hill_guard"
+                  },
+                  "order": {
+                    "engage": "fire_at_will"
+                  }
+                }
+              },
+              {
+                "order": {
+                  "units": {
+                    "force": "hill_guard"
+                  },
+                  "order": {
+                    "move_to": "hill"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "flag_contested",
+            "when": {
+              "any": [
+                {
+                  "objective": {
+                    "id": "bridge",
+                    "is": "contested"
+                  }
+                },
+                {
+                  "objective": {
+                    "id": "hill",
+                    "is": "contested"
+                  }
+                }
+              ]
+            },
+            "audience": [
+              "blue"
+            ]
+          },
+          {
+            "id": "won",
+            "when": {
+              "match_result": {
+                "kind": "winner",
+                "side": "blue"
               }
             },
             "audience": [

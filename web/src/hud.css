@@ -2277,7 +2277,8 @@ html {
   position: fixed;
   top: 10px;
   left: 12px;
-  z-index: 4;
+  /* Over the match result's scrim (15), under the pause menu's veil (20). */
+  z-index: 16;
   box-sizing: border-box;
   width: min(380px, calc(100vw - 24px));
   padding: 10px 14px 12px 10px;
@@ -2315,6 +2316,15 @@ html {
   color: #fff;
   font-size: 13.5px;
   line-height: 1.45;
+}
+/* Once the match is decided, the card steps down to the bottom left, clear
+   of the result's report, whose own exit is the way on. */
+.hud-coach-layer[data-ended] .hud-coach {
+  top: auto;
+  bottom: 16px;
+}
+.hud-coach-layer[data-ended] .hud-coach-continue {
+  display: none;
 }
 /* A key in the card, as a pair or a single key: the guide's key tabs. */
 .hud-coach-keys {

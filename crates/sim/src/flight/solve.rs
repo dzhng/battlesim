@@ -95,6 +95,8 @@ pub fn solve_launch_past(
         profile.arc_height_m.unwrap_or(f64::NAN),
         profile.lifetime_s,
         profile.turn_rad_s.unwrap_or(f64::NAN),
+        profile.launch_elevation_rad.unwrap_or(f64::NAN),
+        profile.launch_hold_s,
         motor[0],
         motor[1],
         carrier.x,
@@ -129,21 +131,33 @@ fn launch_uncached(
     };
     let mut blocked = None;
     for solution in preferred {
+        let checked = FiringSolution {
+            velocity: profile.initial_velocity(solution.velocity, aim.target - aim.origin),
+            ..solution
+        };
+        let checked = FiringSolution {
+            time_of_flight_s: profile
+                .launch_elevation_rad
+                .map_or(checked.time_of_flight_s, |_| {
+                    guided_solution_time(config, profile, aim.origin, &checked)
+                }),
+            ..checked
+        };
         match first_obstruction(
             world,
             config,
             profile,
             aim.origin,
             &FiringSolution {
-                velocity: solution.velocity + aim.carrier,
-                ..solution
+                velocity: checked.velocity + aim.carrier,
+                ..checked
             },
             past,
         ) {
-            None => return Ok(solution),
+            None => return Ok(checked),
             Some((point, by)) => {
                 blocked.get_or_insert(NoSolution::Blocked {
-                    arc: solution,
+                    arc: checked,
                     point,
                     by,
                 });
@@ -237,7 +251,7 @@ impl<K: std::hash::Hash + Eq, V: Clone> Kept<K, V> {
 /// What a launch is solved from, to the bit: the aim (origin, target and
 /// target and carrier velocities), the round's flight, the body it flies
 /// past, and the world's identity and obstacle revision.
-type LaunchKey = ([u64; 19], Option<PropId>, bool, usize, u64);
+type LaunchKey = ([u64; 21], Option<PropId>, bool, usize, u64);
 
 /// The ballistic intercepts and the launches already solved: kept answers
 /// ([`Kept`]). An intercept depends on nothing but its inputs; a launch also
@@ -533,6 +547,105 @@ pub fn timed_path(
     points
 }
 
+/// The timed path of a guided launch, including its authored initial heading
+/// and the same bounded turns and motor thrust used by physical advance.
+pub fn guided_timed_path(
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    origin: V3,
+    velocity: V3,
+    point: V3,
+    duration_s: f64,
+) -> Vec<(V3, f64)> {
+    let Some(turn_rad_s) = profile.turn_rad_s else {
+        return timed_path(config, profile, origin, velocity, duration_s);
+    };
+    let guidance = Guidance {
+        point,
+        turn_rad_s,
+        supported: true,
+        launch_hold_s: profile.launch_hold_s,
+        loft: profile.loft,
+    };
+    let mut points = vec![(origin, 0.0)];
+    let (mut p, mut v, mut elapsed) = (origin, velocity, 0.0);
+    let mut tick = Vec::new();
+    let n = config.subsegments_per_tick();
+    while duration_s - elapsed > TIME_EPSILON_S {
+        let span = config.tick_s().min(duration_s - elapsed);
+        if elapsed >= profile.launch_hold_s {
+            v = v.turned_toward(guidance.aim(p) - p, turn_rad_s * span);
+        }
+        let thrust = profile
+            .motor
+            .map_or(v3(0.0, 0.0, 0.0), |m| m.thrust(v, span));
+        chords(p, v, thrust, span, n, &mut tick);
+        points.extend(
+            tick.iter()
+                .enumerate()
+                .skip(1)
+                .map(|(k, (q, _))| (*q, elapsed + span * k as f64 / n as f64)),
+        );
+        (p, v) = *tick.last().expect("chords include the start");
+        elapsed += span;
+    }
+    points
+}
+
+/// A solved round's path, using guided steering when its launch heading is
+/// authored and the ordinary physical path for every other round.
+pub fn solved_timed_path(
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    origin: V3,
+    solution: &FiringSolution,
+    duration_s: f64,
+) -> Vec<(V3, f64)> {
+    if profile.launch_elevation_rad.is_some() {
+        guided_timed_path(
+            config,
+            profile,
+            origin,
+            solution.velocity,
+            solution.intercept,
+            duration_s,
+        )
+    } else {
+        timed_path(config, profile, origin, solution.velocity, duration_s)
+    }
+}
+
+fn guided_solution_time(
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    origin: V3,
+    solution: &FiringSolution,
+) -> f64 {
+    let path = guided_timed_path(
+        config,
+        profile,
+        origin,
+        solution.velocity,
+        solution.intercept,
+        profile.lifetime_s,
+    );
+    path.windows(2)
+        .map(|w| {
+            let a = w[0].0;
+            let chord = w[1].0 - a;
+            let chord2 = chord.dot(chord);
+            let u = if chord2 > 0.0 {
+                ((solution.intercept - a).dot(chord) / chord2).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let distance = (a + chord * u - solution.intercept).length();
+            (distance, w[0].1 + (w[1].1 - w[0].1) * u)
+        })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map_or(solution.time_of_flight_s, |(_, time)| time)
+}
+
 /// First static obstruction on the flown path short of arrival, if any, and
 /// what it is.
 fn first_obstruction(
@@ -543,13 +656,11 @@ fn first_obstruction(
     solution: &FiringSolution,
     past: Option<PropId>,
 ) -> Option<(V3, Collider)> {
-    let path = predicted_path(
-        config,
-        profile,
-        origin,
-        solution.velocity,
-        solution.time_of_flight_s,
-    );
+    let path: Vec<_> =
+        solved_timed_path(config, profile, origin, solution, solution.time_of_flight_s)
+            .into_iter()
+            .map(|(point, _)| point)
+            .collect();
     for w in path.windows(2) {
         let chord = w[1] - w[0];
         let len = chord.length();
@@ -724,10 +835,14 @@ fn launch_along(
         target.z = target.z.min(aim.target.z);
     }
     let scattered = Aim { target, ..*aim };
-    let fired = intercepts(config, profile, &scattered)
+    let mut fired = intercepts(config, profile, &scattered)
         .into_iter()
         .find(|s| s.arc == intended.arc)
         .ok_or(NoSolution::OutOfReach)?;
+    fired.velocity = profile.initial_velocity(fired.velocity, scattered.target - scattered.origin);
+    if profile.launch_elevation_rad.is_some() {
+        fired.time_of_flight_s = guided_solution_time(config, profile, scattered.origin, &fired);
+    }
     let fall = if bounded {
         let velocity = fired.velocity + carrier + profile.gravity(config) * fired.time_of_flight_s;
         let duration = config.miss_fall_max_s;
@@ -753,12 +868,13 @@ fn launch_along(
             lifetime_s: profile.lifetime_s,
             suppression_radius_m: profile.suppression_radius_m,
             shooter,
-            // A guided round starts steering where its launch was solved to meet the
-            // target, so its first tick flies the checked line.
+            // Guidance turns from the authored launcher heading toward the
+            // commanded intercept after its authored launch hold.
             guidance: profile.turn_rad_s.map(|turn_rad_s| Guidance {
-                point: intended.intercept,
+                point: fired.intercept,
                 turn_rad_s,
                 supported: true,
+                launch_hold_s: profile.launch_hold_s,
                 loft: profile.loft,
             }),
             motor: profile.motor,

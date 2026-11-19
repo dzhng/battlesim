@@ -97,6 +97,9 @@ pub struct MapPlan {
     /// laid as a `Paving` surface. Plan-only: where court amenities stand.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub courts: Vec<CourtPlan>,
+    /// The land's rises (generated hills), in the contract's shape.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relief: Vec<contract::map::Relief>,
     /// A requested feature without a shared physical owner cannot be discarded.
     #[serde(flatten)]
     pub unsupported_fields: BTreeMap<String, serde_json::Value>,

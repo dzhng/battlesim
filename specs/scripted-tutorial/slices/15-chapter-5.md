@@ -1,5 +1,11 @@
 # 15 Chapter 5: Keep it running
 
+**Status: shipped 2026-11-19.** Chapter 5's beats, forces, zones, solution
+and coach steps; its vocabulary. Evidence: `director_facts` (a truck
+deployed and a squad serviced, fire on ground ordered, a top-up grant);
+the walkthrough plays chapter 5 and starts there. Deviations:
+[decisions.md](../decisions.md#slice-15).
+
 **Unlocks:** mid-battle purchases, supply (deploy, resupply, repair, replacement)
 and attack-ground with a mortar. See [story.md](../story.md#chapter-5-keep-it-running).
 It follows the chapter slice shape in [13](13-chapter-3.md#shape-of-every-chapter-slice-1317).

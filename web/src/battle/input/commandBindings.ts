@@ -45,7 +45,7 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
 
 /** Held, not pressed (D2+): every own unit's current and final markers,
  *  routes and cover icons. */
-export const ShowOrdersBinding: CommandBinding = { code: "Space", label: "Hold Space" };
+export const ShowOrdersBinding: CommandBinding = { code: "Space", label: "Space" };
 
 /** The view to the newest contact, then each older one (Shift: newer). */
 export const ContactFocusBinding: CommandBinding = { code: "KeyN", label: "N" };

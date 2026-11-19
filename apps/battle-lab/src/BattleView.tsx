@@ -211,6 +211,10 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
+  const told = useMemo(
+    () => new Set(observation?.scenario?.beats.map((b) => b.beat)),
+    [observation?.scenario],
+  );
   const coached = useCoach(
     input ? (coach ?? null) : null,
     observation?.scenario ?? null,
@@ -343,17 +347,6 @@ export function BattleView({
           </div>
         )}
         <MenuButton onOpen={() => pause.show(true)} />
-        {input && coach && (
-          <>
-            <CoachPanel
-              doc={coach}
-              view={coached.view}
-              onContinue={coached.dismiss}
-              speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
-            />
-            <CoachHighlights anchors={step?.highlight ?? []} />
-          </>
-        )}
         {cameraReplay.pilot && (
           <ReplayCameraButton
             following={cameraReplay.following}
@@ -434,6 +427,20 @@ export function BattleView({
               : { label: "Main menu", onLeave: () => navigate("/") }
           }
         />
+      )}
+      {/* The coach's own layer: over the match's result, so its closing words
+          outlast the battle, and under the pause menu, which it waits behind. */}
+      {input && coach && (
+        <div className="hud-coach-layer" inert={pause.open} data-ended={matchFinished || undefined}>
+          <CoachPanel
+            doc={coach}
+            view={coached.view}
+            told={told}
+            onContinue={coached.dismiss}
+            speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
+          />
+          <CoachHighlights anchors={step?.highlight ?? []} />
+        </div>
       )}
     </SessionCatalogProvider>
   );

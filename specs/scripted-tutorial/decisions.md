@@ -468,3 +468,201 @@ hills session was told what the valley needs.
   replay belongs to the solved scenario, not the shipped one, so it can't
   resume into the player's battle. See 13's shape.
 
+## Slice 13
+
+- **Vocabulary added** (agent): facts `inside` (`carrier` or `building`),
+  `suppression` (at least a tier), `attack_moving`; trigger `objective`
+  (`owned_by` a side, held and not contested; `capturing` by a side;
+  `contested`); directed orders `unload` (in place), `occupy` (the
+  garrisonable building nearest the zone's centre, within the zone),
+  `attack_move_to`, and `withdraw` (return to base and leave the battle). The
+  spec listed only the facts, but the solution needed the orders, and `withdraw`
+  was the physical fix below. Each is tested on test units
+  (`crates/sim/tests/director_facts.rs`).
+- **Chapter 2's river guns withdraw once heard** (agent, found by the
+  walkthrough). Left on the map, the BMP traded fire with the Bradley (which
+  fires at will) and killed it with its missiles. The story says they are
+  heard, never seen, so they now leave the battle six seconds after blue
+  hears them.
+- **The counter squad is placed and worn for the lesson** (agent, by the
+  walkthrough): just behind the house north of the ring, holding fire until
+  sent, four casualties, rockets spent. Placed farther out, it died before
+  contesting. Fresh, it killed blue's squad.
+- **The Bradley overwatches from the outpost, not the ring** (solution): parked
+  in the ring, it stalemated beside the counter squad.
+- **The drive gets its own zone** (`farm_wall`): the farm zone's centre is
+  inside the farmhouse, so a carrier sent there stopped at its edge.
+- **The chapters' dev loop** (agent, from 12's finding):
+  `/battle?scenario=<map>/<name>&chapter=<id>[&beat=<id>]` prepares the solved
+  scenario (`scenario_chapter`, over `Battle::chapter_start`) and resumes it
+  where the chapter opens or the beat fires, with every human-capable seat
+  handed back to a person. A human seat takes no director orders, so the
+  solution goes quiet. A scenario battle's player is its human-capable seat,
+  so the page takes orders from the seat it is handed. Solutions now ship to
+  the page, since a tutorial's solution is no secret.
+- **The scene plays every UI step the walkthrough can't** (agent): it starts
+  each later chapter at its opening and after each beat that comes before a
+  UI step, then does what the coach shows (select, facing move, contact
+  jump, show orders).
+- **Chatter holds while the narrator speaks** (agent, from 10): new unit lines
+  wait out a narration line. The lines already playing are cut, as before,
+  when the narrator keys in.
+- **`pause` steps are still unbuilt** (agent): chapter 3 has no tour over the
+  live battle. The first chapter that does adds them.
+- **Found, not fixed: an in-place unload after a move order does nothing**
+  (agent, while making the solution). A carrier told to move, then to unload
+  where it stands, keeps its squad aboard indefinitely. The same unload
+  without the move works. The solution unloads once the carrier has stopped,
+  so the walkthrough doesn't depend on it, but a player who presses unload
+  while driving meets it. It needs its own fix, in carriage or movement.
+- **After an unprimed critique of chapters 2–3's shots** (agent): the
+  show-orders key's label is "Space", and the card and Guide say "Hold". The
+  facing and attack-move steps name flag 1 and mark the ridge and the
+  crossroads. Two findings are left as they are and recorded here:
+  - unit readouts overlap when units stand close (the readout layout's own
+    problem, beyond the tutorial);
+  - the contact jump can show little when the newest contact is already in
+    view. That depends on where the contact falls, and a scripted camera move
+    before it would teach less than seeing the real jump.
+
+## Slice 14
+
+- **Vocabulary added** (agent): facts `popped_smoke` (fewer charges than the
+  unit carries), `reversing` (the drive the sim already publishes),
+  `ordered: {attack: <selector>}` (the unit's current order); trigger
+  `destroyed` (every unit the selector names is dead, and it named one).
+  This is a trigger, not the spec's unit fact, because a fact reads the
+  living. Also directed orders `pop_smoke`, `reverse_to`, and `attack` (by
+  the handle the ordering side identifies the target by; refused when it
+  doesn't), and a beat's `recovery` flag.
+- **A recovery beat isn't waited for** (agent): a chapter closes when its
+  other beats fired, and the walkthrough doesn't demand them. Solution beats
+  that answer a recovery are flagged too. A recovery beat fires once.
+  `director_facts` proves the not-waiting and the grant on a loss, on test
+  units, which stands in for R8's "AT team dies before the tank".
+- **The tank comes to the ambush holding fire** (agent, by the walkthrough,
+  revised in slice 15). At fire at will it shelled everything in view from the
+  north road while the AT team walked six minutes in. Then it spotted the
+  team at the copse first and shot it. Now it waits on the north road and
+  advances holding fire. It swings through `west_lane`, north of the copse,
+  in the team's view, then turns for the crossroads.
+- **The ambush stands just outside the copse, facing north** (`ambush_woods`
+  at (741, 806)). From inside the trees the Javelin's flight path was
+  blocked, and its launcher needs its own sight line. A probe of the map's
+  sight lines showed the copse's edge sees north and north-west, and almost
+  none of the north road.
+- **The tank is worn to 10 hull points** (lopsided): a Javelin that hits head
+  on does partial damage, so any hit kills it.
+- **The AT team is bought, not placed** (story): offered and granted when the
+  chapter opens, and a coach step (without a line) asks for it before
+  Lantern's "We have an anti-tank team in the woods" plays.
+- **Groups need one signal, not two** (agent): a UI step waits on a signal,
+  not a count of them. The card asks for two groups.
+- **Group keys come from their owner** (`FirstGroupKeys` in
+  `controlGroups.ts`), read by the coach's `{key:group_assign}` and
+  `{key:group_recall}`. The card names group 1's keys rather than a range,
+  which read as one odd key (critique).
+- **The army ring blends into the tray** (critique, not changed): its corner
+  brackets fall on the tray panel's own. Ringing single cards needs per-card
+  anchors, which no step needs yet.
+- **Found and fixed: setting a control group never told the coach**
+  (`group_set` was declared in slice 09 but never emitted). The scene's
+  chapter 4 step caught it.
+- **The solution's tripwire went from 10 to 20 minutes**: the AT team's walk
+  alone takes six.
+
+## Slice 15
+
+- **Vocabulary added** (agent): facts `deployed` and `serviced` (being
+  replenished, repaired or reinforced now, the supply owner's published
+  status); `ordered: {attack_ground: <zone>}`; the grant `to_cover` (only
+  the wallet's shortfall; as opening credits it is `covering`, since an empty
+  wallet's shortfall is the whole price); the directed order `deploy`.
+- **The treeline team is an RPG team** (agent): hidden in `far_treeline` on
+  return fire only. Once suppressed it withdraws, which is the "done"
+  beat's other way out.
+- **A unit serviced is any of the fleet the player has** (Bradley, squad,
+  scouts, Javelins), so whichever unit the player brings in counts.
+- **Adding a force reshuffles the battle** (found): forces take unit ids by
+  name, so the treeline team moved every bought unit's id and the seeded
+  outcomes with them. Chapter 4's ambush, which had passed by luck, failed
+  until it was rebuilt on sight lines (above).
+
+## Slice 16
+
+- **Vocabulary added** (agent): facts `airborne` and `arrived` (on the
+  field); triggers `pending` (a purchase reserved and on its way) and
+  `radar_contact` (a side holds a contact its receivers found); the directed
+  order `attack_contact_in` (attack the ordering side's contact meeting a
+  zone). Red's helicopter is bought by the existing `buy` with a red grant,
+  as the spec asked, so it arrives by an ordinary purchase. It can't be worn
+  and short of ammunition, since a purchase takes no condition, so it is a
+  full Mi-8.
+- **Mechanic changed: an anti-radiation seeker rides the beam** (agent, by
+  `tweak-mechanics`). A seeker fired into a radar contact steered at the
+  contact's centre, which radar reports in 100 m range steps. The Growler's
+  missiles fell 50 m off a Buk they had locked on to: a HARM that misses a
+  radar it was riding is a moment a viewer calls wrong. Now an anti-radiation
+  seeker (the weapon's `anti_radiation`) aimed at a radar contact homes on
+  the emitter behind it while it lives and emits. Any other round aimed at
+  the contact still aims at the reported area, and the side learns nothing.
+  Proven by `radar::an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre`
+  (red before the change). Parity, capture and publication digests were
+  unchanged.
+- **The SAM's missiles are spent** (lopsided): the Buk reaches most of the
+  map, and the chapter teaches finding it, not trading with it.
+- **Chapter 4's tank is P4's T-72** (agent): the earlier T-14 came from a
+  search that missed the T-72's card.
+- **Reaction lines are spoken when their gate is met** (agent, found while
+  writing chapter 6). A step's line was spoken as it appeared, so "Tank
+  down", "Splash one" and "They're pinned" played before the moment. A step
+  that `reacts` speaks its line when its gate is met, before the next step's
+  line, one after the other (`linesBetween`, unit-tested). A step a closing
+  chapter dropped says nothing. Chapters 2–6 mark their reactions, and
+  chapter 3's capture became four steps (capturing, taken, contested,
+  cleared), so each line meets its moment.
+- **Directed orders are proven where the solution leans on them** (agent):
+  the walkthrough fails by beat if one stops working. Only the facts and
+  triggers each have a test on test units.
+
+## Slice 17
+
+- **Vocabulary added** (agent): the trigger `match_result`, and the action
+  `open_shop` (the faction's whole shop back). A battle decided this tick runs
+  its director once more, so a beat answers the result on the deciding tick.
+  Nothing ticks after. Tested in `director_facts`.
+- **Admission: the last chapter ends on a match result** (slice 08's named
+  relaxation removed). Every test director gets a closing chapter, and a
+  director that doesn't end there is refused (`director` tests). The
+  walkthrough now stops when the battle ends and asserts the human side
+  won.
+- **Defenders hide off the flags and move on 30 seconds in** (agent): two worn
+  squads, holding fire until they step onto the bridge and the hill. A
+  timer rather than "as blue approaches", because no selector yet names "any
+  blue unit".
+- **Chapter 4's tank halts in the lane** (found when chapter 7's forces
+  renumbered the battle again). A Javelin gunner also carries a rifle, and
+  flips to it whenever the Javelin's shot stops assessing as good, which
+  resets his aim. Against a moving tank behind flickering cover he never
+  fired. The tank now stops 15 s in the team's view before it turns.
+  Found, not fixed: a launcher operator who flips weapons as a sight line
+  flickers never finishes aiming. That belongs to the weapon owner, not
+  this spec.
+- **The last chapter's steps outlast the battle** (agent): once every chapter
+  closed, or the battle ended, the coach keeps the last chapter's steps, so
+  the closing line plays over the result. Its panel moved to its own layer,
+  above the result's scrim and under the pause menu.
+- **A Continue card the story moved past is done** (agent): a Continue step
+  before a step whose beat was told is skipped, as a restarted or resumed run
+  finds it. A step that asks for an act still waits for the act, because
+  beats fire in any order (chapter 2's outpost is seen early).
+- **The dev loop can start on the deciding beat** (agent): a start on the
+  tick that decided the match resumes one tick earlier, which decides it
+  again. The scene shoots the Victory frame this way.
+- **The closing card docks bottom left over the result** (unprimed
+  critique): at the top left it hid the VICTORY title. Once the match ends
+  it loses its Continue, since the report's exit is the way on. The
+  critique's report findings are left to the match report's owner, outside
+  this spec: the winner's score drawn no bigger than the loser's, the event
+  log outweighing the win, and the report's plain button.
+

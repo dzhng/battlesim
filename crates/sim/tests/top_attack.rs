@@ -43,6 +43,7 @@ fn top_attack_aim_climbs_holds_and_dives_with_or_without_launcher_support() {
             point,
             turn_rad_s: 1.0,
             supported,
+            launch_hold_s: 0.0,
             loft: Some(Loft {
                 height_m: 60.0,
                 slope: 1.0,

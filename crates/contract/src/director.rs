@@ -15,8 +15,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::command::Engagement;
 use crate::ids::{Side, Tick, UnitId};
+use crate::observation::SuppressionTier;
 use crate::scenario_document::{CreditGrant, Zone};
-use crate::skirmish::{Phase, PurchaseSpec};
+use crate::skirmish::{MatchResult, Phase, PurchaseSpec};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -37,6 +38,10 @@ pub struct Chapter {
 pub struct Beat {
     pub id: String,
     pub when: Trigger,
+    /// A beat the chapter doesn't wait for: it answers trouble (a unit the
+    /// player needs, lost), so it fires only if that comes about.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub recovery: bool,
     /// The sides told it fired.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub audience: Vec<Side>,
@@ -78,6 +83,24 @@ pub enum Trigger {
         side: Side,
         zone: String,
     },
+    /// The objective, by its site's id, stands so.
+    Objective {
+        id: String,
+        is: ObjectiveState,
+    },
+    /// Every unit the selector names is dead, and it named at least one.
+    Destroyed(Selector),
+    /// `player` has `purchase` on its way, not yet on the field.
+    Pending {
+        player: String,
+        purchase: PurchaseSpec,
+    },
+    /// `side` holds a contact its radar receivers found.
+    RadarContact {
+        side: Side,
+    },
+    /// The match ended so.
+    MatchResult(MatchResult),
     All(Vec<Trigger>),
     Any(Vec<Trigger>),
 }
@@ -100,6 +123,56 @@ pub enum UnitFact {
     In(String),
     /// At this fire policy.
     Engagement(Engagement),
+    /// Aboard a carrier, or garrisoned in a building.
+    Inside(Host),
+    /// Suppressed at least this much (a vehicle never is).
+    Suppression(SuppressionTier),
+    /// Its current order is an attack-move.
+    AttackMoving,
+    /// It has spent smoke it hasn't been resupplied with.
+    PoppedSmoke,
+    /// It drives backwards this tick.
+    Reversing,
+    /// Its current order is so.
+    Ordered(OrderFact),
+    /// Set up, all the way (a unit that deploys).
+    Deployed,
+    /// Being replenished, repaired or reinforced by a supply vehicle now.
+    Serviced,
+    /// In the air.
+    Airborne,
+    /// On the field: a purchase that arrived, or a carried squad set down.
+    Arrived,
+}
+
+/// What a unit's current order is.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum OrderFact {
+    /// To attack one of the selected units.
+    Attack(Selector),
+    /// To fire on ground inside the zone.
+    AttackGround(String),
+}
+
+/// What a unit can be inside.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Host {
+    Carrier,
+    Building,
+}
+
+/// How an objective stands.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectiveState {
+    /// Held by the side, and not contested.
+    OwnedBy(Side),
+    /// The side is taking it.
+    Capturing(Side),
+    /// Both sides have combat units in its ring.
+    Contested,
 }
 
 /// What a beat does when it fires.
@@ -130,6 +203,8 @@ pub enum Action {
     },
     /// Say `player` is ready to start; only a directed seat says so.
     Ready { player: String },
+    /// Give `player` back its faction's whole shop.
+    OpenShop { player: String },
 }
 
 /// An order a beat gives, in the scenario's own terms.
@@ -142,6 +217,25 @@ pub enum DirectedOrder {
     AttackGround(String),
     /// Take this fire policy.
     Engage(Engagement),
+    /// Carriers set their squads down where they stand.
+    Unload,
+    /// Squads step into the building nearest the zone's centre, within it.
+    Occupy(String),
+    /// Attack-move to the zone's centre.
+    AttackMoveTo(String),
+    /// Drive home by the side's road in and leave the battle.
+    Withdraw,
+    /// Pop smoke where it stands.
+    PopSmoke,
+    /// Back up to the zone's centre, front to the threat.
+    ReverseTo(String),
+    /// Attack the first living unit the selector names, if the side
+    /// identifies it.
+    Attack(Selector),
+    /// Set up where it stands (a unit that deploys).
+    Deploy,
+    /// Attack the contact the ordering side holds that meets the zone.
+    AttackContactIn(String),
 }
 
 /// A scenario's solution: beats, in the director's own terms, that play its
@@ -186,6 +280,7 @@ impl Director {
         zones: &BTreeMap<String, Zone>,
         forces: &BTreeMap<String, UnitId>,
         players: &[crate::players::Player],
+        objectives: &[String],
     ) -> Result<(), String> {
         let mut chapters = std::collections::BTreeSet::new();
         let mut earlier = std::collections::BTreeSet::new();
@@ -199,6 +294,7 @@ impl Director {
                     zones,
                     forces,
                     players,
+                    objectives,
                     earlier: &earlier,
                 };
                 names
@@ -212,6 +308,17 @@ impl Director {
                 }
             }
         }
+        // The story ends where the match does.
+        if let Some(last) = self.chapters.last() {
+            let ends = (last.beats.iter())
+                .any(|b| !b.recovery && matches!(b.when, Trigger::MatchResult(_)));
+            if !ends {
+                return Err(format!(
+                    "director.{}: the last chapter ends on a match result",
+                    last.id
+                ));
+            }
+        }
         Ok(())
     }
 }
@@ -221,6 +328,7 @@ struct Names<'a> {
     zones: &'a BTreeMap<String, Zone>,
     forces: &'a BTreeMap<String, UnitId>,
     players: &'a [crate::players::Player],
+    objectives: &'a [String],
     earlier: &'a std::collections::BTreeSet<String>,
 }
 
@@ -259,16 +367,33 @@ impl Names<'_> {
                     .then_some(())
                     .ok_or("a beat's delay is a time from it".into())
             }
-            Trigger::Bought { player, .. } => self.player(player),
+            Trigger::Bought { player, .. } | Trigger::Pending { player, .. } => self.player(player),
+            Trigger::RadarContact { .. } | Trigger::MatchResult(_) => Ok(()),
             Trigger::Units { who, are } => {
                 self.selector(who)?;
                 match are {
                     UnitFact::In(zone) => self.zone(zone),
-                    UnitFact::Engagement(_) => Ok(()),
+                    UnitFact::Ordered(OrderFact::Attack(target)) => self.selector(target),
+                    UnitFact::Ordered(OrderFact::AttackGround(zone)) => self.zone(zone),
+                    UnitFact::Engagement(_)
+                    | UnitFact::Inside(_)
+                    | UnitFact::Suppression(_)
+                    | UnitFact::AttackMoving
+                    | UnitFact::PoppedSmoke
+                    | UnitFact::Reversing
+                    | UnitFact::Deployed
+                    | UnitFact::Serviced
+                    | UnitFact::Airborne
+                    | UnitFact::Arrived => Ok(()),
                 }
             }
-            Trigger::Identifies { who, .. } => self.selector(who),
+            Trigger::Identifies { who, .. } | Trigger::Destroyed(who) => self.selector(who),
             Trigger::ContactIn { zone, .. } => self.zone(zone),
+            Trigger::Objective { id, .. } => self
+                .objectives
+                .contains(id)
+                .then_some(())
+                .ok_or(format!("no objective {id:?}")),
             Trigger::All(all) | Trigger::Any(all) => all.iter().try_for_each(|t| self.trigger(t)),
         }
     }
@@ -277,15 +402,24 @@ impl Names<'_> {
             Action::Order { units, order } => {
                 self.selector(units)?;
                 match order {
-                    DirectedOrder::MoveTo(zone) | DirectedOrder::AttackGround(zone) => {
-                        self.zone(zone)
-                    }
-                    DirectedOrder::Engage(_) => Ok(()),
+                    DirectedOrder::MoveTo(zone)
+                    | DirectedOrder::AttackGround(zone)
+                    | DirectedOrder::Occupy(zone)
+                    | DirectedOrder::AttackMoveTo(zone)
+                    | DirectedOrder::ReverseTo(zone)
+                    | DirectedOrder::AttackContactIn(zone) => self.zone(zone),
+                    DirectedOrder::Attack(target) => self.selector(target),
+                    DirectedOrder::Engage(_)
+                    | DirectedOrder::Unload
+                    | DirectedOrder::Withdraw
+                    | DirectedOrder::PopSmoke
+                    | DirectedOrder::Deploy => Ok(()),
                 }
             }
             Action::Grant { player, .. }
             | Action::Offer { player, .. }
-            | Action::Ready { player } => self.player(player),
+            | Action::Ready { player }
+            | Action::OpenShop { player } => self.player(player),
             Action::Buy { player, at, .. } => {
                 self.player(player)?;
                 self.zone(at)

@@ -46,33 +46,97 @@ export async function run(ctx) {
   await page.keyboard.press("Escape");
   await coach(ctx, page);
   await restartChapter(ctx, page);
+  await page.close();
+  await startedLater(ctx);
+  await victory(ctx);
 }
 
-/** "Restart chapter" from the pause menu takes the battle back to the open
- *  chapter's start: the coach shows the chapter's first step again, having
- *  forgotten what the player did in it. */
-async function restartChapter(ctx, page) {
-  const [chapter] = COACH.chapters;
+/** The story's end: started where the last chapter's match is decided, the
+ *  battle ends in the player's victory and the coach's closing step stays up
+ *  over the result. */
+async function victory(ctx) {
+  const last = COACH.chapters.at(-1);
+  const won = [...last.steps]
+    .reverse()
+    .find((s) => typeof s.until === "object" && "beat" in s.until).until.beat;
+  const page = await ctx.newPage();
+  const url = new URL(ctx.url);
+  url.search = `?scenario=${SCENARIO}&chapter=${last.id}&beat=${won}`;
+  await page.goto(url.href);
+  await playable(page, ctx.readinessTimeout, 1);
+  await page.getByRole("dialog", { name: "Match result" }).waitFor({ timeout: 60000 });
   const card = page.getByRole("complementary", { name: "Coach" });
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
-  const restart = page.getByRole("button", { name: "Restart chapter", exact: true });
-  await restart.waitFor({ timeout: 30000 });
-  await restart.click();
-  await page.getByRole("button", { name: "Restart chapter", exact: true }).click();
-  const asked = Date.now();
-  await page.waitForFunction(
-    (first) => document.querySelector("[aria-label=Coach]")?.getAttribute("data-step") === first,
-    chapter.steps[0].id,
-    { timeout: 60000 },
-  );
+  // Continue through what the player hasn't dismissed in this run.
+  const closing = last.steps.at(-1).id;
+  for (
+    let i = 0;
+    i < last.steps.length && (await card.getAttribute("data-step")) !== closing;
+    i++
+  ) {
+    const go = card.getByRole("button", { name: "Continue" });
+    if (await go.count()) await go.click();
+    else await page.waitForTimeout(500);
+  }
   ctx.check(
-    "restarting the chapter brings back its first step",
-    (await card.getAttribute("data-step")) === chapter.steps[0].id,
-    `${((Date.now() - asked) / 1000).toFixed(1)} s from the confirmation`,
+    "the battle ends in victory with the coach's closing step up",
+    (await card.getAttribute("data-step")) === closing,
+    await card.getAttribute("data-step"),
   );
-  // The view draws again once its world is back.
-  await lab(page, () => window.__lab.frame());
-  await snapshot(ctx, page, "coach-restarted.png");
+  await snapshot(ctx, page, "victory.png");
+  await page.close();
+}
+
+/** Where each later chapter's UI-gated steps begin: the chapter's opening,
+ *  or the beat step just before them. The walkthrough plays the beats, never
+ *  the UI, so these are played here. */
+function uiStarts() {
+  return COACH.chapters.slice(1).flatMap((chapter) => {
+    const starts = new Map();
+    chapter.steps.forEach((step, i) => {
+      if (typeof step.until !== "object" || !("ui" in step.until)) return;
+      const before = chapter.steps
+        .slice(0, i)
+        .reverse()
+        .find((s) => typeof s.until === "object" && "beat" in s.until);
+      starts.set(before?.until.beat ?? null, step.id);
+    });
+    return [...starts].map(([beat, last]) => ({ chapter, beat, last }));
+  });
+}
+
+/** The chapters' dev loop: a battle started at a chapter, or where one of
+ *  its beats fired, shows the coach's next step, and the player plays on
+ *  from there: each UI step the coach shows is done, up to a beat step. */
+async function startedLater(ctx) {
+  for (const { chapter, beat, last } of uiStarts()) {
+    const page = await ctx.newPage();
+    const url = new URL(ctx.url);
+    url.search = `?scenario=${SCENARIO}&chapter=${chapter.id}${beat ? `&beat=${beat}` : ""}`;
+    await page.goto(url.href);
+    await playable(page, ctx.readinessTimeout, 1);
+    const card = page.getByRole("complementary", { name: "Coach" });
+    await card.waitFor({ timeout: 60000 });
+    const done = [];
+    for (;;) {
+      const at = await card.getAttribute("data-step");
+      const step = chapter.steps.find((s) => s.id === at);
+      if (!step || typeof step.until !== "object" || !("ui" in step.until)) break;
+      await snapshot(ctx, page, `coach-${chapter.id}-${step.id}.png`);
+      for (const signal of step.until.ui) await perform(page, card, signal);
+      await page.waitForFunction(
+        (id) => document.querySelector("[aria-label=Coach]")?.getAttribute("data-step") !== id,
+        step.id,
+        { timeout: 10000 },
+      );
+      done.push(step.id);
+    }
+    ctx.check(
+      `${chapter.id}, started ${beat ? `after ${beat}` : "at its opening"}: its UI steps through ${last} are done by doing them`,
+      done.includes(last),
+      done.join(", "),
+    );
+    await page.close();
+  }
 }
 
 /** The coach through the briefing, step by step from its own document:
@@ -132,6 +196,33 @@ async function coach(ctx, page) {
       if (step.camera) await released(ctx, page, step);
     }
   }
+}
+
+/** "Restart chapter" from the pause menu takes the battle back to the open
+ *  chapter's start: the coach shows the chapter's first step again, having
+ *  forgotten what the player did in it. */
+async function restartChapter(ctx, page) {
+  const [chapter] = COACH.chapters;
+  const card = page.getByRole("complementary", { name: "Coach" });
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  const restart = page.getByRole("button", { name: "Restart chapter", exact: true });
+  await restart.waitFor({ timeout: 30000 });
+  await restart.click();
+  await page.getByRole("button", { name: "Restart chapter", exact: true }).click();
+  const asked = Date.now();
+  await page.waitForFunction(
+    (first) => document.querySelector("[aria-label=Coach]")?.getAttribute("data-step") === first,
+    chapter.steps[0].id,
+    { timeout: 60000 },
+  );
+  ctx.check(
+    "restarting the chapter brings back its first step",
+    (await card.getAttribute("data-step")) === chapter.steps[0].id,
+    `${((Date.now() - asked) / 1000).toFixed(1)} s from the confirmation`,
+  );
+  // The view draws again once its world is back.
+  await lab(page, () => window.__lab.frame());
+  await snapshot(ctx, page, "coach-restarted.png");
 }
 
 const COACH = JSON.parse(
@@ -207,5 +298,24 @@ async function perform(page, card, signal) {
   else if (signal === "camera_zoom") await page.mouse.wheel(0, -300);
   else if (signal === "shop_opened")
     await page.getByRole("button", { name: "Reinforcements" }).click();
-  else throw Error(`the scene can't do ${signal}`);
+  else if (signal === "selected")
+    await page.locator('[data-hud-anchor="army"] button:not([disabled])').first().click();
+  else if (signal === "moved_with_facing") {
+    await page.mouse.move(640, 380);
+    await page.mouse.down({ button: "right" });
+    await page.waitForTimeout(100);
+    await page.mouse.move(800, 300, { steps: 20 });
+    await page.waitForTimeout(100);
+    await page.mouse.up({ button: "right" });
+  } else if (signal === "contact_focus") await page.keyboard.press(`Key${keys[0]}`);
+  else if (signal === "group_set") {
+    // Select a unit, then the group key the card names.
+    await page.locator('[data-hud-anchor="army"] button:not([disabled])').first().click();
+    await page.keyboard.press(keys[0].replace("Ctrl", "Control").replace(/\+(\d)$/, "+Digit$1"));
+  } else if (signal === "show_orders") {
+    // The card names the key to hold.
+    await page.keyboard.down(keys[0]);
+    await page.waitForTimeout(500);
+    await page.keyboard.up(keys[0]);
+  } else throw Error(`the scene can't do ${signal}`);
 }
