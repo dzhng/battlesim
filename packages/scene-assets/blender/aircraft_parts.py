@@ -459,6 +459,11 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
             lods=NEAR)
     cyl(f"rotor_{name}_hub", hub, hub * 0.55, (0, 0, 0), "Z", mats["dark"], node, seg=14, bevel=0.02)
     cyl(f"rotor_{name}_cap", hub * 0.55, hub * 0.4, (0, 0, hub * 0.45), "Z", mats["steel"], node, seg=12, lods=MID)
+    # The bearing stack and radial hinge sleeves keep each blade root seated in
+    # a recognizable mechanical head. A single cap over a mast reads as a toy
+    # at close range, especially on attack helicopters with exposed heads.
+    cyl(f"rotor_{name}_upper_bearing", hub * 0.68, hub * 0.22,
+        (0, 0, hub * 0.56), "Z", mats["steel"], node, seg=14, bevel=.012, lods=NEAR)
     # Rotor blades taper and sweep slightly toward the tip. A constant chord
     # reads as a flat bar in the roster view and overwhelms the airframe.
     tip = tip_chord if tip_chord is not None else chord * 0.72
@@ -478,6 +483,9 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
         # surface() sweeps chords along -X: lay the blade on Y, then turn it to its bearing.
         surface(f"blade_{name}_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
                 rot=(0, 0, a - math.pi / 2))
+        cyl(f"rotor_{name}_root_hinge_{k}", chord * 0.18, hub * 0.78,
+            (ca * (root - hub * 0.14), sa * (root - hub * 0.14), -hub * 0.03), "X", mats["steel"], node,
+            seg=10, rot=(0, 0, a), lods=NEAR)
         # The blade's root cuff and its painted tip (the strike warning).
         tip_len = min(0.3, (out - root) * 0.06)
         if tips:
