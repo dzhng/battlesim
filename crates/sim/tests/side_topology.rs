@@ -66,10 +66,12 @@ fn existing_binary_path_proves_observation_and_replay_baseline() {
 
 #[test]
 fn neutral_is_visible_as_a_third_slot_and_only_returns_fire() {
+    // On the open road, clear of the shed and the walls: a squad holds fire
+    // at what scenery shields, and this is about sides, not cover.
     let setup = scenario(serde_json::json!([
-        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
-        { "side": "neutral", "kind": "test_rifle", "position": [220.0, 100.0] },
-        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+        { "side": "blue", "kind": "test_rifle", "position": [80.0, 160.0] },
+        { "side": "neutral", "kind": "test_rifle", "position": [220.0, 160.0] },
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 160.0] }
     ]));
     let mut battle = Battle::new(&setup, 19);
     assert_eq!(battle.observe(Side::Blue).own.len(), 1);
