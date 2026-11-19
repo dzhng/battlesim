@@ -617,20 +617,29 @@ fn guided_solution_time(
     origin: V3,
     solution: &FiringSolution,
 ) -> f64 {
-    let mut duration = solution.time_of_flight_s;
-    for _ in 0..4 {
-        let path = guided_timed_path(
-            config,
-            profile,
-            origin,
-            solution.velocity,
-            solution.intercept,
-            duration,
-        );
-        let distance = path.windows(2).map(|w| (w[1].0 - w[0].0).length()).sum();
-        duration = profile.time_for_distance(distance);
-    }
-    duration
+    let path = guided_timed_path(
+        config,
+        profile,
+        origin,
+        solution.velocity,
+        solution.intercept,
+        profile.lifetime_s,
+    );
+    path.windows(2)
+        .map(|w| {
+            let a = w[0].0;
+            let chord = w[1].0 - a;
+            let chord2 = chord.dot(chord);
+            let u = if chord2 > 0.0 {
+                ((solution.intercept - a).dot(chord) / chord2).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let distance = (a + chord * u - solution.intercept).length();
+            (distance, w[0].1 + (w[1].1 - w[0].1) * u)
+        })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map_or(solution.time_of_flight_s, |(_, time)| time)
 }
 
 /// First static obstruction on the flown path short of arrival, if any, and
@@ -858,7 +867,7 @@ fn launch_along(
             // Guidance turns from the authored launcher heading toward the
             // commanded intercept on the first flight tick.
             guidance: profile.turn_rad_s.map(|turn_rad_s| Guidance {
-                point: intended.intercept,
+                point: fired.intercept,
                 turn_rad_s,
                 supported: true,
                 loft: profile.loft,

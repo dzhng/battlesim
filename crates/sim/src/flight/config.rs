@@ -383,21 +383,6 @@ impl LaunchProfile {
         )
     }
 
-    pub fn time_for_distance(&self, distance: f64) -> f64 {
-        let Some(motor) = self.motor else {
-            return distance / self.speed_mps;
-        };
-        let burn_s = (motor.top_speed_mps - self.speed_mps) / motor.accel_mps2;
-        let burn_m = motor.distance(self.speed_mps, burn_s);
-        if distance <= burn_m {
-            (-self.speed_mps
-                + libm::sqrt(self.speed_mps * self.speed_mps + 2.0 * motor.accel_mps2 * distance))
-                / motor.accel_mps2
-        } else {
-            burn_s + (distance - burn_m) / motor.top_speed_mps
-        }
-    }
-
     /// The acceleration the round flies under: its share of gravity, or
     /// none for a motor-sustained guided round.
     pub fn gravity(&self, config: &FlightConfig) -> V3 {
