@@ -40,7 +40,7 @@ def build(variant, v):
     # views without turning the windows into black holes.
     m["canopy"] = flat_paint("havoc_laminated_glass", (0.018, 0.028, 0.034), rough=0.13,
                              grime=0, coverage=("blended", 0.38), role="glass")
-    fitted_airframe(v, "mi_28_havoc", m)
+    fitted_airframe(v, "mi_28_havoc", m, skip_parts=("cockpit",))
     if not v.wreck:
         # Keep the donor glazing, but give each tandem station a visible seat,
         # headrest, coaming and instrument panel behind it.

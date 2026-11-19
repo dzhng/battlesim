@@ -27,7 +27,7 @@ def _atlas(source, family):
     return material
 
 
-def fitted_airframe(v, family, mats):
+def fitted_airframe(v, family, mats, skip_parts=()):
     source = skin_pins.verified(skin_pins.required(family, variant=v.variant["id"]))
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=source)
@@ -37,6 +37,9 @@ def fitted_airframe(v, family, mats):
     for part in sorted(set(bpy.data.objects) - before, key=lambda o: o.name):
         grounded = part.pop("grounded", False)
         role = part["material_role"]
+        if part.name in skip_parts:
+            bpy.data.objects.remove(part, do_unlink=True)
+            continue
         material = _atlas(part.data.materials[0], family) if role == "atlas" else mats[role]
         part.data.materials.clear()
         part.data.materials.append(material)

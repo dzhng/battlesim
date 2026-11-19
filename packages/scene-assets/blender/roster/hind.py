@@ -20,7 +20,7 @@ def build(variant, v):
     # enough coverage for the crew and seat silhouettes to read through them.
     m["canopy"] = flat_paint("hind_laminated_glass", (0.018, 0.028, 0.034), rough=0.13,
                              grime=0, coverage=("blended", 0.38), role="glass")
-    fitted_airframe(v, "mi_24_mi_35_hind", m)
+    fitted_airframe(v, "mi_24_mi_35_hind", m, skip_parts=("cockpit",))
     if not v.wreck:
         # The donor canopy is the shell. These restrained interior pieces sit
         # below its sills so the tandem cockpit reads as occupied through the
