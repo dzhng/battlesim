@@ -1,12 +1,13 @@
 //! Automatic target ranking: return-fire threat, damage share, distance and
-//! observed id decide which identified enemy a mount takes.
+//! observed id decide which identified enemy a mount takes, and a mount keeps
+//! it until it can no longer shoot it.
 use contract::command::TargetRef;
-use contract::ids::Side;
+use contract::ids::{Side, UnitId};
 use serde_json::json;
 use sim::battle::Battle;
 
 use crate::common;
-use crate::weapons::{battle, map, mount, rules, run, scenario_with};
+use crate::weapons::{battle, map, mount, rules, run, scenario_with, ticks};
 
 #[test]
 fn automatic_acquisition_prefers_a_damaging_threat_over_harmless_value() {
@@ -204,4 +205,99 @@ fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
         mount(&b, Side::Blue, 0, 0).target,
         Some(TargetRef::Identified { id: jeep })
     );
+}
+
+#[test]
+fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
+    // The costlier red squad walks out of rifle range but stays identified by
+    // blue's scout; the rifles take the nearer scout-class target instead of
+    // holding a loaded round on the unreachable one (W07).
+    let scripts = json!([{ "tick": 1, "side": "red", "order":
+        { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 300], "route": "shortest" } }]);
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [690, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [400, 420], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    // The squad must live to walk out of range: this is about which target a
+    // loaded weapon holds, not how fast rifles kill or pin at long range.
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.damage = 0.0;
+    rifle.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
+    let handle = |b: &Battle, kind: &str| {
+        b.observe(Side::Blue)
+            .identified
+            .iter()
+            .find(|e| e.kind == common::unit_kind(kind))
+            .map(|e| e.id)
+    };
+    run(&mut b, 5);
+    let squad = handle(&b, "test_rifle").expect("the squad is identified");
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: squad })
+    );
+    let mut switched = false;
+    for _ in 0..1200 {
+        b.step();
+        if mount(&b, Side::Blue, 0, 0).target
+            == handle(&b, "test_recon").map(|id| TargetRef::Identified { id })
+        {
+            switched = handle(&b, "test_rifle") == Some(squad);
+            break;
+        }
+    }
+    assert!(
+        switched,
+        "replaced while the out-of-range squad was still identified"
+    );
+}
+
+#[test]
+fn a_weapon_keeps_its_target_while_it_can_still_shoot_it() {
+    // Blue's rifles take the nearer of two red squads; it then walks back past
+    // the other but stays in range and in sight. The rifles stay on it: a
+    // squad that swaps targets every time the ranking shifts flickers on
+    // screen and wastes its aim (W07).
+    let scripts = json!([{ "tick": 1, "side": "red", "order":
+        { "kind": "move", "units": [2], "gesture": 1, "goal": [550, 300], "route": "shortest" } }]);
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [300, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [340, 380], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    // Nobody dies or is pinned: this is about which target the rifles hold.
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.damage = 0.0;
+    rifle.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 5);
+    let first = mount(&b, Side::Blue, 0, 0).target;
+    assert!(first.is_some(), "the rifles take a target");
+    let mut swaps = 0;
+    for _ in 0..ticks(40.0) {
+        b.step();
+        if mount(&b, Side::Blue, 0, 0).target != first {
+            swaps += 1;
+        }
+    }
+    let at = |id: u32| b.unit(UnitId(id)).unwrap().position.xy();
+    assert!(
+        (at(2) - at(0)).length() > 300.0,
+        "the first target walked back past the other"
+    );
+    assert_eq!(swaps, 0, "the rifles never left their first target");
 }
