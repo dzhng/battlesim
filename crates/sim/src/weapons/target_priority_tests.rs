@@ -1,6 +1,7 @@
 //! Which target a mount picks, whether its rounds can reach it, and when a
 //! seeker may acquire one.
 
+use super::choice::select;
 use super::*;
 use contract::command::Engagement;
 use serde_json::json;

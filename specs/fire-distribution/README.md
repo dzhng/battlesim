@@ -1,6 +1,6 @@
 # Fire distribution
 
-**Status:** planned, nothing implemented. **Updated:** 2026-11-19.
+**Status:** slice 00 landed; 01 and 02 in progress. **Updated:** 2026-11-19.
 
 Two changes to how a crew picks and keeps its target in automatic targeting:
 
@@ -15,8 +15,10 @@ Two changes to how a crew picks and keeps its target in automatic targeting:
 
 ## Next Agent Prompt
 
-You are implementing the fire-distribution spec in `crates/sim`. Nothing has
-landed yet. Start at [slice 00](slices/00-make-room.md) and go in order. Each
+You are implementing the fire-distribution spec in `crates/sim`. Slice 00 has
+landed: target choice lives in `weapons/choice.rs` and `GroundRules` moved to
+`contract/src/scenario/ground.rs`. Continue with slices 01 and 02 (independent),
+then 03 and 04. Each
 slice file names its contract, seam, tests, what stays green and what you may
 decide yourself. Anything else it leaves open is a gap: record it in the
 decisions ledger below rather than inventing it silently.
@@ -39,7 +41,7 @@ Warnings:
 
 TODO:
 
-- [ ] [00](slices/00-make-room.md) Move target choice into `weapons/choice.rs`; digests identical.
+- [x] [00](slices/00-make-room.md) Move target choice into `weapons/choice.rs`; digests identical.
 - [ ] [01](slices/01-target-spread.md) Target spread: drop the cost key, weighted distance, seeded spread.
 - [ ] [02](slices/02-committed-ledger.md) The committed-fire ledger as a pure, unit-tested owner; the contract flag.
 - [ ] [03](slices/03-overkill-in-play.md) Overkill in play: build the ledger, tally launches, the hold gate, reconsider.
