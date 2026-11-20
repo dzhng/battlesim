@@ -343,25 +343,33 @@ fn many_long_orders_share_each_ticks_allowance_and_every_unit_gets_its_route() {
     }
 }
 
+/// A fresh order goes before searches that have already had more work than
+/// it needs: it is planned within the tick, where an equal share of the
+/// tick would have kept it waiting behind them.
 #[test]
-fn a_short_order_is_not_starved_by_long_ones() {
-    let (setup, orders) = crossing();
+fn a_short_order_is_planned_at_once_however_many_long_ones_are_under_way() {
+    let (mut setup, orders) = crossing();
+    let mut alone = Battle::new(&setup, 1);
+    // The sixth tank a few metres over open ground.
+    let near = xy(&own(&alone, 5));
+    let order = go(&[5], [near[0] - 20.0, near[1]]);
+    send(&mut alone, 1, order.clone());
+    alone.step();
+    assert_eq!(own(&alone, 5).state, MoveState::Moving);
+    // A tick's allowance is just what that order costs: a sixth won't do.
+    setup.rules.navigation.work_per_tick = alone.load().planning_work as u32;
     let mut b = Battle::new(&setup, 1);
-    // Five long searches, then the sixth tank a few metres over open ground.
     for (k, order) in orders.into_iter().take(5).enumerate() {
         send(&mut b, k as u64 + 1, order);
     }
-    b.step();
-    b.step();
+    // Five long searches, each soon served more than the short one needs.
+    for _ in 0..12 {
+        b.step();
+    }
     assert!((0..5).all(|id| own(&b, id).state == MoveState::Planning));
-    let near = xy(&own(&b, 5));
-    send(&mut b, 6, go(&[5], [near[0] - 20.0, near[1]]));
+    send(&mut b, 6, order);
     b.step();
-    assert_eq!(
-        own(&b, 5).state,
-        MoveState::Moving,
-        "its share of the tick is enough for a short route"
-    );
+    assert_eq!(own(&b, 5).state, MoveState::Moving);
     assert!((0..5).any(|id| own(&b, id).state == MoveState::Planning));
 }
 

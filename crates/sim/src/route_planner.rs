@@ -1,7 +1,9 @@
 //! The battle's one route planner. A unit that needs a route asks for one;
 //! the planner spends each tick's allowance of work
-//! (`navigation.work_per_tick`) across every waiting unit's [`Journey`], and
-//! hands back each route on the tick it is whole, with the knowledge
+//! (`navigation.work_per_tick`) on the waiting units' [`Journey`]s, first on
+//! whichever has had the least so far, so a short search is whole in a tick
+//! or two however many long ones are under way, and searches served alike
+//! share alike. It hands back each route on the tick it is whole, with the knowledge
 //! revision it was searched against: the mover checks it against what its
 //! side learned since, as it checks every later change. Nothing here reads the clock: a
 //! route's tick follows from the work counted, so a replay plans the same.
@@ -37,6 +39,8 @@ struct Job {
     /// The side's knowledge revision the journey started against.
     revision: u64,
     journey: Option<Box<Journey>>,
+    /// Work spent on its journey so far.
+    served: u64,
 }
 
 impl Job {
@@ -80,8 +84,6 @@ impl Job {
 #[derive(Default)]
 pub struct RoutePlanner {
     jobs: BTreeMap<UnitId, Job>,
-    /// The unit served last: the next tick's round starts after it.
-    cursor: Option<UnitId>,
     /// Work spent beyond a tick's allowance (a search overruns by at most
     /// one step), taken off the next tick's.
     overdraft: u64,
@@ -102,6 +104,7 @@ impl RoutePlanner {
                 request,
                 revision: 0,
                 journey: None,
+                served: 0,
             },
         );
     }
@@ -137,12 +140,12 @@ impl RoutePlanner {
         self.spent
     }
 
-    /// Spend one tick's allowance (`rules.work_per_tick`) across the waiting
-    /// units, in equal shares, round and round in unit order from where the
-    /// last tick stopped. `grids` holds each side's grid and knowledge
-    /// revision (for every side with a unit waiting); `roads` is the map's
-    /// road graph. Returns the routes that are whole, in unit order, each
-    /// with the knowledge revision it was planned against.
+    /// Spend one tick's allowance (`rules.work_per_tick`) on the waiting
+    /// units, a slice at a time, each slice to the search served least so
+    /// far (the lowest unit among equals). `grids` holds each side's grid
+    /// and knowledge revision (for every side with a unit waiting); `roads`
+    /// is the map's road graph. Returns the routes that are whole, in unit
+    /// order, each with the knowledge revision it was planned against.
     pub fn advance(
         &mut self,
         rules: &NavigationRules,
@@ -153,44 +156,25 @@ impl RoutePlanner {
         let mut left = allowance.saturating_sub(self.overdraft);
         self.overdraft = self.overdraft.saturating_sub(allowance);
         self.spent = 0;
-        let mut waiting: Vec<UnitId> = match self.cursor {
-            Some(cursor) => self
-                .jobs
-                .range(next(cursor)..)
-                .chain(self.jobs.range(..=cursor))
-                .map(|(id, _)| *id)
-                .collect(),
-            None => self.jobs.keys().copied().collect(),
-        };
+        // Searches served alike each get an equal slice of the tick.
+        let slice = (allowance / self.jobs.len().max(1) as u64).max(1);
         let mut finished = Vec::new();
-        while left > 0 && !waiting.is_empty() {
-            let share = (left / waiting.len() as u64).max(1);
-            let mut still = Vec::new();
-            for id in waiting {
-                if left == 0 {
-                    still.push(id);
-                    continue;
-                }
-                let job = self.jobs.get_mut(&id).expect("a waiting unit has a job");
-                let grid = grids[job.request.side.index()].expect("a grid for every side waiting");
-                let (spent, plan) =
-                    job.advance((rules, roads), grid, &mut self.spare, share.min(left));
-                self.spent += spent;
-                self.overdraft += spent.saturating_sub(left);
-                left = left.saturating_sub(spent);
-                self.cursor = Some(id);
-                match plan {
-                    Some(plan) => {
-                        let job = self.jobs.remove(&id).expect("the job just advanced");
-                        finished.push((id, job.request, plan, job.revision));
-                    }
-                    None => still.push(id),
-                }
+        while left > 0 {
+            let least = self.jobs.iter().min_by_key(|(id, job)| (job.served, **id));
+            let Some((&id, _)) = least else {
+                break;
+            };
+            let job = self.jobs.get_mut(&id).expect("the job just found");
+            let grid = grids[job.request.side.index()].expect("a grid for every side waiting");
+            let (spent, plan) = job.advance((rules, roads), grid, &mut self.spare, slice.min(left));
+            job.served += spent;
+            self.spent += spent;
+            self.overdraft += spent.saturating_sub(left);
+            left = left.saturating_sub(spent);
+            if let Some(plan) = plan {
+                let job = self.jobs.remove(&id).expect("the job just advanced");
+                finished.push((id, job.request, plan, job.revision));
             }
-            waiting = still;
-        }
-        if self.jobs.is_empty() {
-            self.cursor = None;
         }
         finished.sort_by_key(|(id, ..)| *id);
         finished
@@ -202,9 +186,7 @@ impl RoutePlanner {
         if self.jobs.is_empty() && self.overdraft == 0 {
             return;
         }
-        d.u64(self.jobs.len() as u64)
-            .u64(self.cursor.map_or(u64::MAX, |id| id.0 as u64))
-            .u64(self.overdraft);
+        d.u64(self.jobs.len() as u64).u64(self.overdraft);
         for (id, job) in &self.jobs {
             let r = &job.request;
             d.u64(id.0 as u64)
@@ -227,7 +209,7 @@ impl RoutePlanner {
             for p in r.kept.iter().flatten() {
                 d.f64(p.x).f64(p.y);
             }
-            d.u64(job.revision);
+            d.u64(job.revision).u64(job.served);
             match &job.journey {
                 None => {
                     d.u64(0);
@@ -239,8 +221,4 @@ impl RoutePlanner {
             }
         }
     }
-}
-
-fn next(id: UnitId) -> UnitId {
-    UnitId(id.0.saturating_add(1))
 }
