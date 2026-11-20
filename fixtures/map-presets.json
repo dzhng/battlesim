@@ -953,7 +953,7 @@
     "tree_lines": {
       "per_km2": 0.1,
       "length_m": [60, 130],
-      "width_m": 12,
+      "width_m": 18,
       "stretch_m": [45, 90],
       "gap_m": 12,
       "roadside_chance": 0.6,
