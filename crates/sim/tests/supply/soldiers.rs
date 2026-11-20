@@ -1,5 +1,6 @@
-//! Soldiers at a truck: the fallen are replaced by new soldiers where their
-//! squad fights, and an eliminated squad never returns.
+//! Soldiers at a truck: the wounded are treated, the fallen are replaced by
+//! new soldiers where their squad fights, and an eliminated squad never
+//! returns.
 use contract::ids::{Side, UnitId};
 use contract::observation::ServiceStatus;
 use serde_json::json;
@@ -130,4 +131,52 @@ fn replacements_get_fresh_ids_unique_across_the_battle() {
         Some(first_ids as u32 + 2),
         "two new ids after every authored one"
     );
+}
+
+/// Wounded soldiers are patched up, the most wounded first, so the squad's
+/// wounds even out: each treatment restores up to its share of health at its
+/// price, never past the soldier's own.
+#[test]
+fn wounded_soldiers_are_treated_the_most_wounded_first() {
+    let wounded = 55.0;
+    let mut b = battle(
+        json!([
+            truck(None),
+            holding("test_rifle", 130.0, json!({ "soldier_hp": wounded }))
+        ]),
+        16,
+    );
+    let full = stock(&b);
+    let service = b.rules().service.clone();
+    let max = common::rules().catalog.soldier("test_rifleman").hp;
+    let period = (service.first_aid_s * b.rules().tick_hz as f64).round() as u64;
+    let treatments = 5;
+    run(&mut b, deploy_ticks() + period * treatments + 2);
+    let hp = own(&b, Side::Blue, 1).unwrap().member_hp;
+    let healed: f64 = hp.iter().map(|h| h - wounded).sum();
+    assert_eq!(healed, treatments as f64 * service.first_aid_hp);
+    let spread =
+        hp.iter().cloned().fold(f64::MIN, f64::max) - hp.iter().cloned().fold(f64::MAX, f64::min);
+    assert!(
+        spread <= service.first_aid_hp,
+        "the most wounded is treated first: {hp:?}"
+    );
+    assert_eq!(
+        stock(&b),
+        full - treatments as u32 * service.stock_per_first_aid
+    );
+    // Every soldier back to his own health, and nothing more is paid for.
+    let each = ((max - wounded) / service.first_aid_hp).ceil() as u64;
+    run(&mut b, period * (8 * each - treatments) + 30 * 5);
+    let squad = own(&b, Side::Blue, 1).unwrap();
+    assert!(
+        squad.member_hp.iter().all(|&h| h == max),
+        "{:?}",
+        squad.member_hp
+    );
+    assert_eq!(
+        stock(&b),
+        full - 8 * each as u32 * service.stock_per_first_aid
+    );
+    assert_eq!(squad.service, ServiceStatus::Full);
 }

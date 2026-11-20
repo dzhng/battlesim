@@ -1033,6 +1033,9 @@
     "stock_per_hp": 1,
     "soldier_replacement_s": 10,
     "stock_per_soldier": 15,
+    "first_aid_s": 1,
+    "first_aid_hp": 10,
+    "stock_per_first_aid": 1,
     "flare_service_s": 2,
     "stock_per_flare": 2
   },

@@ -201,6 +201,7 @@ impl Unit {
             .f64(p.flare_s)
             .f64(p.hp_s)
             .f64(p.soldier_s)
+            .f64(p.first_aid_s)
             .u64(self.service as u64);
         // Only a unit that carries smoke folds it in, so others keep their digests.
         if let Some(smoke) = self.smoke {

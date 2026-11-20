@@ -1,4 +1,4 @@
-//! Recovery with finite stock (slice 13): who is served, in what order, at
+//! Recovery with finite stock (slice 13): who is served, all at once, at
 //! what price, and what never happens (resurrection, negative or regrown stock).
 use contract::command::{CommandEnvelope, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
@@ -608,9 +608,12 @@ fn trucks_are_never_serviced_even_by_each_other() {
     assert_eq!(own(&b, Side::Blue, 1).unwrap().hp, 20.0);
 }
 
+/// Every need is served at once, each on its own clock: a squad's replacement
+/// and a tank's repair never wait for their ammunition.
 #[test]
-fn ammunition_comes_before_soldiers_and_an_empty_launcher_reloads() {
-    // All four missiles spent and one soldier down.
+fn every_need_is_served_at_once_and_an_empty_launcher_reloads() {
+    // All four missiles spent and one soldier down; a damaged tank half out of
+    // armour-piercing rounds.
     let mut b = battle(
         json!([
             truck(None),
@@ -618,23 +621,44 @@ fn ammunition_comes_before_soldiers_and_an_empty_launcher_reloads() {
                 "test_at",
                 130.0,
                 json!({ "spent": { "atgm": 4 }, "casualties": 1 })
-            )
+            ),
+            holding(
+                "test_tank",
+                150.0,
+                json!({ "hp": 90, "spent": { "tank_ap": 10 } })
+            ),
         ]),
         14,
     );
     assert_eq!(own(&b, Side::Blue, 1).unwrap().mounts[1].loaded, None);
-    run(&mut b, deploy_ticks() + 30 * 3 + 4);
+    let hz = b.rules().tick_hz as f64;
+    let service = b.rules().service.clone();
+    let replacement = (service.soldier_replacement_s * hz) as u64;
+    let repair = (10.0 / service.vehicle_hp_per_s * hz) as u64;
+    let ap_full = (10.0 / b.rules().weapons["tank_ap"].resupply_rounds_per_s.unwrap() * hz) as u64;
+    assert!(
+        replacement.max(repair) < ap_full,
+        "the scene needs the tank's rounds to outlast the other services"
+    );
+    run(&mut b, deploy_ticks() + replacement.max(repair) + 4);
     let at = own(&b, Side::Blue, 1).unwrap();
-    assert_eq!(at.members.len(), 2, "no soldier before the missiles");
-    assert_eq!(at.mounts[1].ammo, vec![Some(3)]);
-    run(&mut b, 30 * 2 + 30 * 10);
+    assert_eq!(
+        at.members.len(),
+        3,
+        "the replacement joins on his own clock"
+    );
+    let tank = own(&b, Side::Blue, 2).unwrap();
+    assert_eq!(tank.hp, 100.0, "repaired while the rounds still come");
+    assert!(tank.mounts[0].ammo[0] < Some(20), "rounds still coming");
+    run(&mut b, ap_full);
     let at = own(&b, Side::Blue, 1).unwrap();
     assert_eq!(at.mounts[1].ammo, vec![Some(4)]);
     assert!(
         at.mounts[1].loaded.is_some(),
         "the refilled launcher reloads"
     );
-    assert_eq!(at.members.len(), 3, "then the soldier");
+    assert_eq!(at.service, ServiceStatus::Full);
+    assert_eq!(own(&b, Side::Blue, 2).unwrap().mounts[0].ammo[0], Some(20));
 }
 
 #[test]

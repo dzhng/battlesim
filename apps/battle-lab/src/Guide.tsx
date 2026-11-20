@@ -420,9 +420,9 @@ export function Guide() {
           </li>
           <li>
             <strong>Supply:</strong> a deployed supply truck or helicopter refills ammunition and
-            smoke, repairs vehicles and replaces fallen soldiers for friendly units that stop
-            nearby, even while fighting. Its stock does not refill, so a supplier that runs dry is
-            best refunded.
+            smoke, repairs vehicles, treats wounded soldiers and replaces fallen ones for friendly
+            units that stop nearby, all at once and even while fighting. Its stock does not refill,
+            so a supplier that runs dry is best refunded.
           </li>
           <li>
             Turn your tanks&apos; fronts to the threat: reverse out of trouble rather than turning

@@ -208,12 +208,15 @@ need decides later.
 Flight offers it only an imminent swept hull collision at the authored standoff;
 ordinary projectiles, passes and cover remain ordinary flight events.
 [Supply service](src/supply.rs) serves stationary units even during combat.
-Every mount's finite ammunition kinds replenish independently and concurrently,
-at each weapon row's authored rate, each paid from the truck's finite stock.
+Every need runs at once on its own clock, each paid from the truck's finite
+stock: every mount's finite ammunition kinds at each weapon row's authored
+rate, defensive charges, hull repair, replacement soldiers, and first aid,
+which treats a squad's most wounded living soldier first. A wounded soldier is
+healed back to his type's health; a fallen one is replaced by a new soldier.
 Handling speed is independent of stock price, so a belt, a shell and a missile
-can take different times to deliver. Ammunition takes priority over the
-remaining recovery needs; the service owner defines their order. Partial
-progress belongs to the ammunition kind and pauses when service is unavailable.
+can take different times to deliver. The service owner's order of needs only
+decides who pays first when stock runs short. Partial progress belongs to each
+need and pauses when service is unavailable.
 Each item uses one truck, so overlapping trucks add reserves rather than speed.
 The [game rules](../../development.md#game-rules) define how a truck spends its
 final remainder.
