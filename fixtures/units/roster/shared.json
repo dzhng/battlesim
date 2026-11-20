@@ -37,7 +37,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [

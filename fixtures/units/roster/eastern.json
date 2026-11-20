@@ -938,7 +938,7 @@
           "id": "cannon",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": false,
           "pivot_m": [
@@ -1090,7 +1090,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -1159,7 +1159,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -1227,7 +1227,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -1249,7 +1249,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -3180,7 +3180,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -3249,7 +3249,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -3271,7 +3271,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [

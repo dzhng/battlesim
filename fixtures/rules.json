@@ -746,14 +746,24 @@
       "stationary": false,
       "guidance": "on_the_move",
       "ammo": 8,
-      "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 550, "scatter_mrad": 0.5 } }
+    },
+    "heli_hmg": {
+      "extends": "hmg",
+      "description": "A helicopter's heavy machine gun, fired from a moving, vibrating airframe.",
+      "targets": { "ground": { "range_m": 300, "scatter_mrad": 8 }, "low_air": { "range_m": 200 } }
+    },
+    "heli_autocannon": {
+      "extends": "autocannon",
+      "description": "A helicopter's chain gun, fired from a moving, vibrating airframe.",
+      "targets": { "ground": { "range_m": 400 }, "low_air": { "range_m": 300 } }
     },
     "rocket_pod": {
       "resupply_rounds_per_s": 0.75,
       "appearance": "rocket_pod",
       "round_cost": 2,
       "extends": "tank_he",
-      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 750, "scatter_mrad": 12 } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 450, "scatter_mrad": 12 } },
       "name": "Rocket Pod",
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "icon": "rockets",
