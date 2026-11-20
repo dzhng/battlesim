@@ -15,7 +15,7 @@ declare const __ON_VERCEL__: boolean;
 
 // Before anything else, so a failure while starting is in the report.
 diagnostics.start();
-if (!isChromium(navigator)) void showUnsupportedBrowser();
+if (!isChromium(navigator.userAgent)) void showUnsupportedBrowser();
 else
   void startWithMechanics(import.meta.env.DEV, async () => {
     // Camera and HUD consumers can be evaluated while their shared
