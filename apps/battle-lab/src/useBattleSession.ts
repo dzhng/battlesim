@@ -581,8 +581,13 @@ export function useBattleSession({
       active ? sim.client : null,
       `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}:${semanticRevision.current.version}`,
       `${held?.generation ?? (waiting ? pending.generation : 0)}`,
+      shown?.own,
     );
-    const marks = pointerPaint.markers(previewSnapshot, shown?.own ?? []);
+    // Unanswered, the point ordered carries the page's own mark.
+    const marks = pointerPaint.markers(
+      previewSnapshot.answered ? previewSnapshot : { destinations: previewSnapshot.provisional },
+      shown?.own ?? [],
+    );
     const showDestinations =
       queryIntent.kind === "move" ||
       queryIntent.kind === "occupy_building" ||

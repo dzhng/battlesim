@@ -250,7 +250,6 @@ export async function run(ctx) {
     }
     await page.setViewportSize(sizes[0]);
     await page.getByRole("button", { name: "Menu", exact: true }).click();
-    await page.getByRole("button", { name: "Multiplayer", exact: true }).click();
     const leaving = page.waitForResponse((r) => r.url().endsWith("/leave"));
     await page.getByRole("button", { name: "Leave battle", exact: true }).click();
     await leaving;

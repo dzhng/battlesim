@@ -250,6 +250,121 @@ test("the last member leaving a lobby deletes it at once, and its maker may make
   host.close();
 });
 
+/** Alpha's room, started against an AI or with bravo in its open seat. */
+function started(with_: "ai" | "bravo", capacity = 1) {
+  const s = setup(capacity);
+  const host = s.open("alpha");
+  const act = (who: string, action: Parameters<typeof s.service.act>[2]) =>
+    expect(s.service.act(who, s.code, action)).toEqual({ ok: true });
+  const guest = with_ === "bravo" ? s.open("bravo") : null;
+  if (guest) act("bravo", { kind: "ready", ready: true });
+  else {
+    const seat = host
+      .states()
+      .at(-1)!
+      .seats.find((seat) => seat.occupant.kind === "open")!.id;
+    act("alpha", { kind: "set_seat", seat, to: "ai" });
+  }
+  act("alpha", { kind: "ready", ready: true });
+  act("alpha", { kind: "start" });
+  const list = (who: string) => {
+    const records: StreamRecord[] = [];
+    const close = s.service.listStream(who, null, (record) => {
+      records.push(record);
+      return true;
+    });
+    cleanup.push(close);
+    return {
+      close,
+      latest: () => readJson<RoomList>(records.filter((r) => r.kind === "state").at(-1)!),
+    };
+  };
+  return { ...s, host, guest, act, list };
+}
+
+test("a battle its last human chooses to leave ends at once, and its maker may make another", () => {
+  const { service, code, host, act } = started("ai");
+  expect(service.create("alpha", "public")).toEqual({ refused: "game_running" });
+  act("alpha", { kind: "leave" });
+  expect(host.records.at(-1)?.kind).toBe("end");
+  expect(service.roomStream("alpha", code, null, () => true)).toEqual({ refused: "unknown" });
+  expect(service.create("alpha", "public")).toEqual({ code: expect.any(String) });
+});
+
+test("a battle goes on for the human still in it, and ends when they leave too", () => {
+  const { service, code, host, guest, act } = started("bravo");
+  act("alpha", { kind: "leave" });
+  host.close();
+  expect(guest!.records.at(-1)?.kind).toBe("state");
+  // The seat is still alpha's to return to; nobody else may take it.
+  expect(service.roomStream("stranger", code, null, () => true)).toEqual({ refused: "started" });
+  // Only a fresh opening is a return: a stream of the page they left, resuming
+  // after a cut, does not bring them back.
+  expect(service.roomStream("alpha", code, 3, () => true)).toEqual({ refused: "removed" });
+  const back = service.roomStream("alpha", code, null, () => true);
+  expect(back).toEqual({ close: expect.any(Function) });
+  if ("close" in back) back.close();
+  act("alpha", { kind: "leave" });
+  act("bravo", { kind: "leave" });
+  expect(guest!.records.at(-1)?.kind).toBe("end");
+  expect(service.roomStream("bravo", code, null, () => true)).toEqual({ refused: "unknown" });
+});
+
+test("a member who leaves a lobby and comes straight back is still in it after the grace", () => {
+  const { service, clock, code, open } = setup();
+  const host = open("alpha");
+  const guest = open("bravo");
+  // Bravo leaves with their stream still open, rejoins, and the old stream closes.
+  expect(service.act("bravo", code, { kind: "leave" })).toEqual({ ok: true });
+  const back = open("bravo");
+  guest.close();
+  clock.advance(PRESENCE_GRACE_MS);
+  expect(
+    back
+      .states()
+      .at(-1)!
+      .seats.map((seat) => seat.occupant.kind),
+  ).toEqual(["human", "human"]);
+  expect(back.records.at(-1)?.kind).toBe("state");
+  host.close();
+  back.close();
+});
+
+test("a member reading the room list is not in their room", () => {
+  // In a battle: the list page does not keep a room nobody plays alive.
+  const battle = started("ai");
+  battle.list("alpha");
+  battle.host.close();
+  battle.clock.advance(EMPTY_ROOM_TIMEOUT_MS);
+  expect(battle.service.roomStream("alpha", battle.code, null, () => true)).toEqual({
+    refused: "unknown",
+  });
+  // In a lobby: their seat opens after the same grace as any other absence.
+  const lobby = setup();
+  const host = lobby.open("alpha");
+  const guest = lobby.open("bravo");
+  const closeList = lobby.service.listStream("alpha", null, () => true);
+  cleanup.push(closeList);
+  host.close();
+  lobby.clock.advance(PRESENCE_GRACE_MS);
+  const seats = guest
+    .states()
+    .at(-1)!
+    .seats.map((seat) => seat.occupant.kind);
+  expect(seats).toEqual(["open", "human"]);
+  guest.close();
+});
+
+test("the list tells a reader which running battle is theirs to return to, and tells nobody else", () => {
+  const { code, act, list } = started("bravo", 2);
+  act("alpha", { kind: "leave" });
+  expect(list("alpha").latest().yours).toBe(code);
+  expect(list("stranger").latest().yours).toBeUndefined();
+  // When the battle has gone, so has the way back.
+  act("bravo", { kind: "leave" });
+  expect(list("alpha").latest().yours).toBeUndefined();
+});
+
 test("creation reserves every available slot before any battle starts", () => {
   const { service } = setup(2);
   expect(service.create("second", "private")).toEqual({ code: expect.any(String) });

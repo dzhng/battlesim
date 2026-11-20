@@ -1,6 +1,7 @@
 import type { MultiplayerEntry } from "../onlineSession";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { RequestRefused } from "@packages/multiplayer/src/refusal";
 import { normalizeRoomCode } from "@packages/multiplayer/src/room";
 import type { RoomList } from "@packages/multiplayer/src/wire";
 import { spoken } from "../battleLinks";
@@ -33,6 +34,18 @@ export function MultiplayerPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const lifetime = useRef<AbortController | null>(null);
+  // Escape closes the dialog, and goes no further than it.
+  useEffect(() => {
+    if (!create) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.code !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setCreate(false);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [create]);
   useEffect(() => {
     const visit = new AbortController();
     lifetime.current = visit;
@@ -81,8 +94,24 @@ export function MultiplayerPage() {
       await joinRoom(address, room, signal);
       if (!signal.aborted) navigate(`/room/${encodeURIComponent(room)}${location.search}`);
     });
+  /** The row can outlive its battle: the list says whose room is whose only
+   *  when it next has something to say. */
+  const rejoin = (room: string) =>
+    run(async (signal) => {
+      try {
+        await joinRoom(address, room, signal);
+      } catch (error) {
+        if (!(error instanceof RequestRefused)) throw error;
+        setList((current) => current && { ...current, yours: undefined });
+        setError("That battle has ended.");
+        return;
+      }
+      if (!signal.aborted) navigate(`/room/${encodeURIComponent(room)}${location.search}`);
+    });
   const make = (visibility: "public" | "private") =>
     run(async (signal) => {
+      // A refusal is read on the page, not behind the dialog.
+      setCreate(false);
       const room = await onlineRequest<{ code: string }>(address, "/rooms", { visibility }, signal);
       if (!signal.aborted) navigate(`/room/${encodeURIComponent(room.code)}${location.search}`);
     });
@@ -139,6 +168,15 @@ export function MultiplayerPage() {
               setName(assigned);
             }}
           />
+          {list?.yours && (
+            <div className="online-return" role="group" aria-label="Your battle">
+              <strong>Your battle is still running</strong>
+              <span>Your seat is held</span>
+              <button type="button" disabled={busy} onClick={() => void rejoin(list.yours!)}>
+                Rejoin battle
+              </button>
+            </div>
+          )}
           <section className="online-rooms" aria-label="Public rooms">
             <div className="online-room-tools">
               <h3>Public rooms</h3>
@@ -152,7 +190,7 @@ export function MultiplayerPage() {
               <button type="button" onClick={() => setJoining(!joining)}>
                 Join private room
               </button>
-              <button type="button" onClick={() => setCreate(!create)}>
+              <button type="button" onClick={() => setCreate(true)}>
                 Create room
               </button>
             </div>
@@ -179,13 +217,37 @@ export function MultiplayerPage() {
               </form>
             )}
             {create && (
-              <div className="online-room-tools" role="group" aria-label="Room visibility">
-                <button type="button" disabled={busy} onClick={() => void make("public")}>
-                  Public room
-                </button>
-                <button type="button" disabled={busy} onClick={() => void make("private")}>
-                  Private room
-                </button>
+              <div className="hud-veil">
+                <div
+                  className="hud-panel hud-menu online-create"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Create room"
+                >
+                  <strong className="hud-menu-title">Create room</strong>
+                  <button
+                    type="button"
+                    className="hud-menu-item"
+                    disabled={busy}
+                    onClick={() => void make("public")}
+                    autoFocus
+                  >
+                    Public room
+                  </button>
+                  <div className="hud-menu-note">Listed here for anyone to join</div>
+                  <button
+                    type="button"
+                    className="hud-menu-item"
+                    disabled={busy}
+                    onClick={() => void make("private")}
+                  >
+                    Private room
+                  </button>
+                  <div className="hud-menu-note">Only players with its link</div>
+                  <button type="button" className="hud-menu-item" onClick={() => setCreate(false)}>
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
             {error && <p role="alert">{error}</p>}

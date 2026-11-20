@@ -5,6 +5,7 @@ import type { OnlineState, BattleSlot } from "./online.ts";
 import {
   createRoom,
   battleSetup,
+  deserted,
   recordBattle,
   roomCode,
   normalizeRoomCode,
@@ -16,12 +17,13 @@ import {
 import {
   KEYFRAME,
   jsonRecord,
+  readJson,
   recordSource,
   type RecordSource,
 } from "../../../packages/multiplayer/src/stream/index.ts";
 import type { RoomAction, RoomList } from "../../../packages/multiplayer/src/wire.ts";
 import { seedFrom } from "../../../web/src/maps/source.ts";
-import { PRESENCE_GRACE_MS } from "./presence.ts";
+import { createPresence, PRESENCE_GRACE_MS } from "./presence.ts";
 
 /** Reclaim a battle slot after a minute without any connected human member. */
 export const EMPTY_ROOM_TIMEOUT_MS = 60_000;
@@ -40,6 +42,30 @@ export function createRoomService(options: { online: OnlineState; random: () => 
   const { online } = options;
   const { clock, presence, releaseIfForgotten } = online;
   const rooms = new Map<string, StoredRoom>();
+  // A member is in a room while one of that room's own streams is open: its
+  // state, or a seat's in its battle. The browser's presence cannot say so:
+  // the room list keeps it too, and a member reading the list has left their
+  // room. Same grace, counted for each room.
+  const seatKey = (code: string, who: string) => `${code}/${who}`;
+  const seatOf = (key: string) => {
+    const at = key.indexOf("/");
+    return { stored: rooms.get(key.slice(0, at)), who: key.slice(at + 1) };
+  };
+  const attendance = createPresence(
+    clock,
+    (key) => {
+      const { stored, who } = seatOf(key);
+      if (!stored) return;
+      updateIdle(stored);
+      updateCommander(stored, who);
+    },
+    (key) => {
+      const { stored, who } = seatOf(key);
+      if (!stored) return;
+      if (stored.room.phase === "lobby") transition(stored, who, { kind: "leave" });
+      else updateCommander(stored, who);
+    },
+  );
 
   const roomList = (): RoomList => ({
     frontline: online.frontline(),
@@ -86,11 +112,16 @@ export function createRoomService(options: { online: OnlineState; random: () => 
     stored.slot.release();
     stored.battle?.host.dispose();
     stored.source.end(reason);
-    for (const member of stored.room.members) releaseIfForgotten(member.who);
+    for (const member of stored.room.members) {
+      attendance.forget(seatKey(stored.room.code, member.who));
+      releaseIfForgotten(member.who);
+    }
     publishList();
   };
   const updateIdle = (stored: StoredRoom) => {
-    const absences = stored.room.members.map((member) => presence.goneFor(member.who));
+    const absences = stored.room.members.map((member) =>
+      attendance.goneFor(seatKey(stored.room.code, member.who)),
+    );
     if (absences.includes(null)) {
       stored.idle?.cancel();
       stored.idle = null;
@@ -111,12 +142,24 @@ export function createRoomService(options: { online: OnlineState; random: () => 
     publishList();
     updateIdle(stored);
   };
-  const controller = (stored: StoredRoom, who: string, kind: "human" | "active_ai") => {
+  /** Who commands `who`'s army: its human while they are in the room, its AI
+   *  once they have left it by choice or been gone past the grace. Inside the
+   *  grace it stays as it was. */
+  const updateCommander = (stored: StoredRoom, who: string) => {
     const battle = stored.battle;
     if (!battle) return;
     // The model owns the seat-to-player projection, including dropped open seats.
     const member = stored.room.members.find((m) => m.who === who);
     if (!member) return;
+    const absent = attendance.goneFor(seatKey(stored.room.code, who));
+    const kind = member.away
+      ? "active_ai"
+      : absent === null
+        ? "human"
+        : absent >= PRESENCE_GRACE_MS
+          ? "active_ai"
+          : null;
+    if (kind === null) return;
     const player = battlePlayers(stored.room.lobby.seats).playerOf[member.seat]!;
     if (battle.controllers.get(player) === kind) return;
     battle.controllers.set(player, kind);
@@ -128,7 +171,9 @@ export function createRoomService(options: { online: OnlineState; random: () => 
     try {
       const setup = battleSetup(stored.room);
       const id = randomUUID();
-      const host = online.createBattle([setup], id);
+      const host = online.createBattle([setup], id, (who) =>
+        attendance.open(seatKey(stored.room.code, who)),
+      );
       stored.battle = {
         host,
         controllers: new Map(setup.seats.map((s) => [s.player, s.controller])),
@@ -137,11 +182,7 @@ export function createRoomService(options: { online: OnlineState; random: () => 
         if (rooms.get(stored.room.code) === stored) remove(stored.room.code, reason);
       };
       host.onEnd((end) => ended(end.kind === "finished" ? "battle_finished" : "battle_failed"));
-      for (const member of stored.room.members) {
-        const absent = presence.goneFor(member.who);
-        if (absent !== null && absent >= PRESENCE_GRACE_MS)
-          controller(stored, member.who, "active_ai");
-      }
+      for (const member of stored.room.members) updateCommander(stored, member.who);
       void host.ready
         .then(async ({ mapIdentity }) => {
           if (rooms.get(stored.room.code) !== stored) return;
@@ -179,27 +220,30 @@ export function createRoomService(options: { online: OnlineState; random: () => 
         for (const member of previous.members) releaseIfForgotten(member.who);
         return { ok: true } as const;
       }
+      // Nor is there anyone to play a battle every human has chosen to leave.
+      if (deserted(next)) {
+        remove(next.code);
+        return { ok: true } as const;
+      }
       publishRoom(stored);
-      for (const member of previous.members) releaseIfForgotten(member.who);
+      for (const member of previous.members) {
+        if (!next.members.some((m) => m.who === member.who))
+          attendance.forget(seatKey(next.code, member.who));
+        releaseIfForgotten(member.who);
+      }
+      updateCommander(stored, who);
       if (previous.phase === "lobby" && next.phase === "starting") startBattle(stored);
     }
     return { ok: true } as const;
   };
+  /** The started room `who` holds a seat in, which opening it returns them to. */
+  const returnable = (who: string) =>
+    [...rooms.values()].find(
+      ({ room }) => room.phase !== "lobby" && room.members.some((m) => m.who === who),
+    )?.room.code;
+  // A room's members come and go by its own streams (`attendance`); the
+  // lobby is told only whose callsign a room still holds.
   const unsubscribe = online.subscribe({
-    changed(who) {
-      for (const stored of rooms.values()) {
-        if (stored.room.members.some((member) => member.who === who)) {
-          updateIdle(stored);
-          if (presence.goneFor(who) === null) controller(stored, who, "human");
-        }
-      }
-    },
-    gone(who) {
-      for (const stored of rooms.values()) {
-        if (stored.room.phase === "lobby") transition(stored, who, { kind: "leave" });
-        else controller(stored, who, "active_ai");
-      }
-    },
     remembers: (who) =>
       [...rooms.values()].some(({ room }) => room.members.some((m) => m.who === who)),
   });
@@ -223,6 +267,7 @@ export function createRoomService(options: { online: OnlineState; random: () => 
       do {
         code = roomCode(options.random);
       } while (rooms.has(code));
+      attendance.track(seatKey(code, who));
       const source = recordSource(
         null,
         () => ({}),
@@ -249,7 +294,19 @@ export function createRoomService(options: { online: OnlineState; random: () => 
     },
     listStream(who: string, after: number | null, deliver: Deliver) {
       const closePresence = presence.open(who);
-      const detach = listSource.attach(after, deliver);
+      // The list is everyone's; which room is the reader's own is added for
+      // them alone, as of each record they are sent.
+      const detach = listSource.attach(after, (record) => {
+        const yours = record.kind === "state" ? returnable(who) : undefined;
+        return deliver(
+          yours
+            ? {
+                ...record,
+                payload: jsonRecord("state", { ...readJson<RoomList>(record), yours }).payload,
+              }
+            : record,
+        );
+      });
       return () => {
         detach();
         closePresence();
@@ -262,8 +319,9 @@ export function createRoomService(options: { online: OnlineState; random: () => 
       deliver: Deliver,
     ): { close: () => void } | RoomRefusal {
       const stored = rooms.get(normalizeRoomCode(code));
-      const returning = stored?.room.members.some((member) => member.who === who);
-      // A resume keeps an existing membership; it must never silently join again.
+      const returning = stored?.room.members.some((member) => member.who === who && !member.away);
+      // A resume keeps an existing membership; it must never silently join
+      // again, nor bring back a member who left the battle: that page is gone.
       if (after !== null && !returning) return { refused: "removed" };
       if (!stored) return { refused: "unknown" };
       const callsign = online.callsign(who);
@@ -271,6 +329,7 @@ export function createRoomService(options: { online: OnlineState; random: () => 
       const joined = transition(stored, who, { kind: "join", callsign });
       if ("refused" in joined) return joined;
       const closePresence = presence.open(who);
+      const closeAttendance = attendance.open(seatKey(stored.room.code, who));
       const detach = stored.source.attach(after, (record) =>
         deliver(
           record.kind === "state"
@@ -281,6 +340,7 @@ export function createRoomService(options: { online: OnlineState; random: () => 
       return {
         close: () => {
           detach();
+          closeAttendance();
           closePresence();
         },
       };
@@ -298,6 +358,7 @@ export function createRoomService(options: { online: OnlineState; random: () => 
         stored.source.end("disposed");
       }
       rooms.clear();
+      attendance.dispose();
       listSource.end("disposed");
       unsubscribe();
       unlistenList();

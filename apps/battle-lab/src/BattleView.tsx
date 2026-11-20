@@ -129,10 +129,11 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
-  /** Route-owned departure, from the pause menu (through its confirmation)
-   *  and from the finished match's report: back to Multiplayer. Without one
-   *  both leave for the main menu. */
-  onLeave?: () => void;
+  /** Route-owned departure, from the pause menu and from the finished
+   *  match's report: back to Multiplayer. `over` says the match had finished,
+   *  so there is no battle left to leave. Without one both leave for the main
+   *  menu. */
+  onLeave?: (over: boolean) => void;
   /** An online battle's public player names, for its report. */
   callsigns?: Record<string, string>;
   /** Scenario/runtime audio may react to the first authoritative publication. */
@@ -183,6 +184,7 @@ export function BattleView({
   blinksRef.current = blinks;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const leave = onLeave && (() => onLeave(observation?.skirmish?.phase === "finished"));
   const matchTarget = useMemo(() => {
     const setup = JSON.parse(scenario).skirmish as { rules: { victory_score: number } } | undefined;
     return setup?.rules.victory_score;
@@ -376,7 +378,7 @@ export function BattleView({
       {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
-          onLeave={onLeave}
+          onLeave={leave}
           online={!!prepared && "transport" in prepared}
           onClose={() => pause.show(false)}
           onRestart={
@@ -408,8 +410,8 @@ export function BattleView({
           viewer={session.viewer?.id ?? null}
           callsigns={callsigns}
           leave={
-            onLeave
-              ? { label: "Return to Multiplayer", onLeave }
+            leave
+              ? { label: "Return to Multiplayer", onLeave: leave }
               : { label: "Main menu", onLeave: () => navigate("/") }
           }
         />

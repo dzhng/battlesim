@@ -54,8 +54,15 @@ vi.mock("@web/battle/prepare/client", () => ({
 }));
 vi.mock("@apps/battle-lab/src/BattleView", () => ({
   // The viewport's failure boundary is independent of WebGPU admission.
-  BattleView: ({ onFailure }: { onFailure: (message: string) => void }) => (
-    <button onClick={() => onFailure("worker crashed")}>Report battle failure</button>
+  BattleView: (view: {
+    onFailure: (message: string) => void;
+    onLeave: (over: boolean) => void;
+  }) => (
+    <>
+      <button onClick={() => view.onFailure("worker crashed")}>Report battle failure</button>
+      <button onClick={() => view.onLeave(false)}>Leave battle</button>
+      <button onClick={() => view.onLeave(true)}>Return to Multiplayer</button>
+    </>
   ),
 }));
 afterEach(() => {
@@ -77,6 +84,7 @@ function open(entry: OnlineBattleEntry | null) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: string, init: RequestInit) => {
+      if (String(input).endsWith("/rooms/TANGO-4821/act")) return Response.json({ ok: true });
       if (!String(input).endsWith("/rooms/TANGO-4821")) throw new Error("unexpected request");
       return new Response(
         new ReadableStream({
@@ -144,4 +152,24 @@ test("local map preparation keeps a member stream open and hears a room battle f
   await page.findByRole("heading", { name: "Multiplayer" });
   expect((await page.findByRole("alert")).textContent).toMatch(/battle.*could not continue/i);
   expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(true);
+});
+
+test("leaving a room's battle tells the lobby, so the seat's AI takes over and an empty battle ends", async () => {
+  const page = open(entry());
+  fireEvent.click(await page.findByRole("button", { name: "Leave battle" }));
+  await page.findByRole("heading", { name: "Multiplayer" });
+  const told = vi
+    .mocked(fetch)
+    .mock.calls.filter(([input]) => String(input).endsWith("/rooms/TANGO-4821/act"));
+  expect(told.map(([, init]) => JSON.parse(String(init?.body)))).toEqual([{ kind: "leave" }]);
+  expect(told[0][0]).toBe("http://127.0.0.1:8787/rooms/TANGO-4821/act");
+});
+
+test("returning from a finished battle tells the lobby nothing: its room has already gone", async () => {
+  const page = open(entry());
+  fireEvent.click(await page.findByRole("button", { name: "Return to Multiplayer" }));
+  await page.findByRole("heading", { name: "Multiplayer" });
+  expect(vi.mocked(fetch).mock.calls.filter(([input]) => String(input).endsWith("/act"))).toEqual(
+    [],
+  );
 });

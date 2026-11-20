@@ -235,6 +235,30 @@ test("one presence grace hands a dropped army to AI; returning reclaims it and r
   );
 }, 120_000);
 
+test("a member who chooses to leave the battle hands their army to its AI at once, and returning takes it back", async () => {
+  const r = await room(),
+    b = await r.start();
+  const a = ticket(r.alpha.view());
+  const alpha = seat(b, a);
+  await b.run(3);
+  const commander = async () =>
+    (await b.host.referee()).seats.find((s) => s.player === a.player)!.controller;
+  expect(await commander()).toBe("human");
+  r.act({ kind: "leave" });
+  // No grace: they said so. The battle goes on for the human still in it.
+  await vi.waitFor(async () => expect(await commander()).toBe("active_ai"));
+  expect((await alpha.order({ kind: "ready" })).error?.reason).toBe("ai_controlled");
+  expect(b.ended).toEqual([]);
+  const returned = r.open(testBrowser("alpha"));
+  await vi.waitFor(async () => expect(await commander()).toBe("human"));
+  expect(ticket(returned.view())).toEqual(a);
+  // The last human out ends the battle itself, not a timer.
+  r.act({ kind: "leave" });
+  r.act({ kind: "leave" }, testBrowser("bravo"));
+  await expect(b.host.referee()).rejects.toThrow(/ended/);
+  expect(r.service.create(testBrowser("alpha"), "public")).toEqual({ code: expect.any(String) });
+}, 120_000);
+
 test("an AI-run dropped seat does not hold preparation open, and controller changes preserve ready flags", async () => {
   const r = await room(),
     b = await r.start();

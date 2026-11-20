@@ -2,6 +2,7 @@
 import type { NavigateFunction } from "react-router";
 import type { OnlineMap } from "./online/useOnlineMap";
 import { leaveFrontline } from "./online/frontlineRequests";
+import { onlineRequest } from "./online/requests";
 import type { BattleTicket } from "@packages/multiplayer/src/wire";
 
 export interface OnlineBattleEntry {
@@ -51,8 +52,20 @@ export function returnToMultiplayer(
   navigate(`/multiplayer${search}`, { replace: true, state });
 }
 
-/** A chosen departure gives Frontline's command back to its AI. */
+/** A chosen departure says so, and the seat's AI takes command at once:
+ *  Frontline's command, or a room member's army. A room's battle ends when
+ *  its last human has left; a battle already over has nothing to tell. */
 export function leaveOnlineBattle(entry: OnlineBattleEntry) {
-  if (entry.ticket.setup.rules === "frontline")
-    void leaveFrontline(entry.address, entry.ticket.battle).catch(() => {});
+  const left =
+    entry.ticket.setup.rules === "frontline"
+      ? leaveFrontline(entry.address, entry.ticket.battle)
+      : entry.room
+        ? onlineRequest(
+            entry.address,
+            `/rooms/${encodeURIComponent(entry.room)}/act`,
+            { kind: "leave" },
+            new AbortController().signal,
+          )
+        : null;
+  void left?.catch(() => {});
 }

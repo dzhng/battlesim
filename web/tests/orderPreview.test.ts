@@ -1,5 +1,10 @@
 import { expect, test, vi } from "vitest";
-import { OrderPreview, type OrderPreviewSnapshot } from "@apps/battle-lab/src/orderPreview";
+import {
+  OrderPreview,
+  PROVISIONAL_AFTER_MS,
+  type OrderPreviewSnapshot,
+} from "@apps/battle-lab/src/orderPreview";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 import {
   cursorForIntent,
   pointerCursor,
@@ -328,4 +333,54 @@ test("unloading into a host badges the host at once, over another carrier too, w
   expect(cursorForIntent(carrier, unanswered)).toBe("unload_board");
   const preview = new OrderPreview().update(null, null, 0, "none");
   expect(pointerCursor(carrier, true, null, { intent: carrier, preview })).toBe("unload_board");
+});
+
+test("a move still unanswered after a moment marks the point it names, until the authority answers", async () => {
+  // The authority answers a round trip late, as a remote one does.
+  const answer = deferred<MoveDestination[]>();
+  const client = { previewMove: vi.fn(() => answer.promise), previewBuilding: vi.fn() };
+  let now = 1000;
+  const preview = new OrderPreview(() => now);
+  const own = [
+    { id: 1, position: [0, 0, 0] },
+    { id: 2, position: [5, 5, 0] },
+  ] as OwnUnitView[];
+  const order = {
+    kind: "move" as const,
+    request: { units: [1, 2], goal: [30, 40] as [number, number] },
+  };
+  const ask = (intent: Parameters<OrderPreview["update"]>[0] = order) =>
+    preview.update(intent, client, 1, "press", own);
+  // A local authority answers before the page's own mark is due.
+  expect(ask()).toMatchObject({ answered: false, provisional: [] });
+  now += PROVISIONAL_AFTER_MS;
+  // One mark, at the point, for the unit that leads: it faces the way it goes.
+  expect(ask().provisional).toEqual([
+    { unit: 1, goal: [30, 40], facing: Math.atan2(40, 30), placed: true, spots: [] },
+  ]);
+  // A facing the player dragged out is the one the mark shows.
+  expect(ask({ ...order, request: { ...order.request, facing: 1.5 } }).provisional[0].facing).toBe(
+    1.5,
+  );
+  answer.resolve([{ unit: 1, goal: [28, 41], facing: 0, placed: false, spots: [] }]);
+  await answer.promise;
+  await Promise.resolve();
+  // Answered, even with nowhere to stand: the authority's word replaces the guess.
+  expect(ask({ ...order, request: { ...order.request, facing: 1.5 } })).toMatchObject({
+    answered: true,
+    provisional: [],
+  });
+  // A query that failed is no answer: the page's own mark stays.
+  const lost = deferred<MoveDestination[]>();
+  const failing = new OrderPreview(() => now);
+  const cut = { previewMove: vi.fn(() => lost.promise), previewBuilding: vi.fn() };
+  failing.update(order, cut, 1, "press", own);
+  lost.reject(new Error("dropped"));
+  await lost.promise.catch(() => {});
+  await Promise.resolve();
+  now += PROVISIONAL_AFTER_MS;
+  expect(failing.update(order, cut, 1, "press", own)).toMatchObject({
+    answered: false,
+    provisional: [{ unit: 1, goal: [30, 40] }],
+  });
 });

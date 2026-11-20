@@ -171,7 +171,7 @@ test("a click the authority refuses buys nothing and keeps the unit in hand", as
   const refuse = vi.fn(async () => ({
     seq: 1,
     applied_tick: 2,
-    error: "no_valid_destination" as const,
+    error: { reason: "no_valid_destination" },
     refused: [],
   }));
   expect(await control.confirm(refuse)).toBeNull();

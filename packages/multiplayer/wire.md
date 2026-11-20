@@ -216,7 +216,14 @@ closed, and that reader resumes like any other.
 ## Previews
 
 Newest wins and nothing is retried. The server answers about five a second
-for each player and answers the rest `{ dropped: true }`.
+for each player and answers the rest `{ dropped: true }`. A page asks no
+faster than that, so none of its own are dropped: the interval is
+`PREVIEW_INTERVAL_MS` in [src/link.ts](src/link.ts), and the server allows
+one early for two that a network delivers closer together than they were
+sent.
+
+A preview only draws what the pointer would do. No order waits for one: the
+order goes when the player gives it, and the battle admits or refuses it.
 
 ## Build identity
 
@@ -270,6 +277,12 @@ site without touching any player's state.
   and an unknown value is refused. A map seed must be one the map source's
   `canonicalSeed` accepts, and the room stores its canonical decimal value.
 - **The last five `RoomAction` kinds are the host's.**
+- **`leave` means two things.** In the lobby it gives the seat up. After
+  the start the member keeps their seat and ticket, their army goes to its AI
+  at once, and opening the room's stream again returns them to it. Only a
+  fresh opening does: a stream resuming with `after` belongs to the page they
+  left, and is refused `removed`. A battle every human has left this way
+  ends, and its room is deleted.
 - **`RoomList` holds only public rooms still in the lobby,** and the two
   Frontline counts: games running and humans seated in them. A reservation
   is not a seated human; the first commander of a new game counts from tick
@@ -277,6 +290,10 @@ site without touching any player's state.
 - **The list publishes only when what it shows changes.** Ready, a setting
   set to what it was, and anything in a private room send no record. A new
   reader is still sent the current list.
+- **`yours` is added for its reader alone:** the started room they hold a
+  seat in, as of the record it rides on. It is how a page offers the way
+  back to a battle still running. It causes no record of its own, so a page
+  may hold a stale one; opening a room that has gone is refused `unknown`.
 
 ### One game for each device
 
@@ -310,10 +327,14 @@ A player is present while any of their streams is open, with a few seconds'
 grace. The times are in `apps/game-server/src/presence.ts`,
 `apps/game-server/src/rooms.ts` and [src/frontline.ts](src/frontline.ts).
 
+A member is in their room while one of that room's own streams is open: its
+state stream, or their seat's stream in its battle. The room list is not one
+of them, so a member reading the list has gone quiet in their room.
+
 - **In a room's lobby** the member leaves, and hosting passes on if it was
   theirs. A lobby goes with its last member.
 - **In a room's battle** the seat is played by its AI until the browser
-  returns. A room with nobody connected for a minute is deleted.
+  returns. A room with nobody in it for a minute is deleted.
 - **In Frontline** the army goes to the seat's AI and the seat is held for a
   minute. A player who gives no order for three minutes has their stream
   ended `idle`.

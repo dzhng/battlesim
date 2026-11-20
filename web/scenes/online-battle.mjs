@@ -3,7 +3,7 @@ import { purchase } from "./_battlePurchases.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { captureSeats, resultColours } from "./_battle-colours.mjs";
 import { openingView, screenControls, screenUpOrder } from "./_battleOrientation.mjs";
-import { onlinePage, roomServer } from "./_rooms.mjs";
+import { capture, onlinePage, roomServer } from "./_rooms.mjs";
 import { encodeRecord, jsonRecord } from "../../packages/multiplayer/src/stream/index.ts";
 
 const evidence = new URL("../../throwaway/multiplayer/online-battle/", import.meta.url).pathname;
@@ -471,6 +471,45 @@ export async function run(ctx) {
         ({ order, ack }) => order.kind === "move" && !ack.error && ack.refused.length === 0,
       ),
     );
+    // A chosen departure takes one press. The battle goes on for the other
+    // commander, so Multiplayer offers the way back to the same seat.
+    await returned.getByRole("button", { name: "Menu", exact: true }).click();
+    await returned.getByRole("dialog", { name: "Menu", exact: true }).waitFor();
+    await returned.screenshot({ path: `${evidence}menu.png` });
+    const told = returned.waitForResponse((r) => r.url().endsWith(`/rooms/${code}/act`));
+    await returned.getByRole("button", { name: "Leave battle", exact: true }).click();
+    await told;
+    await returned.getByRole("group", { name: "Your battle" }).waitFor({ timeout: 60_000 });
+    const left = await (
+      await fetch(`${tickets[0].address ?? local.address}/battles/${tickets[0].battle}/up`, {
+        method: "POST",
+        headers: { "X-Player": credential, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seq: Date.now(),
+          items: [{ id: 1, order: { kind: "ready" }, queued: false }],
+        }),
+      })
+    ).json();
+    ctx.check(
+      "leaving by the menu hands the seat to its AI at once and offers the way back",
+      new URL(returned.url()).pathname === "/multiplayer" &&
+        left.results?.[0]?.ack.error?.reason === "ai_controlled",
+      JSON.stringify(left),
+    );
+    await capture(returned, evidence, "rejoin", false);
+    await returned.getByRole("button", { name: "Rejoin battle", exact: true }).click();
+    await returned.waitForURL(/\/online\/battle\//, { timeout: 120_000 });
+    await returned.waitForFunction(
+      () => window.__lab?.ready && window.__lab?.route?.observation()?.own.length > 0,
+      null,
+      { timeout: 120_000 },
+    );
+    ctx.check(
+      "rejoining returns to the same battle and seat",
+      (await returned.evaluate(() => history.state.usr.ticket.player)) === tickets[0].player &&
+        (await returned.evaluate(() => history.state.usr.ticket.battle)) === tickets[0].battle,
+    );
+    await orderMove(returned, objectives[0].center, true);
     console.log("      online room: returned, taking every objective for the normal skirmish end");
     // Keep Red out of the capture route. Blue wins by taking every objective
     // under the unmodified skirmish rules, exactly as at the service seam.
