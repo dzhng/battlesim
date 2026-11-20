@@ -384,17 +384,17 @@ fn a_top_attack_missile_kills_through_the_roof_a_tank_whose_front_it_cannot_pier
 
 #[test]
 fn a_top_attack_launcher_under_tree_crowns_climbs_out_through_them_and_dives_onto_its_target() {
-    // The team fires from the edge of a wood, under the crowns overhanging
-    // it. Crowns hide what stands beneath them but stop no round, so the
-    // climb leaves through them; trunks stand upright, so a climb in the
-    // vertical plane of the line the launch checked passes them as that line
-    // does.
+    // The team fires from just inside a wood's east edge, under its canopy,
+    // with the wood's last trees behind it. Crowns hide what stands beneath
+    // them but stop no round, so the climb leaves through them; trunks
+    // stand upright, so a climb in the vertical plane of the line the launch
+    // checked passes them as that line does.
     let mut rules = c::game();
     top_attack(&mut rules);
     let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
-        "forests": [{ "shape": { "kind": "polygon", "ring": [[0, 303], [60, 303], [60, 340], [0, 340]] } }] });
+        "forests": [{ "shape": { "kind": "polygon", "ring": [[0, 296], [40, 296], [40, 340], [0, 340]] } }] });
     let setup = serde_json::from_value(json!({ "map": map, "rules": rules, "units": [
-        { "side": "blue", "kind": "test_at", "position": [40, 300] },
+        { "side": "blue", "kind": "test_at", "position": [36, 300] },
         { "side": "red", "kind": "test_tank", "position": [400, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
     ], "events": [], "scripts": [] }))
     .unwrap();

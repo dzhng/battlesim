@@ -23,9 +23,11 @@ pub struct ForestRule {
     pub trunk_jitter: f64,
     /// Concealment of uncleared forest ground, independent of the target.
     pub concealment: f64,
-    /// Foliage depth per metre a sight line crosses below the canopy.
+    /// Foliage depth per metre a sight line crosses below the canopy, at a
+    /// tree's full `conceals`.
     pub attenuation_per_m: f64,
-    /// A trunk's crown: it attenuates sight through fog cells whose centres lie this near.
+    /// A trunk's crown: two trees whose crowns meet (trunks within twice
+    /// this) form a stand, whose wood's ground is under canopy (Q21).
     pub canopy_radius_m: f64,
     pub canopy_height_m: f64,
     pub trunk_radius_m: f64,
