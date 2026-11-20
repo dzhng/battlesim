@@ -205,7 +205,7 @@ pub fn shove(
     } else {
         -left
     };
-    let slides = [Some(side), Some(-side), None].map(slide);
+    let slides = [Some(side), Some(-side), None].into_iter().map(slide);
     // No deeper into any other body than it already was, beyond touching.
     let frees = |rect: &Obb2| {
         let deeper = |other: &Obb2| {
@@ -230,7 +230,6 @@ pub fn shove(
             && !into_hull
     };
     let rect = slides
-        .into_iter()
         .chain(exits(&hull, &before, heading))
         .find(|rect| frees(rect))?;
     Some(Shove {

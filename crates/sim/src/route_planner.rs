@@ -3,10 +3,11 @@
 //! (`navigation.work_per_tick`) on the waiting units' [`Journey`]s, first on
 //! whichever has had the least so far, so a short search is whole in a tick
 //! or two however many long ones are under way, and searches served alike
-//! share alike. It hands back each route on the tick it is whole, with the knowledge
-//! revision it was searched against: the mover checks it against what its
-//! side learned since, as it checks every later change. Nothing here reads the clock: a
-//! route's tick follows from the work counted, so a replay plans the same.
+//! share alike. It hands back each route on the tick it is whole, with the
+//! knowledge revision it was searched against: the mover checks it against
+//! what its side learned since, as it checks every later change. Nothing here
+//! reads the clock: a route's tick follows from the work counted, so a replay
+//! plans the same.
 use std::collections::BTreeMap;
 
 use contract::command::RoutePolicy;
