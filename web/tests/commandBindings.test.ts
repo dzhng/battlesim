@@ -2,6 +2,9 @@
 import { expect, test } from "vitest";
 import {
   CommandBindings,
+  ContactFocusBinding,
+  FullscreenBinding,
+  ShowOrdersBinding,
   commandForKey,
   isAttackMoveClick,
 } from "../src/battle/input/commandBindings";
@@ -21,11 +24,11 @@ test("each command key maps to its command, per the user's table", () => {
   expect(commandForKey(press("KeyR"))).toBe("reverse_move");
   expect(commandForKey(press("KeyC"))).toBe("attack_move");
   expect(commandForKey(press("KeyX"))).toBeNull();
-  expect(commandForKey(press("KeyF"))).toBe("toggle_fire_policy");
+  expect(commandForKey(press("KeyH"))).toBe("toggle_fire_policy");
   expect(commandForKey(press("KeyG"))).toBe("attack_ground");
   expect(commandForKey(press("KeyT"))).toBe("toggle_deployment");
   expect(commandForKey(press("KeyU"))).toBe("unload");
-  expect(commandForKey(press("KeyH"))).toBe("pop_smoke");
+  expect(commandForKey(press("KeyM"))).toBe("pop_smoke");
   expect(commandForKey(press("KeyB"))).toBe("return_to_base");
   expect(commandForKey(press("KeyV"))).toBe("toggle_afterburner");
   expect(commandForKey(press("Escape"))).toBe("disarm");
@@ -36,9 +39,11 @@ test("the letters the camera takes are no longer commands", () => {
     expect(commandForKey(press(code))).toBeNull();
 });
 
-test("no two commands share a key", () => {
+test("no two commands share a key, and none takes a UI key", () => {
   const codes = Object.values(CommandBindings).map((b) => b.code);
   expect(new Set(codes).size).toBe(codes.length);
+  for (const ui of [ShowOrdersBinding, ContactFocusBinding, FullscreenBinding])
+    expect(commandForKey(press(ui.code))).toBeNull();
 });
 
 test("keys typed into a control, held with a modifier or auto-repeated are not commands", () => {

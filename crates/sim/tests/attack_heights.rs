@@ -47,6 +47,7 @@ fn a_run_dives_from_the_height_its_climb_has_reached() {
             ahead_m: 0.0,
             at: aim.xy(),
         },
+        reach_m: 0.0,
     };
     let fresh = || {
         let mut plan = begin(

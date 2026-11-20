@@ -134,7 +134,7 @@ fn fast_flares_keep_their_smoke_close_to_the_burning_pellets() {
     std::sync::Arc::make_mut(&mut flare.tracer).smoke = Some(
         serde_json::from_value(json!({
             "albedo": [1, 1, 1], "opacity": 0.5, "size_m": [0.2, 0.5],
-            "life_s": 0.5, "rise_mps": 0, "spread_mps": 0,
+            "life_s": 0.5, "rise_mps": 0, "spread_mps": 0, "fade_in_s": 0.25,
             "ribbon": 0.8, "spacing_m": 0.2, "max_length_m": 3
         }))
         .unwrap(),

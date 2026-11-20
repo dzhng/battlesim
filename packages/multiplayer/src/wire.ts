@@ -46,7 +46,8 @@ export type PreviewAnswer =
   | { building: BuildingPlacement | null }
   | { dropped: true };
 
-/** Both sides' accepted commands so far, including orders outside the caller's fog. */
+/** The lobby's export of both sides' accepted commands, including orders outside
+ *  the caller's fog: so far while the battle runs, or all of them once it is over. */
 export type ReplayAnswer = { replay: string };
 
 export type BuildIdentity = { sim: string; data: string; wire: string };

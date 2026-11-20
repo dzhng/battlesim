@@ -473,6 +473,11 @@
   letter-spacing: 0.04em;
   text-transform: none;
 }
+/* Full screen, in the main menu's corner. */
+.menu-fullscreen {
+  right: 16px;
+  bottom: 16px;
+}
 /* Which build is running: for checking a deploy, not for playing. */
 .menu-build {
   justify-self: end;

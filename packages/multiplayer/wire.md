@@ -72,10 +72,19 @@ answer with no readable refusal in it is a reply that did not arrive.
 | `POST /frontline/join`           |                       | `Briefing`, or refused `full` (no battle slot), `unavailable` (no battlefield could be made), `callsign` or `game_running`   |
 | `POST /frontline/:battle/deploy` |                       | `BattleTicket`, or refused `expired`                                                                                         |
 | `POST /frontline/:battle/leave`  |                       | `{ ok: true }`. The seat goes back to its AI                                                                                 |
+| `POST /battles/:id/replay`       | `{}`                  | `ReplayAnswer`, or refused `unknown`, `not_seated`, or `unavailable` (the battle was lost with its machine)                  |
 
 A stream takes `?after=<id>` to resume. A room stream opened with `after` by
 someone who is no longer a member is refused `removed`: a resume keeps a
 membership and never makes one.
+
+Replay export is the lobby's, so it answers before and after the battle's own
+server is gone. While the battle runs, a seated player gets its full accepted
+command history, including the opponent's orders outside their fog; export
+does not broaden the side's ordinary publication. Once it is over, anyone who
+held one of its seats gets it from the lobby's archive. The browser adds its
+own human camera history to the downloaded battle; cameras are not sent to the
+server.
 
 ## A battle server's endpoints
 
@@ -84,12 +93,6 @@ membership and never makes one.
 | `GET /battles/:id/stream?after=<id>` |                | battle stream for the caller's side                   |
 | `POST /battles/:id/up`               | `UpBatch`      | `UpReply`                                             |
 | `POST /battles/:id/preview`          | `PreviewQuery` | `PreviewAnswer`, or refused `invalid` or `not_seated` |
-| `POST /battles/:id/replay`           | `{}`           | `ReplayAnswer`, or refused `not_seated`               |
-
-A seated player may export the full accepted command history while the battle
-is running, including the opponent's orders outside their fog. Replay export
-does not broaden the side's ordinary publication. The browser adds its own
-human camera history to the downloaded battle; cameras are not sent to the server.
 
 ### The control surface
 
@@ -107,7 +110,9 @@ this half.
 - **Which browser holds which seat** is a request the lobby may make before
   the start. **A seat's controller, seating a human in a running battle,
   ending one seat's readers, the referee's view and the replay** are
-  refused `not_started` until then.
+  refused `not_started` until then. A finished battle still answers its
+  replay: the lobby asks for it once more, to archive it, before it stops the
+  machine.
 - **`GET /control/events`** is a record stream of who is connected and who
   has given an order, and the battle's end. After a gap its snapshot
   reconciles both. It never contains a browser id or the key.

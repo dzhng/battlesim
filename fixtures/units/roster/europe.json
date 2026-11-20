@@ -163,7 +163,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -185,7 +185,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -239,7 +239,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -482,7 +482,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 900,
+        "low_air_m": 700,
         "high_air_m": 900
       },
       "mounts": [
@@ -719,7 +719,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -741,7 +741,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -1394,7 +1394,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -1703,7 +1703,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 900,
+        "low_air_m": 700,
         "high_air_m": 2000
       },
       "capabilities": {
@@ -2655,7 +2655,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 1800,
+        "low_air_m": 1000,
         "high_air_m": 3000
       },
       "capabilities": {
@@ -2717,7 +2717,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -2739,7 +2739,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -3435,7 +3435,7 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 2250,
+        "low_air_m": 1000,
         "high_air_m": 2250
       },
       "capabilities": {

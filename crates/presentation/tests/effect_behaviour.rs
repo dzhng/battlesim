@@ -751,3 +751,37 @@ fn what_a_blast_bursts_against_decides_its_fire_and_what_it_throws_up() {
         "a surface the table does not name takes its default"
     );
 }
+
+#[test]
+fn earth_thrown_up_without_a_fade_in_is_there_the_moment_the_shell_lands() {
+    // Two ground bursts alike but for how long the earth they throw takes
+    // to fade in; a tick after they land, each one's earth puffs.
+    let earth = |fade_in_s: f64| {
+        let p = presentation_with(|p| {
+            let ground = &mut p["blast"]["surfaces"]["ground"]["plume"];
+            ground["albedo"] = json!([0.2, 0.15, 0.1]);
+            ground["fade_in_s"] = json!(fade_in_s);
+        });
+        let mut f = EffectFrame::new(HZ, p);
+        f.note(&publ(
+            1.0,
+            json!({"blasts": [{"point": [0.0, 0.0, 0.0], "radius": 6.0, "kind": "grenade", "hit": "ground"}]}),
+        ));
+        let d = drawn(&mut f, DT + DT);
+        let thrown: Vec<f32> = layer(&d, 1.0)
+            .iter()
+            .filter(|i| (i[8] - 0.2).abs() < 1e-6)
+            .map(|i| i[11])
+            .collect();
+        assert!(!thrown.is_empty(), "the burst throws earth at once: {d:?}");
+        thrown
+    };
+    let (instant, fading) = (earth(0.0), earth(0.25));
+    assert_eq!(instant.len(), fading.len());
+    for (now, later) in instant.iter().zip(&fading) {
+        assert!(
+            *now > later * 3.0,
+            "instant earth is solid while faded earth is faint: {now} vs {later}"
+        );
+    }
+}

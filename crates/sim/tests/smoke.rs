@@ -241,40 +241,40 @@ fn a_truck_restores_one_smoke_charge_a_delivery_at_its_price() {
     );
 }
 
+/// Smoke and replacement soldiers run on their own clocks: a squad a man short
+/// gets its smoke back exactly when a full one does, and its soldier too.
 #[test]
-fn replacement_soldiers_are_served_before_smoke() {
-    let mut b = resupplied(json!({
-        "side": "blue", "kind": SQUAD, "position": [100, 150],
-        "engagement": "return_fire_only", "condition": { "casualties": 1 }
-    }));
-    send(&mut b, 1, pop(&[0]), false);
-    let living = |b: &Battle| {
-        b.unit(UnitId(0))
-            .unwrap()
-            .members
-            .iter()
-            .filter(|s| s.alive())
-            .count()
+fn smoke_returns_on_its_own_clock_while_a_soldier_is_replaced() {
+    let run = |casualties: u32| {
+        let mut b = resupplied(json!({
+            "side": "blue", "kind": SQUAD, "position": [100, 150],
+            "engagement": "return_fire_only", "condition": { "casualties": casualties }
+        }));
+        send(&mut b, 1, pop(&[0]), false);
+        let living = |b: &Battle| {
+            b.unit(UnitId(0))
+                .unwrap()
+                .members
+                .iter()
+                .filter(|s| s.alive())
+                .count()
+        };
+        let short = living(&b);
+        let (mut soldier, mut charge) = (None, None);
+        for tick in 0..seconds(60.0) {
+            b.step();
+            if soldier.is_none() && living(&b) > short {
+                soldier = Some(tick);
+            }
+            if charge.is_none() && charges(&b, 0) > 0 {
+                charge = Some(tick);
+            }
+        }
+        (soldier, charge.expect("smoke returns"))
     };
-    let short = living(&b);
-    let (mut soldier, mut charge) = (None, None);
-    for tick in 0..seconds(60.0) {
-        b.step();
-        if soldier.is_none() && living(&b) > short {
-            soldier = Some(tick);
-        }
-        if charge.is_none() && charges(&b, 0) > 0 {
-            charge = Some(tick);
-        }
-    }
-    let (soldier, charge) = (
-        soldier.expect("a soldier joins"),
-        charge.expect("smoke returns"),
-    );
-    assert!(
-        soldier < charge,
-        "the soldier at {soldier}, the smoke at {charge}"
-    );
+    let (soldier, charge) = run(1);
+    assert!(soldier.is_some(), "a soldier joins");
+    assert_eq!(charge, run(0).1, "the smoke doesn't wait for the soldier");
 }
 
 #[test]

@@ -7132,7 +7132,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -7192,9 +7192,9 @@
             "variant": "AH-64E Guardian"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -8222,7 +8222,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8358,7 +8358,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -8473,7 +8473,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -8550,7 +8550,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -8588,9 +8588,9 @@
             "variant": "Ka-52M"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -8774,7 +8774,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -8812,9 +8812,9 @@
             "variant": "Mi-35M"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -8891,7 +8891,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -8929,9 +8929,9 @@
             "variant": "Mi-28NM"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9015,7 +9015,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -9040,7 +9040,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -9057,9 +9057,9 @@
             "variant": "Mi-8AMTSh"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9149,7 +9149,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -9174,7 +9174,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -9191,9 +9191,9 @@
             "variant": "Mi-8AMTSh Supply"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9350,7 +9350,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9486,7 +9486,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9604,7 +9604,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9943,7 +9943,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -10040,7 +10040,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -10296,7 +10296,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10453,7 +10453,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10589,7 +10589,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10728,7 +10728,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10885,7 +10885,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -11021,7 +11021,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -12204,7 +12204,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -12242,9 +12242,9 @@
             "variant": "Attack helicopter"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -12328,7 +12328,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -12353,7 +12353,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -12370,9 +12370,9 @@
             "variant": "Utility transport"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -12714,7 +12714,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -12739,7 +12739,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -12756,9 +12756,9 @@
             "variant": "HC4"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -12839,7 +12839,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -12856,9 +12856,9 @@
             "variant": "AH1"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -13141,7 +13141,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 900.0,
-            "low_air_m": 900.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13430,7 +13430,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -13455,7 +13455,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -13472,9 +13472,9 @@
             "variant": "HC6"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -13564,7 +13564,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -13589,7 +13589,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -13606,9 +13606,9 @@
             "variant": "HC6 Supply"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -14413,7 +14413,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -14451,9 +14451,9 @@
             "variant": "HAD"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -14568,9 +14568,9 @@
             "variant": "UHT"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -14706,7 +14706,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -14891,7 +14891,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2000.0,
-            "low_air_m": 900.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14988,7 +14988,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15145,7 +15145,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -16228,7 +16228,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -16325,7 +16325,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16409,7 +16409,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -16434,7 +16434,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -16451,9 +16451,9 @@
             "variant": "TTH"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16833,7 +16833,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17064,7 +17064,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17200,7 +17200,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17551,7 +17551,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17709,7 +17709,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -18000,7 +18000,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -18173,7 +18173,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "autocannon"
+                "heli_autocannon"
               ]
             },
             {
@@ -18211,9 +18211,9 @@
             "variant": "Attack helicopter"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18290,7 +18290,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -18328,9 +18328,9 @@
             "variant": "AH-6M"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18414,7 +18414,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -18439,7 +18439,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -18456,9 +18456,9 @@
             "variant": "MH-6M"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18641,7 +18641,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -18666,7 +18666,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -18683,9 +18683,9 @@
             "variant": "CH-47F"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18775,7 +18775,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -18800,7 +18800,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -18817,9 +18817,9 @@
             "variant": "CH-47F Supply"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18958,7 +18958,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19115,7 +19115,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19251,7 +19251,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19387,7 +19387,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19544,7 +19544,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19701,7 +19701,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -21943,7 +21943,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -22040,7 +22040,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -22506,7 +22506,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 900.0,
-            "low_air_m": 900.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -22590,7 +22590,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -22615,7 +22615,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -22632,9 +22632,9 @@
             "variant": "Utility transport"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -22718,7 +22718,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             },
             {
@@ -22743,7 +22743,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "hmg"
+                "heli_hmg"
               ]
             }
           ],
@@ -22760,9 +22760,9 @@
             "variant": "UH-60M"
           },
           "sensors": {
-            "ground_m": 850.0,
+            "ground_m": 650.0,
             "high_air_m": 600.0,
-            "low_air_m": 850.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -27231,7 +27231,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -27293,9 +27293,9 @@
         "variant": "AH-64E Guardian"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28674,7 +28674,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28814,7 +28814,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -28932,7 +28932,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -29012,7 +29012,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -29051,9 +29051,9 @@
         "variant": "Ka-52M"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -29333,7 +29333,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -29372,9 +29372,9 @@
         "variant": "Mi-35M"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -29454,7 +29454,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -29493,9 +29493,9 @@
         "variant": "Mi-28NM"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -29582,7 +29582,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -29608,7 +29608,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -29625,9 +29625,9 @@
         "variant": "Mi-8AMTSh"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -29720,7 +29720,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -29746,7 +29746,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -29763,9 +29763,9 @@
         "variant": "Mi-8AMTSh Supply"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -29927,7 +29927,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -30067,7 +30067,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -30167,7 +30167,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30751,7 +30751,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30851,7 +30851,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31205,7 +31205,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31367,7 +31367,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31507,7 +31507,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31650,7 +31650,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31812,7 +31812,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31952,7 +31952,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -33172,7 +33172,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -33211,9 +33211,9 @@
         "variant": "Attack helicopter"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -33300,7 +33300,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -33326,7 +33326,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -33343,9 +33343,9 @@
         "variant": "Utility transport"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -33759,7 +33759,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -33785,7 +33785,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -33802,9 +33802,9 @@
         "variant": "HC4"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -33888,7 +33888,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -33905,9 +33905,9 @@
         "variant": "AH1"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -34199,7 +34199,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 900.0,
-        "low_air_m": 900.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34498,7 +34498,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -34524,7 +34524,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -34541,9 +34541,9 @@
         "variant": "HC6"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -34636,7 +34636,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -34662,7 +34662,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -34679,9 +34679,9 @@
         "variant": "HC6 Supply"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -35511,7 +35511,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -35550,9 +35550,9 @@
         "variant": "HAD"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -35671,9 +35671,9 @@
         "variant": "UHT"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -35813,7 +35813,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -36004,7 +36004,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2000.0,
-        "low_air_m": 900.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36104,7 +36104,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36266,7 +36266,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -37472,7 +37472,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -37572,7 +37572,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37659,7 +37659,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -37685,7 +37685,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -37702,9 +37702,9 @@
         "variant": "TTH"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -38096,7 +38096,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38347,7 +38347,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38487,7 +38487,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38849,7 +38849,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39012,7 +39012,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39546,7 +39546,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39725,7 +39725,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ]
         },
         {
@@ -39764,9 +39764,9 @@
         "variant": "Attack helicopter"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -39846,7 +39846,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -39885,9 +39885,9 @@
         "variant": "AH-6M"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -39974,7 +39974,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -40000,7 +40000,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -40017,9 +40017,9 @@
         "variant": "MH-6M"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40329,7 +40329,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -40355,7 +40355,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -40372,9 +40372,9 @@
         "variant": "CH-47F"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40467,7 +40467,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -40493,7 +40493,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -40510,9 +40510,9 @@
         "variant": "CH-47F Supply"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40655,7 +40655,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40817,7 +40817,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40957,7 +40957,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41097,7 +41097,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41259,7 +41259,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41421,7 +41421,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -44004,7 +44004,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44104,7 +44104,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44597,7 +44597,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 900.0,
-        "low_air_m": 900.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44684,7 +44684,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -44710,7 +44710,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -44727,9 +44727,9 @@
         "variant": "Utility transport"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -44816,7 +44816,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         },
         {
@@ -44842,7 +44842,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ]
         }
       ],
@@ -44859,9 +44859,9 @@
         "variant": "UH-60M"
       },
       "sensors": {
-        "ground_m": 850.0,
+        "ground_m": 650.0,
         "high_air_m": 600.0,
-        "low_air_m": 850.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -44898,7 +44898,7 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 800.0
+            "range_m": 700.0
           },
           {
             "intercepts": true,
@@ -44960,7 +44960,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 800.0,
+          "range_m": 700.0,
           "scatter_mrad": 28.0
         }
       },
@@ -45045,7 +45045,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           },
           {
             "intercepts": false,
@@ -45093,7 +45093,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45354,7 +45354,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 1000.0
+            "range_m": 750.0
           }
         ]
       },
@@ -45371,7 +45371,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 1000.0,
+      "range_m": 750.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45385,7 +45385,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 1000.0,
+          "range_m": 750.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45410,17 +45410,17 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 750.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 750.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 900.0
+            "range_m": 700.0
           }
         ]
       },
@@ -45443,7 +45443,7 @@
       "near_miss_suppression": 0.0325,
       "partial_from": 0.08,
       "penetration": 25.0,
-      "range_m": 900.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "speed_mps": 600.0,
@@ -45456,7 +45456,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 750.0,
+          "range_m": 500.0,
           "scatter_mrad": 6.0
         },
         "high_air": {
@@ -45464,7 +45464,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 900.0,
+          "range_m": 700.0,
           "scatter_mrad": 20.0
         },
         "low_air": {
@@ -45472,7 +45472,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 750.0,
+          "range_m": 500.0,
           "scatter_mrad": 24.0
         }
       },
@@ -45488,7 +45488,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 90.0,
+      "damage": 220.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -45497,12 +45497,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1200.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 1500.0
+            "range_m": 1200.0
           }
         ]
       },
@@ -45518,9 +45518,9 @@
       "name": "Air missile",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 40.0,
+      "penetration": 100.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1500.0,
+      "range_m": 1200.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45537,7 +45537,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -45545,7 +45545,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46197,7 +46197,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 800.0
           }
         ]
       },
@@ -46215,7 +46215,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.25,
@@ -46230,7 +46230,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 800.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46498,7 +46498,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 900.0
+            "range_m": 650.0
           }
         ]
       },
@@ -46515,7 +46515,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 900.0,
+      "range_m": 650.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -46529,13 +46529,163 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 900.0,
+          "range_m": 650.0,
           "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
+    },
+    "heli_autocannon": {
+      "accel_mps2": null,
+      "aim_s": 1.0,
+      "ammo": 240,
+      "anti_radiation": false,
+      "appearance": "autocannon",
+      "armor_piercing": false,
+      "blast_radius_m": 2.0,
+      "damage": 40.0,
+      "decoyable": false,
+      "default": true,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 400.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 300.0
+          }
+        ]
+      },
+      "description": "A helicopter's chain gun, fired from a moving, vibrating airframe.",
+      "fires_on_its_own": false,
+      "gravity_scale": 0.5,
+      "icon": "autocannon",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 3
+        },
+        "rounds": 30,
+        "shot_interval_s": 0.3
+      },
+      "min_range_m": 0.0,
+      "name": "Autocannon",
+      "near_miss_suppression": 0.1,
+      "partial_from": 0.08,
+      "penetration": 25.0,
+      "range_m": 400.0,
+      "reload_s": 3.5,
+      "requires_clear_launch_path": false,
+      "resupply_rounds_per_s": 1.0,
+      "round_cost": 1,
+      "speed_mps": 600.0,
+      "stationary": false,
+      "structural_damage": 8.0,
+      "suppression_radius_m": 6.0,
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 400.0,
+          "scatter_mrad": 6.0
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 300.0,
+          "scatter_mrad": 18.0
+        }
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "heli_hmg": {
+      "accel_mps2": null,
+      "aim_s": 1.0,
+      "ammo": "unlimited",
+      "anti_radiation": false,
+      "appearance": "heavy_machine_gun",
+      "armor_piercing": false,
+      "blast_radius_m": 0.0,
+      "damage": 20.0,
+      "decoyable": false,
+      "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 300.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 200.0
+          }
+        ]
+      },
+      "description": "A helicopter's heavy machine gun, fired from a moving, vibrating airframe.",
+      "fires_on_its_own": false,
+      "gravity_scale": 0.09,
+      "icon": "hmg",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 3
+        },
+        "rounds": 50,
+        "shot_interval_s": 0.1
+      },
+      "min_range_m": 0.0,
+      "name": "HMG",
+      "near_miss_suppression": 0.04,
+      "partial_from": 0.5,
+      "penetration": 20.0,
+      "range_m": 300.0,
+      "reload_s": 5.0,
+      "requires_clear_launch_path": false,
+      "speed_mps": 800.0,
+      "stationary": false,
+      "structural_damage": 4.0,
+      "suppression_radius_m": 4.0,
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 300.0,
+          "scatter_mrad": 8.0
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 200.0,
+          "scatter_mrad": 24.0
+        }
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
     },
     "helicopter_crash": {
       "accel_mps2": null,
@@ -46740,7 +46890,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 800.0
           }
         ]
       },
@@ -46758,7 +46908,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.25,
@@ -46773,7 +46923,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 800.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47184,7 +47334,7 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           },
           {
             "intercepts": true,
@@ -47234,7 +47384,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47394,7 +47544,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 750.0
+            "range_m": 450.0
           }
         ]
       },
@@ -47414,7 +47564,7 @@
       "near_miss_suppression": 0.4,
       "partial_from": 0.08,
       "penetration": 15.0,
-      "range_m": 750.0,
+      "range_m": 450.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.75,
@@ -47429,7 +47579,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 750.0,
+          "range_m": 450.0,
           "scatter_mrad": 12.0
         }
       },
@@ -47875,7 +48025,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 800.0
           }
         ]
       },
@@ -47893,7 +48043,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.25,
@@ -47908,7 +48058,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 800.0,
           "scatter_mrad": 0.5
         }
       },

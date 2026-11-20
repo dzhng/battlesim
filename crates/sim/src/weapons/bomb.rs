@@ -13,7 +13,8 @@ const CANDIDATES: usize = 3;
 /// The rounds one bomb released now becomes. It leaves the jet with the
 /// jet's velocity and a small push off the rack that takes it from where the
 /// drop alone would carry it to its launch spread round the target, so a
-/// release a step late, or from a rack ahead of the jet's middle, still comes
+/// release off the ideal point (anywhere its pass lets it go, inside the
+/// strike circle), or from a rack ahead of the jet's middle, still comes
 /// down on what it was aimed at. A canister falls the same way and opens:
 /// its bomblets come down spread evenly across its disc in no pattern the
 /// eye picks out, and land one after another over its ripple, each falling

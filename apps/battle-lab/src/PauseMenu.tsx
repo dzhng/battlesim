@@ -3,8 +3,8 @@ import { Link } from "react-router";
 // hasn't taken to disarm a command) or the HUD's menu button opens it and
 // pauses the battle, and closing it resumes a battle it paused. It holds
 // what the player reaches between moments of play: the Guide, the settings,
-// restart, and the route's own items (the scenario). Restart and main menu
-// ask first: either loses the battle in progress. Leaving an online battle
+// full screen, restart, and the route's own items (the scenario). Restart and
+// main menu ask first: either loses the battle in progress. Leaving an online battle
 // loses nothing (the seat's AI takes over, and the seat can be returned to),
 // so its item leaves at once.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -15,6 +15,8 @@ import { DiagnosticsControls } from "./DiagnosticsControls";
 import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
 import { Guide } from "./Guide";
+import { fullscreenLabel, toggleFullscreen, useFullscreen } from "./fullscreen";
+import { FullscreenBinding } from "@web/battle/input/commandBindings";
 import { SaveReplayButton } from "./replayFile";
 
 /** The menu's open state over `client`: opening pauses an unpaused battle and
@@ -56,7 +58,7 @@ export function MenuButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       type="button"
-      className="hud-panel hud-menu-button"
+      className="hud-panel hud-icon-button hud-menu-button"
       aria-label="Menu"
       title="Menu (Esc)"
       onClick={onOpen}
@@ -102,6 +104,7 @@ export function PauseMenu({
   const [guideOpen, setGuideOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [asking, setAsking] = useState<keyof typeof questions | null>(null);
+  const fullscreen = fullscreenLabel(useFullscreen());
   const question = asking && questions[asking];
   // Escape closes what is open above the menu, or backs out of a question.
   useEffect(() => {
@@ -174,6 +177,14 @@ export function PauseMenu({
               </button>
               <button type="button" className="hud-menu-item" onClick={() => setSettingsOpen(true)}>
                 Settings
+              </button>
+              <button
+                type="button"
+                className="hud-menu-item"
+                title={`${fullscreen} (${FullscreenBinding.label})`}
+                onClick={toggleFullscreen}
+              >
+                {fullscreen}
               </button>
               {onRestart && (
                 <button

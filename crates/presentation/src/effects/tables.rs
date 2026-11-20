@@ -208,6 +208,9 @@ pub struct PuffStyle {
     pub life_s: f64,
     pub rise_mps: f64,
     pub spread_mps: f64,
+    /// How long it takes to thicken to full: smoke that wells up builds
+    /// over a moment; earth a burst throws is there at once (0).
+    pub fade_in_s: f64,
 }
 
 /// A smoke trail: an unbroken ribbon at `ribbon` opacity, and a puff every `spacing_m`.
