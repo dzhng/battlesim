@@ -649,13 +649,13 @@ fn blocked(unit: &mut Unit, tick: u64) {
 /// leaves the attack in place for its weapons.
 fn arrive(rules: &contract::scenario::Rules, unit: &mut Unit) {
     if let Some(m) = unit.orders.front().and_then(|o| o.movement()) {
-        // The right-drag's facing (Q9): a squad turns at once; tracks pivot
-        // at rest; wheels drove in along it as far as they could (`line_up`).
+        // The right-drag's facing (Q9): a squad turns at once; tracks and
+        // rotors pivot at rest; wheels drove in along it as far as they
+        // could (`line_up`) and turn the rest of the way on the spot (a
+        // deliberate game rule, listed in development.md).
         match m.facing {
             Some(f) if !unit.is_vehicle() => unit.yaw = f,
-            Some(f) if unit.flies() || unit.ground(rules).drive.is_some_and(|d| d.tracked) => {
-                unit.turn_to = Some(f)
-            }
+            Some(f) if unit.flies() || unit.ground(rules).drive.is_some() => unit.turn_to = Some(f),
             _ => {}
         }
         unit.orders.pop_front();

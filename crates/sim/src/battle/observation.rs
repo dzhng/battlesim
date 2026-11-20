@@ -334,7 +334,7 @@ impl Battle {
                                 u.unit_type(&self.rules),
                             ),
                         }),
-                        final_facing: movement::final_facing(&self.rules, u),
+                        final_facing: movement::final_facing(u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u

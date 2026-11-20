@@ -38,7 +38,8 @@ pub struct Mobility {
 /// to what the vehicle can drive (`corners`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Drive {
-    /// Tracked vehicles pivot on the spot; wheeled ones never do.
+    /// Tracked vehicles pivot on the spot; wheeled ones only at rest, by
+    /// the game rules' named exceptions (development.md).
     pub tracked: bool,
     pub turn_rad_s: f64,
     /// A wheeled vehicle's tightest turn (0 for tracks).

@@ -7,10 +7,13 @@ use crate::navigation::NavGrid;
 use crate::units::Unit;
 
 /// A wheeled vehicle sent forward to a right-drag's facing drives in along
-/// it: its route ends on a straight lead-in on the heading it can line up on
-/// ([`drive::line_up_heading`]), long enough that the turn onto it is a
-/// forward one ([`drive::lead_in`]). Without room for it, the vehicle keeps
-/// the route it has.
+/// it as best it can: its route ends on a straight lead-in on the heading it
+/// can line up on ([`drive::line_up_heading`]), long enough that the turn
+/// onto it is a forward one ([`drive::lead_in`]). It takes only a lead-in on
+/// its way: one that starts nearer the end than it turns toward it from, and
+/// at least a turning circle's width from there. Without one, or without
+/// room for it, the vehicle keeps the route it has; either way it turns the
+/// rest of the way on the spot once there (`arrive`).
 pub(super) fn line_up(rules: &contract::scenario::Rules, unit: &mut Unit, grid: &NavGrid) {
     let Some(drive) = unit.ground(rules).drive.filter(|d| !d.tracked) else {
         return;
@@ -35,6 +38,12 @@ pub(super) fn line_up(rules: &contract::scenario::Rules, unit: &mut Unit, grid: 
         return;
     };
     let lead = drive::lead_in(end, heading, &drive, unit.hull.map_or(0.0, |h| h.x));
+    // Driving out past it to turn back in, or onto a start inside its own
+    // turning circle, it would circle the start for ever.
+    let behind = (before - end).length() <= (lead - end).length();
+    if behind || (lead - before).length() < 2.0 * drive.radius_m {
+        return;
+    }
     let mut lined = route[..route.len() - 1].to_vec();
     lined.extend([lead, end]);
     if grid.placement_fits(lead, &unit.ground(rules))
