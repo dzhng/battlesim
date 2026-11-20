@@ -1,15 +1,21 @@
-//! What a jet's bombs do to a ground aim: each run releases its round (every
-//! bomblet of a cluster canister together), every bomb lands inside the
-//! strike circle the attack-ground cursor draws round the aim, and a
-//! canister's bomblets burst one after another across their disc.
+//! What a jet's bombs do to a ground aim: where each leaves the jet on its
+//! pass, that each run releases its round (every bomblet of a cluster
+//! canister together), every bomb lands inside the strike circle the
+//! attack-ground cursor draws round the aim, and a canister's bomblets burst
+//! one after another across their disc.
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::attack_passes::{far, ground_attack_battle, ground_attack_battle_with, state, wing};
 use crate::attack_runs::{attack_ground, run_field, run_rules, RUN_START};
+use crate::common::air_field::wing_limits;
 use contract::catalog::TypeIndex;
 use contract::ids::UnitId;
+use contract::random::Rng;
 use serde_json::json;
-use sim::flight::FlightEvent;
-use sim::math::{v2, V2};
+use sim::air::pass::{advance, begin, PassAim, PassPhase, PassWeapon};
+use sim::air::Bounds;
+use sim::flight::{FlightEvent, Release};
+use sim::math::{v2, v3, V2};
 
 /// A test jet's bombing of `aim` with the shipped `row` over `window_s`: each
 /// release (the tick its bombs left the jet) with where and when, in
@@ -160,4 +166,201 @@ fn a_bomb_without_spread_lands_on_its_aim() {
         }
     }
     assert!(landed >= 3, "only {landed} bombs landed");
+}
+
+/// A bombing run commits nose-on, releases within half a step of its release
+/// point, and is over with the release: the jet lines up for the next one.
+#[test]
+fn a_bombing_run_releases_at_its_release_point_and_is_over() {
+    let aim = v3(1000.0, 0.0, 0.0);
+    let mut plan = begin(
+        &state(250.0),
+        &wing_limits(),
+        aim,
+        PassWeapon::Bomb,
+        &wing(),
+        &mut Rng::new(7),
+    );
+    assert_eq!(plan.phase, PassPhase::LineUp);
+    let release = Release {
+        fall_s: 3.0,
+        ahead_m: 300.0,
+        at: v2(700.0, 0.0),
+    };
+    let aim_at = PassAim {
+        point: aim,
+        release,
+    };
+    // 100 m/s in 0.6 s steps: 60 m a step.
+    let dt = 0.6;
+    let mut released_at = None;
+    for step in 0..20 {
+        let agl = plan.agl;
+        let mut current = state(agl);
+        current.pos.x = step as f64 * 60.0;
+        let (_, cue) = advance(
+            &mut plan,
+            &current,
+            agl,
+            &wing_limits(),
+            &far(),
+            &aim_at,
+            dt,
+        );
+        if cue {
+            assert!(released_at.is_none(), "one cue per pass");
+            // Where this tick's step carries the jet.
+            released_at = Some(current.pos.x + 60.0);
+        }
+    }
+    let x = released_at.expect("the pass never released");
+    assert!(
+        (x - 700.0).abs() <= 30.0,
+        "released {x} m along, more than half a step from the release point"
+    );
+    assert_eq!(plan.phase, PassPhase::LineUp);
+}
+
+/// A run the edge guard takes over is broken: it releases nothing, though
+/// this tick would have carried it to its release point, and the jet lines
+/// up again.
+#[test]
+fn a_run_the_edge_guard_takes_over_is_broken() {
+    let aim = v3(1000.0, 0.0, 0.0);
+    let mut plan = begin(
+        &state(150.0),
+        &wing_limits(),
+        aim,
+        PassWeapon::Bomb,
+        &wing(),
+        &mut Rng::new(7),
+    );
+    let aim_at = PassAim {
+        point: aim,
+        release: Release {
+            fall_s: 3.0,
+            ahead_m: 300.0,
+            at: v2(700.0, 0.0),
+        },
+    };
+    // The east edge lies just past the aim: by the release point the jet,
+    // heading straight at it, is at its point of no return.
+    let limits = wing_limits();
+    let bounds = Bounds::new(
+        v2(-5_000.0, -5_000.0),
+        v2(700.0 + limits.edge_margin_m + 1.0, 5_000.0),
+    );
+    // Nose-on, 400 m short of its release point: it commits.
+    let mut current = state(plan.agl);
+    current.pos.x = 300.0;
+    advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
+    assert_eq!(plan.phase, PassPhase::Dive);
+    // 100 m/s in 0.05 s steps: this step would carry it to the release point.
+    current.pos.x = 697.0;
+    let (_, cue) = advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
+    assert!(!cue, "released as the edge guard turned it away");
+    assert_eq!(plan.phase, PassPhase::LineUp);
+}
+
+#[test]
+fn a_bombing_pass_never_fires_the_gun() {
+    let mut battle = ground_attack_battle(&["air_gun", "air_bomb"]);
+    let mut bomb_tick = None;
+    for _ in 0..900 {
+        battle.step();
+        let unit = battle.unit(UnitId(0)).unwrap();
+        let specs = battle.rules().catalog.mounts(unit.kind);
+        let gun_shots: u32 = unit
+            .mounts
+            .iter()
+            .zip(specs)
+            .filter(|(_, s)| s.def.weapons.iter().any(|w| w == "air_gun"))
+            .map(|(m, _)| m.shots)
+            .sum();
+        if gun_shots > 0 && bomb_tick.is_none() {
+            panic!("gun fired before bomb: {:?}", unit.air.unwrap().pass);
+        }
+        let bomb_shots: u32 = unit
+            .mounts
+            .iter()
+            .zip(specs)
+            .filter(|(_, s)| s.def.weapons.iter().any(|w| w == "air_bomb"))
+            .map(|(m, _)| m.shots)
+            .sum();
+        if bomb_shots > 0 {
+            bomb_tick = Some(gun_shots);
+            break;
+        }
+    }
+    assert_eq!(bomb_tick.expect("bomb pass never released"), 0);
+}
+
+/// A bomb leaves the jet: on the tick it is released it is where the jet
+/// is, and it falls onto the aim because the jet released it at the right
+/// moment, not because it was placed there.
+#[test]
+fn a_bomb_leaves_the_jet_and_falls_onto_the_aim() {
+    let blast_m = 20.0;
+    let mut battle = ground_attack_battle_with(
+        &["air_bomb"],
+        1,
+        |rules| {
+            rules["weapons"]["air_bomb"]["targets"]["ground"]["scatter_mrad"] = json!(0.0);
+            rules["weapons"]["air_bomb"]["blast_radius_m"] = json!(blast_m);
+        },
+        &[],
+    );
+    let mut bomb = None;
+    for _ in 0..1200 {
+        battle.step();
+        if let Some((p, _)) = battle.rounds().find(|(_, r)| r.unit == UnitId(0)) {
+            let jet = battle.unit(UnitId(0)).unwrap().position;
+            assert!(
+                (p.position - jet).length() < 15.0,
+                "the bomb appeared {:.0} m from the jet",
+                (p.position - jet).length()
+            );
+            bomb = Some(p.id);
+            break;
+        }
+    }
+    let bomb = bomb.expect("the jet never released its bomb");
+    for _ in 0..600 {
+        battle.step();
+        let landed = battle.flight_events().iter().find_map(|e| match e {
+            sim::flight::FlightEvent::Impact(i) if i.projectile == bomb => Some(i.point),
+            _ => None,
+        });
+        if let Some(point) = landed {
+            let miss = (point.xy() - v2(2000.0, 2000.0)).length();
+            assert!(miss < blast_m, "the bomb landed {miss:.0} m from the aim");
+            return;
+        }
+    }
+    panic!("the bomb never landed");
+}
+
+/// A jet holds its bombs while a friendly vehicle sits in their blast at
+/// the aim, as any gun holds for a friendly in its line.
+#[test]
+fn a_bomb_holds_for_a_friendly_vehicle_in_its_blast() {
+    let mut battle = ground_attack_battle_with(
+        &["air_bomb"],
+        1,
+        |rules| rules["weapons"]["air_bomb"]["blast_radius_m"] = json!(20.0),
+        &[
+            json!({ "side": "blue", "kind": "test_tank", "position": [2000, 2008], "yaw": 0.0, "engagement": "return_fire_only" }),
+        ],
+    );
+    let mut cued = false;
+    for _ in 0..1200 {
+        battle.step();
+        assert!(
+            battle.rounds().all(|(_, r)| r.unit != UnitId(0)),
+            "the jet bombed its own tank"
+        );
+        cued |= battle.unit(UnitId(0)).unwrap().air.unwrap().pass_release;
+    }
+    // It held at the release point, not short of it.
+    assert!(cued, "the jet never reached its release point");
 }
