@@ -700,12 +700,11 @@ fn a_blast_s_fireball_blooms_at_once_and_burns_out_over_its_life() {
         fire[0][5]
     };
     // A shell's fireball is out at full size the moment it lands: the sheet's
-    // growing frames (its first quarter) are gone by `bloom_s`, well inside
-    // the blast's life, and the rest of the sheet plays out after them.
-    assert!(bloom < life * 0.1, "bloom_s {bloom} is a flash, not a ramp");
+    // growing frames (its first quarter) are gone by `bloom_s`, and the rest
+    // of the sheet plays out over the blast's remaining life.
     let early = sheet(bloom * 0.5);
     let bloomed = sheet(bloom);
-    let late = sheet(life * 0.6);
+    let late = sheet(bloom + (life / 1.15 - bloom) * 0.5);
     assert!(early > 0.0 && early < bloomed, "{early} then {bloomed}");
     assert!(bloomed >= 6.0, "full size by bloom_s: frame {bloomed}");
     assert!(

@@ -326,9 +326,9 @@ impl Pool {
         let e = self.push(Look::Blast, at, at + style.duration_s);
         e.cause = "blast".into();
         e.p = point;
-        e.scale = surface.fire;
-        e.size = radius * style.size_per_radius * scale;
-        let size = e.size;
+        let size = radius * style.size_per_radius * scale;
+        // The surface's share is the fireball's alone; sparks and puffs go by the whole burst.
+        e.size = size * surface.fire;
         let share = size / style.reference_size_m;
         e.rotation = rng.sample() * PI * 2.0;
         // A burst below the style's throws fewer sparks and puffs, and smaller ones.
