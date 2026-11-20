@@ -237,3 +237,125 @@ fn a_vehicle_that_cannot_get_there_gives_the_order_up_after_trying_again() {
     assert!(seconds < 150.0, "it gave up after {seconds} s");
     assert!(b.unit(UnitId(0)).unwrap().orders.is_empty());
 }
+
+/// What a truck cruising east over open ground does when it is sent to
+/// `goal` with a planner that spends `work` a tick: how many ticks the new
+/// route took to work out, the ticks it held for it (planning), how far it
+/// rolled from the order to its first standstill (its whole way, if it
+/// never stood), how far braking from its speed when ordered takes it, and
+/// where it ended.
+struct Resent {
+    search_ticks: u64,
+    held: Vec<u64>,
+    rolled_m: f64,
+    braking_m: f64,
+    end: [f64; 3],
+}
+
+/// The seconds the test truck takes to brake from its road speed: long, so
+/// its braking distance is far more than a waypoint's reach.
+const BRAKING_S: f64 = 12.0;
+
+fn resend(goal: [f64; 2], work: u32) -> Resent {
+    let mut rules = common::scenario_rules();
+    rules["navigation"]["work_per_tick"] = json!(work);
+    rules["movement"]["drive"]["braking_s"] = json!(BRAKING_S);
+    let mut b = battle(
+        open([900, 400]),
+        json!([{ "side": "blue", "kind": "test_supply", "position": [40, 200], "yaw": 0 }]),
+        json!([]),
+        rules,
+    );
+    go(&mut b, 1, 0, [860.0, 200.0]);
+    let hz = b.rules().tick_hz as u64;
+    // Ten seconds on it is at its road speed.
+    for _ in 0..10 * hz {
+        b.step();
+    }
+    let ordered = own(&b, 0).position;
+    b.step();
+    let speed_mps = dist(own(&b, 0).position, [ordered[0], ordered[1]]) * hz as f64;
+    // Its brakes stop it from its road speed in `BRAKING_S`.
+    let road_mps = b.unit(UnitId(0)).unwrap().ground(b.rules()).road_mps;
+    let braking_m = speed_mps * speed_mps / (2.0 * road_mps / BRAKING_S);
+    go(&mut b, 2, 0, goal);
+    let from = own(&b, 0).position;
+    let mut seen = Resent {
+        search_ticks: 0,
+        held: Vec::new(),
+        rolled_m: 0.0,
+        braking_m,
+        end: from,
+    };
+    let mut stood = false;
+    for tick in 1..=300 * hz {
+        let before = own(&b, 0).position;
+        b.step();
+        let truck = own(&b, 0);
+        seen.search_ticks += u64::from(b.load().routes_pending > 0);
+        if truck.state == MoveState::Planning {
+            seen.held.push(tick);
+        }
+        stood |= dist(truck.position, [before[0], before[1]]) < 1e-6;
+        if !stood {
+            seen.rolled_m = dist(truck.position, [from[0], from[1]]);
+        }
+        seen.end = truck.position;
+        if truck.state == MoveState::Idle {
+            break;
+        }
+    }
+    seen
+}
+
+/// Sent somewhere new that lies broadly ahead, with the planner taking a
+/// few ticks over the way there, the truck drives on meanwhile: it never
+/// stands to wait for its route, and it gets where it was sent.
+#[test]
+fn a_vehicle_sent_somewhere_ahead_drives_on_while_its_route_is_worked_out() {
+    let goal = [820.0, 80.0];
+    let seen = resend(goal, 150);
+    assert!(
+        seen.search_ticks >= 2,
+        "the search must outlast a tick to prove anything: {}",
+        seen.search_ticks
+    );
+    assert!(
+        seen.held.is_empty(),
+        "it stood to plan at ticks {:?}",
+        &seen.held[..seen.held.len().min(5)]
+    );
+    assert!(dist(seen.end, goal) < 3.0, "it ended at {:?}", seen.end);
+}
+
+/// It drives on only as far as its brakes would take it: when the route is
+/// long in coming it comes to rest there as it would at a route's end
+/// (never stopped dead from its road speed), holds for the route, and then
+/// drives it.
+#[test]
+fn a_vehicle_whose_new_route_is_long_in_coming_brakes_to_a_stop_and_waits() {
+    let goal = [820.0, 80.0];
+    let seen = resend(goal, 4);
+    assert!(!seen.held.is_empty(), "it never had to wait for its route");
+    // Within a step's roll and the half metre a waypoint counts as reached.
+    assert!(
+        (seen.rolled_m - seen.braking_m).abs() <= 0.5 + 0.25 * seen.braking_m,
+        "it rolled {:.2} m before standing; braking takes {:.2} m",
+        seen.rolled_m,
+        seen.braking_m
+    );
+    assert!(dist(seen.end, goal) < 3.0, "it ended at {:?}", seen.end);
+}
+
+/// Sent somewhere behind it, driving on would only carry it the wrong way:
+/// it holds for its route, as a unit sent anywhere from rest does.
+#[test]
+fn a_vehicle_sent_somewhere_behind_it_holds_for_its_route() {
+    let goal = [60.0, 320.0];
+    let seen = resend(goal, 150);
+    assert!(
+        !seen.held.is_empty(),
+        "it drove on away from where it was sent"
+    );
+    assert!(dist(seen.end, goal) < 3.0, "it ended at {:?}", seen.end);
+}

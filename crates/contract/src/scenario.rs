@@ -135,6 +135,10 @@ pub struct NavigationRules {
     /// the nearer only while each metre of ground gained costs at most this
     /// many metres of extra driving.
     pub stop_short_detour_ratio: f64,
+    /// A vehicle on the move sent somewhere within this many degrees of the
+    /// way it travels drives on, braking, while the new route is worked
+    /// out; sent farther round than that, it stops for the route.
+    pub drive_on_deg: f64,
 }
 
 impl NavigationRules {
@@ -152,6 +156,9 @@ impl NavigationRules {
         }
         if !self.stop_short_detour_ratio.is_finite() || self.stop_short_detour_ratio < 0.0 {
             return Err("stop_short_detour_ratio must be finite and not negative".into());
+        }
+        if !(0.0..=180.0).contains(&self.drive_on_deg) {
+            return Err("drive_on_deg must be an angle between 0 and 180".into());
         }
         for (name, v) in [
             ("road_leg_m", self.road_leg_m),

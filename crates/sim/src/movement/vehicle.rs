@@ -8,9 +8,10 @@ use crate::math::{Obb2, V2};
 use crate::units::{Unit, UnitOrder};
 use crate::world::WorldGeometry;
 
+use super::drive_on::route_end;
 use super::traffic::{gives_way, in_the_way};
 use super::{
-    arrive, drive, may_advance, push, MovementContext, Shove, SideGeometry, ENCOUNTER_RANGE_M,
+    drive, may_advance, push, MovementContext, Shove, SideGeometry, ENCOUNTER_RANGE_M,
     PROGRESS_EPSILON_M,
 };
 
@@ -56,6 +57,8 @@ fn land(
     Ok((next, shoved, ground))
 }
 
+/// Drive vehicle `i` one tick. `awaiting`: its way somewhere new is still
+/// being worked out, so the end of the route it has is not its goal.
 pub(super) fn step_vehicle(
     ctx: &MovementContext,
     units: &mut [Unit],
@@ -63,6 +66,7 @@ pub(super) fn step_vehicle(
     sides: &mut [SideGeometry; 3],
     shoves: &mut Vec<Shove>,
     traffic: &[Option<Obb2>],
+    awaiting: bool,
 ) {
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     units[i].reversing = false;
@@ -90,7 +94,7 @@ pub(super) fn step_vehicle(
     }
     // A shunt keeps its legs to the end: only then does it pick up its route.
     if units[i].shunt.is_none() && drive::prune(ctx, sides, traffic, &mut units[i]) {
-        arrive(ctx.rules, &mut units[i]);
+        route_end(ctx.rules, &mut units[i], awaiting);
         return;
     }
     let unit = &units[i];
@@ -252,7 +256,7 @@ pub(super) fn step_vehicle(
         route.remove(0);
         unit.progress = (f64::INFINITY, ctx.tick);
         if route.is_empty() {
-            arrive(ctx.rules, unit);
+            route_end(ctx.rules, unit, awaiting);
         }
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);

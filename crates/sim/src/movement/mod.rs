@@ -1,6 +1,7 @@
 //! Ground movement each tick: ask for a route when one is needed and hold until
-//! the planner has it ([`RoutePlanner`]), follow the route toward surface
-//! speed, and learn obstacles by running into them. A vehicle drives its route
+//! the planner has it ([`RoutePlanner`]; a vehicle may drive on meanwhile,
+//! [`drive_on`]), follow the route toward surface speed, and learn obstacles
+//! by running into them. A vehicle drives its route
 //! as one hull, waits for every other vehicle whatever its side (Q14) until one
 //! standing in its way has stalled it, and not at all on one parked there
 //! ([`traffic`]), never for soldiers, and shoves bodies lighter than its push
@@ -27,6 +28,7 @@ pub(crate) mod air;
 mod changes;
 mod crowd;
 pub(crate) mod drive;
+mod drive_on;
 mod final_leg;
 mod line_up;
 mod push;
@@ -68,7 +70,7 @@ const ROLLING_MPS: f64 = 0.1;
 /// order up and stands, ready for another.
 const MAX_TRIES: u8 = 3;
 /// A vehicle sent on to a goal this near the one it is driving to keeps
-/// its way while the new one is worked out.
+/// the whole of its way while the new one is worked out.
 const KEEP_ROUTE_M: f64 = 25.0;
 /// A unit stuck this near its goal, past its own hull, is as near as the
 /// ground lets it: it stops there and the move is done. A carrier this near
@@ -164,7 +166,8 @@ pub(crate) fn advance(
             continue;
         }
         if units[i].is_vehicle() {
-            step_vehicle(ctx, units, i, sides, &mut shoves, &footprints);
+            let awaiting = (planner.pending(units[i].id)).is_some_and(|r| r.new_goal);
+            step_vehicle(ctx, units, i, sides, &mut shoves, &footprints, awaiting);
             footprints[i] = units[i].ground_footprint().filter(|_| units[i].on_field());
             soldier::shove(ctx, units, i, &mut crowd);
         } else {
@@ -183,8 +186,9 @@ pub(crate) fn advance(
 
 /// Ask the planner for a route when the unit needs one: a new goal, a route
 /// its side now knows is blocked, or a stall. A vehicle with a way to the
-/// same place drives on along it meanwhile; otherwise the unit holds until
-/// the route comes ([`plan_routes`]). A goal that moves on meanwhile asks
+/// same place drives on along it meanwhile, and one sent somewhere broadly
+/// ahead along the stretch its brakes need ([`drive_on`]); otherwise the
+/// unit holds until the route comes ([`plan_routes`]). A goal that moves on meanwhile asks
 /// again. A unit that gets nowhere for a give-up spell stops if it is near
 /// enough to its goal, and otherwise finds no way, tries again, and the
 /// third time gives the order up: no unit is stuck for good.
@@ -350,19 +354,27 @@ fn request_route(
     side.searches += 1;
     unit.planned_goal = Some(goal);
     // A vehicle drives on along the way it has while it works out a new one
-    // to the same place (a driver does not stop to rethink); sent somewhere
-    // new, or on foot, it holds until the route comes.
+    // to the same place (a driver does not stop to rethink), and sent
+    // somewhere new broadly ahead, along the stretch its brakes need, from
+    // whose end the new way is planned. Otherwise, or on foot, it holds
+    // until the route comes.
+    let ahead = (goal_moved && !same_place)
+        .then(|| drive_on::stretch(ctx, unit, goal))
+        .flatten();
+    let from = match ahead.as_ref().and_then(|stretch| stretch.last()) {
+        Some(&end) => end,
+        None => {
+            let grid = side.grid(ctx.world, ctx.authored);
+            route_start(unit, |p| grid.placement_fits(p, &unit.ground(ctx.rules)))
+        }
+    };
     if !(unit.is_vehicle() && same_place) {
-        unit.route = None;
+        unit.route = ahead;
     }
     let kept = unit.route.clone().filter(|_| !detour.is_empty());
     if unit.route.is_none() {
         unit.state = MoveState::Planning;
     }
-    let from = {
-        let grid = side.grid(ctx.world, ctx.authored);
-        route_start(unit, |p| grid.placement_fits(p, &unit.ground(ctx.rules)))
-    };
     planner.submit(
         unit.id,
         Request {
@@ -467,9 +479,10 @@ fn plan_routes(
 }
 
 /// The planner's answer to `request` arrives: the unit sets off on the
-/// route, or learns there is none. It held while it waited, so the route
-/// starts where it stands; a squad's soldiers, who may have shifted to
-/// cover meanwhile, join the corridor from wherever they are.
+/// route, or learns there is none. Unless it is a vehicle that drove on
+/// meanwhile, it held while it waited, so the route starts where it stands;
+/// a squad's soldiers, who may have shifted to cover meanwhile, join the
+/// corridor from wherever they are.
 fn take_route(
     ctx: &MovementContext,
     unit: &mut Unit,
@@ -486,7 +499,7 @@ fn take_route(
     unit.progress = (f64::INFINITY, ctx.tick);
     // A vehicle that drove on meanwhile joins the new route where it is.
     if let (true, Plan::Route(route)) = (unit.is_vehicle(), &mut plan) {
-        rejoin(unit.position.xy(), from, route);
+        drive_on::join(unit, from, route);
     }
     // A shunt under way is finished first, as a driver gets clear of a
     // tight spot whatever his next order, then picks the new route up from
