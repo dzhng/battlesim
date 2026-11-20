@@ -159,8 +159,9 @@ fn past_no_return(room: f64, closing: f64, radius: f64, step: f64, margin: f64) 
 /// break at its max rate, the one turn harder than it turns by choice, back
 /// into the map. `None` while it can still fly as it means to, however near
 /// an edge. On a straight edge this keeps it `edge_margin_m` inside; in a
-/// corner it may cross into the margin, never out of the square.
-fn edge_guard(
+/// corner it may cross into the margin, never out of the square. The turn
+/// rate it breaks at, signed as `turn_rate_rad_s`.
+pub(crate) fn edge_guard(
     state: &FixedWingState,
     limits: &FixedWingLimits,
     bounds: &Bounds,
@@ -228,16 +229,6 @@ fn edge_guard(
         let middle = (bounds.min + bounds.max) * 0.5 - state.pos.xy();
         turn_toward(state.heading, libm::atan2(middle.y, middle.x), limits, dt_s) * reserve(limits)
     })
-}
-
-/// Whether the edge guard takes the jet this tick (D36).
-pub fn edge_guarded(
-    state: &FixedWingState,
-    limits: &FixedWingLimits,
-    bounds: &Bounds,
-    dt_s: f64,
-) -> bool {
-    edge_guard(state, limits, bounds, dt_s).is_some()
 }
 
 /// How far short of `aim` the edge guard would take the jet flying

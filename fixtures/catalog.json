@@ -8222,7 +8222,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8358,7 +8358,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -8473,7 +8473,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9350,7 +9350,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9486,7 +9486,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9604,7 +9604,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9943,7 +9943,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -10040,7 +10040,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -10296,7 +10296,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10453,7 +10453,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10589,7 +10589,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10728,7 +10728,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10885,7 +10885,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -11021,7 +11021,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -13141,7 +13141,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 900.0,
-            "low_air_m": 900.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14706,7 +14706,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -14891,7 +14891,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2000.0,
-            "low_air_m": 900.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14988,7 +14988,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15145,7 +15145,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -16228,7 +16228,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -16325,7 +16325,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16833,7 +16833,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17064,7 +17064,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17200,7 +17200,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17551,7 +17551,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17709,7 +17709,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -18000,7 +18000,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -18958,7 +18958,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19115,7 +19115,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19251,7 +19251,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19387,7 +19387,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19544,7 +19544,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19701,7 +19701,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -21943,7 +21943,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 2250.0,
-            "low_air_m": 2250.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -22040,7 +22040,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -22506,7 +22506,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 900.0,
-            "low_air_m": 900.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -28674,7 +28674,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28814,7 +28814,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -28932,7 +28932,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -29927,7 +29927,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -30067,7 +30067,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -30167,7 +30167,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30751,7 +30751,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30851,7 +30851,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31205,7 +31205,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31367,7 +31367,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31507,7 +31507,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31650,7 +31650,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31812,7 +31812,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31952,7 +31952,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -34199,7 +34199,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 900.0,
-        "low_air_m": 900.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -35813,7 +35813,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -36004,7 +36004,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2000.0,
-        "low_air_m": 900.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36104,7 +36104,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36266,7 +36266,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -37472,7 +37472,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -37572,7 +37572,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38096,7 +38096,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38347,7 +38347,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38487,7 +38487,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38849,7 +38849,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39012,7 +39012,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39546,7 +39546,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40655,7 +40655,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40817,7 +40817,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40957,7 +40957,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41097,7 +41097,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41259,7 +41259,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41421,7 +41421,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -44004,7 +44004,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 2250.0,
-        "low_air_m": 2250.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44104,7 +44104,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44597,7 +44597,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 900.0,
-        "low_air_m": 900.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -44898,7 +44898,7 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 800.0
+            "range_m": 700.0
           },
           {
             "intercepts": true,
@@ -44960,7 +44960,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 800.0,
+          "range_m": 700.0,
           "scatter_mrad": 28.0
         }
       },
@@ -45045,7 +45045,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           },
           {
             "intercepts": false,
@@ -45093,7 +45093,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45415,7 +45415,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 750.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
@@ -45472,7 +45472,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 750.0,
+          "range_m": 500.0,
           "scatter_mrad": 24.0
         }
       },
@@ -45497,7 +45497,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           },
           {
             "intercepts": false,
@@ -45545,7 +45545,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46197,7 +46197,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 800.0
           }
         ]
       },
@@ -46215,7 +46215,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.25,
@@ -46230,7 +46230,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 800.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46890,7 +46890,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 800.0
           }
         ]
       },
@@ -46908,7 +46908,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.25,
@@ -46923,7 +46923,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 800.0,
           "scatter_mrad": 0.5
         }
       },
@@ -47334,7 +47334,7 @@
           {
             "intercepts": true,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           },
           {
             "intercepts": true,
@@ -47384,7 +47384,7 @@
             "air_fixed_wing",
             "missile"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         }
       },
@@ -48025,7 +48025,7 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 800.0
           }
         ]
       },
@@ -48043,7 +48043,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.25,
@@ -48058,7 +48058,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 800.0,
           "scatter_mrad": 0.5
         }
       },

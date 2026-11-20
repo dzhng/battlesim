@@ -182,7 +182,7 @@ export function PauseMenu({
                 type="button"
                 className="hud-menu-item"
                 title={`${fullscreen} (${FullscreenBinding.label})`}
-                onClick={() => void toggleFullscreen().catch(() => {})}
+                onClick={toggleFullscreen}
               >
                 {fullscreen}
               </button>

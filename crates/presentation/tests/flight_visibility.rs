@@ -15,7 +15,7 @@ fn smoke_cannot_crowd_out_a_rounds_flight_glow() {
         "tail_s": 0.05, "tail_m": [1, 10],
         "glow": {"color": [1, 0.3, 0.1], "intensity": 8, "width_m": 0.4, "min_px": 4},
         "smoke": {"albedo": [0.9, 0.9, 0.9], "ribbon": 0.5, "opacity": 0.2,
-            "size_m": [0.1, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.1, "spacing_m": 1}
+            "size_m": [0.1, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.1, "fade_in_s": 0.25, "spacing_m": 1}
     });
     p["looks"]["looks"]["test_flight"] = look;
     p["looks"]["weapons"]["test_flight"] = json!("test_flight");

@@ -54,7 +54,8 @@ impl Unit {
                         .u64(p.weapon as u64)
                         .f64(p.agl)
                         .opt_f64(p.run_agl)
-                        .f64(p.heading);
+                        .f64(p.heading)
+                        .u64(p.closing as u64);
                 }
                 None => {
                     d.u64(0);

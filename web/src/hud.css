@@ -919,8 +919,7 @@ html {
 .hud-error {
   color: rgb(var(--hud-bad));
 }
-/* A square icon button on the screen's edge: the battle's menu, the main
-   menu's full screen. Each places its own. */
+/* A square icon button on the screen's edge; each places its own. */
 .hud-panel.hud-icon-button {
   position: fixed;
   z-index: 3;

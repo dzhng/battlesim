@@ -181,7 +181,7 @@ function FullscreenButton() {
       className="hud-panel hud-icon-button menu-fullscreen"
       aria-label={label}
       title={`${label} (${FullscreenBinding.label})`}
-      onClick={() => void toggleFullscreen().catch(() => {})}
+      onClick={toggleFullscreen}
     >
       <Icon path={hudIcon(full ? "exit_fullscreen" : "fullscreen")} />
     </button>

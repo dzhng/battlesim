@@ -3,17 +3,15 @@
 // main menu and the pause menu each carry a button. Esc stays the game's while
 // full screen (Chromium's keyboard lock), so cancelling an order or opening the
 // pause menu never drops the player out; holding Esc leaves, as the browser's
-// own banner says. A browser without the lock leaves on the first Esc.
+// own banner says.
 import { useEffect, useSyncExternalStore } from "react";
 import { FullscreenBinding } from "@web/battle/input/commandBindings";
 import { isGameKey } from "@web/battle/input/keyGuard";
 
 /** Chromium's Keyboard Lock, which the DOM's types don't carry yet. */
-interface KeyboardLock {
-  lock(codes?: string[]): Promise<void>;
-  unlock(): void;
-}
-const keyboard = () => (navigator as Navigator & { keyboard?: KeyboardLock }).keyboard;
+const keyboard = () =>
+  (navigator as Navigator & { keyboard: { lock(codes: string[]): Promise<void>; unlock(): void } })
+    .keyboard;
 
 function subscribe(change: () => void) {
   document.addEventListener("fullscreenchange", change);
@@ -21,18 +19,20 @@ function subscribe(change: () => void) {
 }
 const isFullscreen = () => document.fullscreenElement !== null;
 
-/** Enter full screen, or leave it. Called from a click or key press: the
- *  browser grants it only to the player's own gesture. */
-export async function toggleFullscreen(): Promise<void> {
-  if (isFullscreen()) {
-    keyboard()?.unlock();
-    await document.exitFullscreen();
-    return;
+async function setFullscreen(on: boolean) {
+  if (!on) {
+    keyboard().unlock();
+    return document.exitFullscreen();
   }
   await document.documentElement.requestFullscreen({ navigationUI: "hide" });
-  await keyboard()
-    ?.lock(["Escape"])
-    .catch(() => {});
+  await keyboard().lock(["Escape"]);
+}
+
+/** Enter full screen, or leave it. Called from a click or key press: the
+ *  browser grants it only to the player's own gesture, and a refusal leaves
+ *  the page as it was. */
+export function toggleFullscreen(): void {
+  setFullscreen(!isFullscreen()).catch(() => {});
 }
 
 /** Whether the page is full screen now. */
@@ -44,9 +44,7 @@ export function useFullscreen(): boolean {
 export function useFullscreenKey(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== FullscreenBinding.code || !isGameKey(e) || e.defaultPrevented) return;
-      e.preventDefault();
-      void toggleFullscreen().catch(() => {});
+      if (e.code === FullscreenBinding.code && isGameKey(e)) toggleFullscreen();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
