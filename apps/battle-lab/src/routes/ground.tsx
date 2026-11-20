@@ -17,7 +17,7 @@ import {
   type GroundCells,
   type GroundChannel,
 } from "../groundCells";
-import { channels } from "@web/battle/present/hudTheme";
+import { channels } from "@web/battle/present/hudCss";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
