@@ -585,7 +585,9 @@ export function useBattleSession({
     );
     // Unanswered, the point ordered carries the page's own mark.
     const marks = pointerPaint.markers(
-      previewSnapshot.answered ? previewSnapshot : { destinations: previewSnapshot.provisional },
+      previewSnapshot.provisional.length
+        ? { destinations: previewSnapshot.provisional }
+        : previewSnapshot,
       shown?.own ?? [],
     );
     const showDestinations =

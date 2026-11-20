@@ -13,11 +13,9 @@ export interface OrderPreviewSnapshot {
   destinations: MoveDestination[];
   building: BuildingPlacement | null;
   state: PreviewAvailability;
-  /** The authority has answered this gesture, with destinations or with
-   *  none; a query that failed is no answer. */
-  answered: boolean;
-  /** The page's own mark for a move still unanswered after
-   *  `PROVISIONAL_AFTER_MS` (`provisionalDestinations`); else empty. */
+  /** The page's own mark for a move the authority has not answered within
+   *  `PROVISIONAL_AFTER_MS` (`provisionalDestinations`); else empty. An answer
+   *  with no destinations is an answer; a query that failed is not. */
   provisional: MoveDestination[];
   /** While the current gesture's query is in flight, what the previous
    *  gesture of the same kind settled on: the cursor keeps its badge
@@ -40,7 +38,6 @@ const IDLE: OrderPreviewSnapshot = {
   destinations: [],
   building: null,
   state: "idle",
-  answered: false,
   provisional: [],
 };
 
@@ -53,7 +50,7 @@ export const PROVISIONAL_AFTER_MS = 50;
  *  at the point, for the unit that leads. A remote authority's answer is a
  *  round trip away, and an order that shows nothing until then feels lost;
  *  the answer, when it lands, is the only word on where each unit stands. */
-export function provisionalDestinations(
+function provisionalDestinations(
   move: MovePreviewRequest,
   own: readonly OwnUnitView[],
 ): MoveDestination[] {
@@ -99,7 +96,6 @@ export class OrderPreview {
         building,
         state: state ?? availability(destinations, building),
         // Only a failed query carries a state of its own.
-        answered: state === undefined,
         provisional: state === undefined ? [] : this.provisional(),
       };
     }
@@ -108,7 +104,6 @@ export class OrderPreview {
           destinations: [],
           building: null,
           state: "pending",
-          answered: false,
           provisional: this.provisional(),
           carried: this.carried,
         }

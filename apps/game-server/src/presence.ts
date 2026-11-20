@@ -11,7 +11,7 @@ type Entry = { streams: number; absentAt: number | null; cancel: () => void };
 
 /** One count of open streams for each key, with one grace after the last
  *  closes. The lobby keeps one keyed by browser, for all its streams (its room
- *  list and battle among them); a room keeps its own, keyed by seat. */
+ *  list and battle among them); each room keeps its own, for its members. */
 export function createPresence(
   clock: PresenceClock,
   changed: (who: string) => void,

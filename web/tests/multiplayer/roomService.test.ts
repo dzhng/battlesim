@@ -357,12 +357,17 @@ test("a member reading the room list is not in their room", () => {
 
 test("the list tells a reader which running battle is theirs to return to, and tells nobody else", () => {
   const { code, act, list } = started("bravo", 2);
+  // One open list each: what it says must follow the battle, not the reopening.
+  const mine = list("alpha");
+  const theirs = list("stranger");
+  expect(mine.latest().yours).toBe(code);
+  expect(theirs.latest().yours).toBeUndefined();
   act("alpha", { kind: "leave" });
-  expect(list("alpha").latest().yours).toBe(code);
-  expect(list("stranger").latest().yours).toBeUndefined();
+  expect(mine.latest().yours).toBe(code);
   // When the battle has gone, so has the way back.
   act("bravo", { kind: "leave" });
-  expect(list("alpha").latest().yours).toBeUndefined();
+  expect(mine.latest().yours).toBeUndefined();
+  expect(theirs.latest().yours).toBeUndefined();
 });
 
 test("creation reserves every available slot before any battle starts", () => {
