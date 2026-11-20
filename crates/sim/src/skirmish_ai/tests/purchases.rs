@@ -210,6 +210,27 @@ fn air_defence_answers_the_aircraft_seen_then_the_rotation_resumes() {
     );
 }
 
+#[test]
+fn a_deck_with_no_answer_to_aircraft_still_reinforces() {
+    let mut authored = deck();
+    for weapon in authored["weapons"].as_object_mut().unwrap().values_mut() {
+        // The deck's guns lose the air; air-only rows stay on cards it lacks.
+        if let Some(targets) = weapon.get_mut("targets").and_then(Value::as_object_mut) {
+            if targets.contains_key("ground") {
+                targets.retain(|layer, _| layer == "ground");
+            }
+        }
+    }
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, mut frame, entry) = empty_match();
+    frame.identified = vec![seen(&rules, "test_heli")];
+    let (_, bought) = purchases(&rules, &mut frame, &entry, 10);
+    assert!(
+        !bought.is_empty(),
+        "a helicopter it cannot answer stops no purchase"
+    );
+}
+
 /// Each player's frame holds only its own units; a teammate's AA still
 /// answers the side's threat, so the side does not buy the answer once per
 /// player.

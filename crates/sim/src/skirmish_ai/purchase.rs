@@ -318,8 +318,9 @@ impl BalancedDoctrine {
     /// preparing, else one reinforcement while it has room under the cap.
     /// A squad bought where no carrier waits for it comes with its ride as
     /// one purchase (M17). The opening, a scripted plan and an answer to
-    /// aircraft buy it alone when credits cover only the squad, and pairing
-    /// buys its carrier later (D17); the rotation saves for both. With room
+    /// aircraft buy it alone when credits cover only the squad, and its
+    /// carrier is bought once it asks for a ride (D17); the rotation saves
+    /// for both. With room
     /// under the cap for one unit, the squad goes alone.
     pub(super) fn shopping(
         &mut self,
@@ -496,14 +497,17 @@ impl BalancedDoctrine {
             (Some("helicopter"), Category::Hel),
             (None, Category::Air),
         ];
-        let selected = if let Some(layer) = [AltitudeLayer::HighAir, AltitudeLayer::LowAir]
+        // A deck with no card that engages the aircraft has no answer to
+        // buy: it shops as if none were there.
+        let air_answer = [AltitudeLayer::HighAir, AltitudeLayer::LowAir]
             .into_iter()
-            .find(|&layer| air_defence_short(frame, rules, me, allies, eligible, layer))
-        {
+            .filter(|&layer| air_defence_short(frame, rules, me, allies, eligible, layer))
+            .find_map(|layer| best_air_defender(rules, eligible, frame, layer));
+        let selected = if let Some(k) = air_answer {
             // An answer to aircraft can't wait: it goes alone when its
             // ride is more than the credits cover.
-            best_air_defender(rules, eligible, frame, layer)
-                .and_then(|k| affordable(with_ride(k)).or_else(|| affordable(Buy::alone(k))))
+            affordable(with_ride(k))
+                .or_else(|| affordable(Buy::alone(k)))
                 .map(|buy| (Some(0), buy))
         } else if let Some(k) = self.ride_wanted(rules, me, eligible) {
             // A squad that asked for a ride and found none is bought one

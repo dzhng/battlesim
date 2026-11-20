@@ -626,7 +626,7 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
     assert_eq!(request.answered_by, Some(PlayerIndex(1)));
     let detachment = &plan.help_party(request).expect("help answered").units;
     assert!(!detachment.is_empty());
-    let assignment = plan.assignment_for(PlayerIndex(1)).unwrap();
+    let assignment = plan.assignment_for(PlayerIndex(1), vec![]).unwrap();
     assert_eq!(assignment.parties.len(), 1);
     assert!(assignment.parties[0]
         .units

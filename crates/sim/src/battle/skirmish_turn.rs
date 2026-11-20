@@ -82,11 +82,7 @@ impl Battle {
                     .retain(|player| player.index == contract::players::PlayerIndex(index as u16));
             }
             let assignment = plans[side.index()]
-                .assignment_for(contract::players::PlayerIndex(index as u16))
-                .map(|assignment| crate::skirmish_ai::Assignment {
-                    allies,
-                    ..assignment
-                });
+                .assignment_for(contract::players::PlayerIndex(index as u16), allies);
             let opening = self.tick == 0
                 && frame.own.is_empty()
                 && frame

@@ -22,7 +22,13 @@ impl TeamPlan {
         })
     }
 
-    pub fn assignment_for(&self, player: PlayerIndex) -> Option<crate::skirmish_ai::Assignment> {
+    /// `player`'s orders from this plan; `allies` are what its teammates
+    /// field and have bought ([`allies`]).
+    pub fn assignment_for(
+        &self,
+        player: PlayerIndex,
+        allies: Vec<contract::catalog::TypeIndex>,
+    ) -> Option<crate::skirmish_ai::Assignment> {
         let plan = self.for_player(player)?;
         let fallback = self.outgunned.contains(&player);
         let (main_objective, staging_point) = if fallback {
@@ -47,7 +53,7 @@ impl TeamPlan {
             staging_point,
             force_advance: fallback || self.stance != TeamStance::Hold,
             parties,
-            allies: Vec::new(),
+            allies,
         })
     }
 }
