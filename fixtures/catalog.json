@@ -7088,7 +7088,7 @@
                 2.615,
                 2.36
               ],
-              "hp": 200.0,
+              "hp": 80.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8506,7 +8506,7 @@
                 3.65,
                 2.425
               ],
-              "hp": 200.0,
+              "hp": 80.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8727,7 +8727,7 @@
                 2.635,
                 1.95
               ],
-              "hp": 170.0,
+              "hp": 68.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8847,7 +8847,7 @@
                 2.495,
                 2.355
               ],
-              "hp": 200.0,
+              "hp": 80.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8964,7 +8964,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 120.0,
+              "hp": 48.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -9092,7 +9092,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 120.0,
+              "hp": 48.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12160,7 +12160,7 @@
                 2.175,
                 1.75
               ],
-              "hp": 150.0,
+              "hp": 60.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12277,7 +12277,7 @@
                 2.19,
                 1.875
               ],
-              "hp": 120.0,
+              "hp": 48.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12663,7 +12663,7 @@
                 2.2,
                 2.31
               ],
-              "hp": 140.0,
+              "hp": 50.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12791,7 +12791,7 @@
                 1.515,
                 1.7
               ],
-              "hp": 80.0,
+              "hp": 32.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -13379,7 +13379,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 50.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -13507,7 +13507,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 50.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14369,7 +14369,7 @@
                 2.158,
                 1.75
               ],
-              "hp": 200.0,
+              "hp": 80.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14486,7 +14486,7 @@
                 2.226,
                 2.16
               ],
-              "hp": 200.0,
+              "hp": 80.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -16358,7 +16358,7 @@
                 1.8,
                 2.0
               ],
-              "hp": 120.0,
+              "hp": 48.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18129,7 +18129,7 @@
                 2.066,
                 1.725
               ],
-              "hp": 200.0,
+              "hp": 80.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18246,7 +18246,7 @@
                 1.64,
                 1.213
               ],
-              "hp": 80.0,
+              "hp": 32.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18363,7 +18363,7 @@
                 1.475,
                 1.213
               ],
-              "hp": 80.0,
+              "hp": 32.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18590,7 +18590,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 50.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18718,7 +18718,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 50.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -22539,7 +22539,7 @@
                 1.45,
                 1.8
               ],
-              "hp": 120.0,
+              "hp": 48.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -22667,7 +22667,7 @@
                 2.19,
                 1.825
               ],
-              "hp": 120.0,
+              "hp": 48.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -27185,7 +27185,7 @@
             2.615,
             2.36
           ],
-          "hp": 200.0,
+          "hp": 80.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -28966,7 +28966,7 @@
             3.65,
             2.425
           ],
-          "hp": 200.0,
+          "hp": 80.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29284,7 +29284,7 @@
             2.635,
             1.95
           ],
-          "hp": 170.0,
+          "hp": 68.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29408,7 +29408,7 @@
             2.495,
             2.355
           ],
-          "hp": 200.0,
+          "hp": 80.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29529,7 +29529,7 @@
             2.7,
             2.2
           ],
-          "hp": 120.0,
+          "hp": 48.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29661,7 +29661,7 @@
             2.7,
             2.2
           ],
-          "hp": 120.0,
+          "hp": 48.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33126,7 +33126,7 @@
             2.175,
             1.75
           ],
-          "hp": 150.0,
+          "hp": 60.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33247,7 +33247,7 @@
             2.19,
             1.875
           ],
-          "hp": 120.0,
+          "hp": 48.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33706,7 +33706,7 @@
             2.2,
             2.31
           ],
-          "hp": 140.0,
+          "hp": 50.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33838,7 +33838,7 @@
             1.515,
             1.7
           ],
-          "hp": 80.0,
+          "hp": 32.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -34445,7 +34445,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 50.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -34577,7 +34577,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 50.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35465,7 +35465,7 @@
             2.158,
             1.75
           ],
-          "hp": 200.0,
+          "hp": 80.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35586,7 +35586,7 @@
             2.226,
             2.16
           ],
-          "hp": 200.0,
+          "hp": 80.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -37606,7 +37606,7 @@
             1.8,
             2.0
           ],
-          "hp": 120.0,
+          "hp": 48.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39679,7 +39679,7 @@
             2.066,
             1.725
           ],
-          "hp": 200.0,
+          "hp": 80.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39800,7 +39800,7 @@
             1.64,
             1.213
           ],
-          "hp": 80.0,
+          "hp": 32.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39921,7 +39921,7 @@
             1.475,
             1.213
           ],
-          "hp": 80.0,
+          "hp": 32.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40276,7 +40276,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 50.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40408,7 +40408,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 50.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -44631,7 +44631,7 @@
             1.45,
             1.8
           ],
-          "hp": 120.0,
+          "hp": 48.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -44763,7 +44763,7 @@
             2.19,
             1.825
           ],
-          "hp": 120.0,
+          "hp": 48.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
