@@ -86,9 +86,11 @@ impl Battle {
                 && !crate::air::dogfightable(&knowledge[unit.side.index()], target, layer)
             {
                 let hurts = matches!(target, Target::Ground(_)) || reach.can_damage;
+                let fired = shots.iter().any(|s| at_target(&s));
                 progress.observe_run(crate::volley::RunFire {
-                    fired: shots.iter().any(|s| at_target(&s)),
+                    fired,
                     diving: pass.is_some_and(|p| p.phase == crate::air::pass::PassPhase::Dive),
+                    released: fired && unit.air.as_ref().is_some_and(|air| air.pass_release),
                     guiding,
                     can_act: hurts && pass.is_some(),
                 })

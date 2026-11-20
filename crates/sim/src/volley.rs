@@ -24,6 +24,9 @@ pub struct RunFire {
     pub fired: bool,
     /// It is flying a run (committed, nose on the aim).
     pub diving: bool,
+    /// Its pass let a bomb go this tick: a run of its own wherever it was
+    /// flying (a turn may swing the nose onto the aim and release).
+    pub released: bool,
     /// Rows still guiding a round at the target.
     pub guiding: u64,
     /// It has a weapon to fly a run with, able to hurt the target.
@@ -58,11 +61,12 @@ impl Volley {
     }
 
     /// Count this tick of a jet's runs; whether the attack can hand off: it
-    /// has nothing to fly a run with, or a run just ended having fired. A run
-    /// broken off with nothing fired doesn't count; the next one lines up.
+    /// has nothing to fly a run with, or a run just ended having fired, or
+    /// its pass released a bomb. A run broken off with nothing fired doesn't
+    /// count; the next one lines up.
     pub fn observe_run(&mut self, run: RunFire) -> bool {
         let ended = self.diving && !run.diving;
-        if run.diving || ended {
+        if run.diving || ended || run.released {
             self.run_fired |= run.fired;
         }
         self.diving = run.diving;
@@ -99,6 +103,7 @@ mod tests {
         RunFire {
             fired,
             diving,
+            released: false,
             guiding: 0,
             can_act: true,
         }
@@ -117,6 +122,17 @@ mod tests {
         let mut v = Volley::default();
         assert!(!v.observe_run(run(false, true)));
         assert!(v.observe_run(run(true, false)));
+    }
+
+    #[test]
+    fn a_bomb_released_between_runs_is_a_run() {
+        let mut v = Volley::default();
+        assert!(!v.observe_run(run(false, false)));
+        let released = RunFire {
+            released: true,
+            ..run(true, false)
+        };
+        assert!(v.observe_run(released));
     }
 
     #[test]

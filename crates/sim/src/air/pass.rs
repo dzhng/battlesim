@@ -164,8 +164,8 @@ pub fn begin(
 pub struct PassAim {
     pub point: V3,
     pub release: Release,
-    /// How far from the aim a dropped round may land and still strike it:
-    /// the strike's footprint (`strike::footprint_m`). A release that lands
+    /// How far off the aim a dropped round may fall and still be steered
+    /// onto it: a bomb's glide over its drop. A release that would land
     /// farther off is held.
     pub reach_m: f64,
 }
@@ -322,7 +322,7 @@ fn line_up(
 /// much run-in is left. A bomb's release cue comes, in whatever phase the
 /// jet is, on the tick whose `dt` step carries it to where a drop would
 /// land stops closing on the aim, if that lies within the aim's reach
-/// (the strike's footprint). A run is over then, whether or not it
+/// (how far the bomb can glide onto it). A run is over then, whether or not it
 /// released, or when the edge guard takes it: the jet lines up again at
 /// once, rolling into its break from wings level.
 ///

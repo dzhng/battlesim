@@ -512,6 +512,19 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         }
                     }
                     let unpowered = def.ballistics.delivery == Delivery::Unpowered;
+                    match def.ballistics.glide_ratio {
+                        Some(ratio) if !(unpowered && ratio.is_finite() && ratio > 0.0) => {
+                            return Err(serde::de::Error::custom(
+                                "glide_ratio is an unpowered row's, and finite and positive",
+                            ));
+                        }
+                        None if unpowered => {
+                            return Err(serde::de::Error::custom(
+                                "an unpowered row (a bomb) authors its glide_ratio",
+                            ));
+                        }
+                        _ => {}
+                    }
                     if unpowered {
                         if def.ballistics.speed_mps != 0.0 || def.ballistics.range_m != 0.0 {
                             return Err(serde::de::Error::custom(

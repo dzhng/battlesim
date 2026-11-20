@@ -111,6 +111,12 @@ pub struct WeaponBallistics {
     /// grenade, independent of the round's real muzzle speed.
     #[serde(default = "full_gravity")]
     pub gravity_scale: f64,
+    /// An unpowered bomb's glide: how far sideways it can steer its fall onto
+    /// its aim, per metre it drops. A jet releases it only where its fall
+    /// would land within that of the aim. Every unpowered row authors it,
+    /// and only one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub glide_ratio: Option<f64>,
     /// Path distance within which a passing round reports a near miss.
     pub suppression_radius_m: f64,
     /// Authored lifetime; unguided rounds without one use the physics bound.

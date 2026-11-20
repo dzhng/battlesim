@@ -187,8 +187,10 @@ pub(super) fn engage(
         }
         if weapon.def.ballistics.delivery == Delivery::Unpowered {
             // A bomb released now falls from here with the carrier's
-            // velocity; its pass's release cue is its reach. It holds for a
-            // friendly on its fall or in its blast where it lands.
+            // velocity and the push off the rack that glides it onto the
+            // aim (`bomb::bomb_release`); its pass's release cue is its
+            // reach. It holds for a friendly on that fall or in its blast at
+            // the aim.
             let Some(fall) = crate::flight::release(
                 origin,
                 carrier,
@@ -198,15 +200,24 @@ pub(super) fn engage(
                 // Dropped from below its target, it falls away from it.
                 return Err(ActionReason::OutOfRange);
             };
-            let fall_s = fall.fall_s;
-            let lands = (origin.xy() + carrier.xy() * fall_s).with_z(r.point.z);
+            let fall_s = fall.fall_s.max(f64::MIN_POSITIVE);
+            let falls = origin.xy() + carrier.xy() * fall_s;
             let s = FiringSolution {
-                velocity: V3::default(),
+                velocity: ((r.point.xy() - falls) * (1.0 / fall_s)).with_z(0.0),
                 time_of_flight_s: fall_s,
-                intercept: lands,
+                intercept: r.point,
                 arc: crate::flight::ArcKind::Low,
             };
-            if friendly_in_line(ctx, unit, units, origin, (&s, lands), weapon, hull, carrier) {
+            if friendly_in_line(
+                ctx,
+                unit,
+                units,
+                origin,
+                (&s, r.point),
+                weapon,
+                hull,
+                carrier,
+            ) {
                 return Err(ActionReason::FriendlyInLine);
             }
             return Ok(s);

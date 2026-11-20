@@ -70,6 +70,37 @@ fn an_unpowered_row_with_range_is_refused() {
     );
 }
 
+/// How far a bomb's fall can be steered is the bomb's own: every unpowered
+/// row says, and no other row may.
+#[test]
+fn every_bomb_and_only_a_bomb_says_how_far_it_glides() {
+    let refusal = |row: &str, glide: Option<Value>| {
+        let mut game: Value =
+            serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
+        match glide {
+            Some(glide) => game["weapons"][row]["glide_ratio"] = glide,
+            None => {
+                game["weapons"][row]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("glide_ratio");
+            }
+        }
+        contract::weapons::resolve_weapons(game["weapons"].clone())
+            .err()
+            .map(|e| e.to_string())
+    };
+    for (row, glide) in [
+        ("air_bomb", None),
+        ("air_bomb", Some(json!(0.0))),
+        ("air_gun", Some(json!(1.0))),
+    ] {
+        let error = refusal(row, glide.clone()).unwrap_or_else(|| panic!("{row} {glide:?} loaded"));
+        assert!(error.contains("glide_ratio"), "{error}");
+    }
+    assert_eq!(refusal("air_bomb", Some(json!(1.5))), None);
+}
+
 /// A weapon row's `name` is what the player reads on a card and its `icon`
 /// names a generated drawing: an identifier, a slug, a long description or
 /// a missing icon is refused at load, naming the row.
@@ -425,6 +456,7 @@ fn resolved_weapons_require_explicit_damage_and_layer_values() {
 
     let mut bomb = base();
     bomb["test_gun"]["delivery"] = json!("unpowered");
+    bomb["test_gun"]["glide_ratio"] = json!(1.0);
     bomb["test_gun"].as_object_mut().unwrap().remove("range_m");
     bomb["test_gun"]
         .as_object_mut()
@@ -549,6 +581,7 @@ fn a_bomb_carries_its_salvo_as_bomblets_not_a_magazine() {
         row.remove("range_m");
         row.remove("speed_mps");
         row.insert("delivery".into(), json!("unpowered"));
+        row.insert("glide_ratio".into(), json!(1.0));
         rows
     };
     let mut cluster = bomb();

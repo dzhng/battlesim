@@ -192,7 +192,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             } else {
                 let weapons = pass_weapons(ctx, unit, target, point);
                 let chosen =
-                    pass::choose_weapon(&weapons.iter().map(|(w, _)| *w).collect::<Vec<_>>());
+                    pass::choose_weapon(&weapons.iter().map(|(w, ..)| *w).collect::<Vec<_>>());
                 if let Some(weapon) = chosen {
                     let restart =
                         pass_before.is_none_or(|p| p.weapon != weapon || p.target != target);
@@ -209,10 +209,11 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         plan.target = target;
                         unit.air.as_mut().expect("an aircraft's flight state").pass = Some(plan);
                     }
-                    let release = weapons
-                        .iter()
-                        .find(|(w, _)| *w == weapon)
-                        .map_or_else(|| at_the_aim(point), |(_, release)| *release);
+                    let (release, reach_m) =
+                        weapons.iter().find(|(w, ..)| *w == weapon).map_or_else(
+                            || (at_the_aim(point), 0.0),
+                            |(_, release, reach)| (*release, *reach),
+                        );
                     let pass = unit
                         .air
                         .as_mut()
@@ -225,11 +226,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                     let aim = pass::PassAim {
                         point,
                         release,
-                        // A drop that lands inside the strike's footprint,
-                        // the circle drawn round the attack cursor, does
-                        // its damage there.
-                        reach_m: crate::strike::footprint_m(ctx.rules, ctx.arsenal, unit.kind, 0.0)
-                            .unwrap_or(0.0),
+                        reach_m,
                     };
                     let (intent, cue) =
                         pass::advance(pass, &state, agl_m, &limits, &bounds, &aim, dt);
@@ -400,14 +397,16 @@ pub(crate) fn dogfightable(
 /// rule lets fire at one. A bomb's is where it must leave the jet to
 /// fall onto the aim; a bomb that can't fall to the aim from here (the aim
 /// is above the jet) flies no run. Any other row fires at the aim itself.
+/// With each, how far off the aim its round may fall and still be steered
+/// onto it: a bomb's glide over its drop, nothing for a row fired at it.
 fn pass_weapons(
     ctx: &MovementContext,
     unit: &Unit,
     target: Target,
     aim: V3,
-) -> Vec<(pass::PassWeapon, crate::flight::Release)> {
+) -> Vec<(pass::PassWeapon, crate::flight::Release, f64)> {
     let (layer, class) = known_target(ctx.knowledge[unit.side.index()], target);
-    let mut out: Vec<(pass::PassWeapon, crate::flight::Release)> = Vec::new();
+    let mut out: Vec<(pass::PassWeapon, crate::flight::Release, f64)> = Vec::new();
     let point = matches!(target, Target::Ground(_));
     for (weapon, _) in engaging_rows(ctx.arsenal, unit, layer, class)
         .filter(|(weapon, _)| !point || crate::weapons::area_capable(&weapon.def))
@@ -415,7 +414,7 @@ fn pass_weapons(
         let Some(mode) = pass::pass_weapon(&weapon.def) else {
             continue;
         };
-        if out.iter().any(|(m, _)| *m == mode) {
+        if out.iter().any(|(m, ..)| *m == mode) {
             continue;
         }
         let release = match mode {
@@ -428,7 +427,8 @@ fn pass_weapons(
             pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => Some(at_the_aim(aim)),
         };
         if let Some(release) = release {
-            out.push((mode, release));
+            let glide = weapon.def.ballistics.glide_ratio.unwrap_or(0.0);
+            out.push((mode, release, glide * (unit.position.z - aim.z).max(0.0)));
         }
     }
     out

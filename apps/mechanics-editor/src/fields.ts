@@ -288,6 +288,13 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { conversion: "percent", unit: "%" },
     ),
     field(
+      "glide_ratio",
+      "Bomb glide",
+      "Flight & accuracy",
+      "How far sideways a bomb can steer its fall onto the aim, per metre it drops. A jet releases only where the fall would land within that glide; accuracy is the same wherever it lets go. Every bomb sets it; nothing else may.",
+      { optional: true, min: Number.MIN_VALUE },
+    ),
+    field(
       "trajectory",
       "Preferred arc",
       "Flight & accuracy",
