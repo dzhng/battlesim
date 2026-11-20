@@ -422,10 +422,10 @@ pub(super) fn draw_blast(p: &EffectPresentation, e: &Effect, age: f64, batch: &m
     // The fireball rises through the blast's life; while the fire is hot
     // it sits at the height of the glow round it, as the browser draws it.
     let mut a = e.p;
-    a[2] += fire * (0.55 + 0.5 * x);
+    a[2] += fire * (0.3 + 0.5 * x);
     if heat > 0.0 {
         a = e.p;
-        a[2] += fire * 0.5;
+        a[2] += fire * 0.3;
         batch.glow(
             a,
             fire * 1.2,

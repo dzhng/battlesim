@@ -526,8 +526,8 @@
       "flash": [1.0, 0.75, 0.4],
       "flash_intensity": 30,
       "flash_duration_s": 0.08,
-      "spill": 1.2,
-      "cast": { "color": [1.0, 0.55, 0.25], "intensity": 18, "radius_m": 16, "duration_s": 0.45 },
+      "spill": 0.6,
+      "cast": { "color": [1.0, 0.55, 0.25], "intensity": 18, "radius_m": 16, "duration_s": 0.2 },
       "sparks": 32,
       "spark_scale": 3.5,
       "surfaces": {
@@ -543,13 +543,13 @@
         },
         "ground": {
           "fire": 0.6,
-          "sparks": 0.35,
-          "plume": {"albedo": [0.27, 0.22, 0.16], "opacity": 0.95, "size_m": [0.7, 2.8], "life_s": 2.4, "rise_mps": 9, "spread_mps": 1.6, "count": 14, "over_s": 0.12}
+          "sparks": 0.1,
+          "plume": {"albedo": [0.22, 0.18, 0.13], "opacity": 1, "size_m": [1.0, 3.0], "life_s": 2.4, "rise_mps": 12, "spread_mps": 1.6, "count": 16, "over_s": 0.1}
         },
         "soldier": {
           "fire": 0.6,
-          "sparks": 0.35,
-          "plume": {"albedo": [0.27, 0.22, 0.16], "opacity": 0.95, "size_m": [0.7, 2.8], "life_s": 2.4, "rise_mps": 9, "spread_mps": 1.6, "count": 14, "over_s": 0.12}
+          "sparks": 0.1,
+          "plume": {"albedo": [0.22, 0.18, 0.13], "opacity": 1, "size_m": [1.0, 3.0], "life_s": 2.4, "rise_mps": 12, "spread_mps": 1.6, "count": 16, "over_s": 0.1}
         },
         "water": {
           "fire": 0.45,
