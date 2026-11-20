@@ -36,7 +36,6 @@ fn land(
     if let Some(body) = met.solid.and_then(|id| ctx.world.prop(id)) {
         return Err(Some(body.footprint()));
     }
-    let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
     let pusher = push::Pusher {
         unit: i,
         hull,
@@ -44,7 +43,7 @@ fn land(
     };
     let mut shoved = Vec::new();
     for prop in &met.shoved {
-        match push::shove(ctx.world, units, pusher, prop, turn) {
+        match push::shove(ctx.world, units, pusher, prop, &ctx.rules.pushing) {
             Some(s) => shoved.push(s),
             None => return Err(Some(prop.footprint())),
         }

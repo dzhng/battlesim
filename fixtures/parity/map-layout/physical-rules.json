@@ -496,7 +496,7 @@
   },
   "pushing": {
     "turn_deg_per_m": 8,
-    "relearn_m": 1
+    "relearn_m": 1,"aside_deg":45
   },
   "forests": {
     "tree": "trunk",

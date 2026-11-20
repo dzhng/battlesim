@@ -28,10 +28,6 @@ const CLEAR_M: f64 = 0.01;
 const TOUCH_M: f64 = 0.1;
 /// Slide-and-turn passes before a shove that still overlaps gives up.
 const PASSES: usize = 3;
-/// A body struck nearly square on slides off the pusher's nose at least
-/// this far off its travel, so it leaves the hull's path rather than being
-/// driven along ahead of it.
-const ASIDE_RAD: f64 = std::f64::consts::FRAC_PI_4;
 
 /// A body a vehicle shoves this tick, and the pose it ends in; a tree
 /// keeps its pose and is knocked down (its row `topples`).
@@ -136,10 +132,10 @@ pub struct Pusher {
 }
 
 /// Where `prop` goes when `pusher` shoves it (Q2): slid out along the axis
-/// of least overlap, turned by `turn_rad_per_m` per metre slid when struck
-/// off the pusher's centreline; glanced aside when that axis lies within
-/// `ASIDE_RAD` of the pusher's travel, first to the side it sits on, then
-/// the other. `None` when the shove would drive it into
+/// of least overlap, turned by `rules.turn_deg_per_m` per metre slid when
+/// struck off the pusher's centreline; glanced aside when that axis lies
+/// within `rules.aside_deg` of the pusher's travel, first to the side it
+/// sits on, then the other. `None` when the shove would drive it into
 /// another body that stops vehicles or another live hull (no chain shoves),
 /// or off the map.
 pub fn shove(
@@ -147,8 +143,10 @@ pub fn shove(
     units: &[Unit],
     pusher: Pusher,
     prop: &Prop,
-    turn_rad_per_m: f64,
+    rules: &contract::scenario::PushingRules,
 ) -> Option<Shove> {
+    let turn_rad_per_m = rules.turn_deg_per_m.to_radians();
+    let (aside_sin, aside_cos) = libm::sincos(rules.aside_deg.to_radians());
     let Pusher {
         unit: pusher,
         hull,
@@ -184,9 +182,11 @@ pub fn shove(
             };
             let depth = mtv.length();
             let out = mtv * (1.0 / depth);
-            if let Some(aside) = aside.filter(|_| out.dot(heading) > libm::cos(ASIDE_RAD)) {
-                let way = heading * libm::cos(ASIDE_RAD) + aside * libm::sin(ASIDE_RAD);
-                rect.center = rect.center + way * (depth / way.dot(out) + CLEAR_M);
+            if let Some(aside) = aside.filter(|_| out.dot(heading) > aside_cos) {
+                // No farther in a pass than a square strike takes it: one
+                // leaning the other way is cleared over the passes.
+                let way = heading * aside_cos + aside * aside_sin;
+                rect.center = rect.center + way * (depth / way.dot(out).max(aside_cos) + CLEAR_M);
                 continue;
             }
             // The contact: on the pusher's centreline, beside the body's middle.

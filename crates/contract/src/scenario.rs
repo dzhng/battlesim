@@ -430,6 +430,10 @@ pub struct PushingRules {
     /// A side re-learns a body it has seen move once it has moved this far
     /// from where the side last saw it, or has come to rest (Q13).
     pub relearn_m: f64,
+    /// A body struck nearly square on the nose slides off it this many
+    /// degrees aside of the pusher's travel, so it leaves the hull's path
+    /// rather than being driven along ahead of it.
+    pub aside_deg: f64,
 }
 
 /// Buildings as fighting positions (L08–L10): supported soldier capacity.

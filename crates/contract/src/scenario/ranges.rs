@@ -189,8 +189,16 @@ impl PushingRules {
             &[
                 ("turn_deg_per_m", self.turn_deg_per_m),
                 ("relearn_m", self.relearn_m),
+                ("aside_deg", self.aside_deg),
             ],
-        )
+        )?;
+        if self.aside_deg >= 90.0 {
+            return Err(RulesError::new(
+                "pushing.aside_deg",
+                "must be under 90: a body cannot leave the nose straight across it",
+            ));
+        }
+        Ok(())
     }
 }
 
