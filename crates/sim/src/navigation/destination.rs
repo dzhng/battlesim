@@ -6,6 +6,9 @@ use contract::scenario::PushClass;
 use super::{cell_center, cell_of, pockets, Mobility, NavGrid, Parking, Pockets, NAV_CELL_M};
 use crate::math::{v2, V2};
 
+/// The facings a hull with none ordered is tried at for standing room.
+const PARKING_FACINGS: usize = 8;
+
 impl NavGrid {
     /// Resolve cell-edge conservatism locally before the formation searches farther.
     pub fn placement_point(&self, p: V2, m: &Mobility) -> Option<V2> {
@@ -16,7 +19,10 @@ impl NavGrid {
     /// facing the way it parks ([`Parking`]), stands clear of every known
     /// body, not even one it could shove in passing, and of every bank and
     /// map edge: a shove is made on the way, and a car pinned against a
-    /// wall is not standing room. It needs no room to turn round there; it
+    /// wall is not standing room. With no facing ordered it parks facing
+    /// the way it drives in: the straight way from `from`, and where its box
+    /// stands clear nowhere near facing that way (round a street corner the
+    /// way in is nothing like the straight one), any way it stands clear. It needs no room to turn round there; it
     /// backs out the way it came. It must also be ground the vehicle can
     /// drive to from `from`, not a pocket its side knows to be closed off
     /// ([`Pockets`]), across water or up a cliff. Where the hull does not
@@ -38,54 +44,61 @@ impl NavGrid {
         let Some(hull) = hull else {
             return self.placement_point(p, m);
         };
-        let stands = |q: V2| self.hull_stands(q, m, hull, from);
+        let stands = |q: V2| self.hull_stands(q, m, hull, from, false);
         let pocketed = std::cell::Cell::new(false);
-        let parks = |q: V2| {
-            stands(q)
-                && (self.reaches(from, q, m, pockets) || {
-                    pocketed.set(true);
-                    false
-                })
-        };
-        let reach = (2.0 * hull.half.length() / NAV_CELL_M).ceil() as isize;
-        self.nearest_standing(p, reach, parks).or_else(|| {
-            if !pocketed.get() {
-                return None;
+        let reached = |q: V2| {
+            self.reaches(from, q, m, pockets) || {
+                pocketed.set(true);
+                false
             }
-            // Nothing it can reach near enough: the ground it was sent to,
-            // which placement then leaves unplaced.
-            let far = (pockets::POCKET_REACH_M / NAV_CELL_M).ceil() as isize;
-            self.nearest_standing(p, far, parks)
-                .or_else(|| self.nearest_standing(p, reach, stands))
-        })
+        };
+        let parks = |q: V2| stands(q) && reached(q);
+        let parks_any_way = |q: V2| self.hull_stands(q, m, hull, from, true) && reached(q);
+        let reach = (2.0 * hull.half.length() / NAV_CELL_M).ceil() as isize;
+        self.nearest_standing(p, reach, parks)
+            .or_else(|| self.nearest_standing(p, reach, parks_any_way))
+            .or_else(|| {
+                if !pocketed.get() {
+                    return None;
+                }
+                // Nothing it can reach near enough: the ground it was sent
+                // to, which placement then leaves unplaced.
+                let far = (pockets::POCKET_REACH_M / NAV_CELL_M).ceil() as isize;
+                self.nearest_standing(p, far, parks)
+                    .or_else(|| self.nearest_standing(p, reach, stands))
+            })
     }
 
     /// Whether `hull` parks at `q`, come from `from`: its box clear of every
-    /// known body, bank and map edge. The box is covered by a row of discs
-    /// along its heading, each as wide as the hull and a little over, so
-    /// the disc tests the grid answers decide it, a little on the safe side.
-    fn hull_stands(&self, q: V2, m: &Mobility, hull: Parking, from: V2) -> bool {
+    /// known body, bank and map edge, facing as ordered or, with no facing
+    /// ordered, the straight way from `from`; `any_way`, any facing it
+    /// stands clear at. The box is covered by a row of discs along its
+    /// heading, each as wide as the hull and a little over, so the disc
+    /// tests the grid answers decide it, a little on the safe side.
+    fn hull_stands(&self, q: V2, m: &Mobility, hull: Parking, from: V2, any_way: bool) -> bool {
         if !self.placement_fits(q, m) {
             return false;
         }
-        let yaw = hull.facing.unwrap_or_else(|| {
-            let d = q - from;
-            if d.length() > 1e-6 {
-                libm::atan2(d.y, d.x)
-            } else {
-                0.0
-            }
-        });
         let (length, width) = (hull.half.x, hull.half.y.max(1e-3));
-        let along = v2(libm::cos(yaw), libm::sin(yaw));
         // Discs about `width` apart, each spanning the box's full width.
         let discs = ((2.0 * length / width).ceil() as usize).max(1);
         let step = 2.0 * length / discs as f64;
         let radius = libm::hypot(width, step / 2.0);
-        (0..discs).all(|k| {
-            let c = q + along * (-length + step * (k as f64 + 0.5));
-            self.ground_clear(c, radius, false) && self.bodies_clear(c, radius, PushClass::None)
-        })
+        let clear = |yaw: f64| {
+            let along = v2(libm::cos(yaw), libm::sin(yaw));
+            (0..discs).all(|k| {
+                let c = q + along * (-length + step * (k as f64 + 0.5));
+                self.ground_clear(c, radius, false) && self.bodies_clear(c, radius, PushClass::None)
+            })
+        };
+        let d = q - from;
+        let facing = hull.facing.unwrap_or_else(|| libm::atan2(d.y, d.x));
+        if hull.facing.is_some() || !any_way {
+            return clear(facing);
+        }
+        // A box stands the same turned half round.
+        let turn = std::f64::consts::PI / PARKING_FACINGS as f64;
+        (1..PARKING_FACINGS).any(|k| clear(facing + turn * k as f64))
     }
 
     /// Room on the way from `from` to `p` for `hull`: stepping back from
@@ -106,7 +119,9 @@ impl NavGrid {
         let steps = (reach / NAV_CELL_M) as usize;
         (1..=steps)
             .map(|k| p + back * (k as f64 * NAV_CELL_M / back.length()))
-            .find(|&q| self.hull_stands(q, m, hull, from) && self.reaches(from, q, m, pockets))
+            .find(|&q| {
+                self.hull_stands(q, m, hull, from, false) && self.reaches(from, q, m, pockets)
+            })
     }
 
     /// `p` if it `fits`, else the nearest cell centre within `reach` cells

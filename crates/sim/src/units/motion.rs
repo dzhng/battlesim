@@ -65,7 +65,10 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
         road_mps,
         locomotion,
         speed_factors,
-        half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
+        // A driver keeps a little room each side: a route planned to the
+        // hull's exact width has it touch what it passes at the least swing.
+        half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1]
+            + rules.navigation.hull_margin_m,
         class: MoverClass::Vehicle,
         push: t.hull().expect("a vehicle has a hull").push_class(),
         drive: Some(drive),

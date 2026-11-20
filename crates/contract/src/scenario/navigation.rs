@@ -30,6 +30,10 @@ pub struct NavigationRules {
     /// way it travels drives on, braking, while the new route is worked
     /// out; sent farther round than that, it stops for the route.
     pub drive_on_deg: f64,
+    /// The room a vehicle's route keeps each side of its hull from
+    /// whatever it passes: a gap narrower than the hull and twice this is
+    /// no way through.
+    pub hull_margin_m: f64,
 }
 
 impl NavigationRules {
@@ -54,6 +58,7 @@ impl NavigationRules {
         for (name, v) in [
             ("road_leg_m", self.road_leg_m),
             ("road_access_m", self.road_access_m),
+            ("hull_margin_m", self.hull_margin_m),
         ] {
             if !v.is_finite() || v < 0.0 {
                 return Err(format!(

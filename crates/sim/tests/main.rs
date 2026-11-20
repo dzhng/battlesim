@@ -114,6 +114,7 @@ mod supply_heli;
 mod suppression;
 mod swamps;
 mod target_priority;
+mod tight_streets;
 mod top_attack;
 mod transport;
 mod transport_collect;

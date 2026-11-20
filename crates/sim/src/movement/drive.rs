@@ -146,6 +146,23 @@ fn turn_speed(drive: &Drive, full: f64, angle: f64) -> f64 {
     }
 }
 
+/// The point `ahead` metres on along `unit`'s route from where it stands;
+/// the route's end, where it is nearer than that.
+fn along_route(unit: &Unit, ahead: f64) -> V2 {
+    let mut at = unit.position.xy();
+    let mut left = ahead;
+    for &point in unit.route.iter().flatten() {
+        let leg = point - at;
+        let length = leg.length();
+        if length >= left {
+            return at + leg * (left / length.max(f64::MIN_POSITIVE));
+        }
+        left -= length;
+        at = point;
+    }
+    at
+}
+
 /// Look through short approach legs too: a road bend can have several corners.
 /// Beyond the full-road stopping distance, even a stop cannot bind this tick.
 fn approach_speed(
@@ -383,9 +400,33 @@ pub fn steer(
     let bearing = libm::atan2(to.y, to.x);
     let error = wrap_angle(bearing - travel(unit.yaw, gear));
     if drive.tracked {
+        // Its nose follows the route: the hull turns toward the point its
+        // leading end has reached along it, so it comes into a tight gap or
+        // out of a bend lined up with the way on, not with the way it came.
+        let nose = along_route(unit, unit.hull.expect("a vehicle has a hull").x) - here;
+        let facing = if nose.length() > 1e-9 {
+            libm::atan2(nose.y, nose.x)
+        } else {
+            bearing
+        };
+        // Its way lying behind it, where its hull cannot turn round (a
+        // street narrower than the hull is long corner to corner): it rolls
+        // to the room nearest along its length, and with none within reach
+        // backs along the route until there is.
+        let mut gear = gear;
+        if wrap_angle(facing - travel(unit.yaw, gear)).abs() > std::f64::consts::FRAC_PI_2 {
+            let turned = unit.yaw + wrap_angle(facing - travel(unit.yaw, gear));
+            if !turn_clear(rules, world, unit, here, turned) {
+                match room_to_turn(rules, world, unit, away(unit), turned) {
+                    Some(room) => return give_space(rules, unit, room, speed, dt),
+                    None => gear = -gear,
+                }
+            }
+        }
+        let error = wrap_angle(facing - travel(unit.yaw, gear));
         let max = drive.turn_rad_s * dt;
         let yaw = unit.yaw + error.clamp(-max, max);
-        let remaining = wrap_angle(bearing - travel(yaw, gear)).abs();
+        let remaining = wrap_angle(facing - travel(yaw, gear)).abs();
         let pivoting = remaining > drive.feel.turn_in_place_deg.to_radians();
         let desired = turn_speed(&drive, speed_in(&drive, gear, speed), remaining)
             .min(approach_speed(rules, unit, speed, gear));

@@ -37,7 +37,8 @@
     "road_leg_m": 2000,
     "road_access_m": 1000,
     "stop_short_detour_ratio": 5,
-    "drive_on_deg": 60
+    "drive_on_deg": 60,
+    "hull_margin_m": 0.2
   },
   "movement": {
     "speed_factors": {

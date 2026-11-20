@@ -299,6 +299,11 @@ travels drives on, braking, while the new route is worked out, and stops only if
 the route has not come by the time its brakes would have stopped it; ordered farther
 round than that, it stops for the route. A body it shoves square on the nose glances
 aside at `pushing.aside_deg` rather than being driven ahead of it.
+A vehicle's route keeps `navigation.hull_margin_m` each side of its hull, so a gap
+with less to spare is no way through, not one to drive into and jam in. A tracked
+hull turns toward the point its nose has reached along the route, so it enters a
+gap lined up with it; with its way behind it and no room to turn round, it backs
+along the route until there is.
 Stops, collisions and gear changes discard momentum. Infantry retain their own
 pace; their yield horizon follows a vehicle's accepted velocity, including reverse
 movement. Once clear of that path, a soldier waits rather than stepping back
