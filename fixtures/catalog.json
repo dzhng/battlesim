@@ -45401,7 +45401,7 @@
       "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 18.0,
+      "damage": 15.0,
       "decoyable": false,
       "default": true,
       "derived": {
@@ -45442,7 +45442,7 @@
       "name": "Aircraft cannon",
       "near_miss_suppression": 0.0325,
       "partial_from": 0.08,
-      "penetration": 25.0,
+      "penetration": 20.0,
       "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,

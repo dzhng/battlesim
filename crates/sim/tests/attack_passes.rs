@@ -859,8 +859,8 @@ fn an_explicit_attack_keeps_passing_under_fire() {
 
 #[test]
 fn attack_move_finishes_its_pass_then_hunts_on() {
-    // The tank dies to the run; a red jet's fire stays a contact.
-    let mut battle = attack_move_battle_with_hp_and_fire(100.0, true);
+    // A worn tank dies to the run; red jet fire stays a contact.
+    let mut battle = attack_move_battle_with_hp_and_fire(50.0, true);
     attack_move(&mut battle, 1, [1_700.0, 400.0]);
     for _ in 0..1200 {
         battle.step();
