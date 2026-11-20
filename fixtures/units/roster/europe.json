@@ -1381,7 +1381,7 @@
       },
       "body": {
         "hull": {
-          "hp": 80,
+          "hp": 150,
           "half_extents_m": [
             7.04,
             2.158,
@@ -1450,7 +1450,7 @@
       "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
-          "hp": 80,
+          "hp": 150,
           "half_extents_m": [
             7.04,
             2.226,
