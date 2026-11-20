@@ -563,6 +563,7 @@ impl WorldGeometry {
     }
 
     pub fn remove_prop(&mut self, id: PropId) -> Option<Prop> {
+        self.alter_building(id);
         let prop = self.props.take(id)?;
         self.revision += 1;
         self.touched.push(id);
@@ -586,6 +587,8 @@ impl WorldGeometry {
         prop.center = center;
         prop.yaw = yaw;
         self.props.put(prop);
+        self.props.alter(id);
+        self.alter_building(id);
         self.moved.insert(id, tick);
         self.revision += 1;
         self.touched.push(id);
@@ -660,9 +663,22 @@ impl WorldGeometry {
         ids.into_iter().filter_map(|id| self.prop(id)).collect()
     }
 
-    /// Ascending unique prop candidates across all visibility views.
-    pub(crate) fn prop_ids_near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
-        self.props.near_many(views, out);
+    /// Ascending unique candidates across all visibility views among the
+    /// bodies not as the map placed them: added since setup, shoved, or a
+    /// part of a building one of whose parts was removed or shoved. Every
+    /// side knows the map, so no other body can teach a side anything.
+    pub(crate) fn altered_ids_near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
+        self.props.altered_near_many(views, out);
+    }
+
+    /// `part`'s building is no longer as the map placed it: seeing any of
+    /// its parts, an intact one too, can reveal its remains.
+    fn alter_building(&mut self, part: PropId) {
+        if let Some(identity) = self.buildings.identity(part) {
+            for &p in self.buildings.current_parts(identity) {
+                self.props.alter(p);
+            }
+        }
     }
 
     /// Increments whenever a prop is added, moved or removed after authored setup.

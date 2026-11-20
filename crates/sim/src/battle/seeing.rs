@@ -78,7 +78,8 @@ impl Battle {
                 &mut field,
             );
         }
-        self.world.prop_ids_near_many(&views, &mut candidates);
+        // Only bodies not as the map placed them can be news to a side.
+        self.world.altered_ids_near_many(&views, &mut candidates);
         self.sides[side.index()].standing_ids_near_many(&views, &mut remembered);
         completed(TickPhase::Fog);
         // Enemy fallen in view are remembered, and the ground in view learned.
