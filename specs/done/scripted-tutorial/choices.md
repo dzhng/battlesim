@@ -8,16 +8,14 @@ What the user decided (the interview) and what the plan decided (the synthesis
 of three drafts) are in [decisions.md](decisions.md), not here.
 
 Entries are grouped by verdict: **needs-user** (decide; each has a provisional
-call already taken), **unsound** (redo, from the corrected decision) and
+call already taken), **settled after closeout** (left for the user at closeout
+and decided since), **unsound** (redo, from the corrected decision) and
 **sound** (the architecture you now own). Within a group the least confident
 entry comes first. Confidence is how sure the audit is that you would have made
 the same call.
 
 **Review these first:** N2 (the tutorial's fights are rigged with worn and
 disarmed enemies) and N3 (the agent judged all 58 narration takes itself).
-N5's launcher rule changed after closeout. N1
-(anti-radiation missiles now always find their radar) was decided by the user
-at closeout: keep.
 
 A few terms used throughout:
 
@@ -47,36 +45,6 @@ A few terms used throughout:
 ---
 
 ## Needs-user
-
-### N1. An anti-radiation missile fired at a radar contact homes on the live radar
-- **When:** slice 16 (chapter 6).
-- **The choice:** a radar contact is what a side's receivers report about an
-  enemy radar: an area, reported in 100 m range steps, with a centre that isn't
-  the radar itself. Before, a missile fired at that contact flew to the area's
-  centre. In chapter 6 the Growler's anti-radiation missiles locked on the Buk
-  and then fell 50 m beside it, which no viewer would believe of a missile that
-  rides a radar beam. Now a weapon whose catalog row says `anti_radiation`,
-  fired at a radar contact, steers to the emitting radar behind it while that
-  radar lives. Every other round aimed at a contact still aims at the area, and
-  the firing side learns nothing new about where the radar is. The rule is in
-  `crates/sim/src/battle/fire.rs`, pinned by
-  `radar::an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre`.
-- **The gap:** the plan said "swap the unit in the story, never the rule". There
-  was no unit to swap: every SEAD missile behaved this way.
-- **The reach:** skirmish balance. A paired probe at closeout (the skirmish
-  tournament, us against eastern, blue buying only Growlers and red only Buks,
-  five maps, 600 s each) showed the shift. Before: the Growlers killed 0 to 4
-  Buks a game and lost up to six jets. After: they killed 10 or 11 Buks every
-  game and lost none. Default AI play didn't move: the nine-row skirmish corpus
-  and fourteen full self-play games across three faction pairings kept every
-  digest, because the default shopping didn't buy SEAD into them. Three
-  aircraft carry the missile: the Growler, the Tornado ECR and the Su-30SM2.
-- **Verdict:** decided by the user at closeout: keep it ("a good find"). The
-  rule is right as physics; it makes SEAD a hard counter to radar SAMs where
-  it used to be nearly useless. The usual counter, a crew that switches its
-  radar off (emission control), isn't modelled yet and would be a balance pass
-  of its own.
-- **Confidence:** high (the user's call).
 
 ### N2. The tutorial's enemies are worn, disarmed or held back so blue wins
 - **When:** slices 08, 13, 14, 16 and 17.
@@ -141,6 +109,59 @@ A few terms used throughout:
   `duetClient`.
 - **Confidence:** medium.
 
+### N6. A chapter restart rebuilds the battle's world
+- **When:** slice 12.
+- **The choice:** "Restart chapter" swaps in a standby battle that is already
+  at the chapter's opening (S7 below), so no replay runs when you press it. The
+  page still rebuilds its world: the battle view drops its art while a new
+  client has no observation, as the plain Restart always has. The browser
+  scene measured 1.8 s from the confirmation to the chapter's first card when
+  it was built, and 4.1 s in the closeout's full run on a busy machine.
+- **The gap:** the plan asked for restart by replay and said nothing about the
+  page's art.
+- **The reach:** restart shows a short loading moment.
+- **Verdict:** needs-user (feel). Provisional call: accept a few seconds. Keeping the
+  art across a restart means changing how the battle view loads and drops its
+  art with each new client, outside this spec.
+- **Confidence:** medium.
+
+---
+
+## Settled after closeout
+
+Two entries the closeout left for the user, each settled since: N1 by the
+user's call, N5 by the follow-up it asked for.
+
+### N1. An anti-radiation missile fired at a radar contact homes on the live radar
+- **When:** slice 16 (chapter 6).
+- **The choice:** a radar contact is what a side's receivers report about an
+  enemy radar: an area, reported in 100 m range steps, with a centre that isn't
+  the radar itself. Before, a missile fired at that contact flew to the area's
+  centre. In chapter 6 the Growler's anti-radiation missiles locked on the Buk
+  and then fell 50 m beside it, which no viewer would believe of a missile that
+  rides a radar beam. Now a weapon whose catalog row says `anti_radiation`,
+  fired at a radar contact, steers to the emitting radar behind it while that
+  radar lives. Every other round aimed at a contact still aims at the area, and
+  the firing side learns nothing new about where the radar is. The rule is in
+  `crates/sim/src/battle/fire.rs`, pinned by
+  `radar::an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre`.
+- **The gap:** the plan said "swap the unit in the story, never the rule". There
+  was no unit to swap: every SEAD missile behaved this way.
+- **The reach:** skirmish balance. A paired probe at closeout (the skirmish
+  tournament, us against eastern, blue buying only Growlers and red only Buks,
+  five maps, 600 s each) showed the shift. Before: the Growlers killed 0 to 4
+  Buks a game and lost up to six jets. After: they killed 10 or 11 Buks every
+  game and lost none. Default AI play didn't move: the nine-row skirmish corpus
+  and fourteen full self-play games across three faction pairings kept every
+  digest, because the default shopping didn't buy SEAD into them. Three
+  aircraft carry the missile: the Growler, the Tornado ECR and the Su-30SM2.
+- **Verdict:** decided by the user at closeout: keep it ("a good find"). The
+  rule is right as physics; it makes SEAD a hard counter to radar SAMs where
+  it used to be nearly useless. The usual counter, a crew that switches its
+  radar off (emission control), isn't modelled yet and would be a balance pass
+  of its own.
+- **Confidence:** high (the user's call).
+
 ### N5. Two engine bugs suspected while building the solution, settled after closeout
 - **When:** slices 13 and 17; settled in the follow-up to closeout.
 - **The choice:** two engine faults were suspected while the solution was
@@ -170,22 +191,6 @@ A few terms used throughout:
   no lean either way showed.
 - **Verdict:** sound; the user asked for both follow-ups.
 - **Confidence:** high.
-
-### N6. A chapter restart rebuilds the battle's world
-- **When:** slice 12.
-- **The choice:** "Restart chapter" swaps in a standby battle that is already
-  at the chapter's opening (S7 below), so no replay runs when you press it. The
-  page still rebuilds its world: the battle view drops its art while a new
-  client has no observation, as the plain Restart always has. The browser
-  scene measured 1.8 s from the confirmation to the chapter's first card when
-  it was built, and 4.1 s in the closeout's full run on a busy machine.
-- **The gap:** the plan asked for restart by replay and said nothing about the
-  page's art.
-- **The reach:** restart shows a short loading moment.
-- **Verdict:** needs-user (feel). Provisional call: accept a few seconds. Keeping the
-  art across a restart means changing how the battle view loads and drops its
-  art with each new client, outside this spec.
-- **Confidence:** medium.
 
 ---
 
