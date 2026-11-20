@@ -14,7 +14,8 @@ entry comes first. Confidence is how sure the audit is that you would have made
 the same call.
 
 **Review these first:** N2 (the tutorial's fights are rigged with worn and
-disarmed enemies) and N3 (the agent judged all 58 narration takes itself). N1
+disarmed enemies) and N3 (the agent judged all 58 narration takes itself).
+N5's launcher rule changed after closeout. N1
 (anti-radiation missiles now always find their radar) was decided by the user
 at closeout: keep.
 
@@ -140,26 +141,35 @@ A few terms used throughout:
   `duetClient`.
 - **Confidence:** medium.
 
-### N5. Two bugs found and left for their owners
-- **When:** slices 13 and 17.
-- **The choice:** two engine bugs turned up while building the solution, and
-  neither was fixed here.
-  - A carrier given a move order, then told to unload where it stands, keeps
-    its squad aboard forever. The same unload without the move works, and so
-    does an unload after an attack-move (chapter 7's solution does that at the
-    bridge). Chapter 3's solution unloads 3 s after the carrier reaches the
-    farm wall.
-  - A Javelin gunner also carries a rifle and swaps to it whenever the
-    Javelin's shot stops assessing as good, which resets his aim. Against a
-    moving tank behind flickering cover he never fires. The tutorial's tank now
-    halts 15 s in view.
-- **The gap:** both are outside the tutorial's owners (carriage and movement;
-  the weapon owner).
-- **The reach:** a player who presses unload while driving meets the first; a
-  player ambushing a moving tank meets the second.
-- **Verdict:** needs-user (scope). Provisional call: separate fixes, each with
-  its own test, outside this spec.
-- **Confidence:** medium.
+### N5. Two engine bugs suspected while building the solution, settled after closeout
+- **When:** slices 13 and 17; settled in the follow-up to closeout.
+- **The choice:** two engine faults were suspected while the solution was
+  written, and both were left for their owners at the time.
+  - *A carrier unloading straight after a move seemed to keep its squad
+    aboard.* It doesn't. Probed in the valley, the Bradley stops and the squad
+    steps out at once, 25.2 m from the farm-wall zone's centre, 0.2 m outside
+    its 25 m radius, so the story's "squad unloaded" beat never saw them.
+    Chapter 3's solution unloads 3 s after the carrier enters the zone, which
+    puts it deeper in. A test now pins a player's unload while driving
+    (`transport::unloading`).
+  - *A Javelin gunner never finished aiming at a moving tank behind
+    flickering cover.* Real, and fixed: each tick he picked his weapon anew,
+    and the moment the Javelin's line closed he took up his rifle (even one
+    out of range), which reset the Javelin's aim. Now a launcher already
+    shouldered stays up while it still tracks a target worth its round and
+    only the line is in question (the target out of sight a moment, the way
+    blocked, no own sight, a friend in front); it goes down once the target is
+    gone, out of reach or not worth it (`weapons::tick::preferred_mount`,
+    tests in `launcher_operators`). Chapter 4's tank still halts 15 s in the
+    team's view; the halt reads well and costs nothing.
+- **The gap:** both were outside the tutorial's owners.
+- **The reach:** the launcher rule changes outcomes wherever an AT gunner's
+  line flickers, in skirmish as in the tutorial. A paired sample moved 3 of
+  the 9 corpus digests and all 8 full self-play games (us against eastern,
+  eastern against europe); winners went from 3 blue and 5 red to 4 and 4, so
+  no lean either way showed.
+- **Verdict:** sound; the user asked for both follow-ups.
+- **Confidence:** high.
 
 ### N6. A chapter restart rebuilds the battle's world
 - **When:** slice 12.

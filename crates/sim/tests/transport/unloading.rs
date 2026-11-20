@@ -291,3 +291,66 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
     battle.step();
     assert_eq!(step_kinds(&battle, UnitId(0)), ["move"]);
 }
+
+#[test]
+fn a_carrier_told_to_unload_while_it_drives_stops_and_lets_its_squad_out() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_rifle","position":[195,200]}
+        ])),
+        13,
+    );
+    battle.accept(command(
+        1,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(0),
+            gesture: 1,
+        },
+    ));
+    for _ in 0..(battle.rules().tick_hz * 60) {
+        battle.step();
+        if !battle.unit(UnitId(1)).unwrap().on_field() {
+            break;
+        }
+    }
+    assert!(!battle.unit(UnitId(1)).unwrap().on_field(), "aboard");
+    // Under way to a far goal, then told to let them out where it is.
+    battle.accept(command(
+        2,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 2,
+            goal: [380.0, 200.0],
+            route: Default::default(),
+            direction: Default::default(),
+            facing: None,
+        },
+    ));
+    for _ in 0..(battle.rules().tick_hz * 3) {
+        battle.step();
+    }
+    let under_way = battle.unit(UnitId(0)).unwrap().drive_speed_mps.abs();
+    assert!(under_way > 1.0, "the carrier is driving ({under_way} m/s)");
+    let unload = battle.accept(command(
+        3,
+        Order::Unload {
+            into: None,
+            units: vec![UnitId(0)],
+            goal: None,
+            gesture: 3,
+            route: Default::default(),
+        },
+    ));
+    assert_eq!(unload.error, None);
+    let mut out = false;
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        if battle.unit(UnitId(1)).unwrap().on_field() {
+            out = true;
+            break;
+        }
+    }
+    assert!(out, "the squad is let out where the carrier stopped");
+}
