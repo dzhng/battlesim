@@ -102,14 +102,16 @@ export async function townGround(ctx) {
       masks["plain-250"].yard === 0,
     JSON.stringify(masks["plain-250"]),
   );
+  // The two sides are weighed against each other. The commons between them
+  // belongs to neither: it is the meadow round a town, a town's green, and
+  // every plot on a hill, so how much of the frame it fills follows the
+  // relief, not where the town ends.
+  const edge = masks["town-edge-250"];
+  const sides = edge.yard + edge.drilled;
   ctx.check(
     "the town's edge is in one frame: its last yards on one side, drilled fields on the other",
-    // How much of the frame is drilled depends on which fields lie past the
-    // meadow that surrounds a town: some, of a crop or more.
-    masks["town-edge-250"].yard > 0.15 &&
-      masks["town-edge-250"].drilled > 0.03 &&
-      masks["town-edge-250"].crops.length >= 1,
-    JSON.stringify(masks["town-edge-250"]),
+    edge.yard > 0.1 * sides && edge.drilled > 0.1 * sides && edge.crops.length >= 1,
+    JSON.stringify({ ...edge, yardSide: +(edge.yard / sides).toFixed(4) }),
   );
 
   // The country road where it leaves the town: its surface either side of
