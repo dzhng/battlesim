@@ -261,7 +261,13 @@ fn own_soldier_ids_survive_casualties_and_reinforcement_and_corpses_name_the_fal
         );
     }
     let issued: BTreeSet<u32> = first.iter().chain(&fallen).copied().collect();
-    for _ in 0..900 {
+    // Long enough for the truck to set up and send both replacements, and a
+    // second over.
+    let rules = b.rules();
+    let setup = &rules.catalog.by_id("test_supply").capabilities.deploy;
+    let refill_s =
+        setup.as_ref().unwrap().seconds + 2.0 * rules.service.soldier_replacement_s + 1.0;
+    for _ in 0..(refill_s * f64::from(rules.tick_hz)) as u64 {
         b.step();
     }
     let later = own(b.observe(Side::Blue), 1).unwrap().member_ids.clone();
