@@ -105,8 +105,9 @@ export function Guide() {
         <ul>
           <li>
             Look over the ground: the numbered objective flags, the roads, the woods and the towns.
-            Your forces will arrive from <strong>your entry point</strong>, the road marker at your
-            edge of the map; the enemy arrives from the opposite edge.
+            Your forces arrive by <strong>your side's entry points</strong>, the numbered road
+            markers at your edge of the map, which glow when you zoom out; the enemy arrives from
+            the opposite edge.
           </li>
           <li>
             Buy units and <strong>place</strong> them where you want them to go (see{" "}

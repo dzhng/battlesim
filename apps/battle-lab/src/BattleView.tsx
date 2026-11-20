@@ -3,6 +3,7 @@ import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
 } from "@web/battle/present/objectiveMarkers";
+import { EntryCards, type EntryCardsHandle } from "@web/battle/present/entryCards";
 // A played (or replayed) battle for the selected side: the world, that side's units and
 // every overlay, and the HUD: the top bar's readout, the army deck and its
 // command bar, subtitles, and the pause menu. Routes compose it with their
@@ -199,6 +200,7 @@ export function BattleView({
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
+  const entryCards = useRef<EntryCardsHandle>(null);
   const pause = usePauseMenu(sim.local, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const quality =
@@ -288,11 +290,13 @@ export function BattleView({
             overlay.follow(view, scale);
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
+            entryCards.current?.place(project, surfaceZ);
           }}
           diagnostics={{ ...session.probes, ...diagnostics?.(session), exportReplay }}
           quality={quality}
         />
       )}
+      <EntryCards entries={overlay.entries} handle={entryCards} />
       <ObjectiveMarkers
         objectives={observation?.skirmish?.objectives ?? []}
         viewer={session.viewer?.side ?? null}
