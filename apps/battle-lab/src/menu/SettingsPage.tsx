@@ -21,32 +21,34 @@ export function SettingsPage() {
       <GraphicsSettingsControls onRunAutoDetect={runAutoDetect} />
       <SoundControls />
       <DiagnosticsControls />
-      <details>
+      <details className="menu-credits">
         <summary>Asset credits</summary>
-        {[
-          birdCredits[0],
-          ...h1Credits,
-          ...nh90Credits,
-          ...hindCredits,
-          ...hipCredits,
-          ...apacheCredits,
-          ...blackHawkCredits,
-          ...z20Credits,
-          ...havocCredits,
-          tigerCredits[0],
-        ].map((model) => (
-          <p key={model.glb}>
-            {/* Credits leave the game, so they open beside it. */}
-            <a href={model.source} target="_blank" rel="noreferrer">
-              {model.title}
-            </a>{" "}
-            by {model.creator}.{" "}
-            <a href={model.license_url} target="_blank" rel="noreferrer">
-              {model.license}
-            </a>
-            . {model.adaptation}
-          </p>
-        ))}
+        <div className="menu-notice">
+          {[
+            birdCredits[0],
+            ...h1Credits,
+            ...nh90Credits,
+            ...hindCredits,
+            ...hipCredits,
+            ...apacheCredits,
+            ...blackHawkCredits,
+            ...z20Credits,
+            ...havocCredits,
+            tigerCredits[0],
+          ].map((model) => (
+            <p key={model.glb}>
+              {/* Credits leave the game, so they open beside it. */}
+              <a href={model.source} target="_blank" rel="noreferrer">
+                {model.title}
+              </a>{" "}
+              by {model.creator}.{" "}
+              <a href={model.license_url} target="_blank" rel="noreferrer">
+                {model.license}
+              </a>
+              . {model.adaptation}
+            </p>
+          ))}
+        </div>
       </details>
     </>
   );
