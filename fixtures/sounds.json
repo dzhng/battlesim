@@ -2176,36 +2176,6 @@
       "loop": false,
       "notes": "Shed-door metal impact Foley; independent alternative to take-05."
     },
-    "eod-explosion": {
-      "label": "EOD ground explosion",
-      "category": "explosion",
-      "role": "explosion",
-      "source": "eod-blast",
-      "source_rate": 48000,
-      "source_frames": [0, 73920],
-      "processing": "blast",
-      "url": "/audio/clips/eod-explosion.wav",
-      "sha256": "9407767856a30415ba4006b1c087d86da6a1507c5afaafdd25e4d6a751f31d28",
-      "sample_rate": 48000,
-      "frames": 73920,
-      "loop": false,
-      "notes": "CC0 excerpt of government EOD detonation."
-    },
-    "fire-explosion": {
-      "label": "EOD fire explosion",
-      "category": "explosion",
-      "role": "explosion",
-      "source": "fire-blast",
-      "source_rate": 24000,
-      "source_frames": [0, 28560],
-      "processing": "blast",
-      "url": "/audio/clips/fire-explosion.wav",
-      "sha256": "be2456fafa0092effdf9a6e15c1bd2d8ca6328f5299ac6e35bb2b4043ef9dbf8",
-      "sample_rate": 48000,
-      "frames": 57120,
-      "loop": false,
-      "notes": "CC0 excerpt of government EOD detonation."
-    },
     "eod-explosion-deep": {
       "label": "EOD ground explosion \u00b7 deep",
       "category": "explosion",
