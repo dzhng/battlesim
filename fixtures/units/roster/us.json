@@ -29,7 +29,7 @@
           "id": "gun",
           "name": "Cannon",
           "weapons": [
-            "air_gun"
+            "gau_8"
           ],
           "turret": false,
           "pivot_m": [

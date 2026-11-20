@@ -153,6 +153,7 @@ fn wounded_soldiers_are_treated_the_most_wounded_first() {
     let treatments = 5;
     run(&mut b, deploy_ticks() + period * treatments + 2);
     let hp = own(&b, Side::Blue, 1).unwrap().member_hp;
+    let soldiers = hp.len() as u64;
     let healed: f64 = hp.iter().map(|h| h - wounded).sum();
     assert_eq!(healed, treatments as f64 * service.first_aid_hp);
     let spread =
@@ -167,7 +168,7 @@ fn wounded_soldiers_are_treated_the_most_wounded_first() {
     );
     // Every soldier back to his own health, and nothing more is paid for.
     let each = ((max - wounded) / service.first_aid_hp).ceil() as u64;
-    run(&mut b, period * (8 * each - treatments) + 30 * 5);
+    run(&mut b, period * (soldiers * each - treatments) + 30 * 5);
     let squad = own(&b, Side::Blue, 1).unwrap();
     assert!(
         squad.member_hp.iter().all(|&h| h == max),
@@ -176,7 +177,7 @@ fn wounded_soldiers_are_treated_the_most_wounded_first() {
     );
     assert_eq!(
         stock(&b),
-        full - 8 * each as u32 * service.stock_per_first_aid
+        full - (soldiers * each) as u32 * service.stock_per_first_aid
     );
     assert_eq!(squad.service, ServiceStatus::Full);
 }

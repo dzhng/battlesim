@@ -576,8 +576,8 @@
       "targets": { "ground": { "range_m": 500 }, "low_air": { "range_m": 500, "scatter_mrad": 24 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 700, "scatter_mrad": 20 } },
       "speed_mps": 600,
       "gravity_scale": 0.5,
-      "damage": 13,
-      "penetration": 25,
+      "damage": 15,
+      "penetration": 20,
       "partial_from": 0.08,
       "near_miss_suppression": 0.0325,
       "suppression_radius_m": 6,
@@ -587,6 +587,14 @@
       "reload_s": 3.5,
       "magazine": { "rounds": 120, "shot_interval_s": 0.1, "burst": { "rounds": 12, "aim_max_s": 0.3 } },
       "default": true
+    },
+    "gau_8": {
+      "extends": "air_gun",
+      "name": "GAU-8 Avenger",
+      "damage": 18,
+      "penetration": 25,
+      "description": "The A-10's 30 mm cannon: it opens up on the ground from farther out than other aircraft guns.",
+      "targets": { "ground": { "range_m": 700 } }
     },
     "air_missile": {
       "resupply_rounds_per_s": 0.125,

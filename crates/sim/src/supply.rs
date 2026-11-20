@@ -60,7 +60,7 @@ enum Need {
     },
 }
 
-/// Every item the unit is short of, in service order.
+/// Every item the unit is short of, in the order its stock is paid.
 /// `room`: a replacement soldier has a seat in the squad's host, if it has one.
 fn needs(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Vec<Need> {
     let specs = arsenal.specs(unit.kind);
@@ -125,10 +125,7 @@ fn most_wounded(unit: &Unit, rules: &Rules) -> Option<(usize, f64)> {
         .filter(|(_, s)| s.alive())
         .map(|(k, s)| (k, rules.catalog.soldier(&slots[s.slot]).hp, s.hp))
         .filter(|&(_, max, hp)| hp < max)
-        .fold(None, |best: Option<(usize, f64, f64)>, c| match best {
-            Some(b) if b.2 - b.1 <= c.2 - c.1 => Some(b),
-            _ => Some(c),
-        })
+        .min_by(|a, b| (a.2 - a.1).total_cmp(&(b.2 - b.1)))
         .map(|(k, max, _)| (k, max))
 }
 
