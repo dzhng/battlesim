@@ -370,7 +370,7 @@
           "hp": 70,
           "armor": {
             "front": 45,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
@@ -652,7 +652,7 @@
           "hp": 70,
           "armor": {
             "front": 45,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {

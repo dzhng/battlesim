@@ -1596,7 +1596,7 @@
           "hp": 65,
           "armor": {
             "front": 35,
-            "side": 20,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {

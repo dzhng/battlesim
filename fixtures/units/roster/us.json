@@ -1142,7 +1142,7 @@
           "hp": 70,
           "armor": {
             "front": 45,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
@@ -1225,7 +1225,7 @@
           "hp": 70,
           "armor": {
             "front": 40,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
@@ -1499,7 +1499,7 @@
           "hp": 65,
           "armor": {
             "front": 35,
-            "side": 20,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
@@ -2768,7 +2768,7 @@
           "hp": 70,
           "armor": {
             "front": 35,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
@@ -2851,7 +2851,7 @@
           "hp": 70,
           "armor": {
             "front": 40,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
@@ -3018,7 +3018,7 @@
           "hp": 120,
           "armor": {
             "front": 35,
-            "side": 25,
+            "side": 35,
             "rear": 15,
             "roof": 10,
             "ricochet": {
