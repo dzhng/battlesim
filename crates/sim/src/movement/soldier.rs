@@ -529,7 +529,11 @@ pub(super) fn step_squad(
         if homing && to_spot.inside_radius(ON_SPOT_M) {
             s.position = spot.with_z(next.z);
             crowd.set(id, spot);
-        } else if homing && to_spot.inside_radius(SETTLE_M) && stuck {
+        } else if homing
+            && stuck
+            && (to_spot.inside_radius(SETTLE_M)
+                || taken(crowd, id, spot, ctx.rules.physics.soldier_radius_m))
+        {
             // He can get no closer (someone stands there): here will do.
             s.spot = Some(next.xy());
         } else if stuck && ctx.tick >= s.planned_at + every {
@@ -601,6 +605,13 @@ pub(super) fn step_squad(
     } else if remaining < unit.progress.0 - super::PROGRESS_EPSILON_M {
         unit.progress = (remaining, ctx.tick);
     }
+    // A squad gets on a man at a time: its men nearer their spots than
+    // ever since the stuck clock started wind it back, however little its
+    // middle moves. A man pacing away and back, or a fresh route's new
+    // measure, does not.
+    if remaining < unit.stalls.2 - super::PROGRESS_EPSILON_M {
+        unit.stalls = (unit.position.xy(), ctx.tick, remaining);
+    }
     unit.state = contract::observation::MoveState::Moving;
     unit.blocker = None;
     unit.settle();
@@ -622,6 +633,14 @@ pub(super) fn step_squad(
     } else {
         unit.route = Some(route);
     }
+}
+
+/// Whether another soldier (of radius `r`) stands on `spot`, so the
+/// soldier `id` cannot.
+fn taken(crowd: &Crowd, id: usize, spot: V2, r: f64) -> bool {
+    let mut on = false;
+    crowd.near(id, spot, 2.0 * r, |_| on = true);
+    on
 }
 
 /// One soldier's step from `here` to `wanted`, as a body (L4, L5): his disc

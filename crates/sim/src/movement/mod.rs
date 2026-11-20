@@ -220,11 +220,12 @@ fn request_route(
     // order again does not throw the search away.
     let pending = planner
         .pending(unit.id)
-        .is_some_and(|r| !goal_moved || (r.goal - goal).within_radius(KEEP_ROUTE_M));
-    if pending {
-        // Holding for its route is planning, not being stuck.
-        if unit.route.is_none() {
-            unit.stalls = (unit.position.xy(), ctx.tick);
+        .filter(|r| !goal_moved || (r.goal - goal).within_radius(KEEP_ROUTE_M));
+    if let Some(request) = pending {
+        // Holding for its route somewhere new is planning, not being stuck;
+        // working out a new way to where it is already stuck is not.
+        if unit.route.is_none() && request.new_goal {
+            unit.restart_stalls(ctx.tick);
         }
         return;
     }
@@ -243,16 +244,15 @@ fn request_route(
     let traffic = unit.blocker.is_some_and(|b| rolling[b.0 as usize]);
     let here = unit.position.xy();
     if goal_moved && !same_place {
-        unit.stalls = (here, ctx.tick);
+        unit.restart_stalls(ctx.tick);
         unit.tries = 0;
     } else if traffic {
-        unit.stalls = (here, ctx.tick);
+        unit.restart_stalls(ctx.tick);
     } else if unit.route.is_some() {
-        // A squad gets on a man at a time: any soldier nearer his spot (its
-        // own stall watch) is progress, however little its middle moves.
-        let squad_gained = !unit.is_vehicle() && unit.progress.1 > unit.stalls.1;
-        if squad_gained || (here - unit.stalls.0).outside_radius(STUCK_REACH_M) {
-            unit.stalls = (here, ctx.tick);
+        // A squad's men getting nearer their spots wind it back too
+        // (`soldier::step_squad`).
+        if (here - unit.stalls.0).outside_radius(STUCK_REACH_M) {
+            unit.restart_stalls(ctx.tick);
         } else if ctx.tick.saturating_sub(unit.stalls.1)
             > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
         {
@@ -622,7 +622,7 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
         take_cover::halt(ctx, unit);
     }
     unit.progress.1 = ctx.tick;
-    unit.stalls = (unit.position.xy(), ctx.tick);
+    unit.restart_stalls(ctx.tick);
     unit.state = held;
     false
 }
@@ -642,7 +642,7 @@ fn blocked(unit: &mut Unit, tick: u64) {
         return;
     }
     unit.state = MoveState::RouteBlocked;
-    unit.stalls = (unit.position.xy(), tick);
+    unit.restart_stalls(tick);
 }
 
 /// A route's end reached: a destination completes its move; a pursuit point

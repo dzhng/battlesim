@@ -97,6 +97,62 @@ fn a_vehicle_whose_marker_a_parked_vehicle_holds_parks_beside_it() {
     assert!(b.unit(UnitId(0)).unwrap().orders.is_empty());
 }
 
+/// The entry the audit kept finding: squad after squad sent to the one
+/// spot, where the earlier ones still stand. The newcomer walks up and its
+/// men stand at the crowd's edge, as near as the men already there let
+/// them: the order is done. It never sits "moving" with every man still.
+#[test]
+fn a_squad_sent_onto_standing_squads_stops_at_their_edge() {
+    let marker = [150.0, 100.0];
+    let offsets = [
+        [0.0, 0.0],
+        [3.0, 1.0],
+        [-2.0, 2.0],
+        [1.0, -3.0],
+        [5.0, -1.0],
+    ];
+    let units: Vec<Value> = offsets
+        .iter()
+        .map(|[dx, dy]| [marker[0] + dx, marker[1] + dy])
+        .chain([[150.0, 40.0]])
+        .map(|at| json!({ "side": "blue", "kind": "test_rifle", "position": at, "yaw": 1.5 }))
+        .collect();
+    let newcomer = offsets.len() as u32;
+    let mut b = battle(
+        open([300, 200]),
+        json!(units),
+        json!([]),
+        common::scenario_rules(),
+    );
+    go(&mut b, 1, newcomer, marker);
+    let hz = b.rules().tick_hz as u64;
+    let mut still_since = None;
+    for tick in 1..=90 * hz {
+        b.step();
+        let squad = b.unit(UnitId(newcomer)).unwrap();
+        if squad.orders.is_empty() {
+            assert!(dist(own(&b, newcomer).position, marker) < 12.0);
+            return;
+        }
+        let walking = squad
+            .members
+            .iter()
+            .any(|s| s.alive() && s.velocity.length() > 1e-6);
+        let since = *still_since.get_or_insert(tick);
+        if walking {
+            still_since = None;
+        }
+        assert!(
+            tick - since < 5 * hz,
+            "still {:?} at {:?} with every man standing for 5 s, {} s in",
+            squad.state,
+            squad.position,
+            tick / hz
+        );
+    }
+    panic!("it never finished its order");
+}
+
 /// A truck crossing open ground with a busy planner. Halfway, its side sees
 /// a wall go up across its way far ahead, and then it is sent on to a spot
 /// ten metres from where it was going. Each time it works out a new way it

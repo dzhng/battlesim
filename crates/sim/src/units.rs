@@ -292,12 +292,13 @@ pub struct Unit {
     pub planned_revision: u64,
     /// Failure-to-advance watch: best distance to the next waypoint and when.
     pub progress: (f64, u64),
-    /// The stuck clock: where it stood when the clock last started, and
-    /// when. Still within reach of that spot a give-up spell later, it stops
-    /// near enough to its goal or finds no way
+    /// The stuck clock: where it stood when the clock last started, when,
+    /// and for a squad the least way its men have had left to their spots
+    /// since. Still within reach of that spot a give-up spell later, it
+    /// stops near enough to its goal or finds no way
     /// ([`MoveState::RouteBlocked`]); blocked, the tick it last tried, which
     /// times its next try.
-    pub stalls: (V2, u64),
+    pub stalls: (V2, u64, f64),
     /// Times it has found no way to its current goal: the third time, it
     /// gives the order up.
     pub tries: u8,
@@ -585,6 +586,11 @@ impl Unit {
             .iter()
             .filter(|s| s.alive())
             .map(|s| s.position)
+    }
+
+    /// Starts the stuck clock again from where it stands.
+    pub fn restart_stalls(&mut self, tick: u64) {
+        self.stalls = (self.position.xy(), tick, f64::INFINITY);
     }
 
     /// A squad lives while any member does; a vehicle while its hull has health.

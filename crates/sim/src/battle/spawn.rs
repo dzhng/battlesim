@@ -71,7 +71,7 @@ pub(super) fn spawn_unit(
         blocker: None,
         planned_revision: 0,
         progress: (f64::INFINITY, 0),
-        stalls: (xy, 0),
+        stalls: (xy, 0, f64::INFINITY),
         tries: 0,
         pursuit: None,
         planned_goal: None,
