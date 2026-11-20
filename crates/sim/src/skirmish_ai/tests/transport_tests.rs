@@ -644,6 +644,48 @@ fn a_carrier_is_bought_only_for_a_squad_that_asks_for_a_ride() {
     );
 }
 
+/// A squad whose carrier has room but no route to it is not bought another:
+/// that one could not reach it either, and each decision would buy one more.
+#[test]
+fn a_squad_its_carrier_cannot_reach_is_not_bought_another() {
+    let (rules, mut frame, entry) = transport_match(json!([
+        {"side":"red","kind":"test_supply","position":[400,40]},
+        {"side":"red","kind":"test_rifle","position":[500,60]},
+        {"side":"red","kind":"test_apc","position":[300,60]}
+    ]));
+    me(&mut frame).credits = 10_000.0;
+    let carrier = frame.own[2].id;
+    let objective = [500.0, 950.0];
+    let assignment = Assignment {
+        allies: vec![],
+        main_objective: objective,
+        staging_point: objective,
+        force_advance: true,
+        parties: vec![],
+    };
+    let mut ai = BalancedDoctrine::default();
+    for decision in 0..3 {
+        frame.tick = decision * 5 * u64::from(rules.tick_hz);
+        let orders = ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: Some(&assignment),
+            },
+            &frame,
+            &rules,
+            |unit, _| (unit != carrier).then_some(1.0),
+        );
+        let lone = orders.iter().find(|order| {
+            matches!(order, Order::ConfirmPurchase { variant, carrier: None, .. }
+                if crate::carriage::seats(&rules, rules.catalog.index(variant).unwrap()) > 0)
+        });
+        assert!(lone.is_none(), "decision {decision}: {orders:?}");
+        confirm_purchases(&rules, &mut frame, &orders);
+    }
+}
+
 #[test]
 fn a_squad_walks_when_its_ride_would_unload_it_here() {
     let (rules, mut frame, entry) = transport_match(json!([
