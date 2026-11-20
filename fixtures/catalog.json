@@ -11281,7 +11281,7 @@
           ],
           "name": "T-15 Armata",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -11773,7 +11773,7 @@
           ],
           "name": "Tigr-M",
           "roles": [
-            "light_vehicle"
+            "recon"
           ],
           "roster": {
             "category": "rec",
@@ -11905,7 +11905,7 @@
           ],
           "name": "ZTQ-15",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -14006,7 +14006,7 @@
           ],
           "name": "CV90120",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -16577,7 +16577,7 @@
           ],
           "name": "Puma Level C",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -17383,7 +17383,7 @@
           ],
           "name": "VBL",
           "roles": [
-            "light_vehicle"
+            "recon"
           ],
           "roster": {
             "category": "rec",
@@ -20221,7 +20221,7 @@
           ],
           "name": "M10 Booker",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -32230,7 +32230,7 @@
       ],
       "name": "T-15 Armata",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -32737,7 +32737,7 @@
       ],
       "name": "Tigr-M",
       "roles": [
-        "light_vehicle"
+        "recon"
       ],
       "roster": {
         "category": "rec",
@@ -32873,7 +32873,7 @@
       ],
       "name": "ZTQ-15",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -35101,7 +35101,7 @@
       ],
       "name": "CV90120",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -37842,7 +37842,7 @@
       ],
       "name": "Puma Level C",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -38686,7 +38686,7 @@
       ],
       "name": "VBL",
       "roles": [
-        "light_vehicle"
+        "recon"
       ],
       "roster": {
         "category": "rec",
@@ -41990,7 +41990,7 @@
       ],
       "name": "M10 Booker",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
