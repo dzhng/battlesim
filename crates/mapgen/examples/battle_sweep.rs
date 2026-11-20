@@ -104,6 +104,11 @@ struct Progress {
     near_goal_s: Option<f64>,
     first_moved_s: Option<f64>,
     state_ticks: BTreeMap<String, u64>,
+    /// Ticks it stood still while its state said it was on its way (moving
+    /// or waiting), and the longest such stand.
+    held_ticks: u64,
+    held_run: u64,
+    longest_held: u64,
 }
 
 fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds: u64) -> Value {
@@ -123,6 +128,9 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
                 near_goal_s: None,
                 first_moved_s: None,
                 state_ticks: BTreeMap::new(),
+                held_ticks: 0,
+                held_run: 0,
+                longest_held: 0,
             }
         })
         .collect();
@@ -191,6 +199,19 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
                 }
             }
             let at = unit.position.xy();
+            let on_its_way = unit.alive()
+                && matches!(
+                    unit.state,
+                    contract::observation::MoveState::Moving
+                        | contract::observation::MoveState::Waiting
+                );
+            p.held_run = if on_its_way && (at - p.last).length() < 1e-6 {
+                p.held_run + 1
+            } else {
+                0
+            };
+            p.held_ticks += u64::from(p.held_run > 0);
+            p.longest_held = p.longest_held.max(p.held_run);
             p.travelled_m += (at - p.last).length();
             p.last = at;
             if p.first_moved_s.is_none() && (at - p.start).length() > 0.01 {
@@ -233,7 +254,9 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
             "remaining_m": p.goal.map(|goal| (p.last-goal).length()),
             "travelled_m": p.travelled_m, "near_goal_s": p.near_goal_s,
             "first_moved_s": p.first_moved_s, "state": unit.state,
-            "state_ticks": p.state_ticks})
+            "state_ticks": p.state_ticks,
+            "held_s": p.held_ticks as f64 / hz as f64,
+            "longest_held_s": p.longest_held as f64 / hz as f64})
         })
         .collect();
     let slow_ticks = times.iter().filter(|&&t| t > 33.0).count();

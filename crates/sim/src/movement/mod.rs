@@ -296,13 +296,10 @@ fn request_route(
     };
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
-        // Blocked, it tries again when its side learns something of the
-        // ground, and in any case once a give-up spell has passed since it
-        // last tried: something it cannot see may have moved.
+        // Blocked, it tries again once a give-up spell has passed since it
+        // last tried: what its side has learned meanwhile may open a way.
         (_, MoveState::RouteBlocked) => {
-            changed
-                || ctx.tick.saturating_sub(unit.stalls.1)
-                    > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
+            ctx.tick.saturating_sub(unit.stalls.1) > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
         }
         (None, _) => true,
         (Some(route), _) => {
