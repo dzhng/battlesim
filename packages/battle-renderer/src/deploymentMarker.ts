@@ -1,5 +1,8 @@
 // A reinforcement lane beacon. It answers one question, "which lane is
 // this?" with a lane number and a short trail of matching beacons.
+import type { Vec2 } from "math";
+import { triangulatePolygon2 } from "math/geometry";
+import { triangle2 } from "math/shapes";
 import {
   concatMeshes,
   groundAnnulus,
@@ -237,52 +240,23 @@ function digit(
   for (const [a, b, c] of triangulate(points)) mesh.triangle(at(a), at(b), at(c), color);
 }
 
+/** A glyph outline cut into triangles, each wound counter-clockwise so its
+ *  normal faces up once the outline is laid on the ground. */
 function triangulate(points: readonly P2[]): readonly [P2, P2, P2][] {
-  const indices = points.map((_, i) => i);
-  if (signedArea(points) < 0) indices.reverse();
+  const indices: number[] = new Array(Math.max(0, 3 * (points.length - 2))).fill(0);
+  const count = triangulatePolygon2(indices, points.flat(), points.length);
   const triangles: [P2, P2, P2][] = [];
-  while (indices.length > 3) {
-    let clipped = false;
-    for (let i = 0; i < indices.length; i++) {
-      const a = indices[(i + indices.length - 1) % indices.length];
-      const b = indices[i];
-      const c = indices[(i + 1) % indices.length];
-      if (cross(points[a], points[b], points[c]) <= 0) continue;
-      if (
-        indices.some(
-          (candidate) =>
-            candidate !== a &&
-            candidate !== b &&
-            candidate !== c &&
-            inside(points[candidate], points[a], points[b], points[c]),
-        )
-      )
-        continue;
-      triangles.push([points[a], points[b], points[c]]);
-      indices.splice(i, 1);
-      clipped = true;
-      break;
-    }
-    if (!clipped) return [];
+  for (let t = 0; t < count; t++) {
+    const [a, b, c] = [
+      points[indices[3 * t]],
+      points[indices[3 * t + 1]],
+      points[indices[3 * t + 2]],
+    ];
+    triangles.push(
+      triangle2.signedArea(a as Vec2, b as Vec2, c as Vec2) >= 0 ? [a, b, c] : [a, c, b],
+    );
   }
-  if (indices.length === 3)
-    triangles.push([points[indices[0]], points[indices[1]], points[indices[2]]]);
   return triangles;
-}
-
-function signedArea(points: readonly P2[]): number {
-  return points.reduce((area, point, i) => {
-    const next = points[(i + 1) % points.length];
-    return area + point[0] * next[1] - next[0] * point[1];
-  }, 0);
-}
-
-function cross(a: P2, b: P2, c: P2): number {
-  return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
-}
-
-function inside(point: P2, a: P2, b: P2, c: P2): boolean {
-  return cross(a, b, point) > 1e-6 && cross(b, c, point) > 1e-6 && cross(c, a, point) > 1e-6;
 }
 
 function withMarch(mesh: Mesh, normal: readonly [number, number, number]): Mesh {

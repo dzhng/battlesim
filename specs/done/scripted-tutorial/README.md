@@ -96,7 +96,7 @@ The shape follows three constraints the user set:
 | --- | --- | --- |
 | Scenario document and resolver | `crates/contract/src/scenario_document.rs` | `crates/sim/tests/scenarios.rs` (refusals, prices, placement of every shipped force) |
 | Director vocabulary and admission | `crates/contract/src/director.rs` | `crates/sim/tests/director.rs` |
-| Director at run time | `crates/sim/src/director.rs`, `crates/sim/src/battle/direct.rs` | `crates/sim/tests/director_facts.rs` (every unit fact and most triggers on test units; `identifies`, `contact_in` and `any` are proven by the walkthrough) |
+| Director at run time | `crates/sim/src/director.rs`, `crates/sim/src/battle/direct.rs` | `crates/sim/tests/director_facts.rs` (each fact and trigger on test units) |
 | Directed seat | `ControllerKind::DirectedAi`, `PlayerState::is_ready` | `crates/sim/tests/directed_ai.rs` |
 | Resume and the chapters' dev loop | `crates/sim/src/battle/resume.rs` (`Battle::resume`, `chapter_start`), `crates/game-wasm/src/scenarios.rs` | `crates/sim/tests/resume.rs`; `chapter_start` in `crates/sim/tests/scenario_walkthrough.rs` (`starts_at`) |
 | The walkthrough | `fixtures/maps/ferryman-valley/scenarios/operation-ferryman.solution.json` | `crates/sim/tests/scenario_walkthrough.rs` |
@@ -133,9 +133,8 @@ How to add a chapter is in [fixtures/README.md](../../../fixtures/README.md#save
   unit voice design still needs Duet, which Bento's proxy refuses.
 - **`pause` steps were never built.** No chapter tours over a moving battle;
   chapter 1's tours run in preparation.
-- **The director's vocabulary grew by chapter.** Each unit fact and most
-  triggers were tested on test units as they landed; the rest are proven by
-  the walkthrough ([choices S9](choices.md)).
+- **The director's vocabulary grew by chapter**, each fact and trigger tested
+  on test units ([choices S9](choices.md)).
 
 ## Dead ends
 
