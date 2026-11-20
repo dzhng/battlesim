@@ -99,9 +99,17 @@ export class BattleVoices {
     return sets.length ? this.bank.load(sets) : Promise.resolve();
   }
 
+  /** Starts no new line before player time `until`: the net is busy, as
+   *  while a narrator speaks. Lines already sounding play out. */
+  hold(until: number) {
+    this.held = Math.max(this.held, until);
+  }
+  private held = 0;
+
   /** Carries out an arbitration's start commands. */
   private play(update: ChatterUpdate): ChatterUpdate {
     const now = () => this.output.now();
+    if (now() < this.held) return update;
     for (const { op: _, id: __, ...line } of update.commands)
       this.bank.play(line.sound, line.variant, line.at, this.wait, now, (buffer, at) =>
         this.output.line({ ...line, at }, buffer),

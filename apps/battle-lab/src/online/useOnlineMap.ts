@@ -5,13 +5,13 @@ import type { BattleSetup } from "@packages/multiplayer/src/wire";
 import { fromBattleSetup } from "@packages/multiplayer/src/setup";
 import { battleRequest } from "@packages/skirmish-setup/src/lobby";
 import { prepareBattle } from "@web/battle/prepare/client";
-import type { PreparedBattle, PrepareBattleRequest } from "@web/battle/prepare/protocol";
+import type { GeneratedBattle, PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useBuiltScenario, buildFailed } from "../useBuiltScenario";
 import { setupData } from "../skirmishData";
 
 /** Plain admitted data can cross navigation; the worker and its connection cannot. */
-export type OnlineMap = { request: PrepareBattleRequest; battle: PreparedBattle };
+export type OnlineMap = { request: PrepareBattleRequest; battle: GeneratedBattle };
 type Preparation =
   | { status: "preparing"; stage: string }
   | { status: "failed"; error: string }
@@ -44,9 +44,11 @@ export function useOnlineMap(setup: BattleSetup, mapIdentity: string): Preparati
     );
     void preparation.battle
       .then((battle) => {
+        const { report } = battle;
         if (
-          battle.report.identity.kind !== "generated" ||
-          battle.report.identity.generation.map_hash !== mapIdentity
+          !("request" in report) ||
+          report.identity.kind !== "generated" ||
+          report.identity.generation.map_hash !== mapIdentity
         )
           return publish({
             status: "failed",
@@ -56,7 +58,7 @@ export function useOnlineMap(setup: BattleSetup, mapIdentity: string): Preparati
           status: "ready",
           prepared: {
             request,
-            battle: { scenario: battle.scenario, report: battle.report },
+            battle: { scenario: battle.scenario, report },
           },
         });
       })

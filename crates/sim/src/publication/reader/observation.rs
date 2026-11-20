@@ -136,6 +136,15 @@ impl Reader {
                     return Err("pending purchase names an unpublished player".into());
                 }
             }
+            for (owner, offer) in map(&rows[group("offers")], |r| self.offer(r))? {
+                match players.iter_mut().find(|p| p.index == owner) {
+                    Some(Player {
+                        offered: Some(offered),
+                        ..
+                    }) => offered.push(offer),
+                    _ => return Err("an offer names a player whose shop is not narrowed".into()),
+                }
+            }
             let reported =
                 f!(h, HEADER, "reportTotalsCount") > 0.0 || f!(h, HEADER, "reportEventCount") > 0.0;
             Some(Skirmish {
@@ -193,6 +202,26 @@ impl Reader {
                 })
             },
             skirmish,
+            scenario: if f!(h, HEADER, "scenarioChapter") < 0.0 {
+                None
+            } else {
+                let chapter = f!(h, HEADER, "scenarioChapter") as usize;
+                Some(Scenario {
+                    chapter: self
+                        .tables
+                        .get("chapters")
+                        .and_then(|t| t.get(chapter))
+                        .cloned(),
+                    beats: map(&rows[group("beats")], |r| {
+                        const FIELDS: &[&str] = &crate::publication::BEAT_FIELDS;
+                        let f = r.fields;
+                        Ok(ScenarioBeat {
+                            beat: self.name("beats", v!(f, "beat"))?,
+                            tick: v!(f, "firedLo") + v!(f, "firedHi") * LIMB,
+                        })
+                    })?,
+                })
+            },
             fog,
             ground_patch: GroundPatch {
                 epoch: f!(h, HEADER, "groundEpoch"),

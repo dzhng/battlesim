@@ -31,6 +31,10 @@ import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
 import { useReplayCamera } from "./useReplayCamera";
+import type { CoachDocument } from "@web/battle/coach/coach";
+import { useScenarioCoach } from "./useScenarioCoach";
+import { CoachLayer } from "./CoachLayer";
+import { hudAnchor } from "@web/battle/present/hudAnchors";
 import type { ReplayCameraTrack } from "./replayCamera";
 import { ReplayCameraButton } from "./replayFile";
 import type { ScriptedSim } from "./useSimSession";
@@ -71,6 +75,7 @@ export function BattleView({
   cameraConfig,
   status,
   menu,
+  coach,
   diagnostics,
   cover,
   onLoadStage,
@@ -112,6 +117,9 @@ export function BattleView({
   status: (session: BattleSession) => ReactNode;
   /** The route's own pause menu items. */
   menu?: (session: BattleSession) => ReactNode;
+  /** An authored scenario's coach, over the battle while it is played: its
+   *  card, its camera tours, its marks on the ground and its HUD rings. */
+  coach?: CoachDocument;
   /** Route-specific lab probes, merged into the shared ones. */
   diagnostics?: (session: BattleSession) => Record<string, unknown>;
   /** A loading screen shown over the view until the battle is playable. */
@@ -201,7 +209,13 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
-  const overlay = useBattleOverlay(session, { scenario, camera });
+  const coached = useScenarioCoach(
+    input ? coach : undefined,
+    observation?.scenario ?? null,
+    sim.client,
+  );
+  const marks = coached?.view?.step.marks;
+  const overlay = useBattleOverlay(session, { scenario, camera, marks });
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.
@@ -267,7 +281,7 @@ export function BattleView({
             session.viewport.onReady(gpu);
             setViewportReady(true);
           }}
-          pilot={scripted?.pilot ?? cameraReplay.pilot}
+          pilot={scripted?.pilot ?? cameraReplay.pilot ?? coached?.tour}
           onFrame={(project, view, pointer, scale, time) => {
             cameraReplay.record(time, view);
             session.hear();
@@ -310,6 +324,7 @@ export function BattleView({
             <button
               type="button"
               className="hud-menu-choice hud-purchase-ready"
+              {...hudAnchor("start")}
               disabled={viewingPlayer?.ready ?? false}
               onClick={session.purchase.ready}
             >
@@ -372,6 +387,14 @@ export function BattleView({
                   sim.restart();
                 }
           }
+          onRestartChapter={
+            sim.standbyAt === null
+              ? undefined
+              : () => {
+                  pause.show(false);
+                  sim.restartChapter();
+                }
+          }
           onSettingsApply={() => window.__lab?.rebuild?.()}
           onSaveReplay={exportReplay}
         >
@@ -389,6 +412,14 @@ export function BattleView({
               ? { label: "Return to Multiplayer", onLeave }
               : { label: "Main menu", onLeave: () => navigate("/") }
           }
+        />
+      )}
+      {coached && (
+        <CoachLayer
+          coach={coached}
+          paused={pause.open}
+          ended={matchFinished}
+          speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
         />
       )}
     </SessionCatalogProvider>

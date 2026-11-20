@@ -40,7 +40,8 @@ fn publication_layout_exposes_player_rows_instead_of_side_economy() {
             "credits",
             "incomePerMinute",
             "unitCount",
-            "cap"
+            "cap",
+            "shopNarrowed"
         ]
     );
 }

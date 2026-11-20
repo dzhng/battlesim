@@ -108,6 +108,7 @@ impl<'a> Country<'a> {
             let ground = Ask {
                 radius: width / 2.0,
                 blocks_sight: false,
+                level: true,
                 road_gap: 0.0,
                 own_from: usize::MAX,
             };
@@ -277,6 +278,7 @@ impl<'a> Country<'a> {
         let ground = Ask {
             radius: width / 2.0,
             blocks_sight: false,
+            level: true,
             road_gap: 0.0,
             own_from: usize::MAX,
         };
@@ -487,6 +489,7 @@ impl<'a> Country<'a> {
         let corner = Ask {
             radius: 0.0,
             blocks_sight: false,
+            level: true,
             road_gap: 0.0,
             own_from: kin,
         };
@@ -569,6 +572,7 @@ impl<'a> Country<'a> {
             let ask = Ask {
                 radius,
                 blocks_sight: false,
+                level: true,
                 road_gap: rules.clear.road_m,
                 own_from: own,
             };

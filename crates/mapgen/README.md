@@ -22,7 +22,7 @@ a smaller playable rectangle cannot stand in for the complete rendered workload.
 
 ## Layout generation (`layout`)
 
-[Layout](src/layout/) places settlements, rivers, roads, bridges, forests and swamps.
+[Layout](src/layout/) places settlements, rivers, roads, bridges, forests, swamps and hills.
 [Presets](../../fixtures/map-presets.json) own construction choices and finite-work
 policy; [preset validation](src/layout/presets.rs) protects the physical and numeric
 constraints. The size profile owns its central settlement class and surrounding settlement
@@ -55,6 +55,16 @@ Water is a hard layout feature. Roads remain on their bank except at admitted
 [bridge crossings](src/layout/crossings.rs), and water stops an advertised open
 approach. Rivers and terrain use the shared [river contract](../contract/src/river.rs),
 so generator legality cannot differ from world admission.
+Hills are settled before the skirmish sites, from their own stream: groups of
+broad rounded rises (`Relief::Ridge`) mirrored through the centre, in large
+sections on plains maps, a few on mixed maps and none on a city
+([hills](src/layout/hills.rs)). A rise is as broad as its place allows and as
+tall as its grade makes that breadth. Rises keep clear of settlements, water,
+bridges and the fixed central objectives; roads cross them. What comes after
+keeps to the flat: every skirmish objective and reserved farm site, and the
+swamps. The presets refuse a height cap or radius whose sides a vehicle could
+not climb. Only copses and lone trees stand on hills: steads, yards and the
+fields' tree lines stay on level ground.
 Swamps come last, from their own stream, in pairs of one size across the
 halves, beside the river where there is one; the [swamp contract](../contract/src/swamp.rs)
 admits them, and the compiler refuses a seed whose swamp it would not.
@@ -152,6 +162,16 @@ comes from actual accepted canopy coverage or opaque physical bodies, with dry
 support and an interior margin. All authored bodies are final before collection;
 new furnishing adds forests under that shared sampler rather than a second tree
 placement algorithm.
+
+The land is a witness too, as it is in the simulation's sweep. A crest whose
+lowest land stands above every eye raises the horizon of each ray across it, so
+any later cell lower than the crest is hidden; a crest needs no far cell, only
+the farthest hidden one on the map. An eye above a wood still has it as a
+witness when every ray down to the wood meets it below the canopy: the
+simulation counts the wood against such a ray, so nothing past it is seen. With
+relief, every witness earns its height margin for the one rectangle it is asked
+about, from bounds on the land's height, exact over small boxes
+([relief](src/relief.rs), [coverage relief](src/open_country/coverage/relief.rs)).
 
 A witness must cover every position in a clipped location rectangle, including
 edges and settlement interiors. Bounding every corner earns the maximum distance

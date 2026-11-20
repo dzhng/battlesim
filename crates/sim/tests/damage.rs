@@ -807,6 +807,8 @@ fn test_an_aircrafts_side_takes_less_only_through_its_armour() {
         hmg["penetration"] = json!(50.0);
         hmg["damage"] = json!(10.0);
         hmg["partial_from"] = json!(0.08);
+        // Faces must differ by armour alone, not by the row's own face scale.
+        hmg["partial_damage_scale"] = Value::Null;
         hmg["targets"]["low_air"] =
             json!({ "classes": ["air_rotor"], "range_m": 300, "scatter_mrad": 8 });
         sim::fixtures::patch_catalog(

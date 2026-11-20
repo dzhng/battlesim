@@ -28,11 +28,14 @@ travel time from a side's planning snapshot and rejects units the side does not
 own. The simulation remains the authority for final route placement, visibility,
 objective eligibility, and combat.
 
-Squads ride (transport D16–D18). The AI keeps one carrier per squad, chosen by
-seats alone: the fewest that take the squad. It rebuys a lost carrier and
-replaces a lost squad before its role rotation. A squad far from its objective,
-or from an enemy on the ground it is sent at, stops for a free carrier. The
-carrier collects it and drives toward the nearest such enemy, else the
+Squads ride (transport D16–D18). A carrier is chosen by seats alone: the
+fewest that take the squad. A squad is bought aboard its carrier; a carrier is
+bought on its own only for a squad that asked for a ride and has no free
+carrier with room, so a squad with no use for one (an AA team holding back)
+never leaves a transport idle. A carrier whose squad was lost is bought a
+squad it seats. Both come before the role rotation. A squad far from its
+objective, or from an enemy on the ground it is sent at, stops for a free
+carrier. The carrier collects it and drives toward the nearest such enemy, else the
 objective. It lets the squad out short of it, beyond the reach of every enemy
 the side identifies. An empty carrier whose mounts can fight is a combat unit
 like any other until a squad claims it; an unarmed one waits for its next
@@ -40,6 +43,12 @@ squad, and only pairing buys one. Pairs are read off the
 observation at each decision, never stored, and passengers take no orders.
 [`transport.rs`](../../../crates/sim/src/skirmish_ai/transport.rs) owns those
 rules.
+
+Aircraft in sight buy air defence until the side's, teammates' included, is
+worth the aircraft identified (a contact alone, until the side holds any); then
+the rotation rebuilds the rest of the force. An answer with no ceiling once
+spent a whole army on AA teams against a few helicopters while infantry
+overran it.
 
 Doctrine transitions currently use low-air evidence, observed own-unit loss, and
 maximum dwell. Force-shape states alter opening procurement; richer casualty,

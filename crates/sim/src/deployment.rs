@@ -95,7 +95,9 @@ pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
 }
 
 /// Where a unit's progress is heading now: packed whenever it has somewhere to
-/// go, otherwise its stationary posture.
+/// go, otherwise its stationary posture. An attack-move halted on an enemy
+/// has nowhere to go until the fight frees it, so a ground deployer sets up
+/// there to fire.
 pub fn target(unit: &Unit) -> Option<Posture> {
     let d = unit.deployment.as_ref()?;
     if d.lands() {
@@ -114,7 +116,7 @@ pub fn target(unit: &Unit) -> Option<Posture> {
             },
         );
     }
-    Some(if unit.movement_goal().is_some() {
+    Some(if unit.movement_goal().is_some() && !unit.halted() {
         Posture::Packed
     } else {
         d.stationary

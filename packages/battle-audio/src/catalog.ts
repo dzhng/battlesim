@@ -12,7 +12,7 @@ export interface Generated {
   voice_id?: string;
   voice_description?: string;
   date: string;
-  plan: "Duet ElevenLabs";
+  plan: "Duet ElevenLabs" | "Bento ElevenLabs";
 }
 /** A generated master in the library: how it was made, where its raw bytes live. */
 export interface GeneratedSource extends Generated {

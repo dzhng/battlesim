@@ -267,7 +267,12 @@ impl Relief {
                 peak_m,
                 radius_m,
             } => {
-                let d = libm::hypot(x - center[0], y - center[1]);
+                let (dx, dy) = (x - center[0], y - center[1]);
+                // Off its square it is off its disc: the same zero, sooner.
+                if dx.abs() >= radius_m || dy.abs() >= radius_m {
+                    return 0.0;
+                }
+                let d = libm::hypot(dx, dy);
                 if d >= radius_m {
                     0.0
                 } else {

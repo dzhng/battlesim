@@ -47,6 +47,7 @@ const AIR_ONLY_AIRCRAFT: &str = "test_heli";
 fn decide(units: Value, force_advance: bool) -> (Rules, ObservationFrame, Vec<Order>, [f64; 2]) {
     let (rules, frame, entry) = transport_match_on(backline_deck(), units);
     let assignment = Assignment {
+        allies: vec![],
         main_objective: [500.0, 900.0],
         staging_point: [500.0, 400.0],
         force_advance,

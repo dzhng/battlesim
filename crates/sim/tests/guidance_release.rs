@@ -384,7 +384,7 @@ fn a_prompt_escape_is_beaten_by_a_second_launcher_in_crossfire() {
     rules["movement"]["drive"]["braking_s"] = json!(1e-6);
     let rules = serde_json::from_value(rules).unwrap();
     let mut b = Battle::new(
-        &sim::maps::scenario("ambush", "crossfire", rules).unwrap(),
+        &sim::maps::encounter_scenario("ambush", "crossfire", rules).unwrap(),
         10,
     );
     let full = b.unit(UnitId(0)).unwrap().hp;

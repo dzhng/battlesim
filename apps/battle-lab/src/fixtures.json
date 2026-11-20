@@ -283,6 +283,14 @@
     "loading": false
   },
   {
+    "id": "scenario-battle",
+    "route": "/battle?scenario=ferryman-valley/operation-ferryman",
+    "describe": "An authored scenario's battle (?scenario=<map>/<name>): its scenario map and document are prepared under this build's rules, its placed forces stand where the document puts them, its player opens with the credits the document grants, and the shop offers only what the document offers. The scene opens the tutorial's scenario, operation-ferryman on ferryman-valley.",
+    "map": null,
+    "catalog": "game",
+    "loading": false
+  },
+  {
     "id": "unit-roster",
     "route": "/battle?type=open&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, buy a squad in a carrier from its transport menu and see it arrive aboard and stay aboard, and pin the journey's screenshots and GPU diagnostics.",

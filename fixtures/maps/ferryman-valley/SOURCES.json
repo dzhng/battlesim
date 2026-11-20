@@ -1,0 +1,47 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "eaf17720c2fc53eabe4749d1c7f5546ca2204b829a0ec9725c6a7c7bcf7db092",
+    "template_catalog_hash": "bf805724fea08c70eefc54f68c45e52ec2e380af2b5d45213f218bc112b45105"
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": [
+      "paris-farmstead-long",
+      "paris-farmstead-small",
+      "paris-farmstead-yard",
+      "paris-home-10x8-1f",
+      "paris-home-12x9-2f",
+      "paris-home-8x11-1f",
+      "paris-home-9x9-2f",
+      "paris-home-ell-2f"
+    ]
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "request",
+      "sha256": "04a6684eebd3ebfd77f9ca61fb1bd15834c7f7f3238968faaef989ae2db97c81"
+    },
+    {
+      "kind": "supplied",
+      "label": "presets",
+      "sha256": "79efaf62aad7d521f42caf7bec3e7384634714d24d4e7f697b250b41869e57f2"
+    },
+    {
+      "kind": "supplied",
+      "label": "catalogue",
+      "sha256": "7fd262226c6b5997286babe5243508e85830e8d88d3616d975d54cec0179d8cf"
+    },
+    {
+      "kind": "supplied",
+      "label": "rules",
+      "sha256": "caa6082b7973bf88d05be03878b08b32d9ab9a14c39b6782702e6b20f32d3804"
+    },
+    {
+      "kind": "supplied",
+      "label": "catalog",
+      "sha256": "af6b215612ee44cd873356b51742f0776dade27e2b2b253fc8827e7dde200750"
+    }
+  ]
+}

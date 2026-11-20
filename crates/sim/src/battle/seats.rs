@@ -16,7 +16,7 @@ pub enum SeatEvent {
 }
 
 impl SeatEvent {
-    fn tick(&self) -> Tick {
+    pub(super) fn tick(&self) -> Tick {
         match self {
             Self::HandOver { tick, .. } | Self::Reset { tick, .. } => *tick,
         }

@@ -3,6 +3,54 @@
 use super::*;
 
 impl Battle {
+    /// Prepare an order the scenario itself gives (a fixture script, or a
+    /// director's cue) for this tick, as a client's would be: the same
+    /// admission, unrecorded, since a replay gives it again. It addresses a
+    /// formation's survivors: its own fallen units leave the order, while an
+    /// id that names no unit of its side is still refused.
+    pub(super) fn apply_authored_order(
+        &mut self,
+        side: Side,
+        player: Option<String>,
+        mut order: Order,
+        queued: bool,
+    ) -> Result<(), OrderError> {
+        match &mut order {
+            Order::Refund { units }
+            | Order::Move { units, .. }
+            | Order::Stop { units }
+            | Order::Attack { units, .. }
+            | Order::AttackMove { units, .. }
+            | Order::SetAfterburner { units, .. }
+            | Order::SetEngagement { units, .. }
+            | Order::SetDeployment { units, .. }
+            | Order::OccupyBuilding { units, .. }
+            | Order::ExitBuilding { units }
+            | Order::Board { units, .. }
+            | Order::Collect { units, .. }
+            | Order::Unload { units, .. }
+            | Order::PopSmoke { units } => units.retain(|id| {
+                self.units
+                    .get(id.0 as usize)
+                    .is_none_or(|u| u.side != side || u.alive())
+            }),
+            Order::UpgradeMove { .. }
+            | Order::Ready
+            | Order::ConfirmPurchase { .. }
+            | Order::CancelPending { .. } => {}
+        }
+        let command = CommandEnvelope {
+            side,
+            player,
+            seq: 0,
+            order,
+            queued,
+        };
+        let prepared = self.prepare(command, self.tick.saturating_sub(1))?;
+        self.pending.push(prepared);
+        Ok(())
+    }
+
     /// Give one player's own policy a fixed purchase plan. The policy emits
     /// ordinary purchase commands through its normal per-player sequence.
     pub fn script_purchases(

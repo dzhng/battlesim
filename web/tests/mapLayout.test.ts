@@ -65,7 +65,9 @@ test(
 test(
   "generation uses the battle's explicit physical rules and pins their identity",
   () => {
-    const request = cases.find((c) => c.name === "open medium")!.request_json;
+    // A flat map: on hills the crown's height decides which woods the
+    // ground-sight certificate needs, and so moves the woods it adds.
+    const request = cases.find((c) => c.name === "metro medium compiled into a map")!.request_json;
     const physical = JSON.parse(rules);
     const build = (input: unknown) =>
       JSON.parse(generate_map(request, presets, templates, JSON.stringify(input)));

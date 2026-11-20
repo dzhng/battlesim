@@ -2,8 +2,11 @@
 //! request reads of it.
 use super::*;
 
+#[path = "hills.rs"]
+mod hills;
 #[path = "swamps.rs"]
 mod swamps;
+pub use hills::{HillDensity, Hills, RIDGE_STEEPEST};
 pub use swamps::Swamps;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -23,6 +26,7 @@ pub struct PresetDefinitions {
     pub forests: Forests,
     pub rivers: Rivers,
     pub swamps: Swamps,
+    pub hills: Hills,
     pub retries: Retries,
     /// District id to what stands there and how its ground is cut. A town
     /// is a mosaic of single-use districts, not a blend on every block.
@@ -72,6 +76,11 @@ impl PresetDefinitions {
             presets.terrain.slope_cutoff_deg,
             presets.rivers.bank_m(),
         ));
+        errors.extend(
+            presets
+                .hills
+                .errors(presets.terrain.slope_cutoff_deg, presets.rivers.bank_m()),
+        );
         if errors.is_empty() {
             Ok(presets)
         } else {

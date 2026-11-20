@@ -24,7 +24,7 @@ export interface PrepareBattleRequest {
   rules?: "frontline";
 }
 
-export type ControllerKind = "human" | "active_ai" | "passive_ai";
+export type ControllerKind = "human" | "active_ai" | "passive_ai" | "directed_ai";
 export interface Player {
   id: string;
   side: "blue" | "red" | "neutral";
@@ -62,6 +62,24 @@ export interface PrepareReplayMessage {
   battle: PreparedBattle;
 }
 
+/** An authored scenario on a `scenario` saved map, by its names. */
+export interface ScenarioRequest {
+  map: string;
+  name: string;
+  /** Start at this chapter, played there by the scenario's solution (the
+   *  chapters' dev loop), or later in it, where its `beat` fires. */
+  chapter?: string;
+  beat?: string;
+}
+
+/** Preparing an authored scenario: the document fixes everything but the
+ *  rules, which are the build's own. */
+export interface PrepareScenarioMessage {
+  type: "prepare-scenario";
+  scenario: ScenarioRequest;
+  documents: PrepareDocuments;
+}
+
 /** An explicit downloaded bundle; admission never resolves a map source. */
 export interface PrepareScenarioBundleMessage {
   type: "prepare-bundle";
@@ -70,6 +88,7 @@ export interface PrepareScenarioBundleMessage {
 }
 export type PreparationMessage =
   | PrepareMessage
+  | PrepareScenarioMessage
   | PrepareReplayMessage
   | PrepareScenarioBundleMessage;
 
@@ -91,9 +110,9 @@ export type RefusalStage = "request" | PrepareStage | BundlePrepareStage;
 
 /** What preparation made: the scenario JSON a battle authority runs
  *  (`ScenarioDefinition`), and what it is. */
-export interface PreparedBattle {
+export interface PreparedBattle<Report extends PreparationReport = PreparationReport> {
   scenario: string;
-  report: PreparationReport;
+  report: Report;
   /** Present when the message asked for `preview`. */
   preview?: PreparedPicture;
 }
@@ -108,10 +127,32 @@ export interface PreparedPicture {
   svg: string;
 }
 
-export interface PreparationReport {
-  stress?: StressPreparation & { livingUnits: Record<"blue" | "red", number> };
+/** What preparation made, and of what: a generated battle's request, or an
+ *  authored scenario's. */
+export type PreparationReport = GeneratedPreparationReport | ScenarioPreparationReport;
+
+/** A generated battle, which names its request: the only kind a lobby
+ *  shows or a replay file saves. */
+export type GeneratedBattle = PreparedBattle<GeneratedPreparationReport>;
+
+export interface GeneratedPreparationReport extends MapPreparationReport {
   /** The request, as the simulation's check wrote it back. */
   request: PrepareBattleRequest;
+  stress?: StressPreparation & { livingUnits: Record<"blue" | "red", number> };
+}
+
+export interface ScenarioPreparationReport extends MapPreparationReport {
+  /** The authored scenario the battle plays, and the seed its document
+   *  fixes. */
+  scenario: ScenarioRequest & { battleSeed: number };
+  /** Where a battle started at a chapter takes up live. */
+  resume?: import("../sim/protocol").Resume;
+  /** The scenario's coach (`<name>.coach.json`); null for none. */
+  coach: import("../coach/coach").CoachDocument | null;
+}
+
+/** What every prepared battle's report says of its map and its making. */
+interface MapPreparationReport {
   /** What the resolved map is. */
   identity: MapIdentity;
   /** The playable area, metres. */

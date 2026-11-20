@@ -54,7 +54,7 @@ fn blue_fog(
     let root = Path::new(ROOT);
     let rules = files::rules(root, "sensors").unwrap();
     let ground = files::ground(root, "sensors", &rules).unwrap();
-    let mut scenario = sim::maps::scenario("sensors", "sensors", rules).unwrap();
+    let mut scenario = sim::maps::encounter_scenario("sensors", "sensors", rules).unwrap();
     scenario.units = serde_json::from_value(serde_json::json!([
         {"side":"blue","kind":"test_recon","position":[300,120]},
         {"side":"blue","kind":"test_tank","position":[300,70]},
@@ -117,7 +117,7 @@ fn building_fog_keeps_each_sides_known_height_after_shelling() {
     let root = Path::new(ROOT);
     let rules = files::rules(root, "camera-lab").unwrap();
     let mut battle = Battle::new(
-        &sim::maps::scenario("camera-lab", "shelling", rules).unwrap(),
+        &sim::maps::encounter_scenario("camera-lab", "shelling", rules).unwrap(),
         7,
     );
     for _ in 0..600 {
@@ -202,7 +202,7 @@ fn a_published_cloud_closes_the_fog_at_its_step_and_rebuilds_only_the_eyes_it_re
     let root = Path::new(ROOT);
     let rules = files::rules(root, "sensors").unwrap();
     let ground = files::ground(root, "sensors", &rules).unwrap();
-    let mut scenario = sim::maps::scenario("sensors", "sensors", rules).unwrap();
+    let mut scenario = sim::maps::encounter_scenario("sensors", "sensors", rules).unwrap();
     // A smoke tank, and a tank far past any reach of its cloud.
     scenario.units = serde_json::from_value(serde_json::json!([
         {"side":"blue","kind":"test_smoke_tank","position":[300,120],"engagement":"return_fire_only"},

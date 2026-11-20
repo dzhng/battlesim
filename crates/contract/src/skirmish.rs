@@ -51,6 +51,31 @@ pub struct Upkeep {
     pub floor_percent: u32,
 }
 
+impl MatchRules {
+    /// These rules with `patch` laid over them, key by key: the way a match
+    /// rule document (Frontline, an authored scenario) changes the base. A
+    /// key the rules lack is refused, as is a patch that leaves them invalid.
+    pub fn patched(
+        &self,
+        patch: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<MatchRules, String> {
+        let mut document = serde_json::to_value(self).map_err(|e| e.to_string())?;
+        // A key the rules lack is refused by name when they are read back;
+        // an optional rule left out of the base may still be patched in.
+        (document.as_object_mut())
+            .expect("match rules serialize as an object")
+            .extend(patch.clone());
+        serde_json::from_value(document).map_err(|e| {
+            // The refusal of a key the rules lack starts with that key.
+            let e = e.to_string();
+            match (patch.keys()).find(|key| e.contains(&format!("unknown field `{key}`"))) {
+                Some(key) => format!("{key}: {e}"),
+                None => e,
+            }
+        })
+    }
+}
+
 fn all_objectives_victory() -> bool {
     true
 }
@@ -66,6 +91,24 @@ pub struct SkirmishSetup {
     pub sites: SkirmishSites,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
+    /// A player's opening wallet in credits, in place of the rules' opening
+    /// income (an authored scenario's grant). Absent, the rules decide.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub opening_credits: BTreeMap<String, u64>,
+    /// What a player may buy, when an authored scenario narrows its shop.
+    /// Absent, the player buys whatever its faction sells.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub offered: BTreeMap<String, Vec<PurchaseSpec>>,
+}
+
+/// A purchase as a card names it: a unit type, and the carrier a squad is
+/// bought in.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PurchaseSpec {
+    pub variant: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -75,6 +118,10 @@ struct UncheckedSetup {
     sites: SkirmishSites,
     #[serde(default)]
     openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
+    #[serde(default)]
+    opening_credits: BTreeMap<String, u64>,
+    #[serde(default)]
+    offered: BTreeMap<String, Vec<PurchaseSpec>>,
 }
 
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
@@ -106,6 +153,8 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
             rules: value.rules,
             sites: value.sites,
             openings: value.openings,
+            opening_credits: value.opening_credits,
+            offered: value.offered,
         })
     }
 }
@@ -205,6 +254,30 @@ pub struct PlayerView {
     pub unit_count: u32,
     pub cap: u32,
     pub pending: Vec<PendingPurchase>,
+    /// What the player may buy now, when its shop is narrowed.
+    pub offered: Option<Vec<OfferedPurchase>>,
+}
+
+/// A purchase a narrowed shop offers: a unit type, and the carrier a squad
+/// is bought in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OfferedPurchase {
+    pub kind: TypeIndex,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<TypeIndex>,
+}
+
+impl OfferedPurchase {
+    /// `purchase` by unit type in `catalog`, if both its names are types.
+    pub fn of(catalog: &crate::catalog::Catalog, purchase: &PurchaseSpec) -> Option<Self> {
+        Some(Self {
+            kind: catalog.index(&purchase.variant)?,
+            carrier: match &purchase.carrier {
+                Some(carrier) => Some(catalog.index(carrier)?),
+                None => None,
+            },
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

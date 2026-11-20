@@ -104,23 +104,19 @@ function workerSeam() {
   };
 }
 
-test("disposal rejects previews while leaving already pending operations silent", async () => {
+test("disposal rejects previews and replays while leaving other pending operations silent", async () => {
   const { deliver, close } = workerSeam();
   const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
   const statuses: string[] = [];
   client.onStatus((status) => statuses.push(status));
   const settled = vi.fn();
-  const pending = [
-    client.ready,
-    client.command({ kind: "stop", units: [1] }),
-    client.advance(1),
-    client.replay(),
-  ];
+  const pending = [client.ready, client.command({ kind: "stop", units: [1] }), client.advance(1)];
   for (const promise of pending) void promise.then(settled, settled);
   const previews = Promise.allSettled([
     client.previewMove({ units: [1], goal: [100, 100], facing: 0 }),
     client.previewPurchase("test_tank", [100, 100]),
     client.previewBuilding({ units: [1], building: 9 }),
+    client.replay(),
   ]);
   try {
     client.dispose();
@@ -128,18 +124,35 @@ test("disposal rejects previews while leaving already pending operations silent"
     expect(statuses).toEqual(["disposed"]);
     expect(close).toHaveBeenCalledOnce();
     expect(await previews).toEqual(
-      Array.from({ length: 3 }, () => ({
+      Array.from({ length: 4 }, () => ({
         status: "rejected",
         reason: new Error("simulation client disposed"),
       })),
     );
     deliver({ type: "ack", id: 1, ack: { seq: 1, applied_tick: 1, error: null, refused: [] } });
     deliver({ type: "advanced", id: 1, tick: 0 });
-    deliver({ type: "replay", json: "{}" });
+    deliver({ type: "replay", id: 1, json: "{}" });
     deliver({ type: "error", message: "late worker failure" });
     await Promise.resolve();
     expect(settled).not.toHaveBeenCalled();
     await expect(client.advance(1)).rejects.toThrow("simulation client disposed");
+  } finally {
+    client.dispose();
+    vi.unstubAllGlobals();
+  }
+});
+
+test("overlapping replays each get their own answer", async () => {
+  const { requests, deliver } = workerSeam();
+  const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
+  try {
+    const first = client.replay();
+    const second = client.replay();
+    const asked = requests.flatMap((request) => (request.type === "replay" ? [request.id] : []));
+    expect(asked).toHaveLength(2);
+    deliver({ type: "replay", id: asked[1], json: "second" });
+    deliver({ type: "replay", id: asked[0], json: "first" });
+    expect(await Promise.all([first, second])).toEqual(["first", "second"]);
   } finally {
     client.dispose();
     vi.unstubAllGlobals();

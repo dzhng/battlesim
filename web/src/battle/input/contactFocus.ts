@@ -1,5 +1,8 @@
 // Jumps through the side's contacts, newest first: N older, Shift+N newer.
 // A contact that left the live list starts the next jump at the newest.
+import { ContactFocusBinding } from "./commandBindings";
+import { isGameKey } from "./keyGuard";
+import { emitUiSignal } from "./uiSignals";
 
 /** One contact the camera can move to. */
 export interface FocusTarget {
@@ -51,4 +54,34 @@ export function focusStep(
       : targets.findIndex((t) => t.id === last.id && t.evidenceTick === last.evidenceTick);
   if (at < 0) return 0;
   return newer ? (at - 1 + targets.length) % targets.length : (at + 1) % targets.length;
+}
+
+/** Step the view through the side's contacts on the binding's key (Shift:
+ *  newer) until `signal` aborts: each jump centres `centerOn` on the target,
+ *  unless `blocked`. The coach hears the key whether or not a contact is
+ *  there: its lesson is the key, and a lesson never waits on the battle. */
+export function listenContactFocus(
+  signal: AbortSignal,
+  targets: () => readonly FocusTarget[],
+  blocked: () => boolean,
+  centerOn: (target: readonly [number, number]) => void,
+): void {
+  /** The contact last visited; null before any. */
+  let focused: Pick<FocusTarget, "id" | "evidenceTick"> | null = null;
+  const jump = (newer: boolean) => {
+    if (blocked()) return;
+    emitUiSignal("contact_focus");
+    const list = targets();
+    const target = list[focusStep(list, focused, newer)];
+    if (!target) return;
+    focused = target;
+    centerOn(target.target);
+  };
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.code === ContactFocusBinding.code && isGameKey(e)) jump(e.shiftKey);
+    },
+    { signal },
+  );
 }

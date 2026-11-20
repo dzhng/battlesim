@@ -430,7 +430,6 @@
       }
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
-      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Skyranger 30",
       "description": "Gun-and-missile air-defense vehicle",
@@ -458,10 +457,10 @@
           ],
           "hp": 120,
           "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
+            "front": 65,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
             "ricochet": {
               "front": 0,
               "side": 0,
@@ -500,9 +499,9 @@
             2.62
           ],
           "muzzle_m": [
-            0.67,
-            -1.05,
-            0.23
+            3.34,
+            0.25,
+            0.26
           ]
         }
       ],
@@ -1377,6 +1376,9 @@
         "family_name": "EC665 Tiger"
       },
       "extends": "roster_profile_attack_helicopter",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "hp": 200,
@@ -1512,6 +1514,9 @@
         "family_name": "Typhoon"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -2515,9 +2520,9 @@
             1.2
           ],
           "muzzle_m": [
-            3.7,
-            0,
-            0.8
+            2.6734,
+            0.0,
+            2.8158
           ]
         }
       ],
@@ -2671,9 +2676,9 @@
             2.14
           ],
           "muzzle_m": [
-            1.75,
-            0,
-            0.56
+            0.8302,
+            0.0,
+            2.4771
           ]
         }
       ],
@@ -2966,6 +2971,9 @@
         "family_name": "Rafale"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -3443,14 +3451,14 @@
           ],
           "turret": true,
           "pivot_m": [
-            -3.3,
+            -5.71,
             0.0,
             1.85
           ],
           "muzzle_m": [
-            1.9,
             0.0,
-            0.51
+            0.0,
+            3.6
           ]
         }
       ],

@@ -119,21 +119,70 @@ pub(super) fn best_air_defender(
     } else {
         Threat::of(rules, seen)
     };
-    let capable: Vec<_> = eligible
-        .iter()
-        .copied()
-        .filter(|&kind| unit_value(rules, kind, &threat) > 0.0)
-        .collect();
-    let mut cards: Vec<_> = capable
-        .iter()
-        .copied()
-        .filter(|&kind| specialized(rules, kind, &threat))
-        .collect();
-    if cards.is_empty() {
-        cards = capable;
-    }
+    let defends = air_defender(rules, eligible, &threat);
+    let mut cards: Vec<_> = eligible.iter().copied().filter(|&k| defends(k)).collect();
     rank(rules, &mut cards, Some(&threat));
     cards.first().copied()
+}
+
+/// Whether a unit answers `threat` in the air: it carries a weapon made for
+/// it, or, when no card of `eligible` does, it can engage it at all.
+fn air_defender<'a>(
+    rules: &'a Rules,
+    eligible: &[TypeIndex],
+    threat: &'a Threat,
+) -> impl Fn(TypeIndex) -> bool + 'a {
+    let capable = move |kind: TypeIndex| unit_value(rules, kind, threat) > 0.0;
+    let specialist = move |kind: TypeIndex| capable(kind) && specialized(rules, kind, threat);
+    let deck_has_specialist = eligible.iter().any(|&k| specialist(k));
+    move |kind| {
+        if deck_has_specialist {
+            specialist(kind)
+        } else {
+            capable(kind)
+        }
+    }
+}
+
+/// Whether the side's answer to aircraft in `layer` falls short of what it
+/// faces there: the defenders this player and its `allies` field and have
+/// bought cost less than the aircraft identified there, or, with only
+/// contacts there, the side holds none. An answer that matches the threat
+/// stops buying, so the rest of the force is still rebuilt.
+fn air_defence_short(
+    frame: &ObservationFrame,
+    rules: &Rules,
+    me: &PlayerView,
+    allies: &[TypeIndex],
+    eligible: &[TypeIndex],
+    layer: AltitudeLayer,
+) -> bool {
+    if !frame_has_layer_threat(frame, rules, layer) {
+        return false;
+    }
+    let seen: f64 = frame
+        .identified
+        .iter()
+        .filter(|unit| rules.catalog.get(unit.kind).mobility.layer() == layer)
+        .map(|unit| f64::from(unit.cost))
+        .sum();
+    let aircraft = Threat::aims(
+        [TargetClass::AirRotor, TargetClass::AirFixedWing].map(|class| (layer, class)),
+    );
+    let defends = air_defender(rules, eligible, &aircraft);
+    let held = frame
+        .own
+        .iter()
+        .map(|unit| unit.kind)
+        .chain(me.pending.iter().flat_map(|p| p.kinds()))
+        .chain(allies.iter().copied())
+        .filter(|&kind| defends(kind));
+    let (count, worth) = held.fold((0, 0.0), |(n, sum), k| (n + 1, sum + cost(rules, k)));
+    if seen > 0.0 {
+        worth < seen
+    } else {
+        count == 0
+    }
 }
 
 /// A ground purchase's lane reservation: follow the entry road heading a
@@ -269,9 +318,9 @@ impl BalancedDoctrine {
     /// preparing, else one reinforcement while it has room under the cap.
     /// A squad bought where no carrier waits for it comes with its ride as
     /// one purchase (M17). The opening, a scripted plan and an answer to
-    /// aircraft buy it alone when credits cover only the squad, and pairing
-    /// buys its carrier later (D17); the rotation saves for both. With room
-    /// under the cap for one unit, the squad goes alone.
+    /// aircraft buy it alone when credits cover only the squad, and its
+    /// carrier is bought once it asks for a ride (D17); the rotation saves
+    /// for both. With room under the cap for one unit, the squad goes alone.
     pub(super) fn shopping(
         &mut self,
         frame: &ObservationFrame,
@@ -279,13 +328,15 @@ impl BalancedDoctrine {
         me: &PlayerView,
         phase: Phase,
         eligible: &[TypeIndex],
+        assignment: Option<&Assignment>,
     ) -> Vec<Buy> {
         if let Some(plan) = self.purchase_plan.as_ref() {
             planned(rules, me, plan)
         } else if phase == Phase::Preparation {
             self.opening(frame, rules, me, eligible)
         } else if me.unit_count < me.cap {
-            self.reinforcement(frame, rules, me, eligible)
+            let allies = assignment.map_or(&[][..], |a| &a.allies);
+            self.reinforcement(frame, rules, me, eligible, allies)
                 .into_iter()
                 .collect()
         } else {
@@ -407,6 +458,7 @@ impl BalancedDoctrine {
         rules: &Rules,
         me: &PlayerView,
         eligible: &[TypeIndex],
+        allies: &[TypeIndex],
     ) -> Option<Buy> {
         let threat = threat(frame, rules);
         let pick = |role: Option<&str>, category: Category, ordinal: usize| {
@@ -444,21 +496,23 @@ impl BalancedDoctrine {
             (Some("helicopter"), Category::Hel),
             (None, Category::Air),
         ];
-        let high_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::HighAir);
-        let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
-        let selected = if let Some(layer) = [
-            (AltitudeLayer::HighAir, high_air_demand),
-            (AltitudeLayer::LowAir, low_air_demand),
-        ]
-        .into_iter()
-        .find_map(|(layer, demanded)| demanded.then_some(layer))
-        {
+        // A deck with no card that engages the aircraft has no answer to
+        // buy: it shops as if none were there.
+        let air_answer = [AltitudeLayer::HighAir, AltitudeLayer::LowAir]
+            .into_iter()
+            .filter(|&layer| air_defence_short(frame, rules, me, allies, eligible, layer))
+            .find_map(|layer| best_air_defender(rules, eligible, frame, layer));
+        let selected = if let Some(k) = air_answer {
             // An answer to aircraft can't wait: it goes alone when its
             // ride is more than the credits cover.
-            best_air_defender(rules, eligible, frame, layer)
-                .and_then(|k| affordable(with_ride(k)).or_else(|| affordable(Buy::alone(k))))
+            affordable(with_ride(k))
+                .or_else(|| affordable(Buy::alone(k)))
                 .map(|buy| (Some(0), buy))
-        } else if let Some(want) = transport::want(
+        } else if let Some(k) = self.ride_wanted(rules, me, eligible) {
+            // A squad that asked for a ride and found none is bought one
+            // before the rotation, saved for like its next role (D17).
+            affordable(Buy::alone(k)).map(|buy| (None, buy))
+        } else if let Some(k) = transport::squad_wanted(
             rules,
             eligible,
             frame
@@ -467,18 +521,15 @@ impl BalancedDoctrine {
                 .map(|u| u.kind)
                 .chain(me.pending.iter().flat_map(|p| p.kinds())),
         ) {
-            // One carrier per squad comes before the rotation, and is saved
-            // for like its next role: a lost transport is rebought, a lost
-            // squad replaced (D17).
-            let (transport::Want::Carrier(k) | transport::Want::Squad(k)) = want;
+            // A carrier whose squad was lost is bought a squad it seats.
             affordable(Buy::alone(k)).map(|buy| (None, buy))
         } else {
             // The next role in the rotation is a plan the AI saves for:
             // credits it can't yet spend on it wait, so an expensive card is
             // bought as surely as a cheap one. Only a role the deck has no
-            // card for is passed over. With no want, every carrier has its
-            // squad, so a squad this buys has none waiting for it: it is
-            // saved for with its ride, and arrives aboard.
+            // card for is passed over. With no squad wanted, every carrier
+            // has its squad, so a squad this buys has none waiting for it:
+            // it is saved for with its ride, and arrives aboard.
             (0..roles.len())
                 .find_map(|offset| {
                     let index = (self.reinforcement + offset) % roles.len();
@@ -491,6 +542,25 @@ impl BalancedDoctrine {
             self.reinforcement = (index + 1) % roles.len();
         }
         Some(buy)
+    }
+
+    /// The carrier for the squad the last decision found no ride for, unless
+    /// one bought on its own since, which seats it, is on its way (one
+    /// bought with a squad is that squad's).
+    fn ride_wanted(
+        &self,
+        rules: &Rules,
+        me: &PlayerView,
+        eligible: &[TypeIndex],
+    ) -> Option<TypeIndex> {
+        let size = self.ride_short?;
+        let coming = me
+            .pending
+            .iter()
+            .any(|p| p.carrier.is_none() && crate::carriage::seats_squad(rules, p.kind, size));
+        (!coming)
+            .then(|| transport::carrier_for(rules, eligible, size))
+            .flatten()
     }
 }
 

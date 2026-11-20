@@ -156,6 +156,7 @@ impl Battle {
             team_memory: std::array::from_fn(|_| crate::skirmish_ai::TeamMemory::default()),
             team_tuning: crate::skirmish_ai::team::TeamTuning::shipped(),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
+            director: setup.director.clone().map(DirectorRun::new),
             encounter: None,
             pending: Vec::new(),
             accepted: Vec::new(),
@@ -179,6 +180,44 @@ impl Battle {
             air_transits: Default::default(),
             ai_receipts: Vec::new(),
         };
+
+        // A force an authored scenario places in a skirmish counts as its
+        // owner's from the start, at its price today: it weighs on the
+        // owner's income and unit cap and pays a bounty like a bought unit,
+        // though nobody paid for it.
+        if let Some(skirmish) = battle.skirmish.as_mut() {
+            // A scenario's narrowed shops, by unit type (its resolver checked
+            // every name is a card its player's faction buys).
+            for (player, offered) in &skirmish.setup.offered.clone() {
+                let index = skirmish.player_index(player).expect("an admitted player");
+                skirmish.offers[index] = Some(
+                    offered
+                        .iter()
+                        .map(|o| {
+                            contract::skirmish::OfferedPurchase::of(&battle.rules.catalog, o)
+                                .expect("an admitted card")
+                        })
+                        .collect(),
+                );
+            }
+            for unit in &battle.units {
+                let Some(player) = unit
+                    .owner
+                    .as_deref()
+                    .and_then(|id| skirmish.player_index(id))
+                else {
+                    continue;
+                };
+                skirmish.entered.insert(
+                    unit.id,
+                    crate::skirmish::EnteredUnit {
+                        price: battle.rules.catalog.get(unit.kind).cost,
+                        entered_tick: 0,
+                        player,
+                    },
+                );
+            }
+        }
 
         // Controllers are installed at tick 0 for every player, including a player
         // that has not bought a unit yet. This is the authoritative controller set.

@@ -1,5 +1,5 @@
 import { renderInRouter as render } from "./support/router";
-import { act, cleanup, fireEvent, renderHook } from "@testing-library/react";
+import { act, cleanup, fireEvent, renderHook, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { MenuButton, PauseMenu, usePauseMenu } from "@apps/battle-lab/src/PauseMenu";
 import { useState } from "react";
@@ -76,17 +76,24 @@ test("restart asks first, and only confirming restarts", async () => {
   view.unmount();
 });
 
-test("the pause menu opens the tutorial above it and closes back to the menu", async () => {
+test("the pause menu opens the guide above it and closes back to the menu", async () => {
   const view = render(<PauseMenu onClose={() => {}} />);
-  await act(async () => view.getByRole("button", { name: "Tutorial" }).click());
-  expect(view.getByRole("dialog", { name: "Tutorial" })).toBeTruthy();
-  expect(view.getByRole("button", { name: "Close tutorial" })).toBeTruthy();
+  const menu = view.getByRole("dialog");
+  // The guide opens as a dialog of its own holding the guide's article, while
+  // the menu steps aside beneath it.
+  const guideItem = menu.querySelector<HTMLButtonElement>('[data-menu-item="guide"]')!;
+  const openGuide = () => act(async () => guideItem.click());
+  await openGuide();
+  const guide = view.getByRole("dialog");
+  expect(guide).not.toBe(menu);
+  expect(within(guide).getByRole("article")).toBeTruthy();
+  // Escape closes the guide, not the menu.
   fireEvent.keyDown(window, { code: "Escape", cancelable: true });
-  expect(view.queryByRole("dialog", { name: "Tutorial" })).toBeNull();
-  await act(async () => view.getByRole("button", { name: "Tutorial" }).click());
-  await act(async () => view.getByRole("button", { name: "Close tutorial" }).click());
-  expect(view.queryByRole("dialog", { name: "Tutorial" })).toBeNull();
-  expect(view.getByRole("dialog", { name: "Paused" })).toBeTruthy();
+  expect(view.getByRole("dialog")).toBe(menu);
+  // So does the guide's own first button.
+  await openGuide();
+  await act(async () => within(view.getByRole("dialog")).getAllByRole("button")[0].click());
+  expect(view.getByRole("dialog")).toBe(menu);
   view.unmount();
 });
 

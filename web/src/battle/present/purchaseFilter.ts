@@ -1,13 +1,15 @@
 /** The reinforcements picker's rules, as pure data: the groups it browses
  *  by and the order cards stand in, matching and the Enter choice, what can
  *  be bought (a card, or a squad with its carrier, and what the pair costs),
- *  and the carriers that can take a squad. */
+ *  and the carriers that can take a squad, within what the player's shop
+ *  sells. */
 import {
   flies,
   type UnitCard,
   type UnitCategory,
   type UnitType,
 } from "@packages/scene-assets/src/units";
+import type { OfferView } from "../sim/observationView";
 
 /** A browsing group: one category's cards, narrowed by role. */
 export type UnitGroup = "rec" | "inf" | "mbt" | "ifv_apc" | "arty" | "aa" | "log" | "hel" | "air";
@@ -114,6 +116,27 @@ export function pairPurchasable(squad: UnitCard, carrier: UnitCard, facts: BuyFa
 }
 
 /** A section of a squad's transport menu: the carriers under one shop tab. */
+/** What a player's shop sells, as the simulation publishes it: everything its
+ *  faction sells, or what an authored scenario narrowed it to. */
+export interface Shop {
+  /** Whether the card is on sale, alone or as a squad. */
+  sells(card: UnitCard): boolean;
+  /** Whether `squad` may be bought riding `carrier`. */
+  carries(squad: UnitCard, carrier: UnitCard): boolean;
+  /** Whether `squad` may be bought on foot. */
+  onFoot(squad: UnitCard): boolean;
+}
+
+export function shopOf(offered: readonly OfferView[] | null): Shop {
+  if (offered === null) return { sells: () => true, carries: () => true, onFoot: () => true };
+  return {
+    sells: (card) => offered.some((o) => o.kind === card.id),
+    carries: (squad, carrier) =>
+      offered.some((o) => o.kind === squad.id && o.carrier === carrier.id),
+    onFoot: (squad) => offered.some((o) => o.kind === squad.id && o.carrier === undefined),
+  };
+}
+
 export interface CarrierSection {
   group: UnitGroup;
   label: string;

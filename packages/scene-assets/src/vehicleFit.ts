@@ -5,7 +5,7 @@
 // articulated appearance.
 
 import { quat, vec3, type Vec3 } from "math";
-import { pointAt } from "./trs.ts";
+import { inverse, mul, pointAt } from "./trs.ts";
 import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import {
   MOUNT_NODES,
@@ -28,7 +28,8 @@ import {
 import { articulatedPositions, articulatedWorlds, positionsBounds } from "./pose.ts";
 import { unitArtRule, type DressingAllowance } from "./unitArt.ts";
 import { extentFindings } from "./boxFit.ts";
-import type { ArticulatedNode, Finding, Tolerances } from "./schema.ts";
+import type { ArticulatedNode, Tolerances } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 import { finding, fmt } from "./finding.ts";
 
 const MAST_CHAIN = ["deploy_mast", "deploy_mast_2", "deploy_mast_3", "deploy_mast_head"];
@@ -244,6 +245,16 @@ export function typeFindings(
       up("deploy_mast");
     }
     out.push(...deployFindings(label, nodes, firingWorlds, deployRig, index, tolerances));
+    out.push(
+      ...deployedMuzzleFindings(
+        label,
+        nodes,
+        firingWorlds,
+        deployRig,
+        mountMuzzles(type.mounts),
+        tolerances,
+      ),
+    );
   }
 
   // The hull box, without what its mounts carry beyond it, its dressing or
@@ -430,6 +441,65 @@ function muzzleFindings(
           "fit.muzzle_arc",
           `${label}: as ${mount.yaw} turns, ${mount.muzzle} leaves the arc ${what} swings it through by up to ${fmt(worst)} m`,
           `put the ${mount.yaw}'s yaw pivot on the row's pivot_m, under its carrier's ring as the simulation's muzzle model turns it`,
+        ),
+      );
+  });
+  return out;
+}
+
+/** Whether `node` is `part` or hangs under it. */
+function carriedBy(nodes: ArticulatedNode[], part: number, node: number): boolean {
+  for (let p = node; p >= 0; p = nodes[p].parent) if (p === part) return true;
+  return false;
+}
+
+/** How far `p` lies outside `box`; zero inside. */
+function outside(p: Vec3, box: ReturnType<typeof positionsBounds>): number {
+  let sum = 0;
+  for (let c = 0; c < 3; c++) {
+    const d = Math.max(box.min[c] - p[c], 0, p[c] - box.max[c]);
+    sum += d * d;
+  }
+  return Math.sqrt(sum);
+}
+
+/** A vehicle that deploys holds its fire until it is set up, so each mount's
+ *  muzzle in firing posture (`muzzle_m`, the deployed opening) lies on what
+ *  its deployment moves: inside the bounds of an outermost deploying part and
+ *  everything it carries, measured in that part's own deployed frame. A
+ *  launcher whose pack rises while its muzzle stays at the travel rest fires
+ *  from mid-air. */
+function deployedMuzzleFindings(
+  label: string,
+  nodes: ArticulatedNode[],
+  worlds: ReturnType<typeof articulatedWorlds>,
+  rig: ReturnType<typeof articulationRig>,
+  mounts: (MountMuzzle | null)[],
+  tolerances: Tolerances,
+): Finding[] {
+  const moving = rig.deploy.map((d) => d.node);
+  const parts = moving
+    .filter((part) => !moving.some((other) => other !== part && carriedBy(nodes, other, part)))
+    .map((part) => {
+      const toPart = inverse(worlds[part]);
+      const inPart = worlds.map((w) => mul(toPart, w));
+      const positions = articulatedPositions(nodes, inPart, 0, (i) => carriedBy(nodes, part, i));
+      return positions.length ? { toPart, box: positionsBounds(positions) } : null;
+    })
+    .filter((part) => part !== null);
+  if (!parts.length) return [];
+  const out: Finding[] = [];
+  const at = vec3.create();
+  mounts.forEach((m, i) => {
+    if (!m) return;
+    muzzleOffset(at, m, 0, 0, 0);
+    const off = Math.min(...parts.map(({ toPart, box }) => outside(pointAt(toPart, at), box)));
+    if (off > tolerances.vehicle_muzzle_m)
+      out.push(
+        finding(
+          "fit.deployed_muzzle",
+          `${label}: deployed, mount ${i} (${m.id}) fires from [${[...at].map(fmt).join(", ")}], ${fmt(off)} m off the parts its deployment moves (tolerance ${tolerances.vehicle_muzzle_m})`,
+          "put the row's muzzle_m at the deployed opening, and carry the drawn muzzle on the deploying part (launcher_rig's pitch_with_deploy)",
         ),
       );
   });

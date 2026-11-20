@@ -263,6 +263,8 @@ pub enum OrderError {
     NotSkirmish,
     MatchFinished,
     UnitUnavailable,
+    /// The buyer's shop, narrowed by an authored scenario, does not offer it.
+    NotOffered,
     WrongFaction,
     InsufficientCredits,
     UnitLimitReached,
@@ -336,6 +338,7 @@ impl OrderError {
             Self::PassiveSide
             | Self::NotSkirmish
             | Self::WrongFaction
+            | Self::NotOffered
             | Self::OutOfSequence { .. }
             | Self::NoUnits
             | Self::UnknownUnit { .. }
@@ -372,6 +375,7 @@ impl OrderError {
             Self::MatchFinished => "match_finished",
             Self::UnitUnavailable => "unit_unavailable",
             Self::WrongFaction => "wrong_faction",
+            Self::NotOffered => "not_offered",
             Self::InsufficientCredits => "insufficient_credits",
             Self::UnitLimitReached => "unit_limit_reached",
             Self::OutOfSequence { .. } => "out_of_sequence",

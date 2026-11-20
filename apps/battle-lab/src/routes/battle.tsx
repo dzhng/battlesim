@@ -31,6 +31,7 @@ import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
 import type { ReplayCameraTrack } from "../replayCamera";
 import { battleRequestForAsked } from "../skirmishData";
+import { ScenarioBattleView } from "./scenarioBattle";
 
 /** The generated map a request asks for. */
 const generatedChoice = (request: PrepareBattleRequest): MapChoice => request.map_source.request;
@@ -114,12 +115,14 @@ export default function Battle() {
         }}
       />
     );
-  return asked.kind === "replay" ? <SavedReplay /> : <AskedBattleView asked={asked} />;
+  if (asked.kind === "replay") return <SavedReplay />;
+  if (asked.kind === "scenario") return <ScenarioBattleView scenario={asked} />;
+  return <AskedBattleView asked={asked} />;
 }
 
 /** The request for what the address asks, pinned to this build's generator,
  *  presets and catalogue. */
-function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
+function AskedBattleView({ asked }: { asked: Extract<AskedBattle, { kind: "generated" }> }) {
   const request = useBuiltScenario(asked, (wasm, match) => battleRequestForAsked(wasm, match));
   if (!request) return null;
   if (buildFailed(request))
@@ -234,7 +237,8 @@ function PreparedBattleView({
     };
   }, [request, replay, visitActive, rules]);
 
-  const activeRequest = prepared?.report.request ?? request;
+  const activeRequest =
+    prepared && "request" in prepared.report ? prepared.report.request : request;
   const subject = subjectOf(activeRequest);
   const cover = (
     <LoadingScreen
@@ -259,9 +263,10 @@ function PreparedBattleView({
   if (!prepared || !view) return cover;
 
   const exportReplay = async ({ sim }: BattleSession, camera: ReplayCameraTrack | undefined) => {
-    if (!sim.local) return null;
+    const { report } = prepared;
+    if (!sim.local || !("request" in report)) return null;
     const file: ReplayFile = {
-      battle: { scenario: prepared.scenario, report: prepared.report },
+      battle: { scenario: prepared.scenario, report },
       replay: await sim.local.replay(),
       camera,
       light_preset: resolvedMatchLighting(replay, window.location.search, request),

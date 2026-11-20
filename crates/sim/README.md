@@ -68,7 +68,9 @@ in forest.
 Sight into ground, low air and high air is authored independently on each unit.
 [Sensors](../contract/src/catalog/sensors.rs) owns the band lookup; zero air reach
 means blind. Radar emission is an independent signature read by receivers and
-anti-radiation weapons, with no sight override or body-based range table.
+anti-radiation weapons, with no sight override or body-based range table. An
+anti-radiation seeker fired into a radar contact homes on the radar behind it
+while that radar lives; any other round aimed at the contact aims at its area.
 Radar refreshes renew one opaque area per emitter. They update the bearing,
 range and evidence lifetime while retaining the sampled area centre until the
 emitter leaves that area, so a stationary report does not jump on each tick.
@@ -155,6 +157,35 @@ map's high-x end, the slot each player holds, and where a seated player's view
 opens. The planner, the lobby picture and the page (through one Wasm call) all
 read lanes from it, and none numbers a road itself.
 
+An authored scenario is a skirmish laid out in advance
+([`contract::scenario_document`](../contract/src/scenario_document.rs)): its forces
+stand from the first tick, entered at today's price for income, cap and bounty,
+and a player's shop may be narrowed to the cards it offers (`NotOffered`
+otherwise, and published so the shop shows only those). Its
+[director](src/director.rs) is the scenario's rules of progression: chapters of
+beats, each firing once when its trigger holds on authoritative facts (where
+units are, what a side knows, the phase) while its chapter is open, and acting
+through the battle's own owners: a `DirectedAi` seat's orders and purchases
+through the paths a player's take (orders by `apply_authored_order`, the path
+fixed scripts use, unrecorded since a replay reruns the director), a grant into
+a wallet, an offer into a shop or the whole shop back. It runs
+before orders apply each tick, and once more on the tick the match is decided,
+so a beat can answer the result; its state is in the digest. A chapter closes
+when its beats have fired, except a recovery beat, which answers trouble only if
+it comes, and a solution's beat; the last chapter ends on the match's result.
+Every side is told which chapter is open; a beat is published, with the tick it
+fired, only to the sides in its `audience`, and the publication's layout names
+chapters and beats, so the page never spells an id. A replay is pinned to its
+director, so an edited story refuses an old record.
+
+A recorded battle resumes at a tick (`Battle::resume`): its replay, cut there,
+replays with nothing published, and the battle goes on live, its record
+continuing from the prefix. It refuses when an active AI played before the tick
+(its memory is not in the digest) or the battle had ended. A scenario's chapter
+restart resumes the playing battle at the chapter's opening, and the chapters'
+dev loop starts a solved scenario where a chapter opens or a beat fires
+(`Battle::chapter_start`), with its human-capable seats handed back.
+
 [The skirmish AI](src/skirmish_ai/) plays one player from its side's
 observation, and everything it decides is an ordinary command. A unit of its
 own that is losing a fight pops its smoke and reverses out of the cloud
@@ -163,7 +194,11 @@ A squad it buys where no carrier waits for it comes aboard the carrier that
 seats it, as one purchase ([purchase](src/skirmish_ai/purchase.rs)); boarding
 pairs a squad with a carrier it already has, as after a loss. A squad calls
 for a ride only when the driver’s intended drop brings it closer to its task.
-The driver waits while the squad walks to board.
+The driver waits while the squad walks to board. A carrier is bought on its
+own only for a squad that called for a ride and has no carrier with room, so a
+squad with no use for one never leaves a transport idle. Aircraft in sight buy
+air defence until the side's, its teammates' included, is worth the aircraft
+seen; then the ordinary rotation rebuilds the rest of the force.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 Each AI opens on the lane its slot holds; that pull fades over the battle, so
@@ -270,11 +305,12 @@ A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
 never game content), loaded by `fixtures::test_rules`, and adds a fake unit when
 it needs a shape they lack; it never names or walks the faction roster, which
 grows every day. The rules fixture carries no ground: a test that needs a map
-asks for a saved `test` map by name (`fixtures::with_map`, which refuses a
-`capture` map), builds an analytic one, or generates one from a seed. An analytic map's
+asks for a saved `test` map by name (`fixtures::with_map`, which refuses any
+other category), builds an analytic one, or generates one from a seed. An analytic map's
 buildings come from the generator's one template catalogue, so a test garrisons,
 shells and walks round the buildings a battle places. A test that needs the roster says why (the roster's own
-resolution, a roster model's fit, the menu reel).
+resolution, a roster model's fit, the menu reel, a shipped scenario played or
+placed by its own document).
 What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
 checks), so loading it is its check.

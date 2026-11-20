@@ -35,7 +35,18 @@ const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(
  *  frame's camera and render scale. */
 export function useBattleOverlay(
   session: BattleSession,
-  { scenario, camera, shown = true }: { scenario: string; camera: Camera3DParams; shown?: boolean },
+  {
+    scenario,
+    camera,
+    shown = true,
+    marks,
+  }: {
+    scenario: string;
+    camera: Camera3DParams;
+    shown?: boolean;
+    /** Scenario zones a coach step marks, by id. */
+    marks?: readonly string[];
+  },
 ) {
   const side = session.viewer?.side ?? "blue";
   // The roads in are numbered by `sim::entries`.
@@ -44,7 +55,10 @@ export function useBattleOverlay(
     const lanes = s.skirmish
       ? lanesOf(gameWasm, JSON.stringify(s.skirmish.sites), s.players ?? []).entries
       : [];
-    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side) };
+    return {
+      size: s.map.size,
+      drawn: battleOverlayScenario(s, lanes, side),
+    };
   }, [scenario, side]);
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.
@@ -84,6 +98,7 @@ export function useBattleOverlay(
         allies: session.allies,
         hovered: session.hovered,
         buildings: session.buildingIndex,
+        marks,
       },
       border,
       gameStroke(metresPerPx, renderScale),
@@ -105,6 +120,7 @@ export function useBattleOverlay(
     session.revealed,
     session.hovered,
     session.buildingIndex,
+    marks,
     border,
     metresPerPx,
     renderScale,

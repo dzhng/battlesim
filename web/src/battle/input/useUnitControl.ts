@@ -23,6 +23,7 @@ import type { SeatClient } from "../sim/client";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
+import { emitUiSignal } from "./uiSignals";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import {
@@ -82,7 +83,15 @@ export function useUnitControl(
   enabledRef.current = enabled;
   const eventsRef = useRef(events);
   eventsRef.current = events;
-  const [selected, setSelection] = useState<number[]>([]);
+  const [selected, reconcileSelection] = useState<number[]>([]);
+  // Set by the player's own selecting (a click, a box, a card, a group key),
+  // and heard once the selection it made renders: what the coach calls
+  // `selected`, never the selection merely persisting.
+  const picked = useRef(false);
+  const setSelection = useCallback((next: SetStateAction<number[]>) => {
+    picked.current = true;
+    reconcileSelection(next);
+  }, []);
   // The selection as last heard, and the unit a left-click picked to change it.
   const heardSelection = useRef<readonly number[]>([]);
   const clickedRef = useRef<number | null>(null);
@@ -109,7 +118,7 @@ export function useUnitControl(
   const onField = selected.filter((id) =>
     observation?.own.some((u) => u.id === id && !aboardCarrier(u)),
   );
-  if (onField.length !== selected.length) setSelection(onField);
+  if (onField.length !== selected.length) reconcileSelection(onField);
   /** The selection's units that take orders: an ally's never do. */
   const selectedUnits = useMemo(
     () => selected.flatMap((id) => yours.find((u) => u.id === id && !aboardCarrier(u)) ?? []),
@@ -147,10 +156,13 @@ export function useUnitControl(
   selectedUnitsRef.current = selectedUnits;
   const gestures = useRef(new MoveGestures());
   const clicks = useRef(new SelectClicks());
-  const setSelected = useCallback((next: SetStateAction<number[]>) => {
-    clicks.current.reset();
-    setSelection(next);
-  }, []);
+  const setSelected = useCallback(
+    (next: SetStateAction<number[]>) => {
+      clicks.current.reset();
+      setSelection(next);
+    },
+    [setSelection],
+  );
   const observationRef = useRef(observation);
   observationRef.current = observation;
   /** Every own unit as last observed: passengers are among them. */
@@ -161,11 +173,19 @@ export function useUnitControl(
   clientRef.current = client;
   /** Space held (D2+): the order overlay shows every own unit. */
   const showOrders = useHeldKey(ShowOrdersBinding.code, enabled ? window : null);
+  useEffect(() => {
+    if (showOrders) emitUiSignal("show_orders");
+  }, [showOrders]);
+  useEffect(() => {
+    if (!picked.current) return;
+    picked.current = false;
+    if (selectedUnitsRef.current.length) emitUiSignal("selected");
+  }, [selected]);
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
     clientRef.current = client;
-    setSelection([]);
+    reconcileSelection([]);
     setStored(new Map());
     setAcks([]);
     setMode("move");
@@ -247,6 +267,7 @@ export function useUnitControl(
     async (order: Order, queued = false) => {
       if (!client || !enabledRef.current) return null;
       eventsRef.current?.onIssue?.(order, queued);
+      if (order.kind === "move" && order.facing != null) emitUiSignal("moved_with_facing");
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
       if (clientRef.current === client) {
@@ -341,7 +362,7 @@ export function useUnitControl(
         void issue(order, order.kind !== "upgrade_move" && queued);
       }
     },
-    [issue, setMode, intentAt, catalog, player],
+    [issue, setMode, setSelection, intentAt, catalog, player],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
@@ -452,6 +473,7 @@ export function useUnitControl(
       if (action !== "recall") {
         const units = selectedUnitsRef.current.map((u) => u.id);
         setStored((current) => storeGroup(current, key, units, action === "add"));
+        if (units.length) emitUiSignal("group_set");
         return;
       }
       // A key with no group leaves the selection alone (RTS convention).

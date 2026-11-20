@@ -8,10 +8,12 @@
 //! `movement.drive.turn_in_place_deg` of heading error. A body they can't
 //! shove in the way of the turn (a trunk at the flank, a wall at the nose)
 //! sends them straight along their length to where the next turn clears
-//! ([`room_to_turn`]). Wheels never pivot: the yaw
-//! turns only as the hull rolls, at most `1 / radius` per metre, so a
-//! U-turn is an arc. A waypoint inside the turning circle, or already under
-//! the hull, is dropped when the straight way past it is clear ([`prune`]).
+//! ([`room_to_turn`]). Wheels never pivot on the move: the yaw turns only
+//! as the hull rolls, at most `1 / radius` per metre, so a U-turn is an arc.
+//! At rest they pivot only by the game rules' named exceptions (an attack
+//! order, the last of a right-drag's facing). A waypoint inside the turning
+//! circle, or already under the hull, is dropped when the straight way past
+//! it is clear ([`prune`]).
 //! A blocked turn rolls straight on instead, while straight ahead is clear,
 //! when the way lies ahead or the block is at the trailing end (a tail in
 //! an alley's mouth, which backing would drive further in). Otherwise the
@@ -512,7 +514,7 @@ pub(super) fn lands(
 
 /// The ordered arrival heading, refined by the route's final approach.
 /// Preview and publication share this estimate; ordinary combat may face elsewhere.
-pub fn final_facing(rules: &Rules, unit: &Unit) -> f64 {
+pub fn final_facing(unit: &Unit) -> f64 {
     let Some((goal, _)) = unit.movement_goal() else {
         return unit.turn_to.unwrap_or(unit.yaw);
     };
@@ -527,32 +529,19 @@ pub fn final_facing(rules: &Rules, unit: &Unit) -> f64 {
         0 | 1 => unit.position.xy(),
         n => route[n - 2],
     };
-    final_yaw(rules, unit, facing, from, end, unit.direction()).unwrap_or(unit.yaw)
+    final_yaw(from, end, facing, unit.direction()).unwrap_or(unit.yaw)
 }
 
 /// The yaw a hull ends at when `order` completes (D2): a right-drag's
-/// facing (Q9) where it can take it, else the way it travels along the
-/// route's last leg (held facing on a reverse, Q31). Wheels never pivot:
-/// driving forward they line up on the facing as far as they can
-/// ([`line_up_heading`]); once routed, the lead-in is that last leg.
-pub fn final_yaw(
-    rules: &contract::scenario::Rules,
-    unit: &Unit,
-    facing: Option<f64>,
-    from: V2,
-    end: V2,
-    direction: MoveDirection,
-) -> Option<f64> {
-    // Tracks and rotors turn on the spot, so they end facing as ordered.
-    let pivots = unit.flies() || unit.ground(rules).drive.is_some_and(|d| d.tracked);
-    if let Some(f) = facing.filter(|_| pivots || !unit.is_vehicle()) {
-        return Some(f);
-    }
-    if let Some(f) = facing.filter(|_| direction == MoveDirection::Forward) {
-        return line_up_heading(from, end, f);
-    }
+/// facing (Q9), else the way it travels along the route's last leg (held
+/// facing on a reverse, Q31). Every hull ends facing the drag: tracks and
+/// rotors pivot to it at rest, and wheels, having lined up on it as far as
+/// they could ([`line_up_heading`]), turn the rest of the way on the spot.
+pub fn final_yaw(from: V2, end: V2, facing: Option<f64>, direction: MoveDirection) -> Option<f64> {
     let leg = end - from;
-    (leg.length() > 1e-6).then(|| travel(libm::atan2(leg.y, leg.x), gear_sign(direction)))
+    facing.or_else(|| {
+        (leg.length() > 1e-6).then(|| travel(libm::atan2(leg.y, leg.x), gear_sign(direction)))
+    })
 }
 
 /// The heading a wheeled hull arriving from `from` can drive in to `end`

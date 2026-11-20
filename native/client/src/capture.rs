@@ -365,7 +365,7 @@ impl Replay {
             libraries: root.join("fixtures"),
         };
         let scenario = catalogue
-            .scenario(&map, encounter, files::rules(root, &map)?)
+            .encounter_scenario(&map, encounter, files::rules(root, &map)?)
             .map_err(|e| e.to_string())?;
         let kinds = scenario
             .units

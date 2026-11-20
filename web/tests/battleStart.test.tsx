@@ -139,7 +139,8 @@ const message = (seed: number): PrepareMessage => ({
   request: { battle_seed: seed } as PrepareBattleRequest,
   documents: { rules: "{}", presets: "{}", templates: "[]" },
 });
-const battle = (name: string) => ({ scenario: name }) as PreparedBattle;
+// A generated battle's answer, marked by its scenario text.
+const battle = (name: string) => ({ scenario: name, report: { request: {} } }) as PreparedBattle;
 /** What `promise` has settled to by now, or "pending". */
 async function settled(promise: Promise<unknown>): Promise<unknown> {
   const pending = Symbol("pending");

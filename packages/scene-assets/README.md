@@ -25,8 +25,11 @@ A unit or wreck must really switch with zoom: every mesh names its tier, and
 each tier draws a recorded fraction of the one before. Those rules, the
 dressing allowance and the budgets are kept per unit class (a vehicle's
 physical class, or soldier) in [unit art](src/unitArt.ts), as scenery's are
-per kind; each number there is a loose tripwire, raised when real art
-outgrows it and nothing visibly suffers.
+per kind. Every class has a row naming its triangle budget, and a unit whose
+class has none is refused, so a new class arrives with its limit. A class's
+triangle budget holds any one model near its siblings
+(about 1.5 times the class's median model): a model over it is simplified
+until it fits, and the budget moves only when the whole class is re-measured.
 
 Every bundle has four tiers. A static prop carries a fifth, coarsest mesh,
 its **far mesh**, for when it is only a few pixels tall. By default the bake
@@ -64,7 +67,10 @@ so hull fit leaves it out.
 Stationary supply service is a simulation capability, not evidence of deployment
 hardware. Sources may remain ordinary cargo vehicles. A source that declares
 deployment nodes or motion is held to the declared hardware chains and deployed
-ground contact; the validator does not invent a mast or outriggers.
+ground contact; the validator does not invent a mast or outriggers. A vehicle
+that deploys holds its fire until it is set up, so each of its muzzles must lie
+on what its deployment moves, in the deployed pose (`fit.deployed_muzzle`): a
+launcher's drawn muzzle rides its rising pack, never its travel rest.
 
 [Scenery kinds](src/scenery.ts) define art roles, states and per-tier budgets. A kind may also take pieces: states cut
 from its whole where they lie in it (a tank wreck's hull and turret, for the

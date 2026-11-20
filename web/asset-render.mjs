@@ -167,22 +167,30 @@ export async function sheet(args) {
   }
 }
 
-/** The reference sheet's rows for `variant`, whose source is at `source`:
- *  the library of the roster family the source is in
- *  (`assets/source/roster/<family>/`, or a kit's
- *  `assets/source/roster/infantry/<kit>/`), or why there is no panel. */
-/** A source's reference family: its roster folder, or for a disabled card
- *  (`assets/source/roster/disabled/`) its manifest entry's `source_family`. */
-function referenceFamily(source) {
+/** A roster export receipt can point to a library shared by several source
+ * folders. Disabled cards inherit their library from the roster manifest. */
+function referenceFamily(source, variant) {
   const folder = source?.match(/^assets\/source\/roster\/(?:infantry\/)?([^/]+)\//)?.[1];
-  if (folder !== "disabled") return folder;
+  if (folder !== "disabled") {
+    if (!folder) return undefined;
+    const receipt = join(ROOT, dirname(source), "source-receipt.json");
+    const library = existsSync(receipt) && readJson(receipt).references;
+    const path = Array.isArray(library)
+      ? library.find(
+          (item) =>
+            existsSync(join(ROOT, item)) &&
+            readJson(join(ROOT, item)).entries.some((entry) => entry.variant === variant),
+        )
+      : library;
+    return path ? basename(dirname(path)) : folder;
+  }
   const body = source.replace(/_wreck\.glb$/, ".glb");
   const manifest = readJson(join(ROOT, "fixtures/units/model-manifest.json"));
   return manifest.entries.find((e) => e.source_path === body)?.source_family;
 }
 
 function referenceRows(source, variant) {
-  const family = referenceFamily(source);
+  const family = referenceFamily(source, variant);
   if (!family) return `no reference panel: ${source ?? variant} is not in a roster family`;
   const folder = join(REFERENCES, family);
   const json = join(folder, "references.json");

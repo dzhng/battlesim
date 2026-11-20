@@ -8,13 +8,15 @@ import { workerAuthority, type WorkerScope } from "../sim/workerAuthority";
 import type { Authority } from "../sim/authority";
 import { PreparationRefused, prepare, prepareReplay } from "./prepare";
 import { prepareScenarioBundle, type ScenarioBundlePreparationModule } from "./scenarioBundle";
-import type { PrepareWorkerRequest } from "./protocol";
+import { prepareScenario, type ScenarioPreparationModule } from "./scenario";
+import type { PrepareStage, PrepareWorkerRequest } from "./protocol";
 
 const scope = self as unknown as WorkerScope;
 let authority: Authority | null = null;
 self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => {
   if (
     event.data.type !== "prepare" &&
+    event.data.type !== "prepare-scenario" &&
     event.data.type !== "prepare-replay" &&
     event.data.type !== "prepare-bundle"
   ) {
@@ -45,6 +47,8 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
             return battle;
           },
           replayBattle: (scenario, replay) => prepared.world.into_replay(scenario, replay),
+          resumeBattle: (scenario, replay, tick) =>
+            prepared.world.into_resumed(scenario, replay, tick),
         }));
         self.postMessage({
           type: "bundle-prepared",
@@ -56,22 +60,32 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
         });
         return;
       }
+      const onStage = (stage: PrepareStage) => self.postMessage({ type: "stage", stage });
       const { world, scenario, report, picture } =
         message.type === "prepare-replay"
           ? prepareReplay(wasm, message.battle)
-          : await prepare(
-              wasm,
-              memory,
-              message.request,
-              message.documents,
-              (stage) => self.postMessage({ type: "stage", stage }),
-              undefined,
-              message.stress,
-            );
+          : message.type === "prepare-scenario"
+            ? await prepareScenario(
+                wasm as unknown as ScenarioPreparationModule,
+                memory,
+                message.scenario,
+                message.documents,
+                onStage,
+              )
+            : await prepare(
+                wasm,
+                memory,
+                message.request,
+                message.documents,
+                onStage,
+                undefined,
+                message.stress,
+              );
       authority = workerAuthority(scope, async () => ({
         memory,
         createBattle: (scenario, seed) => world.into_battle(scenario, seed),
         replayBattle: (scenario, replay) => world.into_replay(scenario, replay),
+        resumeBattle: (scenario, replay, tick) => world.into_resumed(scenario, replay, tick),
       }));
       // The lobby's picture is drawn here, beside the map it is of (D39).
       const preview =

@@ -17,6 +17,8 @@ import { LOCK, readLock, recordVerdicts } from "./lock";
 import { generateEffects } from "./effects";
 import { assetsEncoder, generateMusic } from "./music";
 import { writePacks } from "./packs";
+import { bentoSpeech } from "./bento";
+import { generateNarration, writeNarrationPacks } from "./narration";
 import {
   assetsProcessor,
   checkVoices,
@@ -129,6 +131,11 @@ const USAGE = `usage: bun run generate <command>
   voices [selection]       generate, process, transcribe and lock takes
          [--dry-run] [--max-chars N]
   process [selection]      re-render takes whose profile changed; no calls
+  narration [--import dir] [--workspace slug] [--offline]
+                           every narration line a take, through Bento: bought
+                           only when its text or voice changed (a review take
+                           in --import is used instead), processed, transcribed
+                           and locked; writes each narrator's pack
   check                    prove the lock against the files by hash
   report                   the plan, then what the lock holds
   verdict ok|bad|clear <take>@<sha256> ...
@@ -252,6 +259,18 @@ else if (command === "check") {
   if (problems.length) process.exitCode = 1;
 } else if (command === "verdict") {
   if (!recordVerdicts(resolve(root, LOCK), args[0], args.slice(1), log)) process.exitCode = 1;
+  writeNarrationPacks(root, catalog, readLock(resolve(root, LOCK)).takes);
+} else if (command === "narration") {
+  const result = await generateNarration({
+    root,
+    catalog,
+    client: args.includes("--offline") ? null : bentoSpeech(flag("workspace")),
+    profiles: readProfiles(),
+    processor: assetsProcessor,
+    imports: flag("import"),
+    log,
+  });
+  console.log(`narration: bought=${result.bought} flagged=${result.flagged}`);
 } else if (command === "pack") {
   const result = writePacks({
     root,

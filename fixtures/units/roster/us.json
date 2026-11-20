@@ -645,6 +645,9 @@
         "family_name": "F-15 Eagle"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -728,6 +731,9 @@
         "family_name": "F-15 Eagle"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -793,6 +799,9 @@
         "family_name": "F-22 Raptor"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -858,6 +867,9 @@
         "family_name": "F-35 Lightning II"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -2259,9 +2271,9 @@
             1.2
           ],
           "muzzle_m": [
-            3.7,
-            0,
-            0.8
+            2.6734,
+            0.0,
+            2.8158
           ]
         }
       ],
@@ -2978,7 +2990,6 @@
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
-      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Stryker M-SHORAD",
       "description": "Gun-and-missile air-defense vehicle",
@@ -3006,10 +3017,10 @@
           ],
           "hp": 120,
           "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
+            "front": 35,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
             "ricochet": {
               "front": 0,
               "side": 0,
@@ -3048,9 +3059,9 @@
             2.5
           ],
           "muzzle_m": [
-            1.02,
-            0.85,
-            0.42
+            2.17,
+            0.0,
+            0.4
           ]
         }
       ],
@@ -3333,9 +3344,9 @@
             2.14
           ],
           "muzzle_m": [
-            1.75,
-            0,
-            0.56
+            0.8302,
+            0.0,
+            2.4771
           ]
         }
       ],

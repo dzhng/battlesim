@@ -157,6 +157,10 @@ impl<'a> Country<'a> {
             groves: Vec::new(),
             bodies: Vec::new(),
             steads: Vec::new(),
+            relief: (!plan.relief.is_empty()).then(|| {
+                let hills = crate::relief::ReliefBound::new(&plan.relief, plan.size, 32.0);
+                (hills, plan.height_grid_m * core::f64::consts::SQRT_2)
+            }),
             tally: Tally::default(),
             next_prop: plan
                 .buildings

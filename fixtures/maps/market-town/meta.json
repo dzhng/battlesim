@@ -9,5 +9,6 @@
   "source": "generated",
   "seed": "1",
   "encounters": ["menu"],
+  "scenarios": [],
   "benchmarks": []
 }

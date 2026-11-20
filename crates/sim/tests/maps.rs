@@ -86,6 +86,8 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
         let rules = match catalogue.category(&id).unwrap() {
             contract::maps::MapCategory::Test => &test_rules,
             contract::maps::MapCategory::Capture => &capture_rules,
+            // A scenario map carries scenarios, never encounters.
+            contract::maps::MapCategory::Scenario => continue,
         };
         for name in catalogue.encounters(&id).unwrap() {
             let encounter = catalogue
@@ -286,7 +288,7 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
     .unwrap();
 
     let scenario = catalogue
-        .scenario("geometry", "retuned", rules.clone())
+        .encounter_scenario("geometry", "retuned", rules.clone())
         .unwrap_or_else(|e| panic!("{e}"));
     let mut battle = Battle::new(&scenario, 1);
     // The retuned row changes the field it names and keeps the rest; the
@@ -314,7 +316,7 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
     // shared row.
     assert_eq!(rules.weapons["tank_ap"].reload_s, shared.reload_s);
     let other = catalogue
-        .scenario("geometry", "authority", rules)
+        .encounter_scenario("geometry", "authority", rules)
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(other.rules.weapons["tank_ap"].reload_s, shared.reload_s);
 }
@@ -352,7 +354,7 @@ fn an_override_is_held_to_the_shipped_rules_checks_naming_its_encounter_and_fiel
         )
         .unwrap();
         let error = catalogue
-            .scenario("geometry", "authority", test_rules())
+            .encounter_scenario("geometry", "authority", test_rules())
             .unwrap_err();
         assert_eq!(error.code, ResolveCode::InvalidEncounter, "{error}");
         assert_eq!(error.location, "geometry/encounters/authority.json");

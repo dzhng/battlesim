@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "eastern_mi_28_havoc_mi_28nm",
+    "glb": "assets/source/skins/mi_28_havoc/mi-28nm-airframe.glb",
+    "sha256": "178dc996b650c44c99af70623edbfff181148bcb93bcebcb2950baa7938a99ce",
+    "title": "Mi-28N Havoc",
+    "creator": "Rukh3D",
+    "source": "https://sketchfab.com/3d-models/mi-28n-havoc-3e80c95bbadf46abbafba9d9a08afc68",
+    "source_sha256": "6cb5310139831afa883ef11d5a85469cbb968ae548181886dc3cdc3c8143dbf0",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Regraded the airframe camouflage and wheel finishes, changed the glazing, and fitted rotor assemblies and the NM mast radar."
+  }
+]

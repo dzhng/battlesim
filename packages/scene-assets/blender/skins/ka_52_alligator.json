@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "eastern_ka_52_alligator_ka_52m",
+    "glb": "assets/source/skins/ka_52_alligator/ka52-airframe.glb",
+    "sha256": "3e59d406b81c15a7b4c1393f214b318b0c9d9116d89bf8e52a0fdb90012aa9a4",
+    "title": "Russian Ka-52 Alligator",
+    "creator": "42manako",
+    "source": "https://sketchfab.com/3d-models/russian-ka-52-alligator-9b31733ceed24be49b2f621487b35ea9",
+    "source_sha256": "a274619848394db42faedf9ef489d54fb3f6df4b5369ffe8a09d149670213ca4",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "adaptation": "Baked to its rest pose; rotors, rotor blur, alpha cards, decals and the nose pitot removed; turned nose-forward, scaled to the catalog frame and its textures cut to 1024 px (the stores' to 512); rotors, mast and markings replaced (blender/skins/ka_52_alligator.py)."
+  }
+]

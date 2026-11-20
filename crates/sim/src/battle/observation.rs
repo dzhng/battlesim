@@ -334,7 +334,7 @@ impl Battle {
                                 u.unit_type(&self.rules),
                             ),
                         }),
-                        final_facing: movement::final_facing(&self.rules, u),
+                        final_facing: movement::final_facing(u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u
@@ -390,6 +390,17 @@ impl Battle {
                     }),
             );
             frame.encounter = self.encounter;
+            frame.scenario = self
+                .director
+                .as_ref()
+                .map(|run| contract::director::ScenarioView {
+                    chapter: run.chapter() as u32,
+                    beats: run
+                        .fired()
+                        .filter(|(_, beat, _)| beat.audience.contains(&side))
+                        .map(|(place, _, at)| (place, at))
+                        .collect(),
+                });
             // Economy is a deliberately binary mode. Neutral still gets a
             // normal observation stream, but it has no wallet, purchase
             // queue, or objective score to publish.

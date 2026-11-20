@@ -2693,7 +2693,7 @@
           "patch": {
             "capabilities": {
               "active_protection": {
-                "capacity": 4,
+                "capacity": 2,
                 "cooldown_s": 3,
                 "icon": "trophy",
                 "name": "Trophy",
@@ -7095,7 +7095,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -7419,9 +7419,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                7.6,
+                5.1081,
                 0.0,
-                0.0
+                2.6225
               ],
               "name": "Rockets",
               "on": null,
@@ -8274,7 +8274,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -8410,7 +8410,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -8513,7 +8513,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -8737,7 +8737,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -8854,7 +8854,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -8974,7 +8974,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -9104,7 +9104,7 @@
               "seconds": 3.0
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "supply": {
@@ -9245,7 +9245,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -9402,7 +9402,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -9570,9 +9570,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.37,
+                1.6463,
                 1.12,
-                0.35
+                1.0034
               ],
               "name": "Pantsir-SM",
               "on": null,
@@ -9909,14 +9909,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                6.9,
                 0.0,
-                1.21
+                0.0,
+                6.9
               ],
               "name": "S-300PMU2 Favorit",
               "on": null,
               "pivot_m": [
-                -5.6,
+                -6.81,
                 0.0,
                 1.75
               ],
@@ -9924,7 +9924,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "s300_missile"
               ]
             }
           ],
@@ -10006,14 +10006,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                5.35,
                 0.0,
-                1.0
+                0.0,
+                5.35
               ],
               "name": "S-350",
               "on": null,
               "pivot_m": [
-                -4.9,
+                -5.9,
                 0.0,
                 1.85
               ],
@@ -10021,7 +10021,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "s350_missile"
               ]
             }
           ],
@@ -10212,7 +10212,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -10348,7 +10348,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -10505,7 +10505,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -10641,7 +10641,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "radar_receiver": {
@@ -10780,7 +10780,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -10937,7 +10937,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -12167,7 +12167,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -12287,7 +12287,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -12673,7 +12673,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -12798,7 +12798,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -13067,16 +13067,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 20.0,
-                "rear": 10.0,
+                "front": 65.0,
+                "rear": 25.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 20.0,
+                "side": 40.0
               },
               "half_extents_m": [
                 4.04,
@@ -13088,12 +13088,7 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {
-            "deploy": {
-              "pack_seconds": 1.0,
-              "seconds": 3.0
-            }
-          },
+          "capabilities": {},
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -13112,9 +13107,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.67,
-                -1.05,
-                0.23
+                3.34,
+                0.25,
+                0.26
               ],
               "name": "Skyranger 30",
               "on": null,
@@ -13394,7 +13389,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -13524,7 +13519,7 @@
               "seconds": 3.0
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "supply": {
@@ -13785,7 +13780,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -14381,7 +14376,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -14498,7 +14493,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -14627,7 +14622,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -14959,14 +14954,14 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.9,
                 0.0,
-                0.51
+                0.0,
+                3.6
               ],
               "name": "IRIS-T SLM",
               "on": null,
               "pivot_m": [
-                -3.3,
+                -5.71,
                 0.0,
                 1.85
               ],
@@ -15045,7 +15040,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -15770,7 +15765,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -16063,9 +16058,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.7,
+                2.6734,
                 0.0,
-                0.8
+                2.8158
               ],
               "name": "Rockets",
               "on": null,
@@ -16149,7 +16144,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -16296,9 +16291,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.75,
+                0.8302,
                 0.0,
-                0.56
+                2.4771
               ],
               "name": "NASAMS 3",
               "on": null,
@@ -16373,7 +16368,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -16733,7 +16728,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -16982,7 +16977,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "radar_receiver": {
@@ -17121,7 +17116,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -17450,7 +17445,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -17608,7 +17603,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -17921,7 +17916,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18141,7 +18136,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18258,7 +18253,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18378,7 +18373,7 @@
               "seats": 3
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18605,7 +18600,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18735,7 +18730,7 @@
               "seconds": 3.0
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "supply": {
@@ -18876,7 +18871,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "radar_receiver": {
@@ -19015,7 +19010,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19172,7 +19167,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19308,7 +19303,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19444,7 +19439,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19601,7 +19596,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -20888,7 +20883,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -21032,7 +21027,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -21176,7 +21171,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -21341,9 +21336,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.7,
+                2.6734,
                 0.0,
-                0.8
+                2.8158
               ],
               "name": "Rockets",
               "on": null,
@@ -21914,9 +21909,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.75,
+                0.8302,
                 0.0,
-                0.56
+                2.4771
               ],
               "name": "NASAMS 3",
               "on": null,
@@ -22437,16 +22432,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 20.0,
-                "rear": 10.0,
+                "front": 35.0,
+                "rear": 15.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 10.0,
+                "side": 25.0
               },
               "half_extents_m": [
                 3.57,
@@ -22458,12 +22453,7 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {
-            "deploy": {
-              "pack_seconds": 1.0,
-              "seconds": 3.0
-            }
-          },
+          "capabilities": {},
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -22482,9 +22472,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                1.02,
-                0.85,
-                0.42
+                2.17,
+                0.0,
+                0.4
               ],
               "name": "Stryker M-SHORAD",
               "on": null,
@@ -22559,7 +22549,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -22687,7 +22677,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -22800,7 +22790,7 @@
       "patch": {
         "capabilities": {
           "active_protection": {
-            "capacity": 4,
+            "capacity": 2,
             "cooldown_s": 3,
             "icon": "trophy",
             "name": "Trophy",
@@ -27202,7 +27192,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -27671,9 +27661,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            7.6,
+            5.1081,
             0.0,
-            0.0
+            2.6225
           ],
           "name": "Rockets",
           "on": null,
@@ -28737,7 +28727,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -28877,7 +28867,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -28983,7 +28973,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -29304,7 +29294,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29425,7 +29415,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29549,7 +29539,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29683,7 +29673,7 @@
           "seconds": 3.0
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "supply": {
@@ -29828,7 +29818,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29990,7 +29980,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -30143,9 +30133,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.37,
+            1.6463,
             1.12,
-            0.35
+            1.0034
           ],
           "name": "Pantsir-SM",
           "on": null,
@@ -30727,14 +30717,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            6.9,
             0.0,
-            1.21
+            0.0,
+            6.9
           ],
           "name": "S-300PMU2 Favorit",
           "on": null,
           "pivot_m": [
-            -5.6,
+            -6.81,
             0.0,
             1.75
           ],
@@ -30742,7 +30732,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "s300_missile"
           ]
         }
       ],
@@ -30827,14 +30817,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            5.35,
             0.0,
-            1.0
+            0.0,
+            5.35
           ],
           "name": "S-350",
           "on": null,
           "pivot_m": [
-            -4.9,
+            -5.9,
             0.0,
             1.85
           ],
@@ -30842,7 +30832,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "s350_missile"
           ]
         }
       ],
@@ -31128,7 +31118,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -31268,7 +31258,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -31430,7 +31420,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -31570,7 +31560,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "radar_receiver": {
@@ -31713,7 +31703,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -31875,7 +31865,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -33143,7 +33133,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -33267,7 +33257,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -33726,7 +33716,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -33855,7 +33845,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -34133,16 +34123,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 20.0,
-            "rear": 10.0,
+            "front": 65.0,
+            "rear": 25.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 20.0,
+            "side": 40.0
           },
           "half_extents_m": [
             4.04,
@@ -34154,12 +34144,7 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {
-        "deploy": {
-          "pack_seconds": 1.0,
-          "seconds": 3.0
-        }
-      },
+      "capabilities": {},
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -34180,9 +34165,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.67,
-            -1.05,
-            0.23
+            3.34,
+            0.25,
+            0.26
           ],
           "name": "Skyranger 30",
           "on": null,
@@ -34470,7 +34455,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -34604,7 +34589,7 @@
           "seconds": 3.0
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "supply": {
@@ -34873,7 +34858,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -35487,7 +35472,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -35608,7 +35593,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -35741,7 +35726,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -36085,14 +36070,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.9,
             0.0,
-            0.51
+            0.0,
+            3.6
           ],
           "name": "IRIS-T SLM",
           "on": null,
           "pivot_m": [
-            -3.3,
+            -5.71,
             0.0,
             1.85
           ],
@@ -36172,7 +36157,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -36866,7 +36851,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -37313,9 +37298,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.7,
+            2.6734,
             0.0,
-            0.8
+            2.8158
           ],
           "name": "Rockets",
           "on": null,
@@ -37400,7 +37385,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -37553,9 +37538,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.75,
+            0.8302,
             0.0,
-            0.56
+            2.4771
           ],
           "name": "NASAMS 3",
           "on": null,
@@ -37631,7 +37616,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -38002,7 +37987,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -38272,7 +38257,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "radar_receiver": {
@@ -38415,7 +38400,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -38754,7 +38739,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -38917,7 +38902,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -39474,7 +39459,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -39701,7 +39686,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -39822,7 +39807,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -39946,7 +39931,7 @@
           "seats": 3
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -40301,7 +40286,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -40435,7 +40420,7 @@
           "seconds": 3.0
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "supply": {
@@ -40580,7 +40565,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "radar_receiver": {
@@ -40723,7 +40708,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -40885,7 +40870,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -41025,7 +41010,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -41165,7 +41150,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -41327,7 +41312,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -42677,7 +42662,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -42825,7 +42810,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -42973,7 +42958,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -43144,9 +43129,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.7,
+            2.6734,
             0.0,
-            0.8
+            2.8158
           ],
           "name": "Rockets",
           "on": null,
@@ -43985,9 +43970,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.75,
+            0.8302,
             0.0,
-            0.56
+            2.4771
           ],
           "name": "NASAMS 3",
           "on": null,
@@ -44536,16 +44521,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 20.0,
-            "rear": 10.0,
+            "front": 35.0,
+            "rear": 15.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 10.0,
+            "side": 25.0
           },
           "half_extents_m": [
             3.57,
@@ -44557,12 +44542,7 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {
-        "deploy": {
-          "pack_seconds": 1.0,
-          "seconds": 3.0
-        }
-      },
+      "capabilities": {},
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -44583,9 +44563,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            1.02,
-            0.85,
-            0.42
+            2.17,
+            0.0,
+            0.4
           ],
           "name": "Stryker M-SHORAD",
           "on": null,
@@ -44661,7 +44641,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -44793,7 +44773,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -46662,6 +46642,12 @@
       "min_range_m": 0.0,
       "name": "HMG",
       "near_miss_suppression": 0.04,
+      "partial_damage_scale": {
+        "front": 0.05,
+        "rear": 0.1,
+        "roof": 0.1,
+        "side": 0.1
+      },
       "partial_from": 0.5,
       "penetration": 20.0,
       "range_m": 500.0,
@@ -47087,6 +47073,12 @@
       "min_range_m": 0.0,
       "name": "LMG",
       "near_miss_suppression": 0.05,
+      "partial_damage_scale": {
+        "front": 0.0,
+        "rear": 0.02,
+        "roof": 0.0,
+        "side": 0.02
+      },
       "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 400.0,
@@ -47160,6 +47152,12 @@
       "min_range_m": 0.0,
       "name": "Marksman Rifle",
       "near_miss_suppression": 0.025,
+      "partial_damage_scale": {
+        "front": 0.0,
+        "rear": 0.02,
+        "roof": 0.0,
+        "side": 0.02
+      },
       "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 500.0,
@@ -47271,9 +47269,9 @@
     "patriot_pac3": {
       "accel_mps2": 95.0,
       "aim_s": 2.0,
-      "ammo": 6,
+      "ammo": 4,
       "anti_radiation": false,
-      "appearance": "sam",
+      "appearance": "sam_heavy",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 130.0,
@@ -47637,6 +47635,130 @@
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
+    },
+    "s300_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 4,
+      "anti_radiation": false,
+      "appearance": "sam_heavy",
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 220.0,
+      "decoyable": true,
+      "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2400.0
+          }
+        ]
+      },
+      "description": "S-300 long-range aircraft-only missile.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "launch_elevation_deg": 90.0,
+      "launch_hold_s": 0.6,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "48N6E2",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 100.0,
+      "proximity_fuse_m": 3.0,
+      "range_m": 2400.0,
+      "reload_s": 15.0,
+      "requires_clear_launch_path": true,
+      "resupply_rounds_per_s": 0.11,
+      "round_cost": 45,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 2400.0,
+          "scatter_mrad": 0.5
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
+    "s350_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 12,
+      "anti_radiation": false,
+      "appearance": "sam_heavy",
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 70.0,
+      "decoyable": true,
+      "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2000.0
+          }
+        ]
+      },
+      "description": "S-350 long-range aircraft-only missile.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "launch_elevation_deg": 90.0,
+      "launch_hold_s": 0.6,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "9M96E2",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 40.0,
+      "proximity_fuse_m": 3.0,
+      "range_m": 2000.0,
+      "reload_s": 4.0,
+      "requires_clear_launch_path": true,
+      "resupply_rounds_per_s": 0.11,
+      "round_cost": 45,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 2000.0,
+          "scatter_mrad": 0.5
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
     },
     "sead_missile": {
       "accel_mps2": 400.0,

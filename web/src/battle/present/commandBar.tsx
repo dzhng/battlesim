@@ -6,7 +6,8 @@ import type { OwnUnitView } from "../sim/observationView";
 import type { useUnitControl } from "../input/useUnitControl";
 import { useFeedValue, type FeedSource } from "@web/feed";
 import type { CommandMode } from "../input/pointerIntent";
-import { CommandBindings } from "../input/commandBindings";
+import { CommandBindings, type KeyCommand } from "../input/commandBindings";
+import { hudAnchor } from "./hudAnchors";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
@@ -14,6 +15,9 @@ import { Icon } from "./icons";
 interface CommandProps {
   icon: string;
   label: string;
+  /** The bound command it gives: its key joins the label, and the button
+   *  anchors `command:<command>` for the coach. */
+  command?: KeyCommand;
   pressed?: boolean;
   disabled?: boolean;
   emphasis?: boolean;
@@ -22,7 +26,8 @@ interface CommandProps {
 
 function CommandButton({
   icon,
-  label,
+  label: name,
+  command,
   pressed,
   disabled,
   emphasis,
@@ -30,6 +35,7 @@ function CommandButton({
   hintHost,
 }: CommandProps & { hintHost?: HTMLElement | null }) {
   const id = useId();
+  const label = command ? `${name} (${CommandBindings[command].label})` : name;
   const [hovered, setHovered] = useState(false);
   const [hintCenter, setHintCenter] = useState(0);
   const alignHint = (button: HTMLButtonElement) => {
@@ -53,6 +59,7 @@ function CommandButton({
     <button
       type="button"
       className={`ro-cmd${emphasis ? " ro-cmd-emphasis" : ""}`}
+      {...(command && hudAnchor(`command:${command}`))}
       aria-label={label}
       aria-describedby={hovered ? id : undefined}
       aria-pressed={pressed}
@@ -102,7 +109,6 @@ export function CommandBar({
   const selected = control.selectedUnits;
   const n = selected.length;
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
-  const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // Capability actions apply to eligible units; movement applies to everyone.
   const [armed, deployers, inside, unloaders] = (
     ["attack", "deploy", "exit_building", "unload"] as ReachCommand[]
@@ -118,10 +124,18 @@ export function CommandBar({
       ),
   );
   /** Movement stays available; an unsupported targeted attack is disabled. */
-  const mode = (m: CommandMode, icon: string, label: string, available = n > 0, emphasis = false) =>
+  const mode = (
+    m: CommandMode,
+    icon: string,
+    label: string,
+    bound?: KeyCommand,
+    available = n > 0,
+    emphasis = false,
+  ) =>
     command({
       icon,
       label,
+      command: bound,
       pressed: control.mode === m,
       disabled: !available,
       emphasis,
@@ -129,38 +143,43 @@ export function CommandBar({
     });
   return (
     <div className="ro-commands" role="toolbar" aria-label="Commands">
-      {mode("attack_move", hudIcon("attack_move"), `Attack-move ${key("attack_move")}`)}
-      {mode("reverse_move", hudIcon("reverse"), `Reverse ${key("reverse_move")}`)}
+      {mode("attack_move", hudIcon("attack_move"), "Attack-move", "attack_move")}
+      {mode("reverse_move", hudIcon("reverse"), "Reverse", "reverse_move")}
       {command({
         icon: stateIcon("smoke"),
-        label: `Pop smoke ${key("pop_smoke")}`,
+        label: "Pop smoke",
+        command: "pop_smoke",
         disabled: !selected.some((u) => (u.smoke ?? 0) > 0),
         onClick: control.popSmoke,
       })}
       {mode(
         "attack_ground",
         hudIcon("attack_ground"),
-        `Attack ground ${key("attack_ground")}`,
+        "Attack ground",
+        "attack_ground",
         armed.length > 0,
         artillery,
       )}
       {mode("fast_move", hudIcon("fast_move"), "Fast move (double right-click)")}
       {command({
         icon: hudIcon("stop"),
-        label: `Stop ${key("stop")}`,
+        label: "Stop",
+        command: "stop",
         disabled: n === 0,
         onClick: control.stop,
       })}
       {command({
         icon: hudIcon(hold ? "hold_fire" : "fire_at_will"),
-        label: `${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`,
+        label: hold ? "Return fire only" : "Fire at will",
+        command: "toggle_fire_policy",
         pressed: hold,
         disabled: n === 0,
         onClick: control.togglePolicy,
       })}
       {command({
         icon: stateIcon(deployers.length > 0 && packing ? "pack" : "deploy"),
-        label: `${deployers.length > 0 && packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`,
+        label: deployers.length > 0 && packing ? "Pack" : "Deploy",
+        command: "toggle_deployment",
         disabled: deployers.length === 0,
         onClick: control.toggleDeployment,
       })}
@@ -168,7 +187,8 @@ export function CommandBar({
         icon: stateIcon(
           aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "afterburner" : "fuel",
         ),
-        label: `${aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "Disable" : "Enable"} afterburners ${key("toggle_afterburner")}`,
+        label: `${aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "Disable" : "Enable"} afterburners`,
+        command: "toggle_afterburner",
         pressed: aircraft.length > 0 && aircraft.every((u) => u.afterburner),
         disabled: aircraft.length === 0,
         onClick: control.toggleAfterburner ?? (() => {}),
@@ -176,13 +196,15 @@ export function CommandBar({
       {control.refund &&
         command({
           icon: stateIcon("withdrawing"),
-          label: `Refund · Return to base ${key("return_to_base")}`,
+          label: "Refund · Return to base",
+          command: "return_to_base",
           disabled: n === 0,
           onClick: () => control.refund?.(),
         })}
       {command({
         icon: hudIcon("unload"),
-        label: `Unload ${key("unload")}`,
+        label: "Unload",
+        command: "unload",
         pressed: control.mode === "unload",
         disabled: unloaders.length === 0,
         onClick: control.pressUnload,

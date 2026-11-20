@@ -8,10 +8,12 @@ import type { SimBattle } from "../sim/authority";
 import { between, MapRefused, resolveMap, type MapGenerator } from "../../maps/source.ts";
 import { lanesOf, type LanesModule } from "./lanes";
 import type {
+  GeneratedPreparationReport,
   PrepareBattleRequest,
   PrepareDiagnostic,
   PrepareDocuments,
   PreparedBattle,
+  PreparationReport,
   PrepareStage,
   RefusalStage,
   StressPreparation,
@@ -36,11 +38,12 @@ export interface PreparedWorld {
   extents(): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
+  into_resumed(scenario: string, replay: string, tick: number): SimBattle;
   free(): void;
 }
-export interface PreparationResult {
+export interface PreparationResult<Report extends PreparationReport = PreparationReport> {
   scenario: string;
-  report: PreparedBattle["report"];
+  report: Report;
   world: PreparedWorld;
   /** The map and its admitted skirmish sites as JSON text, which the lobby's
    *  picture is drawn from: null for a replay or a stress scene. */
@@ -97,7 +100,7 @@ export async function prepare(
   onStage: (stage: PrepareStage) => void = () => {},
   now: () => number = () => performance.now(),
   stress?: StressPreparation,
-): Promise<PreparationResult> {
+): Promise<PreparationResult<GeneratedPreparationReport>> {
   const checked = accepted<{ request: PrepareBattleRequest }>(
     "request",
     wasm.check_prepare_request(JSON.stringify(request)),

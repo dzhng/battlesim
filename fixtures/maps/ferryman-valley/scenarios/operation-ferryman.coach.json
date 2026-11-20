@@ -1,0 +1,732 @@
+{
+  "speaker": {
+    "id": "lantern",
+    "name": "Lantern",
+    "post": "HQ",
+    "portrait": "/portraits/lantern.jpg"
+  },
+  "chapters": [
+    {
+      "id": "briefing",
+      "title": "Briefing",
+      "steps": [
+        {
+          "id": "open",
+          "line": "c1.open",
+          "until": "continue",
+          "card": "This is Lantern, at HQ. Nothing moves until you start the battle, so take your time and look over the ground."
+        },
+        {
+          "id": "pan",
+          "line": "c1.camera_pan",
+          "until": {
+            "ui": [
+              "camera_pan"
+            ]
+          },
+          "card": "Pan the view with {camera:forward} and {camera:right}, or rest the pointer at the edge of the screen."
+        },
+        {
+          "id": "turn",
+          "line": "c1.camera_turn",
+          "until": {
+            "ui": [
+              "camera_rotate",
+              "camera_tilt"
+            ]
+          },
+          "card": "Turn the view with {camera:turn} and tilt it with {camera:pitch}."
+        },
+        {
+          "id": "zoom",
+          "line": "c1.camera_zoom",
+          "until": {
+            "ui": [
+              "camera_zoom"
+            ]
+          },
+          "card": "Zoom with the mouse wheel: out to see the whole valley, in to see a squad."
+        },
+        {
+          "id": "flags",
+          "line": "c1.objectives",
+          "until": "continue",
+          "card": "The numbered flags are the objectives. Hold them and your victory score climbs; the first side to the winning score takes the battle.",
+          "camera": {
+            "fade_s": 0,
+            "shots": [
+              {
+                "seconds": 4.5,
+                "from": {
+                  "target": [
+                    950,
+                    1212
+                  ],
+                  "distance": 2000,
+                  "yaw": 1.5708,
+                  "pitch": 1.13
+                },
+                "to": {
+                  "target": [
+                    888,
+                    900
+                  ],
+                  "distance": 360,
+                  "yaw": 1.5708,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              },
+              {
+                "seconds": 4,
+                "from": {
+                  "target": [
+                    888,
+                    900
+                  ],
+                  "distance": 360,
+                  "yaw": 1.5708,
+                  "pitch": 0.85
+                },
+                "to": {
+                  "target": [
+                    794,
+                    294
+                  ],
+                  "distance": 420,
+                  "yaw": 1.4,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              },
+              {
+                "seconds": 4,
+                "from": {
+                  "target": [
+                    794,
+                    294
+                  ],
+                  "distance": 420,
+                  "yaw": 1.4,
+                  "pitch": 0.85
+                },
+                "to": {
+                  "target": [
+                    160,
+                    220
+                  ],
+                  "distance": 420,
+                  "yaw": 1.75,
+                  "pitch": 0.85
+                },
+                "ease": "cubic",
+                "logDistance": true
+              }
+            ]
+          },
+          "highlight": [
+            "objectives"
+          ]
+        },
+        {
+          "id": "road",
+          "line": "c1.entry",
+          "until": "continue",
+          "card": "Everything you buy arrives by your road in, at the bottom edge. The enemy comes in from the far side.",
+          "camera": {
+            "fade_s": 0,
+            "shots": [
+              {
+                "seconds": 5,
+                "from": {
+                  "target": [
+                    1044,
+                    1450
+                  ],
+                  "distance": 1100,
+                  "yaw": 1.5708,
+                  "pitch": 1.1
+                },
+                "to": {
+                  "target": [
+                    1044,
+                    1665
+                  ],
+                  "distance": 480,
+                  "yaw": 1.5708,
+                  "pitch": 0.95
+                },
+                "ease": "cubic",
+                "logDistance": true
+              }
+            ]
+          },
+          "marks": [
+            "entry"
+          ]
+        },
+        {
+          "id": "credits",
+          "line": "c1.credits",
+          "until": "continue",
+          "card": "Your credits are at the bottom, beside Reinforcements. They grow every minute once the battle runs.",
+          "highlight": [
+            "credits"
+          ]
+        },
+        {
+          "id": "shop",
+          "line": "c1.buy_recon",
+          "until": {
+            "ui": [
+              "shop_opened"
+            ]
+          },
+          "card": "Open Reinforcements to see what you can buy.",
+          "highlight": [
+            "shop"
+          ]
+        },
+        {
+          "id": "scouts",
+          "line": "c1.place",
+          "until": {
+            "beat": "recon_bought"
+          },
+          "card": "Choose the scouts, then click the ground where they should go."
+        },
+        {
+          "id": "squad",
+          "line": "c1.buy_carrier",
+          "until": {
+            "beat": "carrier_bought"
+          },
+          "card": "Now a rifle squad: hover its card, choose the Bradley it rides in, and place it. One purchase, two units."
+        },
+        {
+          "id": "orders",
+          "line": "c1.orders_not_units",
+          "until": "continue",
+          "card": "The greyed cards along the bottom are orders, not units: they drive in from your road when the battle starts.",
+          "highlight": [
+            "army"
+          ]
+        },
+        {
+          "id": "start",
+          "line": "c1.start",
+          "until": {
+            "beat": "battle_started"
+          },
+          "card": "Press Start battle when you're ready.",
+          "highlight": [
+            "start"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eyes_forward",
+      "title": "Eyes forward",
+      "steps": [
+        {
+          "id": "select",
+          "line": "c2.arrive",
+          "until": {
+            "ui": [
+              "selected"
+            ]
+          },
+          "card": "Your units are arriving. Click the scouts, or their card at the bottom, to select them.",
+          "highlight": [
+            "army"
+          ]
+        },
+        {
+          "id": "ridge",
+          "line": "c2.move",
+          "until": {
+            "beat": "recon_at_ridge"
+          },
+          "card": "Right-click the treeline on the ridge to send the scouts there. Double right-click takes the roads; Shift adds a waypoint.",
+          "marks": [
+            "ridge"
+          ]
+        },
+        {
+          "id": "facing",
+          "line": "c2.facing",
+          "until": {
+            "ui": [
+              "moved_with_facing"
+            ]
+          },
+          "card": "Right-click on the ridge and drag toward the village at flag 1: the drag chooses which way they face when they get there.",
+          "marks": [
+            "ridge"
+          ]
+        },
+        {
+          "id": "spotted",
+          "line": "c2.spotted",
+          "until": {
+            "beat": "outpost_seen"
+          },
+          "card": "Enemies your units can see show their names in red. You see only what your own units see.",
+          "reacts": true
+        },
+        {
+          "id": "gunfire",
+          "line": "c2.gunfire",
+          "until": {
+            "beat": "gunfire_heard"
+          },
+          "card": "A red area is a contact: something was heard or last seen there, not an exact position.",
+          "reacts": true
+        },
+        {
+          "id": "jump",
+          "line": "c2.jump",
+          "until": {
+            "ui": [
+              "contact_focus"
+            ]
+          },
+          "card": "Press {key:contact_focus} to jump the view to your newest contact."
+        },
+        {
+          "id": "hold",
+          "line": "c2.hidden",
+          "until": {
+            "beat": "recon_holding"
+          },
+          "card": "With the scouts selected, press {key:toggle_fire_policy} to hold fire: they shoot only when shot at, and stay hidden.",
+          "highlight": [
+            "command:toggle_fire_policy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crossroads",
+      "title": "The crossroads",
+      "steps": [
+        {
+          "id": "drive",
+          "line": "c3.drive",
+          "until": {
+            "beat": "carrier_at_farm"
+          },
+          "marks": [
+            "farm_wall"
+          ],
+          "card": "Select the Bradley and right-click behind the farm wall. The squad rides inside."
+        },
+        {
+          "id": "unload",
+          "line": "c3.unload",
+          "until": {
+            "beat": "squad_unloaded"
+          },
+          "highlight": [
+            "command:unload"
+          ],
+          "card": "With the Bradley selected, press {key:unload}, then click the ground behind the wall: the squad gets out there."
+        },
+        {
+          "id": "garrison",
+          "line": "c3.garrison",
+          "until": {
+            "beat": "squad_garrisoned"
+          },
+          "marks": [
+            "farm"
+          ],
+          "card": "Select the squad and right-click the farmhouse to put them inside. Walls stop bullets that open ground doesn't."
+        },
+        {
+          "id": "suppress",
+          "line": "c3.suppress",
+          "until": {
+            "beat": "outpost_suppressed"
+          },
+          "marks": [
+            "outpost"
+          ],
+          "card": "Select the Bradley and right-click the enemy squad to fire on it. Fire landing close suppresses infantry, even when it misses."
+        },
+        {
+          "id": "pinned",
+          "line": "c3.pinned",
+          "until": {
+            "beat": "outpost_pinned"
+          },
+          "card": "Keep firing until they're pinned: slowed, shooting badly, hugging the ground.",
+          "reacts": true
+        },
+        {
+          "id": "attack_move",
+          "line": "c3.attack_move",
+          "until": {
+            "beat": "squad_attack_moving"
+          },
+          "highlight": [
+            "command:attack_move"
+          ],
+          "card": "Select the squad, press {key:attack_move}, then click the crossroads at flag 1. They advance, and stop to fight whatever they meet.",
+          "marks": [
+            "crossroads"
+          ]
+        },
+        {
+          "id": "show_orders",
+          "line": "c3.show_orders",
+          "until": {
+            "ui": [
+              "show_orders"
+            ]
+          },
+          "card": "Hold {key:show_orders} to see every unit's orders at once."
+        },
+        {
+          "id": "capture",
+          "line": "c3.capture",
+          "until": {
+            "beat": "crossroads_capturing"
+          },
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Get the squad inside flag 1's ring. It starts turning yours while no enemy combat unit is in it."
+        },
+        {
+          "id": "captured",
+          "line": "c3.captured",
+          "reacts": true,
+          "until": {
+            "beat": "crossroads_taken"
+          },
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Stay in the ring while the flag turns."
+        },
+        {
+          "id": "contested",
+          "line": "c3.contested",
+          "reacts": true,
+          "until": {
+            "beat": "crossroads_contested"
+          },
+          "highlight": [
+            "score"
+          ],
+          "card": "Objective 1 is yours, and your victory score climbs every second you hold it."
+        },
+        {
+          "id": "clear",
+          "until": {
+            "beat": "crossroads_held"
+          },
+          "card": "Enemy infantry in the ring: it's contested, and nobody scores. Clear them out."
+        }
+      ]
+    },
+    {
+      "id": "steel",
+      "title": "Steel on the ridge",
+      "steps": [
+        {
+          "id": "tank",
+          "line": "c4.tank",
+          "until": {
+            "beat": "tank_seen"
+          },
+          "marks": [
+            "north_road"
+          ],
+          "card": "Enemy armour on the north road. Your Bradley can't trade blows with a tank: keep it out of the gun's way.",
+          "reacts": true
+        },
+        {
+          "id": "groups",
+          "line": "c4.groups",
+          "until": {
+            "ui": [
+              "group_set"
+            ]
+          },
+          "highlight": [
+            "army"
+          ],
+          "card": "Drag a box over your infantry, then press {key:group_assign} to make them group 1. Make the Bradley group 2 the same way. {key:group_recall} selects group 1 again."
+        },
+        {
+          "id": "smoke",
+          "line": "c4.smoke",
+          "until": {
+            "beat": "carrier_reversed"
+          },
+          "highlight": [
+            "command:pop_smoke"
+          ],
+          "card": "Select the Bradley, press {key:pop_smoke} to pop smoke, then reverse it out with {key:reverse_move}. Backing away keeps its thick front armour to the threat."
+        },
+        {
+          "id": "buy_at",
+          "until": {
+            "beat": "at_team_in_woods"
+          },
+          "marks": [
+            "ambush_woods"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the Javelin team. Place it just outside the copse west of the crossroads, facing north, and set it to hold fire with {key:toggle_fire_policy}."
+        },
+        {
+          "id": "at_team",
+          "line": "c4.at_team",
+          "until": "continue",
+          "card": "Holding fire, the team stays hidden. Let the tank come round past the copse to the north."
+        },
+        {
+          "id": "ambush",
+          "line": "c4.ambush",
+          "until": {
+            "beat": "at_team_attacking"
+          },
+          "card": "Select the Javelin team and right-click the tank to fire on it."
+        },
+        {
+          "id": "killed",
+          "line": "c4.killed",
+          "until": {
+            "beat": "tank_destroyed"
+          },
+          "card": "Keep the Javelin team on the tank until it stops.",
+          "reacts": true
+        }
+      ]
+    },
+    {
+      "id": "keep_running",
+      "title": "Keep it running",
+      "steps": [
+        {
+          "id": "spend",
+          "line": "c5.credits",
+          "until": "continue",
+          "highlight": [
+            "credits"
+          ],
+          "card": "Your credits grow every minute you hold ground. There's enough now to spend."
+        },
+        {
+          "id": "supply",
+          "line": "c5.supply",
+          "until": {
+            "beat": "supply_bought"
+          },
+          "marks": [
+            "supply_point"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the supply truck. Place it behind the farm."
+        },
+        {
+          "id": "deploy",
+          "line": "c5.deploy",
+          "until": {
+            "beat": "supply_deployed"
+          },
+          "highlight": [
+            "command:toggle_deployment"
+          ],
+          "card": "Select the truck and press {key:toggle_deployment} to set it up. It can't serve anyone on the move."
+        },
+        {
+          "id": "resupply",
+          "line": "c5.resupply",
+          "until": {
+            "beat": "unit_serviced"
+          },
+          "card": "Bring a damaged or worn unit next to the truck and let it stand. Ammunition, repairs and replacement soldiers arrive while it stays."
+        },
+        {
+          "id": "mortar",
+          "line": "c5.mortar",
+          "until": {
+            "beat": "mortar_firing"
+          },
+          "marks": [
+            "far_treeline"
+          ],
+          "highlight": [
+            "shop"
+          ],
+          "card": "Buy the mortar and set it up with {key:toggle_deployment}. Then press {key:attack_ground} and click the far treeline."
+        },
+        {
+          "id": "done",
+          "line": "c5.mortar_done",
+          "until": {
+            "beat": "treeline_gone"
+          },
+          "card": "Let the mortar work. Indirect fire reaches what nobody can see, as long as you know where to aim.",
+          "reacts": true
+        }
+      ]
+    },
+    {
+      "id": "sky",
+      "title": "Eyes in the sky",
+      "steps": [
+        {
+          "id": "rotors",
+          "line": "c6.helicopter",
+          "reacts": true,
+          "until": {
+            "beat": "heli_seen"
+          },
+          "card": "Something is coming in low from the north. Keep watching the sky."
+        },
+        {
+          "id": "air_defence",
+          "line": "c6.air_defence",
+          "until": {
+            "beat": "air_defence_bought"
+          },
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the Stinger team. Its missiles bring down helicopters and jets."
+        },
+        {
+          "id": "splash",
+          "line": "c6.helicopter_down",
+          "reacts": true,
+          "until": {
+            "beat": "heli_down"
+          },
+          "card": "Get the Stinger team where it can see the helicopter, and let it fire."
+        },
+        {
+          "id": "own_heli",
+          "line": "c6.own_helicopter",
+          "until": {
+            "beat": "own_heli_up"
+          },
+          "highlight": [
+            "shop"
+          ],
+          "card": "Buy the Viper attack helicopter, then right-click to send it out. It lifts off from your edge at once."
+        },
+        {
+          "id": "jet",
+          "line": "c6.jet",
+          "until": {
+            "beat": "jet_arrived"
+          },
+          "highlight": [
+            "army"
+          ],
+          "card": "Buy the A-10. A jet isn't on the field until it arrives: its card counts down until then."
+        },
+        {
+          "id": "passes",
+          "line": "c6.jet_attack",
+          "until": {
+            "beat": "jet_attacking"
+          },
+          "marks": [
+            "bridge"
+          ],
+          "card": "Select the jet, press {key:attack_ground} and click the bridge. It flies passes until its fuel runs low, then heads home."
+        },
+        {
+          "id": "radar",
+          "line": "c6.radar",
+          "until": {
+            "beat": "sead_bought"
+          },
+          "highlight": [
+            "shop"
+          ],
+          "card": "Buy the Growler. Its receiver finds radars that are switched on, even ones nobody can see."
+        },
+        {
+          "id": "radar_found",
+          "line": "c6.radar_found",
+          "reacts": true,
+          "until": {
+            "beat": "radar_found"
+          },
+          "card": "Wait while the Growler's receiver searches."
+        },
+        {
+          "id": "radar_down",
+          "line": "c6.radar_down",
+          "reacts": true,
+          "until": {
+            "beat": "sam_down"
+          },
+          "card": "Select the Growler and right-click inside the radar contact. Its missiles ride the radar's beam down."
+        }
+      ]
+    },
+    {
+      "id": "push",
+      "title": "The push",
+      "steps": [
+        {
+          "id": "take",
+          "line": "c7.push",
+          "until": "continue",
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Take the bridge (flag 2) and the hill (flag 3). The shop is open again: buy what you need for it."
+        },
+        {
+          "id": "fighting",
+          "line": "c7.contested",
+          "reacts": true,
+          "until": {
+            "beat": "flag_contested"
+          },
+          "card": "Push into the flags. A flag held by nobody turns to whoever stands in its ring alone."
+        },
+        {
+          "id": "score",
+          "line": "c7.score",
+          "until": "continue",
+          "highlight": [
+            "score"
+          ],
+          "card": "Your score fills the bar from the left, theirs from the right; the first to the middle wins. Holding every flag at once wins outright."
+        },
+        {
+          "id": "victory",
+          "line": "c7.victory",
+          "reacts": true,
+          "until": {
+            "beat": "won"
+          },
+          "card": "Take every flag and hold them all at once."
+        },
+        {
+          "id": "guide",
+          "line": "c7.guide",
+          "until": "continue",
+          "card": "The Guide is in the menu: press Esc any time to look something up."
+        }
+      ]
+    }
+  ]
+}

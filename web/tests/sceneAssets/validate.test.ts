@@ -4,16 +4,18 @@
 // none, so every code below is caused by its mutation alone.
 import { expect, test } from "vitest";
 import {
-  FINDING_CODES,
   KIT_BUNDLE_MAX_BYTES,
   TEXTURE_ARRAY_LAYERS_FLOOR,
   type AppearanceEntry,
   type Bundle,
   type SkeletonClips,
-  type Finding,
-  type FindingCode,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
+import {
+  FINDING_CODES,
+  type Finding,
+  type FindingCode,
+} from "@packages/scene-assets/src/finding.ts";
 import {
   budgetFindings,
   paintFindings,
@@ -61,6 +63,7 @@ import {
   type TankOptions,
   TANK_DRAWS,
 } from "./synthetic";
+import { deployedMuzzleGolden } from "./deployedMuzzle";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
 const rig = soldierRig();
@@ -270,6 +273,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.cheek": () => soldier({ eyeY: 1.52, muzzleY: 1.49 }),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
+  "fit.deployed_muzzle": deployedMuzzleGolden,
   "fit.footprint": async () =>
     (await scenery("crate", { default: blockGlb(2) }, [1, 1, 1])).findings,
   "fit.piece": async () =>
@@ -331,6 +335,20 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     budgetFindings("tank", [], { bundle_bytes: 1 }, "a test budget", await builtTank()),
   "budget.unit_textures": async () =>
     budgetFindings("tank", [], { textures: 0 }, "a test budget", await builtTank()),
+  "budget.class_row": async () =>
+    (
+      await validateAppearance(
+        {
+          name: "tank",
+          entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
+          files: { "t.glb": tankGlb() },
+        },
+        {
+          ...context,
+          authority: { ...AUTHORITY, units: syntheticUnits({ vehicle_class: "hover_tank" }) },
+        },
+      )
+    ).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),

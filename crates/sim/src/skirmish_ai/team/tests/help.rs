@@ -17,6 +17,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
                     unit_count: 2,
                     cap: 30,
                     pending: vec![],
+                    offered: None,
                 },
                 contract::skirmish::PlayerView {
                     index: PlayerIndex(1),
@@ -28,6 +29,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
                     unit_count: 10,
                     cap: 30,
                     pending: vec![],
+                    offered: None,
                 },
                 contract::skirmish::PlayerView {
                     index: PlayerIndex(2),
@@ -39,6 +41,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
                     unit_count: 8,
                     cap: 30,
                     pending: vec![],
+                    offered: None,
                 },
             ],
             preparation_remaining_s: 0.0,
@@ -399,6 +402,7 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
                 unit_count: 0,
                 cap: 30,
                 pending: vec![],
+                offered: None,
             },
             contract::skirmish::PlayerView {
                 index: PlayerIndex(1),
@@ -412,6 +416,7 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
                 unit_count: 8,
                 cap: 30,
                 pending: vec![],
+                offered: None,
             },
             contract::skirmish::PlayerView {
                 index: PlayerIndex(2),
@@ -423,6 +428,7 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
                 unit_count: 0,
                 cap: 30,
                 pending: vec![],
+                offered: None,
             },
         ],
         preparation_remaining_s: 0.0,
@@ -527,6 +533,7 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
                     unit_count: 1,
                     cap: 30,
                     pending: vec![],
+                    offered: None,
                 },
                 contract::skirmish::PlayerView {
                     index: PlayerIndex(1),
@@ -538,6 +545,7 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
                     unit_count: 3,
                     cap: 30,
                     pending: vec![],
+                    offered: None,
                 },
             ],
             preparation_remaining_s: 0.0,
@@ -618,7 +626,7 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
     assert_eq!(request.answered_by, Some(PlayerIndex(1)));
     let detachment = &plan.help_party(request).expect("help answered").units;
     assert!(!detachment.is_empty());
-    let assignment = plan.assignment_for(PlayerIndex(1)).unwrap();
+    let assignment = plan.assignment_for(PlayerIndex(1), vec![]).unwrap();
     assert_eq!(assignment.parties.len(), 1);
     assert!(assignment.parties[0]
         .units

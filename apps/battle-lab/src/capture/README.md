@@ -16,6 +16,9 @@ there is no UI. The design and its reasons live in
   `fixtures/captures/<name>.json`, and the CLI refuses a file anywhere else.
   It never carries units, orders or stats.
 
+A scenario coach's camera tours are reels too, read by the same validator and
+sampler, so the reel format has no second, tour-only shape.
+
 Only maps whose `meta.json` category is `capture` are filmable. A `test` map
 belongs to the tests and stays as it is. To film one, copy its folder under a
 new id, set the category to `capture`, and keep or write the encounters you need

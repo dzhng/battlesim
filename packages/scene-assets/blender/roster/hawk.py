@@ -27,92 +27,74 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
+from aircraft_donor import fitted_airframe  # noqa: E402
+from parts import box, cyl, flat_paint  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 UH60, Z20 = "us_uh_60_black_hawk_uh_60m", "eastern_z_20_utility_transport"
 # The door gun's elevation on its pintle, degrees.
 DOOR_PITCH_DEG = (-60.0, 20.0)
-# The published length, width and height to the top of the rotor head,
-# metres, that the art is drawn to (the hull's box is the airframe's, under
-# the rotor).
-PUBLISHED_M = {UH60: (15.26, 4.38, 3.76), Z20: (15.4, 4.4, 3.9)}
 SCHEME = {UH60: "us_army_aviation", Z20: "chinese_air_grey"}
-# How far forward the airframe's parts (placed in their drawing's frame)
-# move to centre on the hull box.
-AFT_M = {UH60: 0.275, Z20: 0.275}
 
 
-def spec(variant):
-    z20 = variant["id"] == Z20
-    nose = PUBLISHED_M[variant["id"]][0] / 2
-    tail = -nose
-    return dict(
-        # The photos: a short, tall cabin under the engines' hump, the
-        # mains forward under the cockpit's back, the tail wheel far aft.
-        fuselage=[(nose, 0.0, 1.28, 1.28), (nose - 0.4, 0.55, 0.78, 1.7, 1.18, 2.2),
-                  (nose - 1.4, 0.84, 0.56, 2.14, 1.15, 2.4), (nose - 2.8, 0.98, 0.48, 2.36, 1.2, 3.0),
-                  (2.0, 1.06, 0.45, 2.4, 1.28, 3.5), (-0.5, 1.0, 0.5, 2.34, 1.32, 3.5), (-1.6, 0.7, 0.9, 2.12, 1.5, 2.6),
-                  (-4.0, 0.38, 1.35, 2.05, 1.7, 2.2), (-6.6, 0.28, 1.5, 2.0, 1.75), (tail, 0.24, 1.55, 2.2, 1.85)],
-        bodies=[("fuselage_roof", [(3.7, 0.0, 2.35, 2.35), (3.1, 0.8, 2.25, 2.86, 2.45, 3.0),
-                                   (-0.8, 0.75, 2.25, 2.9, 2.45, 3.0), (-2.1, 0.0, 2.35, 2.35)])],
-        canopy=dict(x_front=nose - 0.3, x_back=nose - 2.1, sill=1.25, top=2.32, half_width=0.96, peak=0.8,
-                    bows=(nose - 1.2, nose - 0.7), tail=0.9),
-        stab=[(tail + 1.0, 0.25, 1.72, 1.1, 0.12), (tail + 0.8, 2.19, 1.72, 0.9, 0.08)],
-        fins=[dict(root_x=tail + 1.3, root_z=1.95, height=1.7 if not z20 else 1.8, root_chord=1.6, tip_chord=1.05,
-                   sweep_m=0.8, thick=0.16)],
-        gear=[dict(name="main_L", x=nose - 3.3, y=1.38, top=0.95, radius=0.38, width=0.22),
-              dict(name="main_R", x=nose - 3.3, y=-1.38, top=0.95, radius=0.38, width=0.22),
-              dict(name="tail", x=tail + 1.5, y=0.0, top=1.5, radius=0.2, width=0.12)],
-    )
+def blade_dampers(head, blades, phase, mats):
+    # Lead-lag dampers run tangentially from the hub to each blade grip.
+    for i in range(blades):
+        angle = phase + i * math.tau / blades
+        def point(radial, tangent, z):
+            return (radial * math.cos(angle) - tangent * math.sin(angle),
+                    radial * math.sin(angle) + tangent * math.cos(angle), z)
+        inner, collar, outer = point(.26, .23, .025), point(.52, .20, .065), point(.73, .11, .07)
+        A.tube_part(f"damper_body_{i}", lambda lod: [inner, collar], .046, mats["dark"], head, NEAR)
+        A.tube_part(f"damper_rod_{i}", lambda lod: [collar, outer], .022, mats["steel"], head, NEAR)
+        cyl(f"blade_hinge_{i}", .064, .045, point(.58, 0, .082), "Z", mats["steel"], head,
+            seg=10, lods=NEAR)
 
 
 def build(variant, v):
-    s = spec(variant)
-    z20 = variant["id"] == Z20
-    m = A.jet(v, s)
-    hull = v.hull
-    length, _, height = PUBLISHED_M[variant["id"]]
-    tail = -length / 2
-    # The engines either side of the transmission, their exhausts turned out.
-    for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(2.8, 0.0, 2.6, 2.6), (2.5, 0.34, 2.3, 2.92, 2.6), (0.0, 0.34, 2.28, 2.9, 2.58),
-                                (-0.6, 0.24, 2.42, 2.78, 2.6)], m["paint"], hull, seg=14, loc=(0, side * 0.58, 0))
-        cyl(f"nacelle_{k}_intake", 0.26, 0.04, (2.82, side * 0.58, 2.6), "X", m["black"], hull, seg=14, lods=MID)
-        cyl(f"exhaust_{k}", 0.2, 0.5, (-0.7, side * 0.86, 2.6), "Y", m["nozzle"], hull, seg=12,
-            rot=(0, 0, side * 0.4), lods=MID)
-        # Cabin door rails and windows, cockpit door windows.
-        box(f"cabin_door_{k}", (1.8, 0.03, 1.2), (1.2, side * 1.06, 1.25), m["dark"], hull, lods=MID)
-        box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["glass"], hull, lods=MID)
-        box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["glass"], hull,
-            lods=MID)
-    A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
-    cyl("mast", 0.2, 0.75, (0.3, 0, 2.95), "Z", m["dark"], hull, seg=12)
-    A.rotor("main", (0.3, 0, height - 0.22), 8.18 if not z20 else 8.2, 4 if not z20 else 5, 0.53, m, hull,
-            hub=0.42, mast=0.0, droop=0.025, phase=0.4)
-    A.rotor("tail", (tail + 0.55, -0.32, 3.05), 1.68, 4, 0.25, m, hull, hub=0.16, mast=0.0, droop=0.0,
-            rot=(math.pi / 2 - 0.35, 0, 0), thick=0.12)
-    A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (length / 2 - 2.6, side * 1.04, 0.85), m["dark"], hull,
-                                   lods=NEAR))
-    A.blade_antenna("antenna_belly", (-0.8, 0, 0.6), 0.25, m, hull, down=True)
-    if z20:
-        A.sensor_ball("nose_sensor", (length / 2 - 0.7, 0, 0.62), 0.18, m, hull)
-
-    # The Army's black lettering on the UH-60; the PLA's star on the Z-20.
-    if variant["id"] == UH60:
-        A.markings(v, [
-            ("text", dict(text="U.S. ARMY", height=0.25, centre=(-3.2, 1.2, 1.72), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
-            ("text", dict(text="20-21000", height=0.12, centre=(-1.2, 1.2, 1.3), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
-        ])
+    hawk = variant["id"] == UH60
+    mats = A.fit(v)
+    if hawk:
+        mats["canopy"] = flat_paint("hawk_glazing", (.006, .012, .016), rough=.10,
+                                   grime=0, role="glass")
     else:
-        A.markings(v, [
-            ("insignia", dict(kind="cn_star", centre=(-3.0, 1.2, 1.72), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
-            ("text", dict(text="20", height=0.4, centre=(3.0, 1.2, 1.5), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
-        ])
-    # The airframe as drawn runs off the frame's middle; the frame (and the
-    # mounts' pivots in it) is centred on the hull box.
-    v.hull.location.x += AFT_M[variant["id"]]
+        mats["canopy"] = flat_paint("z20_glass", (.006, .011, .017), rough=.09, metal=.09,
+                                   grime=0, role="glass")
+        mats["radome"] = flat_paint("nose_finish", (.042, .046, .049), rough=.66, grime=.04, role="paint")
+    fitted_airframe(v, "uh_60_black_hawk" if hawk else "z_20", mats)
+    if not v.wreck:
+        # Two inward-facing utility seats interrupt the view through the open doors.
+        fabric = flat_paint("hawk_seat_canvas", (.090, .095, .078), rough=.94, grime=.06, role="paint")
+        webbing = flat_paint("hawk_seat_webbing", (.032, .036, .028), rough=.88, grime=0, role="paint")
+        for i, (x, floors) in enumerate(((.53, (.550, .513)), (1.19, (.488, .473)))):
+            box(f"troop_cushion_{i}", (.51, .45, .11), (x, -.39, .90), fabric, v.hull, bevel=.045, lods=MID)
+            box(f"troop_back_{i}", (.48, .07, .55), (x, -.59, 1.22), fabric, v.hull,
+                bevel=.034, rot=(.08, 0, 0), lods=MID)
+            for side in (-1, 1):
+                A.line(f"troop_belt_{i}_{side}", (x+side*.16, -.55, 1.46), (x+side*.075, -.50, 1.00),
+                       webbing, v.hull, width=.048, height=.013)
+                A.line(f"troop_leg_{i}_{side}", (x+side*.18, -.47, floors[side > 0]), (x+side*.18, -.39, .846),
+                       mats["steel"], v.hull, width=.028, height=.028, lods=MID)
+    if hawk:
+        # Hub centres measured on the fitted donor. The authored blades use
+        # the full flight diameter and turn on the existing rotor nodes.
+        head = A.rotor("main", (3.25, 0, 3.38), 8.18, 4, 0.53, mats, v.hull,
+                hub=0.36, mast=0.53, droop=0.025, phase=0.4)
+        A.markings(v, [("text", dict(text="318", height=.235, centre=(2.04, 1.25, 2.55),
+                                     normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",),
+                                     colour="lowvis_light"))])
+        A.rotor("tail", (-7.14, -0.39, 3.31), 1.68, 4, 0.25, mats, v.hull,
+                hub=0.16, mast=0.12, droop=0, rot=(math.pi / 2 - 0.35, 0, 0))
+    else:
+        head = A.rotor("main", (3.28, 0, 3.48), 8.20, 5, .53, mats, v.hull,
+                hub=.39, mast=.34, droop=.024, phase=.2)
+        A.rotor("tail", (-7.21, -.39, 3.40), 1.68, 4, .25, mats, v.hull, hub=.16, mast=.12,
+                droop=0, rot=(math.pi/2-.35, 0, 0))
+        A.markings(v, [("insignia", dict(kind="cn_star", centre=(-2.20, .48, 1.42), normal=(0, 1, 0),
+                                        up=(0, 0, 1), size=.165, onto=("fuselage",)))])
+    blade_dampers(head, 4 if hawk else 5, .4 if hawk else .2, mats)
+    A.door_guns(v, rig(v.frame, v.root), mats, DOOR_PITCH_DEG, inboard=.2)
 
 
 def wreck(variant, v):

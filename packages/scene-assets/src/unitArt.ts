@@ -2,12 +2,14 @@
 // body: tiers that really reduce, so every unit switches detail with zoom;
 // dressing outside the hull that can't pass for cover; and budgets per class.
 // Like `scenery.ts` for scenery kinds, this table is the art side's, keyed by
-// the class a unit draws as: its vehicle class, or soldier. Every number in it is a loose
-// tripwire against gross regressions, not a target: when real art exceeds one
-// and nothing visibly suffers, raise it (specs/done/unit-models/choices.md).
+// the class a unit draws as: its vehicle class, or soldier. Every number in it is a
+// ceiling, not a target. A model over its class's triangle budget is simplified
+// until it fits, not given more room; a budget moves only when its whole class
+// is re-measured (specs/done/unit-models/choices.md).
 
 import { meshTier, type Scene } from "./scene.ts";
-import type { Budget, Finding } from "./schema.ts";
+import type { Budget } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 
 /** The class every soldier appearance draws as. */
 export const SOLDIER_CLASS = "soldier";
@@ -33,17 +35,26 @@ export interface UnitArtRule extends Budget {
   dressing: DressingAllowance;
 }
 
-/** The rules by class: a vehicle class (`vehicle_class`) or `SOLDIER_CLASS`.
- *  A class without a row, and a field a row leaves out, take `default`'s.
- *  The vehicle budgets were set from the first rebuilt vehicles (Abrams,
- *  Stryker, HMMWV, and the test units that share their classes) with about
- *  twice their room; `bundle_bytes` is the whole encoded bundle, its shared
- *  textures included. The classes without a pilot take its nearest one's. */
-export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArtRule>> = {
-  default: {
-    tier_ratio: 0.9,
-    dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
-  },
+/** A class's row: its triangle budget, which every class must name, and
+ *  any shared rule it changes. */
+export type ClassRule = Partial<UnitArtRule> & Required<Pick<Budget, "tier_triangles">>;
+
+/** The rules every class shares unless its row changes them. */
+export const SHARED_ART: UnitArtRule = {
+  tier_ratio: 0.9,
+  dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
+};
+
+/** The rows by class: a vehicle class (`vehicle_class`) or `SOLDIER_CLASS`.
+ *  A unit whose class has no row is refused (`budget.class_row`), so a new
+ *  class always arrives with its budget. A vehicle class's `tier_triangles`
+ *  hold any one model to about 1.5 times its class's median model at the
+ *  near tiers and twice it at the far ones, where the counts are small
+ *  (measured over the roster, 2026-11-19), so no one model draws much more
+ *  detail than its siblings. `bundle_bytes` is the whole encoded bundle, its
+ *  shared textures included, set from the first rebuilt vehicles with about
+ *  twice their room. */
+export const UNIT_ART: Record<string, ClassRule> = {
   // About twice the first rebuilt rifle squad, which measured
   // at most 29149 / 6987 / 2486 / 763 triangles, a 12.4 MB bundle, 24 textures.
   [SOLDIER_CLASS]: {
@@ -52,34 +63,41 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
     textures: 48,
   },
   tracked_heavy: {
-    tier_triangles: [120000, 45000, 13000, 4000],
+    tier_triangles: [95000, 40000, 16000, 5000],
     bundle_bytes: 48_000_000,
     textures: 64,
   },
   tracked_medium: {
-    tier_triangles: [90000, 34000, 10000, 3000],
+    tier_triangles: [85000, 40000, 16000, 5000],
     bundle_bytes: 40_000_000,
     textures: 64,
   },
   wheeled_medium: {
-    tier_triangles: [70000, 27000, 7000, 2000],
+    tier_triangles: [70000, 20000, 6000, 2000],
     bundle_bytes: 40_000_000,
     textures: 64,
   },
   wheeled_light: {
-    tier_triangles: [80000, 24000, 7000, 2500],
+    tier_triangles: [35000, 15000, 5000, 1000],
     bundle_bytes: 36_000_000,
     textures: 64,
   },
+  wheeled_heavy: { tier_triangles: [60000, 20000, 5000, 2000] },
+  air_light: { tier_triangles: [50000, 20000, 8000, 3000] },
+  air_light_logistics: { tier_triangles: [50000, 20000, 11000, 5000] },
+  high_air_light: { tier_triangles: [110000, 30000, 8000, 3000] },
   wheeled_medium_logistics: {
-    tier_triangles: [70000, 27000, 7000, 2000],
+    tier_triangles: [45000, 20000, 4000, 2000],
     bundle_bytes: 40_000_000,
     textures: 64,
   },
 };
 
+/** The rules `cls`'s models are held to: its row over the shared rules. A
+ *  model no type draws (`null`), or of a class without a row, takes the
+ *  shared rules alone. */
 export const unitArtRule = (cls: string | null): UnitArtRule => ({
-  ...UNIT_ART.default,
+  ...SHARED_ART,
   ...(cls === null ? {} : UNIT_ART[cls]),
 });
 

@@ -16,6 +16,8 @@ export interface SimModule {
   /** A live battle. */
   createBattle(scenario: string, seed: number): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
+  /** A recorded battle replayed to a tick, then live. */
+  resumeBattle(scenario: string, replay: string, tick: number): SimBattle;
 }
 
 export interface SimBattle {
@@ -246,9 +248,12 @@ export function createAuthority(host: AuthorityHost): Authority {
             .load()
             .then((module) => {
               if (lifetime.kind === "closed") return;
-              const battle = request.replay
-                ? module.replayBattle(request.scenario, request.replay)
-                : module.createBattle(request.scenario, request.seed);
+              const { resume } = request;
+              const battle = resume
+                ? module.resumeBattle(request.scenario, resume.replay, resume.tick)
+                : request.replay
+                  ? module.replayBattle(request.scenario, request.replay)
+                  : module.createBattle(request.scenario, request.seed);
               lifetime = { kind: "live", resources: { sim: module, battle } };
               for (let i = 0; i < PUBLICATION_POOL * sides.length; i++)
                 credits.push(new ArrayBuffer(4096));
@@ -357,7 +362,11 @@ export function createAuthority(host: AuthorityHost): Authority {
           script = { id: request.id, target: activeResources().battle.tick() + request.ticks };
           break;
         case "replay":
-          host.post({ type: "replay", json: activeResources().battle.replay_json() });
+          host.post({
+            type: "replay",
+            id: request.id,
+            json: activeResources().battle.replay_json(),
+          });
           return;
         case "sides": {
           const nextSides = [...new Set(request.sides)];

@@ -7,8 +7,8 @@
   if (groundClassView()) {
     return ColorFog(vec4f(0, 0, 0, 1), vec4f(0, 0, 0, 1));
   }
-  let surface = groundAlbedo(input.world, input.color, cell, groundPaved(input.world.xy, cell));
   let up = normalize(input.normal);
+  let surface = groundAlbedo(input.world, input.color, cell, groundPaved(input.world.xy, cell), dot(up, environment.sun.direction.xyz));
   let paintSample = groundPaint(input.world);
   let albedo = paintedAlbedo(surface.xyz, paintSample);
   let lit = shade(albedo, vec3f(), surface.w, 0f, 0f, 1f, up, input.world, 1f, (*eye));
@@ -33,7 +33,7 @@
     let classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
     return ColorFog(vec4f(classes, 1f), vec4f(0, 1, 1, 1));
   }
-  let plain = groundAlbedo(input.world, input.color, cell, paved);
+  let plain = groundAlbedo(input.world, input.color, cell, paved, dot(n, environment.sun.direction.xyz));
   let biome = (1f - input.color.w);
   let scar = groundScarsSeen(input.world, (*eye), footprint);
   let surface = mix(plain, scarredSurface(plain, scar), biome);

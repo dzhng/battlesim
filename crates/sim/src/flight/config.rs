@@ -38,6 +38,9 @@ pub enum FlightConfigError {
     /// between level and vertical.
     TopAttack(&'static str),
     ArcHeight(&'static str),
+    /// A launch elevation belongs on a guided row and lies between level and
+    /// vertical.
+    LaunchElevation(&'static str),
     /// An unguided layer more accurate at its reach than
     /// `physics.min_spread_at_max_range_m` allows.
     TighterThanCeiling {
@@ -61,6 +64,7 @@ impl std::fmt::Display for FlightConfigError {
             Self::Motor(reason) => write!(f, "Invalid missile motor: {reason}"),
             Self::TopAttack(reason) => write!(f, "Invalid top attack: {reason}"),
             Self::ArcHeight(reason) => write!(f, "Invalid arc height: {reason}"),
+            Self::LaunchElevation(reason) => write!(f, "Invalid launch elevation: {reason}"),
             Self::TighterThanCeiling { spread_m, min_m } => write!(
                 f,
                 "Landing spread must be at least {min_m} m at maximum range; entered {spread_m} m"
@@ -237,6 +241,32 @@ impl FlightConfig {
                 slope: libm::tan(t.dive_deg.to_radians()),
             }),
         };
+        let launch_elevation_rad = match weapon.launch_elevation_deg {
+            None => None,
+            Some(deg) if !(deg.is_finite() && (0.0..=90.0).contains(&deg)) => {
+                return Err(FlightConfigError::LaunchElevation(
+                    "must lie between 0 and 90 degrees",
+                ))
+            }
+            Some(_) if weapon.turn_deg_s.is_none() => {
+                return Err(FlightConfigError::LaunchElevation("it needs a guided row"))
+            }
+            Some(deg) => Some(deg.to_radians()),
+        };
+        let launch_hold_s = match weapon.launch_hold_s {
+            None => 0.0,
+            Some(seconds) if !(seconds.is_finite() && seconds >= 0.0) => {
+                return Err(FlightConfigError::LaunchElevation(
+                    "launch_hold_s must be finite and nonnegative",
+                ))
+            }
+            Some(_) if launch_elevation_rad.is_none() => {
+                return Err(FlightConfigError::LaunchElevation(
+                    "launch_hold_s needs launch_elevation_deg",
+                ))
+            }
+            Some(seconds) => seconds,
+        };
         // A heavier share of gravity bends each chord more: it must still
         // keep within the chord error at the declared chords per tick.
         let accel = self.gravity.length() * weapon.gravity_scale;
@@ -255,6 +285,8 @@ impl FlightConfig {
             arc_height_m: weapon.arc_height_m,
             suppression_radius_m: weapon.suppression_radius_m,
             turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
+            launch_elevation_rad,
+            launch_hold_s,
             motor,
             loft,
         })
@@ -295,6 +327,10 @@ pub struct LaunchProfile {
     pub suppression_radius_m: f64,
     /// Guided rounds' turn limit; `None` flies ballistically.
     pub turn_rad_s: Option<f64>,
+    /// A guided round's elevation as it leaves its launcher.
+    pub launch_elevation_rad: Option<f64>,
+    /// Seconds spent on the authored launch heading before guidance turns.
+    pub launch_hold_s: f64,
     /// A rocket motor speeding the round up along its heading.
     pub motor: Option<Motor>,
     /// A guided round's top-attack path.
@@ -345,6 +381,25 @@ impl Motor {
 }
 
 impl LaunchProfile {
+    /// Keep the solved launch speed while using an authored launcher elevation.
+    pub fn initial_velocity(&self, solved: V3, toward: V3) -> V3 {
+        let Some(elevation) = self.launch_elevation_rad else {
+            return solved;
+        };
+        let horizontal = if solved.xy().length() > 1e-9 {
+            solved.xy().normalized()
+        } else {
+            toward.xy().normalized()
+        };
+        let speed = solved.length();
+        let (sin, cos) = libm::sincos(elevation);
+        v3(
+            horizontal.x * speed * cos,
+            horizontal.y * speed * cos,
+            speed * sin,
+        )
+    }
+
     /// The acceleration the round flies under: its share of gravity, or
     /// none for a motor-sustained guided round.
     pub fn gravity(&self, config: &FlightConfig) -> V3 {

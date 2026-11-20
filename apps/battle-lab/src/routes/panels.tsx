@@ -318,6 +318,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           ),
         cap: 30,
         pending: selection.pending ?? [],
+        offered: null,
       },
     ],
     preparationRemainingS: 60,

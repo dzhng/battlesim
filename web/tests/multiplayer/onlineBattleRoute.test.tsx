@@ -43,6 +43,7 @@ vi.mock("@web/battle/prepare/client", () => ({
               skirmish: { sites: { entries: [{ center: [0, 0], yaw: 0 }] } },
             }),
             report: {
+              request: {},
               identity: { kind: "generated", generation: { map_hash: "map" } },
               size: [100, 100],
               extents: { rendered: [0, 0, 100, 100] },

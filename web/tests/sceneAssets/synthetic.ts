@@ -60,7 +60,10 @@ export const TANK_DRAWS: MountDraws = { cannon: "gun", HMG: "hmg" };
  *  "tank"), a supply truck ("truck") and a rifle squad of riflemen
  *  ("rifleman"), and a part `era` whose hardware is `era_*` nodes. `tank`
  *  overrides the tank type's fields. */
-export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
+export function syntheticUnits(
+  tank: Partial<UnitType> = {},
+  supply: Partial<UnitType> = {},
+): UnitCatalog {
   const drive = { offroad_kmh: 1, road_kmh: 1, turn_deg_s: 1, reverse_speed_factor: 1 };
   const tracked = { tracked: drive };
   const wheeled = { wheeled: { ...drive, turning_radius_m: 1 } };
@@ -82,6 +85,7 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
       }),
       hullType("supply", "truck", [3, 1.4, 1.8], wheeled, "wheeled_heavy", {
         capabilities: { deploy: { seconds: 1, pack_seconds: 1 } },
+        ...supply,
       }),
       {
         ...hullType("rifle", "", [0, 0, 0], { foot: { offroad_kmh: 4, road_kmh: 4 } }, null),
@@ -116,7 +120,7 @@ export const HELI_AUTHORITY: Authority = {
         "heli",
         [4, 0.8, 1.2],
         { air: { cruise_kmh: 1, turn_deg_s: 1, climb_mps: 1, flight: "rotor" } },
-        "air_heavy",
+        "air_light",
       ),
     ],
   }),

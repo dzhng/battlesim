@@ -94,7 +94,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   let nextId = 1;
   const acks = new Map<number, Waiter<CommandAck>>();
   const previews = new Map<number, Waiter<PreviewAnswer>>();
-  const replays: Waiter<string>[] = [];
+  const replays = new Map<number, Waiter<string>>();
   const referees = new Map<number, Waiter<RefereeView>>();
   const resets = new Map<number, Waiter<void>>();
   const orders: ((player: string) => void)[] = [];
@@ -154,7 +154,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     for (const waiter of [
       ...acks.values(),
       ...previews.values(),
-      ...replays,
+      ...replays.values(),
       ...referees.values(),
       ...resets.values(),
       ready,
@@ -164,7 +164,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     resets.clear();
     acks.clear();
     previews.clear();
-    replays.length = 0;
+    replays.clear();
     stop();
     if (!result) return;
     end = result;
@@ -229,7 +229,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
       case "building_preview":
         return settle(previews, message.id, { building: message.placement });
       case "replay":
-        return replays.shift()?.resolve(message.json);
+        return settle(replays, message.id, message.json);
       case "status":
         // The wire has three statuses; the last two are said by `close`.
         if (message.status === "finished") return close("finished", { kind: "finished" });
@@ -356,13 +356,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
       if (end) handle(end);
       else endings.push(handle);
     },
-    replay() {
-      if (over !== null) return Promise.reject(new Error(`the battle has ended: ${over}`));
-      return new Promise((resolve, reject) => {
-        replays.push({ resolve, reject });
-        send({ type: "replay" });
-      });
-    },
+    replay: () => ask(replays, (id) => ({ type: "replay", id })),
     dispose: () => close("disposed", null),
   };
 }

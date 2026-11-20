@@ -224,7 +224,7 @@ test("building previews preserve battle outcomes and an invalid query leaves the
   for (const h of [queried, untouched]) {
     h.authority.handle(command);
     for (let i = 0; i < 20; i++) stepOnce(h, i);
-    h.authority.handle({ type: "replay" });
+    h.authority.handle({ type: "replay", id: 1 });
   }
   expect(queried.replies.filter((r) => r.type === "ack")).toEqual(
     untouched.replies.filter((r) => r.type === "ack"),
@@ -393,7 +393,7 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   live.authority.handle({ type: "pause" });
   live.authority.handle(move(1, [0]));
   for (let i = 0; i < 40; i++) stepOnce(live, i);
-  live.authority.handle({ type: "replay" });
+  live.authority.handle({ type: "replay", id: 1 });
   const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
   const digests = live.publications().map((p) => (p.type === "publication" ? p.digest : ""));
 
@@ -412,7 +412,7 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
 test("a different simulation build is refused before replay publication", async () => {
   const live = harness();
   await live.init();
-  live.authority.handle({ type: "replay" });
+  live.authority.handle({ type: "replay", id: 1 });
   const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
   const record = JSON.parse(json);
   record.engine_build = "0".repeat(64);
@@ -524,6 +524,7 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
     memory,
     createBattle: () => battle,
     replayBattle: () => battle,
+    resumeBattle: () => battle,
   }));
   await h.init();
   h.authority.handle({ type: "start" });
@@ -558,6 +559,7 @@ test("terminal matches complete fast-forward at their final tick and stop publis
     memory,
     createBattle: () => battle,
     replayBattle: () => battle,
+    resumeBattle: () => battle,
   }));
   await h.init();
   h.authority.handle({ type: "start" });

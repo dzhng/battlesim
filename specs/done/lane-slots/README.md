@@ -6,7 +6,7 @@ below; the calls the build made where the plan was silent are in
 
 A skirmish player's slot number on its side is its **lane**: slot k holds its
 side's k-th road in. The number is painted on the lobby picture's entry tags and
-on the ground behind the chevrons of each of your side's roads in battle, the
+on the ground behind the beacons of each of your side's roads in battle, the
 lobby marks which lanes are open and which is yours, and every AI that holds a
 lane opens on it. Teammates call
 lanes by number ("push 2"); human-vs-human multiplayer is the reason.
@@ -58,10 +58,10 @@ line, and Region is a row of tabs.
   heavier side-coloured edge and digit, and yours with a white band. A
   seat change re-marks the tags without a new preview.
 - **In battle** each road in of the viewer's side paints its lane digit behind
-  its chevrons, nearest the edge (`packages/battle-renderer/src/deploymentMarker.ts`,
+  its beacons, nearest the edge (`packages/battle-renderer/src/deploymentMarker.ts`,
   placed by `battleOverlayScenario` in `apps/battle-lab/src/battleOverlay.ts`).
-  Digits are stroke glyphs (a lane is 1, 2 or 3) drawn with the chevrons' outline
-  colour and stroke weights. The whole marker lies under every mark of the units:
+  Digits are stroke glyphs (a lane is 1, 2 or 3) drawn with the marker's blue stroke
+  weight. The whole marker lies under every mark of the units:
   it draws first in the marching paint layer, and the units' still marks follow
   it there, unpulsed (`unpulsed`, `packages/battle-renderer/src/mesh.ts`), because
   the renderer draws all still paint before all marching paint. Native replays
@@ -118,7 +118,7 @@ line, and Region is a row of tabs.
 - `crates/sim/src/skirmish_ai/team/tests/planning.rs` (the pull holds at the
   start and fades) and `tests/help.rs` (a laneless human's help road).
 - `crates/game-wasm/tests/skirmish.rs`, `web/tests/prepareBattle.test.ts`,
-  `web/tests/lobbyScreen.test.tsx`, `web/tests/entryChevrons.test.ts`; the
+  `web/tests/lobbyScreen.test.tsx`, `web/tests/entryMarkers.test.ts`; the
   `lobby` and `allies` scenes.
 
 ## Dead ends

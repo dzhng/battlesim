@@ -12,7 +12,21 @@ export type GroupKey = (typeof GROUP_KEYS)[number];
 /** Each group's units, by key. */
 export type ControlGroups = ReadonlyMap<GroupKey, readonly number[]>;
 
-export type GroupAction = "assign" | "add" | "recall";
+/** The modifier held with a group's digit for each action, as a key event
+ *  names it and as a card spells it. The first held decides; none recalls. */
+const GROUP_MODIFIERS = {
+  assign: { held: "ctrlKey", label: "Ctrl" },
+  add: { held: "shiftKey", label: "Shift" },
+} as const;
+type ModifiedAction = keyof typeof GROUP_MODIFIERS;
+export type GroupAction = ModifiedAction | "recall";
+
+/** The first group's keys for `action`, as a card names them (every digit
+ *  has its own group the same way). */
+export function firstGroupKeys(action: GroupAction): string {
+  const digit = GROUP_KEYS[0];
+  return action === "recall" ? digit : `${GROUP_MODIFIERS[action].label}+${digit}`;
+}
 
 /** What a key press asks of the groups, or null. Ctrl is this key's own
  *  modifier (Ctrl+1 is otherwise the browser's tab switch, which the battle
@@ -23,7 +37,10 @@ export function groupKeyPress(
 ): { key: GroupKey; action: GroupAction } | null {
   const digit = /^Digit([0-9])$/.exec(e.code)?.[1] as GroupKey | undefined;
   if (!digit || e.repeat || e.metaKey || e.altKey || isTypingTarget(e.target)) return null;
-  return { key: digit, action: e.ctrlKey ? "assign" : e.shiftKey ? "add" : "recall" };
+  const modified = (Object.keys(GROUP_MODIFIERS) as ModifiedAction[]).find(
+    (action) => e[GROUP_MODIFIERS[action].held],
+  );
+  return { key: digit, action: modified ?? "recall" };
 }
 
 /** `groups` with `units` stored in group `key`: replacing it (assign) or

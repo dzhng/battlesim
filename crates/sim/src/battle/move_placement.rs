@@ -183,14 +183,7 @@ impl Battle {
             .map(|slot| {
                 let u = &self.units[slot.id.0 as usize];
                 let goal = slot.point.unwrap_or(u.position.xy());
-                let facing = movement::final_yaw(
-                    &self.rules,
-                    u,
-                    request.facing,
-                    from(u),
-                    goal,
-                    request.direction,
-                );
+                let facing = movement::final_yaw(from(u), goal, request.facing, request.direction);
                 let living = if u.hull.is_some() {
                     0
                 } else {

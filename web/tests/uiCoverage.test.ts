@@ -18,7 +18,7 @@ const PINNED_PAGES = [
   "apps/battle-lab/src/menu/Home.tsx",
   "apps/battle-lab/src/menu/MenuVisit.tsx",
   "apps/battle-lab/src/menu/SkirmishPage.tsx",
-  "apps/battle-lab/src/Tutorial.tsx",
+  "apps/battle-lab/src/Guide.tsx",
   "apps/battle-lab/src/menu/SettingsPage.tsx",
 ];
 

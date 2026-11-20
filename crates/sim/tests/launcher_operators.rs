@@ -347,3 +347,88 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
         "activity is aligned only with the visible member identities"
     );
 }
+
+/// An AT team (eyes out to 2 km) and a red tank driving north from
+/// (700, `from_y`), holding its fire, with `walls` between them; the
+/// launcher takes `aim_s` to aim.
+fn launcher_and_tank(walls: Vec<Value>, from_y: f64, aim_s: f64) -> Battle {
+    let mut b = quick(
+        Value::Array(walls),
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [100, 300], "engagement": "fire_at_will" },
+            { "side": "red", "kind": "test_tank", "position": [700, from_y], "yaw": std::f64::consts::FRAC_PI_2,
+              "engagement": "return_fire_only" },
+        ]),
+        1,
+        |r| {
+            r["weapons"]["atgm"]["aim_s"] = json!(aim_s);
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "test_at",
+                json!({ "sensors": { "ground_m": 2000 } }),
+            );
+        },
+    );
+    Commander::new().ok(
+        &mut b,
+        Side::Red,
+        crate::guidance::move_to(1, [700.0, 480.0]),
+    );
+    b
+}
+
+/// The gunner's weapon in hand: the mount type he has active.
+fn in_hand(b: &Battle) -> Option<usize> {
+    b.unit(UnitId(0)).unwrap().members[0].active_mount
+}
+
+/// Whether the gunner has his launcher (the team's operated gun) in hand.
+fn launcher_up(b: &Battle) -> bool {
+    let team = b.unit(UnitId(0)).unwrap();
+    (team.mounts.iter()).any(|m| m.operator.is_some() && Some(m.spec) == in_hand(b))
+}
+
+#[test]
+fn a_gunner_keeps_his_launcher_shouldered_while_his_line_flickers() {
+    // Short walls with gaps between the team and the tank's road: the line
+    // opens and closes every few seconds, shorter than the launcher's aim.
+    let walls = (0..12)
+        .map(|k| {
+            let y = 160.0 + f64::from(k) * 24.0;
+            json!({ "kind": "wall", "center": [430, y], "yaw": 0, "half_extents": [1, 4, 3] })
+        })
+        .collect();
+    let mut b = launcher_and_tank(walls, 130.0, 4.0);
+    let mut shouldered = false;
+    for _ in 0..(b.rules().tick_hz * 20) {
+        b.step();
+        if missile(&b).is_some() {
+            return;
+        }
+        assert!(
+            !shouldered || launcher_up(&b),
+            "tick {}: he put the launcher down",
+            b.tick()
+        );
+        shouldered |= launcher_up(&b);
+    }
+    panic!("the gunner never launched through the gaps");
+}
+
+#[test]
+fn a_gunner_puts_his_launcher_down_once_the_tank_is_gone() {
+    // The tank shows a few seconds, too few to finish the aim, then drives
+    // behind one long wall for good.
+    let wall =
+        json!({ "kind": "wall", "center": [430, 330], "yaw": 0, "half_extents": [1, 170, 4] });
+    let mut b = launcher_and_tank(vec![wall], 10.0, 30.0);
+    let mut shouldered = false;
+    for _ in 0..(b.rules().tick_hz * 40) {
+        b.step();
+        shouldered |= launcher_up(&b);
+    }
+    assert!(missile(&b).is_none());
+    assert!(shouldered, "he took the launcher up while the tank showed");
+    assert!(!launcher_up(&b), "he holds no launcher at a tank long gone");
+}

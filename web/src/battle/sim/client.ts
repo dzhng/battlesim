@@ -15,6 +15,7 @@ import type {
   MoveDestination,
   BuildingPreviewRequest,
   BuildingPlacement,
+  Resume,
   SideName,
   SimReply,
   SimRequest,
@@ -50,6 +51,8 @@ export interface LocalSimClientOptions {
   connect?: SimConnection;
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
+  /** Take a recorded battle up live at a tick. */
+  resume?: Resume;
 }
 
 export interface RemoteSimClientOptions {
@@ -168,6 +171,7 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
   let paused = false;
   let nextCommand = 1;
   let nextAdvance = 1;
+  let nextReplay = 1;
   let nextPreview = 1;
   type Lifetime =
     | { kind: "active" }
@@ -188,7 +192,7 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
   >();
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
-  let replayWaiter: Pending<string> | null = null;
+  const replays = new Map<number, Pending<string>>();
   let resolveReady!: (info: { tickHz: number; tick: number; layout: string }) => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<{ tickHz: number; tick: number; layout: string }>((resolve, reject) => {
@@ -220,14 +224,13 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
       for (const pending of pendingAcks.values()) pending.reject(next.error);
       for (const pending of advances.values()) pending.reject(next.error);
     }
-    for (const pending of previews.values())
+    for (const pending of [...previews.values(), ...replays.values()])
       pending.reject(next.error ?? new Error("simulation client disposed"));
+    replays.clear();
     if (next.kind === "failed") {
-      replayWaiter?.reject(next.error);
       pendingAcks.clear();
       advances.clear();
       previews.clear();
-      replayWaiter = null;
     } else {
       previews.clear();
       if (!online && typeof document !== "undefined")
@@ -357,8 +360,8 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
           break;
         }
         case "replay":
-          replayWaiter?.resolve(reply.json);
-          replayWaiter = null;
+          replays.get(reply.id)?.resolve(reply.json);
+          replays.delete(reply.id);
           break;
         case "error":
           fail(reply.message);
@@ -382,6 +385,7 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
       seed: options.seed,
       sides: [options.side],
       replay: options.replay,
+      resume: options.resume,
     });
 
   const send = (request: SimRequest) => {
@@ -495,9 +499,10 @@ export function createSimClient(options: SimClientOptions): SeatClient | SimClie
     replay() {
       if (lifetime.kind !== "active")
         return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
+      const id = nextReplay++;
       return new Promise<string>((resolve, reject) => {
-        replayWaiter = { resolve, reject };
-        channel.send({ type: "replay" });
+        replays.set(id, { resolve, reject });
+        channel.send({ type: "replay", id });
       });
     },
   };

@@ -1,4 +1,5 @@
 /** Main-thread side of battle preparation: one worker per request. */
+import type { Resume } from "../sim/protocol";
 import type { SimConnection } from "../sim/client";
 import type { SimReply } from "../sim/protocol";
 import type { ScenarioBundlePreparationReport } from "./scenarioBundle";
@@ -37,6 +38,8 @@ export interface PreparedSession extends PreparedBattle {
 export interface PreparedConnectionSession {
   scenario: string;
   connect: SimConnection;
+  /** Where the battle takes up live, when it starts at a chapter. */
+  resume?: Resume;
 }
 
 /** A page adopts its preparation worker, or connects to a remote authority. */
@@ -142,7 +145,8 @@ export function prepareBattle(
         throw new PreparationFailed(
           "The worker returned an uploaded bundle to the ordinary battle path.",
         );
-      return { ...reply.battle, connect };
+      const { report } = reply.battle;
+      return { ...reply.battle, connect, resume: "scenario" in report ? report.resume : undefined };
     },
     true,
   );

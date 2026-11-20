@@ -1,0 +1,14 @@
+{
+  "generator": "bento CLI",
+  "model": "openai/gpt-image-2.6-flare",
+  "sources": {
+    "lantern": "assets/source/portraits/lantern.png"
+  },
+  "prompts": {
+    "lantern": "Head-and-shoulders portrait for a military strategy game's radio transmission panel. Cinematic realistic digital painting, high detail, soft key light from a tactical map table below, deep blue-black background, subtle teal rim light. Fictional character, no readable text, no flags, no national insignia, no name tapes, no logos, no watermark. Square framing, face slightly off-centre, looking just past the camera, calm and focused. A US-style army operations officer, woman in her late thirties, hair tied back, light radio headset with boom mic, plain olive field jacket, faint lines of fatigue, dry confident half-smile."
+  },
+  "runtime_processing": {
+    "width": 288,
+    "format": "jpeg"
+  }
+}

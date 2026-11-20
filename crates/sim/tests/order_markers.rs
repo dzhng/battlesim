@@ -186,9 +186,14 @@ fn a_right_drag_facing_is_published_and_kept_by_a_squad_a_tank_and_wheels_drivin
         "the jeep's marker shows the heading it lines up on"
     );
     let mut reversed = false;
+    let mut arrived = None;
     for _ in 0..40 * 30 {
         b.step();
-        reversed |= b.unit(UnitId(2)).unwrap().reversing;
+        let jeep = b.unit(UnitId(2)).unwrap();
+        reversed |= jeep.reversing;
+        if arrived.is_none() && jeep.orders.is_empty() {
+            arrived = Some(jeep.yaw);
+        }
     }
     let yaw = |id: u32| b.unit(UnitId(id)).unwrap().yaw;
     assert!(
@@ -208,20 +213,25 @@ fn a_right_drag_facing_is_published_and_kept_by_a_squad_a_tank_and_wheels_drivin
         jeep.state,
         jeep.route
     );
+    let arrived = arrived.expect("the jeep finished its move");
     assert!(
-        wrap_angle(yaw(2) - north).abs() < 0.35,
-        "the jeep drove in facing the drag: {}",
+        wrap_angle(arrived - north).abs() < 0.35,
+        "the jeep drove in facing the drag: {arrived}"
+    );
+    assert!(
+        wrap_angle(yaw(2) - north).abs() < 1e-6,
+        "and turned the rest of the way on the spot: {}",
         yaw(2)
     );
     assert!(!reversed, "lining up never backs up");
 }
 
-/// A wheeled hull lines up as near the drag as a forward turn allows: a
-/// facing straight back the way it came ends square to its approach, never
-/// turned round by backing and filling; with no room for the lead-in it
-/// keeps the way it came.
+/// A wheeled hull lines up as near the drag as a forward turn allows, then
+/// turns the rest of the way on the spot: a facing straight back the way it
+/// came arrives square to its approach, never backing and filling; with no
+/// room for the lead-in it arrives the way it came.
 #[test]
-fn wheels_line_up_only_as_far_as_driving_forward_allows() {
+fn wheels_line_up_as_far_as_driving_forward_allows_then_turn_on_the_spot() {
     let north = std::f64::consts::FRAC_PI_2;
     let west = std::f64::consts::PI;
     let s = setup(
@@ -239,26 +249,109 @@ fn wheels_line_up_only_as_far_as_driving_forward_allows() {
     );
     let mut b = Battle::new(&s, 2);
     let mut reversed = [false; 2];
+    let mut arrived = [None; 2];
     for _ in 0..40 * 30 {
         b.step();
-        for (id, reversed) in reversed.iter_mut().enumerate() {
-            *reversed |= b.unit(UnitId(id as u32)).unwrap().reversing;
+        for id in 0..2 {
+            let jeep = b.unit(UnitId(id as u32)).unwrap();
+            reversed[id] |= jeep.reversing;
+            if arrived[id].is_none() && jeep.orders.is_empty() {
+                arrived[id] = Some(jeep.yaw);
+            }
         }
     }
     let unit = |id: u32| b.unit(UnitId(id)).unwrap();
+    let [Some(square), Some(came)] = arrived else {
+        panic!("both jeeps finish their moves: {arrived:?}");
+    };
     assert!((unit(0).position.xy() - v2(120.0, 100.0)).length() < 3.0);
     assert!(
-        (wrap_angle(unit(0).yaw).abs() - std::f64::consts::FRAC_PI_2).abs() < 0.35,
-        "square to its approach, not turned round: {}",
-        unit(0).yaw
+        (wrap_angle(square).abs() - std::f64::consts::FRAC_PI_2).abs() < 0.35,
+        "arrives square to its approach, not turned round: {square}"
     );
     assert!((unit(1).position.xy() - v2(120.0, 6.0)).length() < 3.0);
     assert!(
-        wrap_angle(unit(1).yaw - north).abs() > 0.5,
-        "no room to line up: it keeps the way it came, {}",
+        wrap_angle(came - north).abs() > 0.5,
+        "no room to line up: it arrives the way it came, {came}"
+    );
+    assert!(
+        wrap_angle(unit(0).yaw - west).abs() < 1e-6,
+        "then turns on the spot to the drag: {}",
+        unit(0).yaw
+    );
+    assert!(
+        wrap_angle(unit(1).yaw - north).abs() < 1e-6,
+        "then turns on the spot to the drag: {}",
         unit(1).yaw
     );
     assert_eq!(reversed, [false; 2], "lining up never backs up");
+}
+
+/// A short right-drag a wheeled hull cannot line up on, with no room to
+/// drive out and back in: a spot inside its own turning circle, and one just
+/// ahead whose straight lead-in would start behind it. Each drives there as
+/// best it can, then turns on the spot to the drag, and stays put.
+#[test]
+fn wheels_finish_a_short_right_drag_by_turning_on_the_spot() {
+    let east = 0.0;
+    let south_west = -3.0 * std::f64::consts::FRAC_PI_4;
+    let s = setup(
+        [300.0, 300.0],
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [100, 100], "yaw": 0, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0, "engagement": "return_fire_only" },
+        ]),
+        json!([
+            // Behind and to the right, inside the circle a right turn sweeps.
+            mv(1, "blue", 0, [96.0, 95.0], json!({ "facing": south_west })),
+            // Ten metres ahead, facing on: the lead-in would start behind it.
+            mv(1, "blue", 1, [110.0, 200.0], json!({ "facing": east })),
+        ]),
+    );
+    let mut b = Battle::new(&s, 3);
+    let goals = [(v2(96.0, 95.0), south_west), (v2(110.0, 200.0), east)];
+    let done = |b: &Battle, id: u32| {
+        let u = b.unit(UnitId(id)).unwrap();
+        u.orders.is_empty() && u.route.is_none() && u.turn_to.is_none()
+    };
+    for _ in 0..30 * 30 {
+        b.step();
+        if b.tick() > 3 && done(&b, 0) && done(&b, 1) {
+            break;
+        }
+    }
+    let rest: Vec<_> = (0..2)
+        .map(|id| b.unit(UnitId(id)).unwrap().position)
+        .collect();
+    for _ in 0..5 * 30 {
+        b.step();
+    }
+    for (id, (goal, facing)) in goals.into_iter().enumerate() {
+        let u = b.unit(UnitId(id as u32)).unwrap();
+        assert!(
+            done(&b, id as u32),
+            "jeep {id} still working its order: at {:?} yaw {} state {:?} route {:?}",
+            u.position,
+            u.yaw,
+            u.state,
+            u.route
+        );
+        assert!(
+            (u.position.xy() - goal).length() < 3.0,
+            "jeep {id} reached its spot: {:?}",
+            u.position
+        );
+        assert!(
+            wrap_angle(u.yaw - facing).abs() < 0.02,
+            "jeep {id} turned on the spot to the drag: {}",
+            u.yaw
+        );
+        assert!(
+            (u.position - rest[id]).xy().length() < 1e-9,
+            "jeep {id} stays put once done"
+        );
+    }
 }
 
 #[test]

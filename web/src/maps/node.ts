@@ -109,6 +109,18 @@ export function openCatalogue(maps: string, libraries: string) {
         .map((name) => name.slice(0, -".json".length))
         .sort();
     },
+    /** The names of map `id`'s authored scenarios, in order: each
+     *  `scenarios/<name>.json`, beside which its coach and solution
+     *  (`<name>.coach.json`, `<name>.solution.json`) are not scenarios. */
+    scenarios(id: string): string[] {
+      const dir = join(folder(id), "scenarios");
+      if (!existsSync(dir)) return [];
+      return readdirSync(dir)
+        .filter((name) => name.endsWith(".json"))
+        .map((name) => name.slice(0, -".json".length))
+        .filter((name) => !name.includes("."))
+        .sort();
+    },
     /** Map `id`'s saved encounter `name`. */
     encounter(id: string, name: string): Encounter {
       const location = `${id}/encounters/${name}.json`;

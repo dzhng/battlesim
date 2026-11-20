@@ -174,6 +174,115 @@ fn an_enemy_aircraft_raises_air_defence_purchases() {
     );
 }
 
+/// The deck with an AA team on its cards, priced so the test helicopter is
+/// worth two of them.
+fn helicopter_worth_two_aa_teams() -> Rules {
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_aa",
+        json!({ "cost": 100, "roster": { "factions": ["us"], "category": "inf",
+            "family_name": "Test", "variant": "Test" } }),
+    );
+    crate::fixtures::patch_catalog(&mut authored, "units", "test_heli", json!({ "cost": 200 }));
+    serde_json::from_value(authored).unwrap()
+}
+
+#[test]
+fn air_defence_answers_the_aircraft_seen_then_the_rotation_resumes() {
+    let rules = helicopter_worth_two_aa_teams();
+    let aa = rules.catalog.index("test_aa").unwrap();
+    let (_, mut frame, entry) = empty_match();
+    frame.identified = vec![seen(&rules, "test_heli")];
+    let (opening, bought) = purchases(&rules, &mut frame, &entry, 40);
+    let names: Vec<_> = bought.iter().map(|&k| rules.catalog.id(k)).collect();
+    let teams = opening.iter().chain(&bought).filter(|&&k| k == aa).count();
+    assert!(
+        (1..=2).contains(&teams),
+        "AA bought to the helicopter's worth, no more: {teams} teams, then {names:?}"
+    );
+    assert!(
+        bought
+            .iter()
+            .any(|&k| rules.catalog.get(k).has_role("infantry")),
+        "the rotation buys infantry again: {names:?}"
+    );
+}
+
+#[test]
+fn a_deck_with_no_answer_to_aircraft_still_reinforces() {
+    let mut authored = deck();
+    for weapon in authored["weapons"].as_object_mut().unwrap().values_mut() {
+        // The deck's guns lose the air; air-only rows stay on cards it lacks.
+        if let Some(targets) = weapon.get_mut("targets").and_then(Value::as_object_mut) {
+            if targets.contains_key("ground") {
+                targets.retain(|layer, _| layer == "ground");
+            }
+        }
+    }
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, mut frame, entry) = empty_match();
+    frame.identified = vec![seen(&rules, "test_heli")];
+    let (_, bought) = purchases(&rules, &mut frame, &entry, 10);
+    assert!(
+        !bought.is_empty(),
+        "a helicopter it cannot answer stops no purchase"
+    );
+}
+
+/// Each player's frame holds only its own units; a teammate's AA still
+/// answers the side's threat, so the side does not buy the answer once per
+/// player.
+#[test]
+fn a_teammates_air_defence_counts_toward_the_answer() {
+    let rules = helicopter_worth_two_aa_teams();
+    let aa = rules.catalog.index("test_aa").unwrap();
+    let first_buy = |allies: Vec<TypeIndex>| {
+        let (_, mut frame, entry) = empty_match();
+        frame.identified = vec![seen(&rules, "test_heli")];
+        let view = frame.skirmish.as_mut().unwrap();
+        view.phase = Phase::Active;
+        view.players[0].unit_count = 1;
+        // Logistics on its way: the truck is not bought first.
+        view.players[0].pending.push(pending(
+            1,
+            rules.catalog.index("test_supply").unwrap(),
+            entry.center,
+            0,
+        ));
+        let assignment = Assignment {
+            main_objective: [500.0, 500.0],
+            staging_point: [500.0, 300.0],
+            force_advance: false,
+            parties: vec![],
+            allies,
+        };
+        let orders = BalancedDoctrine::default().decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: Some(&assignment),
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
+        confirm_purchases(&rules, &mut frame, &orders)[0]
+    };
+    assert_eq!(
+        first_buy(vec![]),
+        aa,
+        "alone, the player answers the helicopter"
+    );
+    assert_ne!(
+        first_buy(vec![aa, aa]),
+        aa,
+        "two teammate AA teams already answer it"
+    );
+}
+
 #[test]
 fn affordable_armour_is_bought_in_the_opening_and_the_reinforcements() {
     let (_, mut frame, entry) = empty_match();
@@ -419,4 +528,209 @@ fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     };
     assert_eq!(defends(json!(["air_rotor"])), (true, true));
     assert_eq!(defends(json!(["missile"])), (false, false));
+}
+
+#[test]
+fn missing_opening_role_uses_admitted_category_fallback() {
+    let (_, frame, entry) = empty_match();
+    // The deck's one infantry-role card loses the role.
+    let mut authored = deck();
+    fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_rifle",
+        json!({"roles":["at"]}),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let Order::ConfirmPurchase { variant, .. } = &orders[0] else {
+        panic!("category fallback must purchase")
+    };
+    let selected = rules.catalog.by_id(variant);
+    assert!(!selected.has_role("infantry"));
+    assert_eq!(selected.roster.as_ref().unwrap().category, Category::Inf);
+}
+
+#[test]
+fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and_cap() {
+    let (rules, mut frame, entry) = empty_match();
+    let mut ai = BalancedDoctrine::default();
+    let mut ready = false;
+    for iteration in 0..10 {
+        frame.tick = iteration * 5 * u64::from(rules.tick_hz);
+        for order in ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        ) {
+            match order {
+                Order::ConfirmPurchase { .. } => {
+                    confirm_purchases(&rules, &mut frame, &[order]);
+                }
+                Order::Ready => {
+                    ready = true;
+                    me(&mut frame).ready = true;
+                }
+                _ => panic!("preparation must only buy or ready"),
+            }
+        }
+        if ready {
+            break;
+        }
+    }
+    assert!(ready && frame.tick == 0, "the first decision readies");
+    let view = frame.skirmish.as_ref().unwrap();
+    assert!(view.players[0].pending.iter().any(|p| rules
+        .catalog
+        .get(p.kind)
+        .has_role("logistics")
+        && rules.catalog.get(p.kind).mobility.locomotion().is_some()));
+    let mut capped = frame.clone();
+    let view = capped.skirmish.as_mut().unwrap();
+    view.phase = Phase::Active;
+    view.players[0].unit_count = view.players[0].cap;
+    assert!(
+        !view.players[0].pending.is_empty(),
+        "the cap test includes reservations"
+    );
+    capped.tick += 5 * u64::from(rules.tick_hz);
+    assert!(!ai
+        .decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None
+            },
+            &capped,
+            &rules,
+            |_, _| Some(1.0)
+        )
+        .iter()
+        .any(|o| matches!(o, Order::ConfirmPurchase { .. })));
+}
+
+#[test]
+fn lane_purchases_clear_the_entry_before_the_staging_point() {
+    let (rules, frame, entry) = empty_match();
+    let assignment = Assignment {
+        allies: vec![],
+        main_objective: [500.0, 500.0],
+        staging_point: [500.0, 320.0],
+        force_advance: false,
+        parties: vec![],
+    };
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let destinations: Vec<_> = orders
+        .iter()
+        .filter_map(|order| match order {
+            Order::ConfirmPurchase { destination, .. } => Some(*destination),
+            _ => None,
+        })
+        .collect();
+    assert!(destinations.len() >= 3, "opening did not buy a group");
+    for destination in destinations {
+        let from_entry = distance(destination, entry.center);
+        let before_staging = distance(destination, assignment.staging_point)
+            < distance(entry.center, assignment.staging_point);
+        assert!(
+            from_entry > 10.0,
+            "arrival still occupies the entry: {destination:?}"
+        );
+        assert!(
+            before_staging,
+            "arrival passed the staging point: {destination:?}"
+        );
+        assert!((destination[0] - 500.0).abs() < 0.1);
+        assert!((destination[1] - 34.0).abs() < 0.1);
+    }
+}
+
+#[test]
+fn zero_unit_opening_uses_an_affordable_admitted_faction_purchase() {
+    let (rules, frame, entry) = empty_match();
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let Order::ConfirmPurchase {
+        variant,
+        destination,
+        ..
+    } = orders.first().expect("buy an opening unit")
+    else {
+        panic!("first command must purchase")
+    };
+    let card = rules.catalog.card(variant).unwrap();
+    assert!(
+        card.disabled_reason.is_none()
+            && card.cost as f64 <= frame.skirmish.as_ref().unwrap().players[0].credits
+    );
+    assert!(card.roster.factions.contains(&Faction::Us));
+    assert_eq!(*destination, [500.0, 500.0]);
+}
+
+#[test]
+fn opening_procures_an_authored_artillery_role() {
+    let mut authored = deck();
+    fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({
+            "roles": ["artillery"],
+            "roster": { "factions": ["us"], "category": "sup", "family_name": "Test", "variant": "Test artillery" }
+        }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, frame, entry) = empty_match();
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::ConfirmPurchase { variant, .. }
+            if rules.catalog.by_id(variant).has_role("artillery")
+    )));
 }

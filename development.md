@@ -7,12 +7,12 @@ Subsystem READMEs own commands and contracts for their code.
 | Owner                                                     | Responsibility                                                                                       |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [Contracts](crates/contract/README.md)                    | Shared commands, observations, map admission, physical templates, and exact content identities.      |
-| [Simulation](crates/sim/README.md)                        | Deterministic battle rules, replay digests, encounter placement, and native reports.                 |
+| [Simulation](crates/sim/README.md)                        | Deterministic battle rules, replay digests and resume, encounter placement, the scenario director, and native reports. |
 | [Map generation](crates/mapgen/README.md)                 | Seeded layout, physical compilation, admission, and generation reports.                              |
 | [WebAssembly boundary](crates/game-wasm/README.md)        | Native/browser parity, geometry queries, publication memory, and binding lifetime.                   |
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
-| [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
-| [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
+| [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, the scenario coach, build configuration, and browser verification. |
+| [Battle lab](apps/battle-lab/README.md)                   | Player pages (the tutorial among them), shareable battle addresses, and focused developer fixtures. |
 | [Online servers](apps/game-server/README.md) | The lobby (rooms, Frontline, presence, admission), the battle server each battle runs in, and the deploy step, the only code that knows the host. |
 | [Multiplayer contract](packages/multiplayer/README.md) | The wire types, the record stream and its resume rule, and the room and Frontline rules both ends share. |
 | [Skirmish setup](packages/skirmish-setup/README.md) | Seats, sides and map choice for offline skirmish, rooms and the server, and the battle request they become. |
@@ -38,10 +38,12 @@ Only battle rules enter the rules identity and encounter overrides; the
 [weapon-look contract](fixtures/README.md#weapon-looks) connects a resolved
 weapon to its authored sight and sound.
 
-Content has three owners, and none reaches another's place. Game battles are
-generated and field the roster's units. Test units (`test_*`) and `test` maps
-belong to tests, labs, and benchmarks; capture units (`capture_*`) and `capture`
-maps belong to the capture tool and the menu backdrop it films. A saved map's metadata says which it is
+Content has four owners, and none reaches another's place. Skirmishes are
+generated and field the roster's units. Authored scenarios (the tutorial is
+one) are fixed battles on `scenario` maps, and field only the roster's units
+too. Test units (`test_*`) and `test` maps belong to tests, labs, and
+benchmarks; capture units (`capture_*`) and `capture` maps belong to the
+capture tool and the menu backdrop it films. A saved map's metadata says which it is
 ([saved maps](fixtures/README.md#saved-maps)). The main menu's Developer page lists
 tools, labelled as such, that stay in production builds;
 [browser checks](web/README.md#checks-and-evidence) say which lab pages are
@@ -111,6 +113,9 @@ the one list of deliberate hard-coded rules:
 - an attack order pivots a vehicle on the spot to bring a gun fixed in its
   hull onto its target, on wheels as on tracks; unordered, only tracks pivot
   and wheels hold fire;
+- wheels take a right-drag's facing as best they can, driving in along it
+  when a lead-in lies on their way, then turn the rest of the way on the
+  spot, so every vehicle ends facing the drag;
 - of two vehicles that hold each other up, the later one (the higher unit id)
   gives way and works its way round while the other waits, unless it finds
   no way round;
@@ -142,7 +147,13 @@ the one list of deliberate hard-coded rules:
   decides; human identity and once-per-person grants belong to the server;
 - the skirmish AI and the scripted encounter defender choose their behaviour by
   role tags (logistics, artillery, recon, AT, MBT). They are opponents'
-  playbooks, not rules of the battle.
+  playbooks, not rules of the battle. A directed AI seat decides nothing: an
+  authored scenario's director moves its units, and they fight at their own
+  engagement;
+- a beat a director fires is authored story, not physics: it triggers on what
+  the battle knows and acts through the battle's own owners (a directed seat's
+  orders, purchases and ready; a player's wallet and shop), never by placing
+  or removing a unit.
 
 ## Check ladder
 

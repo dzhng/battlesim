@@ -12,7 +12,6 @@ import {
   templateLibraryPath,
   type Bundle,
   type Catalog,
-  type Finding,
   type RuntimeCatalog,
   type SideTints,
   type AppearanceUnit,
@@ -20,6 +19,7 @@ import {
   type StaticBundle,
   type Texture,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import { bindInteriors, interiorTexture, type InteriorSheets } from "./interior.ts";
 import { encodeTemplateLibrary, sealTemplateLibrary } from "./templateLibrary.ts";
 import {
