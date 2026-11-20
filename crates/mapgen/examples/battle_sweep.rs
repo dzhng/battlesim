@@ -146,18 +146,24 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
     let mut peak = total;
     let mut peak_tick = None;
     let mut planning = (0u64, 0u64);
-    // Instructions by phase of the step, to attribute the ticks' cost.
-    let mut phases = BTreeMap::<String, u64>::new();
+    // Instructions by phase of the step, to attribute the ticks' cost. The
+    // counter is read again after the tally, so no phase pays for it.
+    let mut phases: Vec<(sim::battle::TickPhase, u64)> = Vec::new();
     for t in 1..=ticks {
         let before = instructions::instructions();
         let started = Instant::now();
         let mut previous = before;
         battle.step_profiled(|phase| {
-            let now = instructions::instructions();
-            if let Some(cost) = now.zip(previous).map(|(a, b)| a.saturating_sub(b)) {
-                *phases.entry(format!("{phase:?}")).or_default() += cost;
+            if let Some(cost) = instructions::instructions()
+                .zip(previous)
+                .map(|(a, b)| a.saturating_sub(b))
+            {
+                match phases.iter_mut().find(|(p, _)| *p == phase) {
+                    Some((_, sum)) => *sum += cost,
+                    None => phases.push((phase, cost)),
+                }
             }
-            previous = now;
+            previous = instructions::instructions();
         });
         let elapsed = started.elapsed();
         if let Some(cost) = instructions::instructions()
@@ -246,7 +252,8 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
         "max_instructions": peak, "max_instruction_tick": peak_tick,
         "wall_ms": {"p50": quantile(0.5), "p95": quantile(0.95), "p99": quantile(0.99), "max": times.last()},
         "ticks_over_33_ms": slow_ticks, "planning_work": planning.0,
-        "phase_instructions": total.map(|_| phases),
+        "phase_instructions": total.map(|_| phases.iter()
+            .map(|(phase, n)| (format!("{phase:?}"), *n)).collect::<BTreeMap<_, _>>()),
         "max_planning_work": planning.1,
     }}})
 }
