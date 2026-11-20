@@ -2,8 +2,6 @@
 //! downwind as it climbs, and a trail's ribbon along the smoke a round left.
 use super::*;
 
-/// A puff fades in over its first quarter second.
-const PUFF_FADE_IN: f64 = 4.0;
 /// A trail's ribbon's width over its puffs' diameter.
 const RIBBON_WIDTH: f64 = 0.7;
 
@@ -70,7 +68,7 @@ pub(super) fn draw_trail(
 }
 
 /// A puff: rising, slowing as it spreads, drifting downwind as it climbs;
-/// fading in quickly and out slowly.
+/// fading in over its `fade_in_s` and out slowly.
 pub(super) fn draw_puff(
     wind: &[f64; 2],
     e: &Effect,
@@ -81,7 +79,12 @@ pub(super) fn draw_puff(
     let x = age / e.span;
     let a = smoke_at(wind, e.p, e.n, s.life_s, age);
     let radius = e.scale * puff_radius(s, x);
-    let fade = (age * PUFF_FADE_IN).min(1.0) * libm::pow(1.0 - x, 1.2);
+    let fade_in = if s.fade_in_s > 0.0 {
+        (age / s.fade_in_s).min(1.0)
+    } else {
+        1.0
+    };
+    let fade = fade_in * libm::pow(1.0 - x, 1.2);
     let turn = e.rotation + e.size * x * 1.5;
     let frame = e.frame + x * PUFF_TURN_FRAMES;
     let opacity = s.opacity * e.alpha * fade;
