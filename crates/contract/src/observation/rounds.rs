@@ -58,4 +58,7 @@ pub struct Blast {
     pub radius: f64,
     /// The round kind, as on [`VisibleSegment::kind`].
     pub kind: usize,
+    /// What the round burst against, as a segment's end shows it: the ground,
+    /// a hull, a prop. An airframe's crash bursts on the ground.
+    pub hit: SegmentHit,
 }

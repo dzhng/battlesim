@@ -211,12 +211,14 @@ impl Battle {
             match e {
                 FlightEvent::Impact(i) => {
                     ends.insert(i.projectile, i.point);
-                    struck.insert(i.projectile, (segment_hit(&self.world, i.struck), i.normal));
+                    let hit = segment_hit(&self.world, i.struck);
+                    struck.insert(i.projectile, (hit, i.normal));
                     if let Some(round) = self.rounds.get(&i.projectile).filter(|_| i.detonated) {
                         let blast = Blast {
                             point: xyz(i.point),
                             radius: self.arsenal.weapons[round.weapon].def.blast_radius_m,
                             kind: round.weapon,
+                            hit,
                         };
                         self.blasts.push(Burst {
                             side: round.side,

@@ -133,7 +133,7 @@ fn a_publication_is_taken_once_and_an_earlier_tick_is_a_new_battle() {
         2.0,
         json!({"segments": [{"path": [[0.0, 0.0, 1.0], [28.0, 0.0, 1.0]], "ricochets": [],
             "kind": "rifle", "shooter": null, "hit": "ground", "normal": [0.0, 0.0, 1.0]}],
-            "blasts": [{"point": [28.0, 0.0, 0.0], "radius": 6.0, "kind": "grenade"}]}),
+            "blasts": [{"point": [28.0, 0.0, 0.0], "radius": 6.0, "kind": "grenade", "hit": "ground"}]}),
     );
     let (mut once, mut twice) = (frame(), frame());
     once.note(&publ(1.0, json!({})));
@@ -681,4 +681,74 @@ fn every_weapon_naming_a_look_lands_with_that_look_s_ground_size_and_lifetime() 
     }
     assert!(layer(&drawn(&mut base, DT + 1.3), 1.0).is_empty());
     assert!(layer(&drawn(&mut derived, DT + 1.3), 1.0).is_empty());
+}
+
+#[test]
+fn a_blast_s_fireball_blooms_at_once_and_burns_out_over_its_life() {
+    let p = presentation_with(|_| {});
+    let (bloom, life) = (p.blast.bloom_s, p.blast.duration_s);
+    let mut f = EffectFrame::new(HZ, p);
+    f.note(&publ(
+        1.0,
+        json!({"blasts": [{"point": [0.0, 0.0, 0.0], "radius": 6.0, "kind": "grenade", "hit": "ground"}]}),
+    ));
+    // The fire sheet's frame the blast's fireball shows `age` after it goes off.
+    let mut sheet = |age: f64| {
+        let d = drawn(&mut f, DT + age);
+        let fire = layer(&d, 0.0);
+        assert_eq!(fire.len(), 1, "one fireball at age {age}: {d:?}");
+        fire[0][5]
+    };
+    // A shell's fireball is out at full size the moment it lands: the sheet's
+    // growing frames (its first quarter) are gone by `bloom_s`, well inside
+    // the blast's life, and the rest of the sheet plays out after them.
+    assert!(bloom < life * 0.1, "bloom_s {bloom} is a flash, not a ramp");
+    let early = sheet(bloom * 0.5);
+    let bloomed = sheet(bloom);
+    let late = sheet(life * 0.6);
+    assert!(early > 0.0 && early < bloomed, "{early} then {bloomed}");
+    assert!(bloomed >= 6.0, "full size by bloom_s: frame {bloomed}");
+    assert!(
+        late > bloomed && late < 24.0,
+        "still burning out: frame {late}"
+    );
+}
+
+#[test]
+fn what_a_blast_bursts_against_decides_its_fire_and_what_it_throws_up() {
+    // Control the table so only the surface varies: the ground's burst is
+    // half fire and throws up a dark fountain; anything unnamed takes the default.
+    let p = presentation_with(|p| {
+        let s = &mut p["blast"]["surfaces"];
+        let default = s["default"].clone();
+        let mut ground = default.clone();
+        ground["fire"] = json!(0.5);
+        ground["plume"]["albedo"] = json!([0.2, 0.15, 0.1]);
+        *s = json!({"default": default, "ground": ground});
+    });
+    let burst = |hit: &str| {
+        let mut f = EffectFrame::new(HZ, p.clone());
+        f.note(&publ(
+            1.0,
+            json!({"blasts": [{"point": [0.0, 0.0, 0.0], "radius": 6.0, "kind": "grenade", "hit": hit}]}),
+        ));
+        drawn(&mut f, DT + 0.3)
+    };
+    let (ground, hull, unnamed) = (burst("ground"), burst("hull"), burst("none"));
+    let fireball = |d: &[Vec<f32>]| layer(d, 0.0)[0][3];
+    let earth = |d: &[Vec<f32>]| layer(d, 1.0).iter().any(|i| (i[8] - 0.2).abs() < 1e-6);
+    assert!(
+        (fireball(&ground) * 2.0 - fireball(&hull)).abs() < 1e-3,
+        "the ground's fireball is half the hull's: {} vs {}",
+        fireball(&ground),
+        fireball(&hull)
+    );
+    assert!(
+        earth(&ground) && !earth(&hull),
+        "only the ground throws up its earth"
+    );
+    assert_eq!(
+        hull, unnamed,
+        "a surface the table does not name takes its default"
+    );
 }

@@ -638,7 +638,7 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
               },
             ]
           : [],
-      blasts: tick === 2 && blast ? [{ point, radius: 4, kind }] : [],
+      blasts: tick === 2 && blast ? [{ point, radius: 4, kind, hit: "ground" }] : [],
       smokes: [],
     }));
     return sink.started.filter((v) => !v.loop);

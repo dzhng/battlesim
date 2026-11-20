@@ -307,7 +307,8 @@ impl Pool {
         }
     }
 
-    /// A blast's fireball, a share `sparks` of its style's sparks, and dirt and smoke.
+    /// A blast against `hit`: its fireball, a share `sparks` of its style's
+    /// sparks, what it throws up off that surface, and smoke.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn blast(
         &mut self,
@@ -315,26 +316,29 @@ impl Pool {
         at: f64,
         point: Vec3,
         radius: f64,
+        hit: &str,
         scale: f64,
         sparks: f64,
         rng: &mut Mulberry32,
     ) {
         let style = &p.blast;
+        let surface = pick(&style.surfaces, hit);
         let e = self.push(Look::Blast, at, at + style.duration_s);
         e.cause = "blast".into();
         e.p = point;
+        e.scale = surface.fire;
         e.size = radius * style.size_per_radius * scale;
         let size = e.size;
         let share = size / style.reference_size_m;
         e.rotation = rng.sample() * PI * 2.0;
         // A burst below the style's throws fewer sparks and puffs, and smaller ones.
         let fewer = share.min(1.0);
-        let count = (style.sparks * sparks * fewer).round();
+        let count = (style.sparks * surface.sparks * sparks * fewer).round();
         if count != 0.0 {
             self.sparks(&p.sparks, at, point, UP, UP, count, rng, style.spark_scale);
         }
         let scale = share.sqrt();
-        for burst in [&style.plume, &style.smoke] {
+        for burst in [&surface.plume, &style.smoke] {
             let n = (burst.count * fewer).round();
             let mut k = 0.0;
             while k < n {
@@ -366,10 +370,10 @@ impl Pool {
         for f in &feel.fireballs {
             let point = [c.center[0], c.center[1], top + f.up_m];
             let born = at + feel.delay_s + f.after_s;
-            self.blast(p, born, point, f.radius_m, 1.0, f.sparks, rng);
+            self.blast(p, born, point, f.radius_m, "hull", 1.0, f.sparks, rng);
         }
         let Some(landing) = c.landing else { return };
-        let plume = &p.blast.plume;
+        let plume = &pick(&p.blast.surfaces, "ground").plume;
         let landed = at + feel.impact_after();
         // Steel slamming onto steel: sparks off the deck, then the dust it shakes up.
         if feel.landing_sparks != 0.0 {
