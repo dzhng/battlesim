@@ -458,3 +458,68 @@ fn a_beat_answers_the_match_result_on_the_tick_it_is_decided() {
         "the beat answers the deciding tick"
     );
 }
+
+#[test]
+fn a_contact_meets_the_zone_it_falls_in_and_any_holds_on_one_of_its_triggers() {
+    // Blue's short-sighted truck finds red's emitting tank (at 260, 180) by
+    // radar alone: a contact near the tank, never an identification.
+    let mut b = battle_with(
+        json!({"truck": {"side":"blue","owner":"blue-1","kind":"test_supply","position":[60.0,60.0]}}),
+        json!({"at_tank": {"center":[260.0,180.0],"radius_m":30.0},
+               "far_corner": {"center":[40.0,280.0],"radius_m":10.0}}),
+        json!([{"id":"one","beats":[
+            {"id":"at_tank","when":{"contact_in":{"side":"blue","zone":"at_tank"}}},
+            {"id":"either","when":{"any":[
+                {"contact_in":{"side":"blue","zone":"far_corner"}},
+                {"contact_in":{"side":"blue","zone":"at_tank"}}]}},
+            {"id":"elsewhere","recovery":true,"when":{"contact_in":{"side":"blue","zone":"far_corner"}}},
+            {"id":"seen","recovery":true,"when":{"identifies":{"side":"blue","who":{"force":"tank"}}}}
+        ]}]),
+        |_| {},
+        |fixture| {
+            sim::fixtures::patch_catalog(
+                fixture,
+                "units",
+                "test_supply",
+                json!({"capabilities":{"radar_receiver":{"range_m":2000.0}},
+                       "sensors":{"ground_m":30.0,"low_air_m":30.0,"high_air_m":30.0}}),
+            );
+            sim::fixtures::patch_catalog(
+                fixture,
+                "units",
+                "test_tank",
+                json!({"capabilities":{"radar_emitter":true}}),
+            );
+        },
+    );
+    until(&mut b, "at_tank", 5);
+    until(&mut b, "either", 1);
+    assert_eq!(
+        fired(&b, "elsewhere"),
+        None,
+        "no contact meets the far corner"
+    );
+    assert_eq!(
+        fired(&b, "seen"),
+        None,
+        "a radar contact identifies nothing"
+    );
+}
+
+#[test]
+fn a_side_identifies_the_unit_its_eyes_find() {
+    // Blue's rifles stand in plain view of red's tank; nobody opens fire.
+    let mut b = battle(
+        json!({"rifles": {"side":"blue","owner":"blue-1","kind":"test_rifle","position":[150.0,150.0],
+                          "engagement":"return_fire_only"},
+               "tank": {"side":"red","owner":"red-1","kind":"test_tank","position":[260.0,180.0],
+                        "yaw":3.0,"engagement":"return_fire_only"}}),
+        json!({}),
+        json!([{"id":"one","beats":[
+            {"id":"seen","when":{"identifies":{"side":"blue","who":{"force":"tank"}}}},
+            {"id":"seen_back","when":{"identifies":{"side":"red","who":{"force":"rifles"}}}}
+        ]}]),
+    );
+    until(&mut b, "seen", 5);
+    until(&mut b, "seen_back", 5);
+}

@@ -13,10 +13,10 @@ call already taken), **unsound** (redo, from the corrected decision) and
 entry comes first. Confidence is how sure the audit is that you would have made
 the same call.
 
-**Review these first:** N1 (anti-radiation missiles now always find their
-radar, which flips SEAD against radar SAMs in skirmish), N2 (the tutorial's
-fights are rigged with worn and disarmed enemies) and N3 (the agent judged all
-58 narration takes itself).
+**Review these first:** N2 (the tutorial's fights are rigged with worn and
+disarmed enemies) and N3 (the agent judged all 58 narration takes itself). N1
+(anti-radiation missiles now always find their radar) was decided by the user
+at closeout: keep.
 
 A few terms used throughout:
 
@@ -70,14 +70,12 @@ A few terms used throughout:
   and fourteen full self-play games across three faction pairings kept every
   digest, because the default shopping didn't buy SEAD into them. Three
   aircraft carry the missile: the Growler, the Tornado ECR and the Su-30SM2.
-- **Verdict:** needs-user (balance). The rule is right as physics, but it makes
-  SEAD a hard counter to radar SAMs where it used to be nearly useless.
-  Provisional call: keep the rule and leave retuning to a balance pass. The
-  usual counter is a crew that switches its radar off (emission control), which
-  the game doesn't model yet. To reverse, make the seeker-steering `Target::Contact`
-  arm in `fire.rs` (the one that reads `anti_radiation`) aim at the contact's
-  centre again; chapter 6 would then need another way to kill the Buk.
-- **Confidence:** low.
+- **Verdict:** decided by the user at closeout: keep it ("a good find"). The
+  rule is right as physics; it makes SEAD a hard counter to radar SAMs where
+  it used to be nearly useless. The usual counter, a crew that switches its
+  radar off (emission control), isn't modelled yet and would be a balance pass
+  of its own.
+- **Confidence:** high (the user's call).
 
 ### N2. The tutorial's enemies are worn, disarmed or held back so blue wins
 - **When:** slices 08, 13, 14, 16 and 17.
@@ -337,10 +335,9 @@ None survived the closeout audit.
   reverse, attack, deploy, attack a contact in a zone. Actions: buy, ready,
   open shop, and a grant `to_cover` (only the wallet's shortfall). `destroyed`
   is a trigger, not a fact, because a fact reads the living.
-  `attack_contact_in` picks a ground contact, a radar's report first. Each unit fact
-  and most triggers have a test on test units
-  (`crates/sim/tests/director_facts.rs`); `identifies`, `contact_in`, `any`
-  and the directed orders are proven where the solution leans on them, so the
+  `attack_contact_in` picks a ground contact, a radar's report first. Each fact and
+  trigger has a test on test units (`crates/sim/tests/director_facts.rs`);
+  the directed orders are proven where the solution leans on them, so the
   walkthrough fails by beat name if one breaks.
 - **The gap:** the plan delegated field names to each slice.
 - **The reach:** a second scenario writes in this vocabulary and adds words
