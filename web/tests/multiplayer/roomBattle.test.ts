@@ -1,10 +1,12 @@
 import { testBrowser } from "./support/player";
+import { archiveFolder, testArchive } from "./support/archive";
 import { decodePublication } from "../../../packages/multiplayer/src/stream/publication";
 import { seatedPlayers, seatRequest } from "./support/player";
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 import { createOnlineState } from "../../../apps/game-server/src/online";
 import { nodeCatalogSet } from "../../src/battle/catalog/node";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 // @vitest-environment node
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createRoomService, EMPTY_ROOM_TIMEOUT_MS } from "../../../apps/game-server/src/rooms";
@@ -43,7 +45,9 @@ async function room(earlyMs = 0) {
   const clock = new PageClock();
   let host!: BattleHost;
   let draw = 0;
+  const archive = archiveFolder();
   const online = createOnlineState({
+    archive: testArchive(archive),
     machines: inProcessBattleMachines({
       capacity: 1,
       ordersPerSecond: 10000,
@@ -121,7 +125,7 @@ async function room(earlyMs = 0) {
     };
     return { host, ready, ended, run };
   };
-  return { service, clock, code, alpha, bravo, list, open, act, start };
+  return { service, online, archive, clock, code, alpha, bravo, list, open, act, start };
 }
 function ticket(view: RoomView) {
   if (view.phase.kind !== "battle") throw new Error("room has no battle ticket");
@@ -260,7 +264,13 @@ test("a member who chooses to leave the battle hands their army to its AI at onc
   // The last human out ends the battle itself, not a timer.
   r.act({ kind: "leave" });
   r.act({ kind: "leave" }, testBrowser("bravo"));
+  // Its history is kept before its machine stops, for anyone who held a seat.
+  const kept = await r.online.battleReplay(a.battle, testBrowser("alpha"));
+  expect(kept).toEqual({ replay: expect.stringContaining(a.player) });
   await expect(b.host.referee()).rejects.toThrow(/ended/);
+  expect(JSON.parse(readFileSync(join(r.archive, `${a.battle}.json`), "utf8"))).toMatchObject({
+    outcome: "stopped",
+  });
   expect(r.service.create(testBrowser("alpha"), "public")).toEqual({ code: expect.any(String) });
 }, 120_000);
 
@@ -337,9 +347,10 @@ test("a minute without connected humans deletes the room and disposes its battle
   await r.clock.advance(EMPTY_ROOM_TIMEOUT_MS - 1);
   expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ refused: "full" });
   await r.clock.advance(1);
-  await expect(b.host.referee()).rejects.toThrow(/ended/);
+  await vi.waitFor(() => expect(b.host.referee()).rejects.toThrow(/ended/));
   await expect(b.host.replay()).rejects.toThrow(/ended/);
   expect(watching.end).toBe("disposed");
+  await vi.waitFor(() => expect(r.online.slotFree()).toBe(true));
   expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ code: expect.any(String) });
 }, 120_000);
 
@@ -419,6 +430,19 @@ test("normal skirmish victory publishes the final result to both seats, ends eac
   });
   await expect(b.host.referee()).rejects.toThrow(/ended/);
   expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ code: expect.any(String) });
+  // Its server is gone; both seats still export the whole battle from the lobby.
+  const kept = await r.online.battleReplay(a.battle, testBrowser("bravo"));
+  if (!("replay" in kept)) throw new Error(kept.refused);
+  expect(kept.replay).toBe(await b.host.replay());
+  const accepted = (JSON.parse(kept.replay) as { accepted: [number, { player: string }][] })
+    .accepted;
+  expect(new Set(accepted.map(([, c]) => c.player))).toEqual(new Set([a.player, g.player]));
+  expect(await r.online.battleReplay(a.battle, testBrowser("stranger"))).toEqual({
+    refused: "not_seated",
+  });
+  const record = readFileSync(join(r.archive, `${a.battle}.json`), "utf8");
+  expect(JSON.parse(record)).toMatchObject({ outcome: "finished", mapIdentity: a.mapIdentity });
+  for (const who of ["alpha", "bravo"]) expect(record).not.toContain(testBrowser(who));
 }, 180_000);
 
 test("a room whose map fails preparation closes honestly and releases its capacity", async () => {
@@ -428,6 +452,7 @@ test("a room whose map fails preparation closes honestly and releases its capaci
   let failed!: BattleHost;
   const service = createRoomService({
     online: createOnlineState({
+      archive: testArchive(),
       machines: inProcessBattleMachines({
         capacity: 1,
         ordersPerSecond: 10000,
@@ -480,6 +505,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
   let host!: BattleHost;
   const build = { data: "room-battle-test", wire: "room-battle-test", sim: "room-battle-test" };
   const server = createLobbyHttp(build, {
+    archive: archiveFolder(),
     clock,
     random: Math.random,
     clientAddressHeader: null,
@@ -588,13 +614,28 @@ test("localhost room streams deliver each ticket and route both seats' streams a
       expect(response).toMatchObject({ seq: 1, results: [{ id: 1, ack: { error: null } }] });
     }
     await clock.advance(100);
-    const replay = JSON.parse(await host.replay()) as {
-      accepted: [number, { player: string; order: { kind: string } }][];
+    // The lobby exports the running battle to each seat, with both sides' orders.
+    const exportReplay = async (who: string) => {
+      const response = await fetch(`${address}/battles/${tickets[0].battle}/replay`, {
+        method: "POST",
+        headers: { "X-Player": who, "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const reply = await response.json();
+      replies.push(reply);
+      return { status: response.status, reply };
     };
-    for (const t of tickets)
-      expect(
-        replay.accepted.some(([, c]) => c.player === t.player && c.order.kind === "ready"),
-      ).toBe(true);
+    for (const id of ids.slice(0, 2)) {
+      const { reply } = await exportReplay(id);
+      const replay = JSON.parse(reply.replay) as {
+        accepted: [number, { player: string; order: { kind: string } }][];
+      };
+      for (const t of tickets)
+        expect(
+          replay.accepted.some(([, c]) => c.player === t.player && c.order.kind === "ready"),
+        ).toBe(true);
+    }
+    expect(await exportReplay(ids[2])).toEqual({ status: 403, reply: { refused: "not_seated" } });
     for (const suffix of ["stream", "up"]) {
       const response = await fetch(`${battleAddress}/battles/${tickets[0].battle}/${suffix}`, {
         method: suffix === "stream" ? "GET" : "POST",

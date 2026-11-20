@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { execFileSync } from "node:child_process";
+import { archiveFolder } from "./support/archive";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { join } from "node:path";
@@ -81,6 +82,7 @@ test("deploy check asks a real lobby without a credential and reports compatibil
   const { timerClock } = await import("./timerClock");
   const build = { commit, ...sourceBuildIdentity(root) };
   const lobby = createLobbyHttp(build, {
+    archive: archiveFolder(),
     machines: inProcessBattleMachines({
       capacity: 0,
       createBattle: pendingBattle,

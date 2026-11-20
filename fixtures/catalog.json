@@ -46498,7 +46498,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 550.0
+            "range_m": 650.0
           }
         ]
       },
@@ -46515,7 +46515,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 550.0,
+      "range_m": 650.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -46529,7 +46529,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 550.0,
+          "range_m": 650.0,
           "scatter_mrad": 0.5
         }
       },

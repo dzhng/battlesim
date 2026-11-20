@@ -746,7 +746,7 @@
       "stationary": false,
       "guidance": "on_the_move",
       "ammo": 8,
-      "targets": { "ground": { "classes": ["vehicle"], "range_m": 550, "scatter_mrad": 0.5 } }
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 650, "scatter_mrad": 0.5 } }
     },
     "heli_hmg": {
       "extends": "hmg",

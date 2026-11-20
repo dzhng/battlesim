@@ -101,6 +101,7 @@ test("an allocated remote battle seats a player, publishes and accepts a real or
     "playable",
     Promise.resolve(m),
     credential,
+    () => {},
   );
   cleanup.push(host.dispose);
   await host.ready;
@@ -208,6 +209,7 @@ test("a crashed battle's diagnostics reach lobby output, scrubbed, before its ma
     "crash",
     Promise.resolve(m),
     credential,
+    () => {},
   );
   cleanup.push(host.dispose);
   await host.ready;
@@ -241,6 +243,7 @@ test("a normally ended battle automatically stops and deletes its machine", asyn
     "finish",
     provider.start(credential),
     credential,
+    () => {},
   );
   cleanup.push(host.dispose);
   const ended: unknown[] = [];

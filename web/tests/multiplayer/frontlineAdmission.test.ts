@@ -1,6 +1,7 @@
 import { testBrowser } from "./support/player";
+import { testArchive } from "./support/archive";
 // @vitest-environment node
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 import { createFrontlineService } from "../../../apps/game-server/src/frontline";
 import { createOnlineState } from "../../../apps/game-server/src/online";
@@ -42,6 +43,7 @@ test.each([false, true])(
       },
     });
     const online = createOnlineState({
+      archive: testArchive(),
       clock,
       callsign: () => "SCOUT",
       releaseCallsign: () => {},
@@ -102,6 +104,7 @@ test.each([false, true])(
 test("a machine allocation refusal answers full and releases the game's slot", async () => {
   let starts = 0;
   const online = createOnlineState({
+    archive: testArchive(),
     clock: new PageClock(),
     callsign: () => "SCOUT",
     releaseCallsign: () => {},
@@ -134,6 +137,7 @@ test("eager candidates keep each map draw followed by its initial seat draw", as
   const expectedRandom = () => values[expectedAt++ % values.length];
   const selected = [0, MAP_ATTEMPTS - 1, 0];
   const online = createOnlineState({
+    archive: testArchive(),
     machines: inProcessBattleMachines({
       capacity: 1,
       ordersPerSecond: 10000,
@@ -171,6 +175,7 @@ test("eager candidates keep each map draw followed by its initial seat draw", as
     expect(result.side).toBe(side);
     expect(result.roster.filter((s) => s.callsign)).toEqual([{ side, callsign: "SCOUT" }]);
     frontline.leave(testBrowser("alpha"), result.battle);
-    expect(online.slotFree()).toBe(true);
+    // Capacity comes back with the machine, once its history is kept.
+    await vi.waitFor(() => expect(online.slotFree()).toBe(true));
   }
 });

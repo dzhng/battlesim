@@ -6,6 +6,7 @@ import type { HostedBattle } from "./battleHost/remote.ts";
 import { hostedBattles } from "./hosting.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
+import type { BattleArchive } from "./archive.ts";
 
 /** A battle's share of this computer's memory when counting how many it may
  *  run at once. A long ten-AI battle outgrows it; rented machines are sized
@@ -23,6 +24,7 @@ type Member = {
 
 export function createOnlineState(options: {
   machines: BattleMachines;
+  archive: BattleArchive;
   clock: PresenceClock;
   callsign(who: string): string | undefined;
   releaseCallsign(who: string): void;
@@ -49,7 +51,7 @@ export function createOnlineState(options: {
       releaseIfForgotten(who);
     },
   );
-  const battles = hostedBattles(options.machines, presence);
+  const battles = hostedBattles(options.machines, presence, options.archive);
   const capacity = options.machines.capacity;
   return {
     /** Claimed before preparation awaits; the mode releases it only when its game is removed. */
@@ -66,6 +68,7 @@ export function createOnlineState(options: {
       attend?: (who: string) => () => void,
     ): HostedBattle => battles.create(candidates, id, attend),
     battleAddress: (host: HostedBattle) => battles.address(host),
+    battleReplay: (id: string, who: string) => battles.replay(id, who),
     frontline: () => frontline,
     publishFrontline(next: RoomList["frontline"]) {
       if (next.battles === frontline.battles && next.commanders === frontline.commanders) return;
@@ -99,8 +102,10 @@ export function createOnlineState(options: {
         },
         release() {
           const served = slots.get(key);
-          if (served) battles.release(served);
-          slots.delete(key);
+          // The slot is held until its machine stops, so a new battle never
+          // asks the machines for capacity that is still being given back.
+          if (served) void battles.release(served).then(() => slots.delete(key));
+          else slots.delete(key);
         },
       };
     },
