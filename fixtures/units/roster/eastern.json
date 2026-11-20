@@ -2352,7 +2352,7 @@
       "faction": "eastern",
       "family": "t_15_armata",
       "roles": [
-        "light_vehicle"
+        "mbt"
       ],
       "cost": 380,
       "roster": {

@@ -11281,7 +11281,7 @@
           ],
           "name": "T-15 Armata",
           "roles": [
-            "light_vehicle"
+            "mbt"
           ],
           "roster": {
             "category": "veh",
@@ -32220,7 +32220,7 @@
       ],
       "name": "T-15 Armata",
       "roles": [
-        "light_vehicle"
+        "mbt"
       ],
       "roster": {
         "category": "veh",
