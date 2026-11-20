@@ -90,7 +90,7 @@ The [decisions ledger](decisions.md) holds every decision and who made it.
   The deck workbench (`/labs/panels`, "Review battle deck") shows a "Control
   groups" case, which the panels scene pictures, and a "Fire blink" button for
   watching the blink by hand (not pictured).
-- The tutorial's "Selecting units" section teaches both.
+- The Guide's "Selecting units" section teaches both.
 
 ## Dead ends
 

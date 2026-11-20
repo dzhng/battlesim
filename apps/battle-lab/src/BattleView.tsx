@@ -31,11 +31,9 @@ import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
 import { useReplayCamera } from "./useReplayCamera";
-import { useCoachTour } from "./useCoachTour";
 import type { CoachDocument } from "@web/battle/coach/coach";
-import { CoachPanel } from "@web/battle/coach/CoachPanel";
-import { CoachHighlights } from "@web/battle/coach/CoachHighlights";
-import { useCoach } from "@web/battle/coach/useCoach";
+import { useScenarioCoach } from "./useScenarioCoach";
+import { CoachLayer } from "./CoachLayer";
 import { hudAnchor } from "@web/battle/present/hudAnchors";
 import type { ReplayCameraTrack } from "./replayCamera";
 import { ReplayCameraButton } from "./replayFile";
@@ -211,25 +209,13 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
-  const told = useMemo(
-    () => new Set(observation?.scenario?.beats.map((b) => b.beat)),
-    [observation?.scenario],
-  );
-  const coached = useCoach(
-    input ? (coach ?? null) : null,
+  const coached = useScenarioCoach(
+    input ? coach : undefined,
     observation?.scenario ?? null,
     sim.client,
   );
-  // Each chapter's start waits in a standby battle, so restarting it is a swap.
-  const chapter = coach && input ? observation?.scenario?.chapter : undefined;
-  const { standAt, latest } = sim;
-  useEffect(() => {
-    const opened = latest.current?.tick;
-    if (chapter && opened !== undefined) standAt(opened);
-  }, [chapter, standAt, latest]);
-  const step = coached.view?.step ?? null;
-  const tour = useCoachTour(step);
-  const overlay = useBattleOverlay(session, { scenario, camera, marks: step?.marks });
+  const marks = coached?.view?.step.marks;
+  const overlay = useBattleOverlay(session, { scenario, camera, marks });
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.
@@ -295,7 +281,7 @@ export function BattleView({
             session.viewport.onReady(gpu);
             setViewportReady(true);
           }}
-          pilot={scripted?.pilot ?? cameraReplay.pilot ?? (coach && input ? tour : undefined)}
+          pilot={scripted?.pilot ?? cameraReplay.pilot ?? coached?.tour}
           onFrame={(project, view, pointer, scale, time) => {
             cameraReplay.record(time, view);
             session.hear();
@@ -428,19 +414,13 @@ export function BattleView({
           }
         />
       )}
-      {/* The coach's own layer: over the match's result, so its closing words
-          outlast the battle, and under the pause menu, which it waits behind. */}
-      {input && coach && (
-        <div className="hud-coach-layer" inert={pause.open} data-ended={matchFinished || undefined}>
-          <CoachPanel
-            doc={coach}
-            view={coached.view}
-            told={told}
-            onContinue={coached.dismiss}
-            speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
-          />
-          <CoachHighlights anchors={step?.highlight ?? []} />
-        </div>
+      {coached && (
+        <CoachLayer
+          coach={coached}
+          paused={pause.open}
+          ended={matchFinished}
+          speak={audio ? (speaker, line) => audio.narrate(speaker, line) : undefined}
+        />
       )}
     </SessionCatalogProvider>
   );

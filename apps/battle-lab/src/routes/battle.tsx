@@ -155,8 +155,7 @@ function SavedReplay() {
   return (
     <PreparedBattleView
       key={loaded.n}
-      // A saved battle is a generated one (`parseReplayFile`).
-      request={file.battle.report.request!}
+      request={file.battle.report.request}
       replay={file}
       onLoadReplay={setFile}
     />
@@ -238,7 +237,8 @@ function PreparedBattleView({
     };
   }, [request, replay, visitActive, rules]);
 
-  const activeRequest = prepared?.report.request ?? request;
+  const activeRequest =
+    prepared && "request" in prepared.report ? prepared.report.request : request;
   const subject = subjectOf(activeRequest);
   const cover = (
     <LoadingScreen
@@ -263,9 +263,10 @@ function PreparedBattleView({
   if (!prepared || !view) return cover;
 
   const exportReplay = async ({ sim }: BattleSession, camera: ReplayCameraTrack | undefined) => {
-    if (!sim.local) return null;
+    const { report } = prepared;
+    if (!sim.local || !("request" in report)) return null;
     const file: ReplayFile = {
-      battle: { scenario: prepared.scenario, report: prepared.report },
+      battle: { scenario: prepared.scenario, report },
       replay: await sim.local.replay(),
       camera,
       light_preset: resolvedMatchLighting(replay, window.location.search, request),

@@ -612,9 +612,9 @@ fn each_bands_sight_is_the_units_own_and_zero_is_blind() {
 #[test]
 fn an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre() {
     // A radar report rounds its range to 100 m: the tank's radar stands
-    // 2,050 m from the receiver, so its contact centres 50 m away from it.
-    // The jeep's anti-radiation missile, fired into that contact, homes on
-    // the radar itself; a round fired at the area alone would land clear.
+    // 2,050 m from the receiver, so its contact centres well clear of it,
+    // where a round aimed at the area alone would land. The jeep's
+    // anti-radiation missile, fired into that contact, homes on the radar.
     let rules = receiver_rules(3000.0, "sead_missile");
     let mut b = battle_of(
         &rules,
@@ -627,8 +627,15 @@ fn an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre()
     );
     let hp = |b: &Battle| b.observe(Side::Red).own.first().map_or(0.0, |t| t.hp);
     let full = hp(&b);
+    let mut off_by = 0.0_f64;
     for _ in 0..600 {
         b.step();
+        let tank = b.observe(Side::Red).own.first().map(|t| t.position);
+        for contact in radar_contacts(&b, Side::Blue) {
+            if let Some(at) = tank {
+                off_by = off_by.max((contact.center[0] - at[0]).hypot(contact.center[1] - at[1]));
+            }
+        }
         if hp(&b) < full {
             break;
         }
@@ -636,6 +643,10 @@ fn an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre()
     assert!(
         b.observe(Side::Blue).identified.is_empty(),
         "blue never sees the tank"
+    );
+    assert!(
+        off_by > 25.0,
+        "the report's centre stands clear of the radar ({off_by:.0} m)"
     );
     assert!(
         shots(&b, UnitId(0)) > 0,

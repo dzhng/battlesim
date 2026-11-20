@@ -350,8 +350,7 @@
                 }
               }
             }
-          ],
-          "recovery": true
+          ]
         },
         {
           "id": "smoke_out",
@@ -444,8 +443,7 @@
                 "at": "ambush_woods"
               }
             }
-          ],
-          "recovery": true
+          ]
         }
       ]
     },
@@ -742,7 +740,6 @@
         },
         {
           "id": "rebuy_stingers",
-          "recovery": true,
           "when": {
             "fired": {
               "beat": "air_defence_replaced"

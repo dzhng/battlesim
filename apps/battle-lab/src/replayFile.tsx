@@ -5,13 +5,15 @@ import { useLabLoading } from "./LabLoading";
 // scenario and rules digests; replay retention across builds is unsupported.
 import { usePageVisitActive } from "./navigation";
 import { useEffect, useRef, useState } from "react";
-import type { PreparedBattle } from "@web/battle/prepare/protocol";
+import type { GeneratedBattle } from "@web/battle/prepare/protocol";
 import { LoadingScreen } from "./LoadingScreen";
 import { validateReplayCamera, type ReplayCameraTrack } from "./replayCamera";
 
-/** A prepared battle and every command it accepted. */
+/** A prepared battle and every command it accepted. An authored scenario's
+ *  battle replays within its session (chapter restart), not from a file: a
+ *  saved battle is a generated one. */
 export interface ReplayFile {
-  battle: PreparedBattle;
+  battle: GeneratedBattle;
   replay: string;
   /** Only the human using the recording browser; never an AI camera. */
   camera?: ReplayCameraTrack;
@@ -50,15 +52,14 @@ function storedReplay(text?: string): Promise<string | undefined> {
 /** A replay file's text, parsed; throws when it is not one. */
 export function parseReplayFile(text: string): ReplayFile {
   const file = JSON.parse(text) as Partial<ReplayFile> | null;
-  // An authored scenario's battle replays within its session (chapter
-  // restart), not from a file: a saved battle is a generated one.
-  const named = typeof file?.battle?.scenario === "string" && !!file.battle.report?.request;
+  const report = file?.battle?.report;
+  const request = report && "request" in report ? report.request : undefined;
+  const named = typeof file?.battle?.scenario === "string" && !!request;
   if (!file || typeof file.replay !== "string" || !named) throw new Error("not a saved battle");
   if (file.camera !== undefined) {
     validateReplayCamera(file.camera);
     // A human can take a seat that began under AI; the recording owns that history.
-    // `named` admits only a generated battle's file, which names its request.
-    const player = file.battle!.report.request!.players?.find((p) => p.id === file.camera!.player);
+    const player = request.players?.find((p) => p.id === file.camera!.player);
     if (!player || player.side !== file.camera.side)
       throw new Error("replay camera does not belong to a battle player");
   }

@@ -23,6 +23,11 @@ pub(super) fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
                 + &serde_json::to_string(&setup.skirmish).expect("skirmish serializes")
         })
         .unwrap_or_default();
+    // A director gives orders, credits and shops no replay records. Only a
+    // battle that has one names it, so others keep their identity.
+    let director = (setup.director.as_ref())
+        .map(|director| serde_json::to_string(director).expect("director serializes"))
+        .unwrap_or_default();
     digest::of_str(
         &(map
             + &units
@@ -32,7 +37,8 @@ pub(super) fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
             + &victory
             + &opponent
             + &encounter
-            + &skirmish_identity),
+            + &skirmish_identity
+            + &director),
     )
 }
 

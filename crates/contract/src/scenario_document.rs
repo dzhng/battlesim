@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::catalog::{Catalog, Faction};
-use crate::director::{Action, Director, DirectorSetup};
+use crate::director::{Director, DirectorSetup};
 use crate::encounter::SkirmishSites;
 use crate::identity::Seed;
 use crate::ids::UnitId;
@@ -94,8 +94,10 @@ pub fn credits_covering(catalog: &Catalog, purchases: &[PurchaseSpec]) -> Result
 
 impl ScenarioDocument {
     /// This scenario played by its solution: each solution chapter's beats
-    /// join the director's chapter of that id, and every human seat is handed
-    /// to the director, so the solution's orders are obeyed.
+    /// join the director's chapter of that id, not waited for (a chapter
+    /// closes on its story's beats, so a person handed the seat back moves it
+    /// on), and every seat a person may take is handed to the director, so
+    /// the solution's orders are obeyed.
     pub fn with_solution(mut self, solution: crate::director::Solution) -> Result<Self, String> {
         for extra in solution.chapters {
             let Some(chapter) = self.director.chapters.iter_mut().find(|c| c.id == extra.id) else {
@@ -104,12 +106,13 @@ impl ScenarioDocument {
                     extra.id
                 ));
             };
-            chapter.beats.extend(extra.beats);
+            (chapter.beats).extend(extra.beats.into_iter().map(|beat| crate::director::Beat {
+                recovery: true,
+                ..beat
+            }));
         }
-        for player in &mut self.players {
-            if player.controller == crate::players::ControllerKind::Human {
-                player.controller = crate::players::ControllerKind::DirectedAi;
-            }
+        for player in self.players.iter_mut().filter(|p| p.human_capable) {
+            player.controller = crate::players::ControllerKind::DirectedAi;
         }
         Ok(self)
     }
@@ -154,22 +157,14 @@ impl ScenarioDocument {
         }
         let mut opening_credits = BTreeMap::new();
         for (player, grant) in &self.opening_credits {
-            let Some(seat) = seat(player) else {
-                return Err(format!(
-                    "opening_credits.{player}: not a player of the scenario"
-                ));
-            };
             let credits = match grant {
-                CreditGrant::Exactly(credits) => *credits,
+                CreditGrant::Exactly(credits) => {
+                    check_purchases("opening_credits", player, &[])?;
+                    *credits
+                }
                 // An empty wallet's shortfall is the whole price.
                 CreditGrant::Covering(purchases) | CreditGrant::ToCover(purchases) => {
-                    for (i, purchase) in purchases.iter().enumerate() {
-                        for kind in std::iter::once(&purchase.variant).chain(&purchase.carrier) {
-                            sold_to(&rules.catalog, kind, seat.faction).map_err(|e| {
-                                format!("opening_credits.{player}.covering[{i}]: {e}")
-                            })?;
-                        }
-                    }
+                    check_purchases("opening_credits", player, purchases)?;
                     credits_covering(&rules.catalog, purchases)
                         .map_err(|e| format!("opening_credits.{player}: {e}"))?
                 }
@@ -191,30 +186,9 @@ impl ScenarioDocument {
             .map(|(i, name)| (name.clone(), UnitId(i as u32)))
             .collect();
         let objectives: Vec<String> = self.sites.objectives.iter().map(|o| o.id.clone()).collect();
+        let sold = |player: &Player, kind: &str| sold_to(&rules.catalog, kind, player.faction);
         self.director
-            .admit(&self.zones, &forces, &self.players, &objectives)?;
-        for chapter in &self.director.chapters {
-            for beat in &chapter.beats {
-                for action in &beat.then {
-                    let at = format!("director.{}.{}", chapter.id, beat.id);
-                    match action {
-                        Action::Offer { player, purchases }
-                        | Action::Grant {
-                            player,
-                            credits:
-                                CreditGrant::Covering(purchases) | CreditGrant::ToCover(purchases),
-                        } => check_purchases(&at, player, purchases)?,
-                        Action::Buy {
-                            player, purchase, ..
-                        } => check_purchases(&at, player, std::slice::from_ref(purchase))?,
-                        Action::Grant { .. }
-                        | Action::Order { .. }
-                        | Action::Ready { .. }
-                        | Action::OpenShop { .. } => {}
-                    }
-                }
-            }
-        }
+            .admit(&self.zones, &forces, &self.players, &objectives, &sold)?;
         let director = (!self.director.chapters.is_empty()).then_some(DirectorSetup {
             chapters: self.director.chapters,
             zones: self.zones,

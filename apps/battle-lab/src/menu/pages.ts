@@ -49,7 +49,7 @@ const pageTile = (id: MenuPageId): MenuTile => ({
 });
 
 /** Home's tiles, in order. The tutorial is a battle: Operation Ferryman,
- *  coached as it is played, at its `scenarioHref` address (the menu routes
+ *  coached as it is played, at the address its tile names (the menu routes
  *  test reads it back as a scenario battle). */
 export const MENU_TILES: readonly MenuTile[] = [
   pageTile("multiplayer"),

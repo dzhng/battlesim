@@ -168,6 +168,8 @@ pub struct PlayerState {
     pub controller: ControllerKind,
     pub wallet: u64,
     pub ready: bool,
+    /// Whether a person may take this seat ([`Player::human_capable`]).
+    pub human_capable: bool,
     pub reservations: VecDeque<Reservation>,
     pub next_purchase: u32,
     pub totals: MatchTotals,
@@ -201,6 +203,7 @@ impl PlayerState {
             controller: player.controller.clone(),
             wallet,
             ready: false,
+            human_capable: player.human_capable,
             reservations: VecDeque::new(),
             next_purchase: 0,
             totals: MatchTotals::default(),
@@ -209,9 +212,11 @@ impl PlayerState {
     }
 
     /// Whether this player lets preparation end: it said so, or its seat is
-    /// directed and so never decides it for itself.
+    /// directed and no person could take it, so nobody decides it. A
+    /// person's seat the director plays (a solution) says so itself, as the
+    /// person would.
     pub fn is_ready(&self) -> bool {
-        self.ready || self.controller == ControllerKind::DirectedAi
+        self.ready || (self.controller == ControllerKind::DirectedAi && !self.human_capable)
     }
 
     /// The places pending purchases hold under the unit cap: a squad bought

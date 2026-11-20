@@ -51,6 +51,7 @@ test(
         TEST_RULES,
       );
       const report = built.prepared!.report;
+      if (!("request" in report)) throw new Error("the benchmark prepares a generated battle");
       expect(asked!.request).toEqual({
         map_source: {
           kind: "generated",

@@ -137,9 +137,6 @@ function playerParams(players: readonly Player[]): string[] {
   });
 }
 
-/** An authored scenario's battle address: map `map`'s scenario `name`. */
-export const scenarioHref = (map: string, name: string) => `/battle?scenario=${map}/${name}`;
-
 /** The battle `players` fight on the generated map `choice`. */
 export const battleHref = (
   choice: MapChoice,

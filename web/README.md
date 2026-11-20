@@ -7,11 +7,14 @@ which owns routes and composes the battle view.
 
 ## Authority and preparation
 
-[Preparation](src/battle/prepare/) admits a generation request (a battle never names a
-saved map: those are tests' and captures'). A request is a map source, its players
+[Preparation](src/battle/prepare/) admits a generation request, or an authored
+scenario named by its map and name (the one player battle that stands on a saved
+map; the rest are tests' and captures'). A request is a map source, its players
 (each with a side, a faction and a controller) and a battle seed; preparation fields
 each side's players on the map's admitted skirmish sites and hands the
-prepared world to its battle authority. Expensive preparation stays off the page thread.
+prepared world to its battle authority. A scenario's document fixes all of that
+itself, and a chapter start (`&chapter=`) also hands back the replay and tick its
+battle resumes at. Expensive preparation stays off the page thread.
 The lobby's [map preview](src/battle/prepare/preview.ts) runs the same admitted preparation,
 keeps only the admitted request, map, sites and the worker-drawn picture, and closes its
 worker; a newer preview cancels an older one, so a stale answer never shows. The page
@@ -24,6 +27,12 @@ produces commands, and [presentation](src/battle/present/) reads admitted observ
 [Map adapters](src/maps/) fetch saved documents or resolve a generation request
 through Rust's one admission path. Their listing policy, saved-map identity and
 categories are explained in [fixtures](../fixtures/README.md#saved-maps).
+
+[The coach](src/battle/coach/) teaches an authored scenario as it is played: a
+pure function of the side's published progress (`coachView`), the UI acts the
+player made, and what they dismissed, so a restart re-derives it. The page's
+input owners emit those acts on one bus ([UI signals](src/battle/input/uiSignals.ts));
+the simulation never sees them.
 
 The [benchmark](src/battle/benchmark/README.md) measures the actual simulation and
 renderer with a declared workload and camera tour. A route selection or successful

@@ -3,7 +3,7 @@ import { ROOM_BATTLE_FAILED_NOTICE } from "../online/requests";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { BattleConnectionSession } from "@web/battle/prepare/client";
-import type { Player, PreparedBattle } from "@web/battle/prepare/protocol";
+import type { GeneratedBattle, Player } from "@web/battle/prepare/protocol";
 import { lanesOf } from "@web/battle/prepare/lanes";
 import { loadWasm } from "@web/battle/sim/module";
 import { httpLink } from "@web/battle/remote/httpLink";
@@ -102,7 +102,7 @@ function PreparedOnlineBattle({
   const [stage, setStage] = useState("map");
   const [error, setError] = useState<string | null>(null);
   const [world, setWorld] = useState<{
-    battle: PreparedBattle;
+    battle: GeneratedBattle;
     session: BattleConnectionSession;
   } | null>(null);
   useEffect(() => {

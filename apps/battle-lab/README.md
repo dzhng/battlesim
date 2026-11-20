@@ -18,8 +18,9 @@ or synthetic world. It fields the unit set its registry entry names
 (`catalog`): test units unless the entry says otherwise, as a lab that shows
 or authors with the roster takes the game's. The battle view itself is judged
 on the street test map's battle (`/labs/street`), a test's own encounter,
-never on the game's content or a capture's. Player pages (`/battle`) only
-ever prepare generated maps.
+never on the game's content or a capture's. Player pages (`/battle`) prepare a
+generated map, or an authored scenario's own `scenario` map; never a `test` or
+`capture` one.
 
 [Visit ownership](src/navigation.tsx) keeps client navigation separate from
 battle identity publication. Leaving a page discards its battle; history
@@ -29,19 +30,23 @@ continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
 The main menu starts fresh generated skirmishes, browses the roster and
-teaches the game. Its Tutorial tile opens an authored scenario's battle, which
-[the coach](../../web/src/battle/coach/) teaches as it is played: a step's card
-and spoken line, a camera tour it flies (`useCoachTour`, a pilot that hands the
-camera back), zones it paints on the ground through the battle overlay, and HUD
-controls it rings, found by the anchor each control declares
+teaches the game. Its Tutorial tile opens an authored scenario's battle, taught
+as it is played by [the coach](../../web/README.md#authority-and-preparation):
+this app flies a step's camera tour ([`useScenarioCoach`](src/useScenarioCoach.ts), a
+pilot that hands the camera back), paints its zones through the battle overlay,
+and rings HUD controls by the anchor each declares
 ([`hudAnchor`](../../web/src/battle/present/hudAnchors.ts)), never by its
-styling. Its pause menu restarts the open chapter: a standby battle,
-resumed from the playing battle's replay at the chapter's start in a worker of
-its own (`Battle::resume`), takes over as the session's client. Adding `&chapter=<id>`, optionally `&beat=<id>`, to a
-scenario's address starts it there, played that far by the scenario's solution
-and handed back to the player, which is how a chapter is iterated. [The Guide](src/Guide.tsx) is the game's reference: a live
-battle's Esc menu opens it as a modal over the paused battle that closes back to
-that menu, and no menu page shows it. It reads
+styling. A scenario battle's pause menu restarts the open chapter: a standby
+battle, resumed from the playing battle's replay at the chapter's start in a
+worker of its own (`Battle::resume`), takes over as the session's client.
+
+To work on one chapter, open `/battle?scenario=<map>/<name>&chapter=<id>`
+(optionally `&beat=<id>`, ids from the scenario's director): its solution plays
+the battle that far and hands it back to the player.
+
+[The Guide](src/Guide.tsx) is the game's reference: a live battle's pause menu
+opens it as a modal over the paused battle that closes back to that menu. It
+reads
 its economy and command keys from the skirmish rules and command bindings, and
 its prose must follow the simulation's rules when they change. Its pictures are
 not hand-shot: [the guide shots tool](../../web/guide-shots.mjs) plays one

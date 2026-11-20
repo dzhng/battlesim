@@ -176,8 +176,11 @@ function referenceFamily(source, variant) {
     const receipt = join(ROOT, dirname(source), "source-receipt.json");
     const library = existsSync(receipt) && readJson(receipt).references;
     const path = Array.isArray(library)
-      ? library.find((item) => existsSync(join(ROOT, item)) &&
-          readJson(join(ROOT, item)).entries.some((entry) => entry.variant === variant))
+      ? library.find(
+          (item) =>
+            existsSync(join(ROOT, item)) &&
+            readJson(join(ROOT, item)).entries.some((entry) => entry.variant === variant),
+        )
       : library;
     return path ? basename(dirname(path)) : folder;
   }

@@ -18,11 +18,11 @@
   let cell = groundCell(query.xy, query.z);
   let paved = groundPaved(query.xy, cell);
   let site = groundSite(query.xy, cell, paved);
-  let actual = groundColour(query.xy, 0.1, site, paved, -1e9);
+  let actual = groundColour(query.xy, 0.1, site, paved, -1e9, 0.0);
   var interiorDrawn = vec4f(-1e9);
   interiorDrawn[u32(query.w)] = 5.0;
   let interior = groundColour(query.xy, 0.1, site,
-    GroundPaved(interiorDrawn, vec4f(0.0), vec4f(0.0,0.0,0.0,-1.0),5.0,vec2u(0u),-1.0), -1e9);
+    GroundPaved(interiorDrawn, vec4f(0.0), vec4f(0.0,0.0,0.0,-1.0),5.0,vec2u(0u),-1.0), -1e9, 0.0);
   terrainResults[gid.x] = vec4f(site.z, actual.w, interior.w, site.w);
 }
 

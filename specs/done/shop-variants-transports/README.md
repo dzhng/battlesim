@@ -111,5 +111,5 @@ The agreed look came from throwaway mocks built on the game's own stylesheet
 during the unknowns walk; the map describes them in words. The shipped look is
 pinned by the `ui` scene's `transport-menu` baseline
 (`web/scenes/baselines/ui/transport-menu.png`), the `unit-roster` scene's
-`journey-transport-arrived` baseline, and the tutorial's
-`assets/runtime/tutorial-media/buy.jpg`.
+`journey-transport-arrived` baseline, and the Guide's
+`assets/runtime/guide-media/buy.jpg`.

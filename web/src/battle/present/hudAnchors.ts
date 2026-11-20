@@ -3,23 +3,23 @@
  *  name, never by its styling. */
 import { CommandBindings, type KeyCommand } from "../input/commandBindings";
 
-export type HudAnchor =
+const NAMED = [
   /** The button that opens the shop. */
-  | "shop"
+  "shop",
   /** The player's credits and income. */
-  | "credits"
+  "credits",
   /** Start battle, during preparation. */
-  | "start"
+  "start",
   /** The objectives' flags in the top bar, in every phase. */
-  | "objectives"
+  "objectives",
   /** The victory score, once the battle runs. */
-  | "score"
+  "score",
   /** The cards of the player's own units. */
-  | "army"
-  /** A command's button on the command bar. */
-  | `command:${KeyCommand}`;
+  "army",
+] as const;
 
-const NAMED = ["shop", "credits", "start", "objectives", "score", "army"] as const;
+/** A control by its name, or a command's button on the command bar. */
+export type HudAnchor = (typeof NAMED)[number] | `command:${KeyCommand}`;
 
 export function isHudAnchor(name: string): name is HudAnchor {
   if ((NAMED as readonly string[]).includes(name)) return true;

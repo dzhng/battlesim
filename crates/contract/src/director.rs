@@ -2,9 +2,11 @@
 //!
 //! A director is chapters of beats. A beat fires once, on the first tick its
 //! trigger holds while its chapter is open; it may tell sides it fired (its
-//! audience) and act: order a directed seat's units, grant credits, offer
-//! purchases. A chapter closes when its last beat fires, and the next opens on
-//! the next tick. Triggers read what is true in the battle (where units are,
+//! audience) and act through the battle's own owners: order a directed seat's
+//! units, buy or ready for it, grant credits, narrow or reopen a shop. A
+//! chapter closes on the tick after its last beat fired, a recovery beat aside
+//! (it answers trouble only if it comes), and the last chapter ends on the
+//! match's result, which only an open chapter hears. Triggers read what is true in the battle (where units are,
 //! what a side knows, the match's phase), never what was commanded, so a
 //! beat holds however its state came about. The director is part of the
 //! battle's rules: it runs the same live and in replay, and its state is in
@@ -39,7 +41,9 @@ pub struct Beat {
     pub id: String,
     pub when: Trigger,
     /// A beat the chapter doesn't wait for: it answers trouble (a unit the
-    /// player needs, lost), so it fires only if that comes about.
+    /// player needs, lost), so it fires only if that comes about. A
+    /// solution's beats are never waited for either: they play the person's
+    /// part, which the story waits on through its own beats.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub recovery: bool,
     /// The sides told it fired.
@@ -229,8 +233,8 @@ pub enum DirectedOrder {
     PopSmoke,
     /// Back up to the zone's centre, front to the threat.
     ReverseTo(String),
-    /// Attack the first living unit the selector names, if the side
-    /// identifies it.
+    /// Attack the first living unit the selector names that the ordering
+    /// side identifies.
     Attack(Selector),
     /// Set up where it stands (a unit that deploys).
     Deploy,
@@ -245,7 +249,8 @@ pub enum DirectedOrder {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Solution {
-    /// A loose tripwire on how long the walkthrough may take, never a target.
+    /// A loose tripwire on how many battle minutes the walkthrough may
+    /// take, never a target.
     pub max_minutes: f64,
     pub chapters: Vec<Chapter>,
 }
@@ -273,14 +278,17 @@ pub struct DirectorSetup {
 }
 
 impl Director {
-    /// Refuses ids that repeat, a `Fired` that names no earlier beat, and a
-    /// name no zone, force or player answers to. Each refusal names the beat.
+    /// Refuses ids that repeat, a `Fired` that names no earlier beat, a name
+    /// no zone, force, player or objective answers to, and a unit type its
+    /// player can't buy (`sold`, by player and card). Each refusal names the
+    /// beat.
     pub fn admit(
         &self,
         zones: &BTreeMap<String, Zone>,
         forces: &BTreeMap<String, UnitId>,
         players: &[crate::players::Player],
         objectives: &[String],
+        sold: &dyn Fn(&crate::players::Player, &str) -> Result<(), String>,
     ) -> Result<(), String> {
         let mut chapters = std::collections::BTreeSet::new();
         let mut earlier = std::collections::BTreeSet::new();
@@ -295,6 +303,7 @@ impl Director {
                     forces,
                     players,
                     objectives,
+                    sold,
                     earlier: &earlier,
                 };
                 names
@@ -329,6 +338,7 @@ struct Names<'a> {
     forces: &'a BTreeMap<String, UnitId>,
     players: &'a [crate::players::Player],
     objectives: &'a [String],
+    sold: &'a dyn Fn(&crate::players::Player, &str) -> Result<(), String>,
     earlier: &'a std::collections::BTreeSet<String>,
 }
 
@@ -339,12 +349,26 @@ impl Names<'_> {
             .then_some(())
             .ok_or(format!("no zone {name:?}"))
     }
-    fn player(&self, id: &str) -> Result<(), String> {
-        self.players
-            .iter()
-            .any(|p| p.id == id)
-            .then_some(())
-            .ok_or(format!("no player {id:?}"))
+    /// A player and the cards it buys: refuses an unknown player, and a
+    /// card it can't buy.
+    fn buys<'k>(
+        &self,
+        player: &str,
+        kinds: impl IntoIterator<Item = &'k str>,
+    ) -> Result<(), String> {
+        let seat = (self.players.iter().find(|p| p.id == player))
+            .ok_or(format!("no player {player:?}"))?;
+        kinds
+            .into_iter()
+            .try_for_each(|kind| (self.sold)(seat, kind))
+    }
+    fn purchases(&self, player: &str, purchases: &[PurchaseSpec]) -> Result<(), String> {
+        self.buys(
+            player,
+            purchases
+                .iter()
+                .flat_map(|p| std::iter::once(p.variant.as_str()).chain(p.carrier.as_deref())),
+        )
     }
     fn selector(&self, who: &Selector) -> Result<(), String> {
         match who {
@@ -353,7 +377,7 @@ impl Names<'_> {
                 .contains_key(name)
                 .then_some(())
                 .ok_or(format!("no force {name:?}")),
-            Selector::Bought { player, .. } => self.player(player),
+            Selector::Bought { player, variant } => self.buys(player, [variant.as_str()]),
         }
     }
     fn trigger(&self, when: &Trigger) -> Result<(), String> {
@@ -367,7 +391,9 @@ impl Names<'_> {
                     .then_some(())
                     .ok_or("a beat's delay is a time from it".into())
             }
-            Trigger::Bought { player, .. } | Trigger::Pending { player, .. } => self.player(player),
+            Trigger::Bought { player, purchase } | Trigger::Pending { player, purchase } => {
+                self.purchases(player, std::slice::from_ref(purchase))
+            }
             Trigger::RadarContact { .. } | Trigger::MatchResult(_) => Ok(()),
             Trigger::Units { who, are } => {
                 self.selector(who)?;
@@ -416,12 +442,20 @@ impl Names<'_> {
                     | DirectedOrder::Deploy => Ok(()),
                 }
             }
+            Action::Offer { player, purchases }
+            | Action::Grant {
+                player,
+                credits: CreditGrant::Covering(purchases) | CreditGrant::ToCover(purchases),
+            } => self.purchases(player, purchases),
             Action::Grant { player, .. }
-            | Action::Offer { player, .. }
             | Action::Ready { player }
-            | Action::OpenShop { player } => self.player(player),
-            Action::Buy { player, at, .. } => {
-                self.player(player)?;
+            | Action::OpenShop { player } => self.buys(player, []),
+            Action::Buy {
+                player,
+                purchase,
+                at,
+            } => {
+                self.purchases(player, std::slice::from_ref(purchase))?;
                 self.zone(at)
             }
         }

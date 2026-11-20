@@ -82,14 +82,14 @@ export function mapPreviews(
         (battle) => {
           if (running !== admission) return;
           stop();
-          if (!battle.preview)
+          // The lobby previews a generated battle, which names its request.
+          if (!battle.preview || !("request" in battle.report))
             return set({
               status: "failed",
               message: "The preparation returned no map picture.",
               attempts: admission.attempts,
             });
-          // The lobby previews a generated battle, which names its request.
-          set({ status: "ready", preview: { request: battle.report.request!, ...battle.preview } });
+          set({ status: "ready", preview: { request: battle.report.request, ...battle.preview } });
         },
         (error: unknown) => {
           if (running !== admission) return;

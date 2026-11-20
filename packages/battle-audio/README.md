@@ -128,8 +128,10 @@ is the only authority on what is said, by which voice and through which profile;
 (`set/voice/trigger/intensity/take`) and its served URL. Spending credits, and
 writing `fixtures/voices.lock.json` and every voice audio file, belong to
 [the generation tool](tools/generate/cli.ts) alone, run as `bun run generate`; its
-bare usage lists the commands. It reaches ElevenLabs only through Duet's proxy with
-this machine's Duet login. Unit membership comes from the
+bare usage lists the commands. Unit voices, designs, beds, effects and music
+reach ElevenLabs through Duet's proxy with this machine's Duet login; narration
+goes through the installed `bento` CLI, which owns its own login and workspace
+(`--workspace` picks another), so nothing here reads a credential. Unit membership comes from the
 resolved [unit catalog](../../fixtures/catalog.json), so inherited roster
 membership counts and abstract airframes never become speakers.
 
@@ -222,17 +224,6 @@ from the takes judged ok on the bytes served and spoken by the voice
 regeneration finishes; before review, `--unreviewed` also lists unjudged takes
 the transcript check passed.
 
-A scenario's narrator is a speaker in `voices.json`'s `narration` section, not
-a unit: a shared-library `voice_id` (never designed, so it never expires), a
-processing profile, and lines by id that the scenario's coach names. Its takes
-sit in the same lock as `narration/<speaker>/<line>`, bought, transcribed and
-judged under the same rules, but through [the `bento` CLI](tools/generate/bento.ts)
-rather than Duet: `generate narration` buys only lines whose text or voice
-changed, and `--import` takes review takes of the same text in place of a
-purchase. Each speaker's `pack.json` lists its takes judged ok, and
-[the narration player](src/voices/narration.ts) plays a line once on the voices
-bus when the coach asks (`BattleAudio.narrate`).
-
 An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
 it plays a stressed bark from a generic pool of the enemy faction's sets, never
 the speaker's own voice, muffled past understanding. [The shout pool](src/voices/shoutPool.ts)
@@ -240,6 +231,20 @@ only loads those takes, a few per shouting voice from each pack that exists,
 and keeps them decoded because a cue starts at once (`takes_per_voice` bounds
 it). Rust picks the take and places it. With no pack loaded a
 shout is silent.
+
+A scenario's narrator is a speaker in `voices.json`'s `narration` section, not
+a unit: a shared-library `voice_id` (never designed, so it never expires), a
+processing profile, and lines by id that the scenario's coach names. Its takes
+sit in the same lock as `narration/<speaker>/<line>`, bought, transcribed and
+judged under the same rules, through [the `bento` CLI](tools/generate/bento.ts):
+`generate narration` buys only lines whose text or voice changed, and
+`--import` takes review takes of the same text in place of a purchase. Each
+speaker's `pack.json` lists its takes judged ok and is rewritten by every
+`verdict`, so a new line plays once its take is judged.
+[The narration player](src/voices/narration.ts) plays a line once, unplaced, on
+the voices bus when the coach asks (`BattleAudio.narrate`); a newer line cuts
+off one still speaking, as a radio does, and unit chatter holds new lines while
+a line plays.
 
 What a battle hears, when, where and how loud (timing, distance, the air's
 colour, the voice budget and stealing, loops, footsteps, cues) is decided in

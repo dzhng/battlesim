@@ -30,9 +30,9 @@ pub fn encounter_scenario(
 /// The battle an authored scenario (`document_json`, a
 /// `ScenarioDocument`) makes on its resolved `scenario` map under
 /// `rules_json` and the shipped match rules, as `ScenarioDocument::on`
-/// makes it natively: `{"battle_seed": u64, "scenario": ScenarioDefinition}`,
-/// the scenario's text exactly as a battle takes it; or the refusal naming
-/// the document's field at fault.
+/// makes it natively: `{"battle_seed": u64, "scenario": "<ScenarioDefinition>"}`,
+/// the scenario as a string holding its text exactly as a battle takes it;
+/// or the refusal naming the document's field at fault.
 #[wasm_bindgen]
 pub fn authored_scenario(
     map_json: &str,
@@ -49,16 +49,14 @@ pub fn authored_scenario(
         .map_err(js_error)?;
     sim::admit(&setup.rules).map_err(js_error)?;
     let scenario = serde_json::to_string(&setup).map_err(js_error)?;
-    Ok(format!(
-        r#"{{"battle_seed":{battle_seed},"scenario":{scenario}}}"#
-    ))
+    Ok(serde_json::json!({ "battle_seed": battle_seed, "scenario": scenario }).to_string())
 }
 
 /// The scenario solved and started at `chapter`, or where its `beat` fires
 /// (the chapters' dev loop):
 /// `{"battle_seed": u64, "resume": {"replay": <Replay as text>, "tick": u64},
-/// "scenario": ScenarioDefinition}`, the scenario last and exactly as a battle
-/// takes it, as `authored_scenario` gives it. The battle resumed from that
+/// "scenario": "<ScenarioDefinition>"}`, the scenario as `authored_scenario`
+/// gives it. The battle resumed from that
 /// replay at that tick stands at the chapter's opening with its people seated.
 #[wasm_bindgen]
 pub fn scenario_chapter(
@@ -91,9 +89,12 @@ pub fn scenario_chapter(
         "tick": tick,
     });
     let scenario = serde_json::to_string(&setup).map_err(js_error)?;
-    Ok(format!(
-        r#"{{"battle_seed":{battle_seed},"resume":{resume},"scenario":{scenario}}}"#
-    ))
+    Ok(serde_json::json!({
+        "battle_seed": battle_seed,
+        "resume": resume,
+        "scenario": scenario,
+    })
+    .to_string())
 }
 
 /// The synthetic endurance battle for `seed` on its resolved field
