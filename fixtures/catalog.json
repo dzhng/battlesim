@@ -45420,7 +45420,7 @@
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 900.0
+            "range_m": 700.0
           }
         ]
       },
@@ -45443,7 +45443,7 @@
       "near_miss_suppression": 0.0325,
       "partial_from": 0.08,
       "penetration": 25.0,
-      "range_m": 900.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "speed_mps": 600.0,
@@ -45464,7 +45464,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 900.0,
+          "range_m": 700.0,
           "scatter_mrad": 20.0
         },
         "low_air": {
@@ -45488,7 +45488,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 90.0,
+      "damage": 220.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -45497,12 +45497,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1000.0
+            "range_m": 1200.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 1000.0
+            "range_m": 1200.0
           }
         ]
       },
@@ -45518,9 +45518,9 @@
       "name": "Air missile",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 40.0,
+      "penetration": 100.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1000.0,
+      "range_m": 1200.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45537,7 +45537,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -45545,7 +45545,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1000.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         }
       },
