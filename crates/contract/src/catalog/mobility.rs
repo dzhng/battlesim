@@ -47,7 +47,8 @@ pub enum Mobility {
         /// Speed factor in reverse, of forward speed.
         reverse_speed_factor: f64,
     },
-    /// Wheels hold a minimum turning radius and never pivot.
+    /// Wheels hold a minimum turning radius and pivot only at rest, by the
+    /// game rules' named exceptions (development.md).
     Wheeled {
         offroad_kmh: f64,
         road_kmh: f64,

@@ -1241,7 +1241,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t5-right-drag-facing",
-            caption: "a squad, a tank and a jeep right-dragged east-to-north: the squad and the tank end facing north, the jeep (wheels never pivot) drives in along it, never backing up",
+            caption: "a squad, a tank and a jeep right-dragged east-to-north: all end facing north, the jeep driving in along it (never backing up), then turning on the spot",
             map: flat([120.0, 100.0], json!({})),
             units: json!([
                 rifle("blue", [20.0, 20.0]),
@@ -1260,7 +1260,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(EndsFacing { unit: 0, deg: 90.0, within_deg: 2.0 }),
                 check(EndsFacing { unit: 1, deg: 90.0, within_deg: 2.0 }),
-                check(EndsFacing { unit: 2, deg: 90.0, within_deg: 20.0 }),
+                check(EndsFacing { unit: 2, deg: 90.0, within_deg: 2.0 }),
                 check(NeverReverses { unit: 2 }),
                 check(VehiclesNeverOverlap),
             ],

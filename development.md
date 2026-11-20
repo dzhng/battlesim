@@ -113,6 +113,9 @@ the one list of deliberate hard-coded rules:
 - an attack order pivots a vehicle on the spot to bring a gun fixed in its
   hull onto its target, on wheels as on tracks; unordered, only tracks pivot
   and wheels hold fire;
+- wheels take a right-drag's facing as best they can, driving in along it
+  when a lead-in lies on their way, then turn the rest of the way on the
+  spot, so every vehicle ends facing the drag;
 - of two vehicles that hold each other up, the later one (the higher unit id)
   gives way and works its way round while the other waits, unless it finds
   no way round;
