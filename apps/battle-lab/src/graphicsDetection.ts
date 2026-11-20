@@ -8,8 +8,8 @@ import {
   type TierBenchmarkInput,
 } from "./graphicsSettings";
 
-// Safari can deliver a valid but slow stream while the menu scene is under
-// memory pressure; reject only streams too short to estimate at all.
+// A machine under memory pressure can deliver a valid but slow stream while
+// the menu scene loads; reject only streams too short to estimate at all.
 const MIN_FRAME_SAMPLES = 15;
 export function judgeIntervals(intervalsMs: readonly number[]): TierBenchmarkInput {
   if (

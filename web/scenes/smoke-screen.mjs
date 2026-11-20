@@ -131,7 +131,7 @@ export async function run(ctx) {
   const charges = (await obs(page)).own.find((u) => u.id === pop.carrier).smoke;
   const rowsBefore = await panelRows(page, pop.carrier);
   await snapshot(ctx, page, "blue-before-pop-panel.png");
-  await page.keyboard.press("KeyH");
+  await page.keyboard.press("KeyM");
   await page.waitForFunction(() =>
     window.__lab.route.acks().some((a) => a.order.kind === "pop_smoke"),
   );

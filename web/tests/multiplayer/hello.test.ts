@@ -1,4 +1,5 @@
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
+import { archiveFolder } from "./support/archive";
 import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { timerClock } from "./timerClock";
@@ -17,6 +18,7 @@ afterEach(async () => {
 });
 async function serving(serverBuild = build) {
   const server = createLobbyHttp(serverBuild, {
+    archive: archiveFolder(),
     machines: inProcessBattleMachines({
       capacity: 0,
       createBattle: pendingBattle,

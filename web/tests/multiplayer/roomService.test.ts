@@ -1,4 +1,5 @@
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
+import { archiveFolder, testArchive } from "./support/archive";
 import {
   createOnlineState,
   battleCapacity,
@@ -55,6 +56,7 @@ function setup(capacity = 3) {
   let draw = 0;
   const service = createRoomService({
     online: createOnlineState({
+      archive: testArchive(),
       machines: inProcessBattleMachines({
         capacity: capacity,
         ordersPerSecond: 10000,
@@ -388,6 +390,7 @@ const ids = ["1".repeat(32), "2".repeat(32), "3".repeat(32), "4".repeat(32)];
 async function serving(clientAddressHeader: string | null = null) {
   const clock = new Clock();
   const server = createLobbyHttp(build, {
+    archive: archiveFolder(),
     machines: inProcessBattleMachines({
       capacity: 3,
       createBattle: pendingBattle,
@@ -573,6 +576,7 @@ test("a callsign stays reserved while a started room remembers its gone member, 
   let draw = 0;
   const service = createRoomService({
     online: createOnlineState({
+      archive: testArchive(),
       machines: inProcessBattleMachines({
         capacity: 2,
         ordersPerSecond: 10000,

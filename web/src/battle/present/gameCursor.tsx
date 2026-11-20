@@ -1,6 +1,7 @@
 import { createContext, useContext, useLayoutEffect, useRef, type ReactNode } from "react";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
-import { channels, gameHud } from "./hudTheme";
+import { channels } from "./hudCss";
+import { gameHud } from "./hudTheme";
 import { iconSvg } from "./icons";
 import "./gameCursor.css";
 

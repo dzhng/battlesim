@@ -100,8 +100,8 @@ tests, the battle digests and the replays must all pass unchanged afterwards.
   autocannon, holds fire at an identified target it cannot hurt and keeps its
   rounds.
 - **S6.** A jet on a ground-attack pass strafes with its gun row. It drops bombs
-  only at a bombing pass's release point, and fires its other ground rows on a
-  missile pass.
+  only on a bombing pass, where one would come down inside the strike circle
+  round its aim, and fires its other ground rows on a missile pass.
 - **S7.** A unit with no `default` gun (artillery, a SAM) never plinks, and it
   still engages whatever its weapons can hurt.
 

@@ -111,6 +111,7 @@ fn upgrading_a_jets_move_breaks_off_its_run() {
         agl: 120.0,
         run_agl: Some(120.0),
         heading: 0.0,
+        closing: true,
     });
     air.pass_release = true;
     air.dogfight_target = Some(UnitId(1));

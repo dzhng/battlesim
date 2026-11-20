@@ -3,10 +3,12 @@ import { AppCursor } from "@web/battle/present/gameCursor";
 import { AppAudioProvider, AppAudioScreen } from "./AppAudio";
 import { AppResourceBoundary } from "./AppResourceBoundary";
 import { LabRouter, screenForPath } from "./router";
+import { useFullscreenKey } from "./fullscreen";
 
 /** Page owners stay above visits so route changes release only battle work. */
 export function AppShell() {
   const screen = screenForPath(useLocation().pathname);
+  useFullscreenKey();
   return (
     <AppCursor>
       <AppAudioProvider>

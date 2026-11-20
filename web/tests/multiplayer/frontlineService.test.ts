@@ -1,4 +1,5 @@
 import { testBrowser, seatRequest } from "./support/player";
+import { archiveFolder, testArchive } from "./support/archive";
 import { cleanups, service, unmakeable } from "./support/frontlineService";
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 // @vitest-environment node
@@ -33,6 +34,7 @@ test("Play draws another map when the generator refuses one, and says so honestl
 
   // Every draw refused: not "full", and the battle slot is free again.
   const online = createOnlineState({
+    archive: testArchive(),
     machines: inProcessBattleMachines({
       capacity: 1,
       ordersPerSecond: 10000,
@@ -317,7 +319,7 @@ test("a battle beyond its joining point refuses a newcomer, then its final obser
     expect(seen.end).toBe("finished");
   }
   await expect(s.b.host.referee()).rejects.toThrow(/ended/);
-  expect(s.online.slotFree()).toBe(true);
+  await vi.waitFor(() => expect(s.online.slotFree()).toBe(true));
 }, 120_000);
 
 test("the last human leaving or dropping deletes the battle and releases its slot; a crash does likewise", async () => {
@@ -334,9 +336,8 @@ test("the last human leaving or dropping deletes the battle and releases its slo
       await s.clock.advance(1);
     }
     if (end === "crash") s.b.host.setController(s.ticket.player, "invalid" as never);
-    await flush();
-    await expect(s.b.host.referee()).rejects.toThrow(/ended/);
-    expect(s.online.slotFree()).toBe(true);
+    await vi.waitFor(() => expect(s.b.host.referee()).rejects.toThrow(/ended/));
+    await vi.waitFor(() => expect(s.online.slotFree()).toBe(true));
     await expect(s.b.host.referee()).rejects.toThrow(/ended/);
   }
 }, 120_000);
@@ -351,6 +352,7 @@ test("rooms and Frontline reserve the same battle slots", async () => {
   cleanups.push(room.dispose);
   expect(room.create(testBrowser("bravo"), "public")).toEqual({ refused: "full" });
   s.frontline.leave(testBrowser("alpha"), s.a.battle);
+  await vi.waitFor(() => expect(s.online.slotFree()).toBe(true));
   const made = room.create(testBrowser("bravo"), "public");
   expect(made).toEqual({ code: expect.any(String) });
   expect(await s.frontline.join(testBrowser("alpha"))).toEqual({ refused: "full" });
@@ -458,6 +460,7 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
   let draw = 0;
   const build = { data: "frontline-test", wire: "frontline-test", sim: "frontline-test" };
   const server = createLobbyHttp(build, {
+    archive: archiveFolder(),
     clock,
     clientAddressHeader: null,
     random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],

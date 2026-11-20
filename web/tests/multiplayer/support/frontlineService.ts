@@ -1,5 +1,6 @@
 // Real battle machines and clocks for Frontline lifecycle scenarios.
 import { expect, vi } from "vitest";
+import { testArchive } from "./archive";
 import { inProcessBattleMachines } from "../../../../apps/game-server/src/machines/inProcess";
 import { createFrontlineService } from "../../../../apps/game-server/src/frontline";
 import { createOnlineState } from "../../../../apps/game-server/src/online";
@@ -33,6 +34,7 @@ export async function service(capacity = 2, admissionMs = 0, refusedMaps = 0) {
   const records: ReturnType<typeof recordHost>[] = [];
   const forgotten = new Set<string>();
   const online = createOnlineState({
+    archive: testArchive(),
     machines: inProcessBattleMachines({
       capacity: capacity,
       ordersPerSecond: 10000,

@@ -10,8 +10,8 @@ use crate::weapons::nose_on_bearing;
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState};
 use super::steer::{
-    edge_guarded, guard_short_of, inward_from, level_roll_lag_s, roll_lag_s, tightest_radius,
-    Bounds, Intent,
+    edge_guard, guard_short_of, inward_from, level_roll_lag_s, roll_lag_s, tightest_radius, Bounds,
+    Intent,
 };
 use crate::weapons::Target;
 
@@ -44,7 +44,8 @@ pub fn pass_weapon(def: &contract::weapons::WeaponDefinition) -> Option<PassWeap
 /// Where a jet attacking the ground is in its runs. A run is a short
 /// commitment: it begins when the nose comes on the aim and is over once its
 /// weapon has done its job or anything breaks it off; then the next is lined
-/// up from wherever the jet is.
+/// up from wherever the jet is. A bomb need not wait for a run: it leaves
+/// in any phase once it would land within reach of the aim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PassPhase {
     /// Lining up, committed to nothing: flying out along a line through the
@@ -54,8 +55,9 @@ pub enum PassPhase {
     /// comes on the aim.
     TurnIn,
     /// The run: flying straight at the aim along the line it committed to,
-    /// until it reaches its release point (a bomb's drop, or the aim itself:
-    /// the gun has passed it) or the edge guard turns it away.
+    /// until where its round would land comes no nearer the aim (a bomb's
+    /// drop point, or the jet itself: the gun has passed it) or the edge
+    /// guard turns it away.
     Dive,
 }
 
@@ -81,6 +83,10 @@ pub struct PassPlan {
     /// The bearing of the line flown through the aim: away from it lining
     /// up, toward it turning in, and in a run the one it committed along.
     pub heading: f64,
+    /// Where a bomb dropped last tick would have landed was still closing
+    /// on the aim: the tick it stops is a bomb's one chance on that
+    /// approach.
+    pub closing: bool,
 }
 
 /// Limited ground stores take a run before the unlimited fixed gun.
@@ -148,6 +154,7 @@ pub fn begin(
         agl,
         run_agl: None,
         heading,
+        closing: false,
     }
 }
 
@@ -157,6 +164,10 @@ pub fn begin(
 pub struct PassAim {
     pub point: V3,
     pub release: Release,
+    /// How far from the aim a dropped round may land and still strike it:
+    /// the strike's footprint (`strike::footprint_m`). A release that lands
+    /// farther off is held.
+    pub reach_m: f64,
 }
 
 /// The circle a turn toward `aim` at its turn rate flies, on the side it lies,
@@ -206,7 +217,7 @@ fn line_up(
     limits: &FixedWingLimits,
     bounds: &Bounds,
     release: &Release,
-    guarded: bool,
+    guard: Option<f64>,
     dt: f64,
 ) -> (V2, f64) {
     let aim = plan.aim.xy();
@@ -226,14 +237,21 @@ fn line_up(
     // inside every edge, turning as tight as it can: it turns round at the
     // rate it turns at by choice, and the edge guard pulls harder where
     // that would not keep the margin. An edge the line runs along, however
-    // near the aim, never bends it. Where it doesn't fit it is a fixed line into the map,
-    // so the run comes back at the edge from inside rather than along it.
-    // The jet flies out two turn radii to the side of that line so that
-    // turning in lands it on it, and turns in only once out on that leg,
-    // where the turn toward the aim is a turn away from the edge.
-    // Two seconds' flight, and the lag of its roll out of the turn in onto
-    // the line: half its roll-in, as rolling into it costs.
-    let settle = speed * (2.0 + level_roll_lag_s(limits));
+    // near the aim, never bends it. Where it doesn't fit it is a fixed line
+    // into the map, so the run comes back at the edge from inside rather
+    // than along it. The jet flies out two turn radii to the side of that
+    // line so that turning in lands it on it, and turns in only once out on
+    // that leg, where the turn toward the aim is a turn away from the edge.
+    // Its settle is the lag of its roll out of the turn in onto the line
+    // (half its roll-in, as rolling into it costs) and, for a gun or
+    // missile, two seconds' flight to fire along. A bomb needs no run to
+    // fire along: it leaves wherever it would land on the aim.
+    let fire_along_s = if plan.weapon == PassWeapon::Bomb {
+        0.0
+    } else {
+        2.0
+    };
+    let settle = speed * (fire_along_s + level_roll_lag_s(limits));
     let away = bearing + core::f64::consts::PI;
     let away_dir = v2(libm::cos(away), libm::sin(away));
     let straight_ends = release
@@ -263,9 +281,11 @@ fn line_up(
         }
     };
     let run_in = settle + ends;
-    // A turn in the edge guard takes over is broken like a run: the jet
-    // lines up again rather than riding the edge.
-    plan.phase = if guarded {
+    // The edge guard breaking the other way breaks a turn in like a run:
+    // the jet lines up again rather than riding the edge. Breaking the same
+    // way only tightens it.
+    let turning = wrap_angle(bearing - state.heading);
+    plan.phase = if guard.is_some_and(|turn| turn * turning < 0.0) {
         PassPhase::LineUp
     } else if on_leg && from_centre.at_least_radius(libm::hypot(radius, run_in)) {
         PassPhase::TurnIn
@@ -297,14 +317,14 @@ fn line_up(
 /// it would leave it pointed at the aim a full run-in short of where the run
 /// must end, then holds the turn in. A run must end at its release point (a
 /// bomb's lies its forward throw short of the aim) or where the edge guard
-/// would take it, whichever comes first. The run commits the moment the
-/// nose comes on the aim, short of the release point and clear of the edge
-/// guard, however much run-in is left. The release cue comes on the tick
-/// whose `dt` step carries the jet to its release point, so a bomb leaves
-/// the jet within half a step of it, and the run is over with it: the jet
-/// lines up again at once, rolling into its break from wings level. A run
-/// the edge guard takes is broken and releases nothing; it lines up again
-/// too.
+/// would take it, whichever comes first. The run commits the moment the nose comes on
+/// the aim, short of the release point and clear of the edge guard, however
+/// much run-in is left. A bomb's release cue comes, in whatever phase the
+/// jet is, on the tick whose `dt` step carries it to where a drop would
+/// land stops closing on the aim, if that lies within the aim's reach
+/// (the strike's footprint). A run is over then, whether or not it
+/// released, or when the edge guard takes it: the jet lines up again at
+/// once, rolling into its break from wings level.
 ///
 /// Off each run the jet climbs back toward its cruise height, from the tick
 /// after its release. It dives to the run's height from wherever the climb
@@ -354,39 +374,79 @@ fn advance_phase(
     aim: &PassAim,
     dt: f64,
 ) -> (V2, f64, bool) {
+    let guard = edge_guard(state, limits, bounds, dt);
+    let guarded = guard.is_some();
+    let landing = Landing::of(state, aim, dt);
+    // A bomb may leave on the tick where it would land stops closing on the
+    // aim, if that lies within reach: a run drops level with the aim, a
+    // turn that swings the nose onto it a little too close for a level run
+    // drops as the swing ends, and the edge guard's break drops as it takes
+    // the jet. A bomb held then (for a friendly in its blast, say) waits for
+    // the next approach.
+    let opening = guarded || landing.after >= landing.now;
+    let drop =
+        plan.weapon == PassWeapon::Bomb && plan.closing && opening && landing.now <= aim.reach_m;
+    plan.closing = !opening;
     let PassAim {
         point: aim,
         release,
+        ..
     } = *aim;
-    let speed = state.speed_mps.max(1.0);
-    let guarded = edge_guarded(state, limits, bounds, dt);
     if plan.phase != PassPhase::Dive {
         let to_aim = aim.xy() - state.pos.xy();
-        let distance = to_aim.length();
         let bearing = libm::atan2(to_aim.y, to_aim.x);
         plan.aim = aim;
         let nose_on = nose_on_bearing(state.heading, bearing, limits.nose_on_rad);
         // Short of where it would release on this run.
-        let short = distance > release.ahead_m;
+        let short = to_aim.length() > release.ahead_m;
         if nose_on && short && !guarded {
             plan.phase = PassPhase::Dive;
             plan.heading = bearing;
         } else {
-            let (through, heading) = line_up(plan, state, limits, bounds, &release, guarded, dt);
-            return (through, heading, false);
+            let (through, heading) = line_up(plan, state, limits, bounds, &release, guard, dt);
+            if drop {
+                plan.phase = PassPhase::LineUp;
+            }
+            return (through, heading, drop);
         }
     }
-    let (through, heading) = (plan.aim.xy(), plan.heading);
-    if guarded {
-        plan.phase = PassPhase::LineUp;
-        return (through, heading, false);
-    }
-    let forward = v2(libm::cos(plan.heading), libm::sin(plan.heading));
-    let step = speed * dt;
-    let short = (release.at - state.pos.xy()).dot(forward);
-    let cue = short - step <= step * 0.5;
-    if cue {
+    // The run is over once where its round would land comes no nearer the
+    // aim: a bomb's drop point, or the jet itself for a gun or missile.
+    if opening {
         plan.phase = PassPhase::LineUp;
     }
-    (through, heading, cue)
+    (plan.aim.xy(), plan.heading, drop)
+}
+
+/// How far from the aim a round released after this tick's step lands
+/// (`now`), and one released a step later (`after`), holding the turn the
+/// jet is in. It flies on with the jet's velocity as it falls, so it lands
+/// its throw (`aim - release.at`, nothing for a round fired at the aim)
+/// ahead of where it leaves the jet.
+struct Landing {
+    now: f64,
+    after: f64,
+}
+
+impl Landing {
+    fn of(state: &FixedWingState, aim: &PassAim, dt: f64) -> Self {
+        let throw = aim.point.xy() - aim.release.at;
+        let step = state.speed_mps.max(1.0) * dt;
+        let turn = state.turn_rate_rad_s * dt;
+        let miss = |n: u32| {
+            let flown = (1..=n)
+                .map(|k| {
+                    let heading = state.heading + turn * f64::from(k);
+                    v2(libm::cos(heading), libm::sin(heading)) * step
+                })
+                .fold(v2(0.0, 0.0), |sum, leg| sum + leg);
+            let (sin, cos) = libm::sincos(turn * f64::from(n));
+            let thrown = v2(throw.x * cos - throw.y * sin, throw.x * sin + throw.y * cos);
+            (state.pos.xy() + flown + thrown - aim.point.xy()).length()
+        };
+        Self {
+            now: miss(1),
+            after: miss(2),
+        }
+    }
 }

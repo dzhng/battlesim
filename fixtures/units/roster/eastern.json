@@ -758,7 +758,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 2250,
+        "low_air_m": 1000,
         "high_air_m": 2250
       },
       "capabilities": {
@@ -925,7 +925,7 @@
       },
       "body": {
         "hull": {
-          "hp": 200,
+          "hp": 150,
           "half_extents_m": [
             6.825,
             3.65,
@@ -938,7 +938,7 @@
           "id": "cannon",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": false,
           "pivot_m": [
@@ -1090,7 +1090,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -1146,7 +1146,7 @@
       "extends": "roster_profile_armoured_helicopter",
       "body": {
         "hull": {
-          "hp": 200,
+          "hp": 150,
           "half_extents_m": [
             8.536,
             2.495,
@@ -1159,7 +1159,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -1227,7 +1227,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -1249,7 +1249,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -1534,7 +1534,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 2250,
+        "low_air_m": 1000,
         "high_air_m": 2250
       },
       "capabilities": {
@@ -3180,7 +3180,7 @@
           "id": "chin",
           "name": "Chain Gun",
           "weapons": [
-            "autocannon"
+            "heli_autocannon"
           ],
           "turret": true,
           "pivot_m": [
@@ -3249,7 +3249,7 @@
           "id": "door",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [
@@ -3271,7 +3271,7 @@
           "id": "door_right",
           "name": "HMG",
           "weapons": [
-            "hmg"
+            "heli_hmg"
           ],
           "turret": true,
           "pivot_m": [

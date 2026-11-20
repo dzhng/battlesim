@@ -9,14 +9,14 @@ use sim::fixtures::{self, test_rules};
 
 /// The test jet's own numbers for the run tests: every bound they assert is
 /// derived from these, not from the shipped catalog.
-const RUN_CRUISE_KMH: f64 = 540.0;
+pub(crate) const RUN_CRUISE_KMH: f64 = 540.0;
 const RUN_TURN_DEG_S: f64 = 60.0;
-const RUN_EDGE_MARGIN_M: f64 = 300.0;
-const RUN_ROLL_IN_S: f64 = 0.8;
+pub(crate) const RUN_EDGE_MARGIN_M: f64 = 300.0;
+pub(crate) const RUN_ROLL_IN_S: f64 = 0.8;
 pub(crate) const RUN_BOMB_CEILING_M: f64 = 200.0;
 pub(crate) const RUN_STRAFE_CEILING_M: f64 = 130.0;
-const RUN_GRAVITY_MPS2: f64 = 9.81;
-const RUN_BOMB_GRAVITY_SCALE: f64 = 4.5;
+pub(crate) const RUN_GRAVITY_MPS2: f64 = 9.81;
+pub(crate) const RUN_BOMB_GRAVITY_SCALE: f64 = 4.5;
 const RUN_GUN_RANGE_M: f64 = 900.0;
 /// The side of the square field the run tests fly over.
 const RUN_FIELD_M: f64 = 4000.0;
@@ -29,22 +29,28 @@ pub(crate) const RUN_WINDOW_S: f64 = 120.0;
 struct RunBounds {
     speed: f64,
     /// The longest one run may take, from where the last one ended: flying
-    /// straight out until a turn in leaves a run-in (2 s of flight plus a
-    /// bomb's forward throw from its ceiling) and a turn diameter, a lap
-    /// turning in, one more lap the edge guard may add, then the run-in.
+    /// straight out a leg of its pattern (`pattern_leg_m`), a lap turning
+    /// in, one more lap the edge guard may add, then the leg back in.
     run_s: f64,
 }
 
 fn run_bounds() -> RunBounds {
     let speed = RUN_CRUISE_KMH / 3.6;
-    let turn = RUN_TURN_DEG_S.to_radians();
-    let lap_s = std::f64::consts::TAU / turn;
-    let fall_s = (2.0 * RUN_BOMB_CEILING_M / (RUN_GRAVITY_MPS2 * RUN_BOMB_GRAVITY_SCALE)).sqrt();
-    let leg = 2.0 * speed + speed * fall_s + 2.0 * speed / turn;
+    let lap_s = std::f64::consts::TAU / RUN_TURN_DEG_S.to_radians();
     RunBounds {
         speed,
-        run_s: 2.0 * lap_s + 2.0 * leg / speed,
+        run_s: 2.0 * lap_s + 2.0 * pattern_leg_m(RUN_TURN_DEG_S) / speed,
     }
+}
+
+/// How far a jet turning at `turn_deg_s` flies out past the aim and back in
+/// on each leg of its pattern: a turn's diameter, and a run-in of its roll
+/// out of the turn and the longer of a bomb's forward throw from its ceiling
+/// and a gun's two seconds of fire.
+pub(crate) fn pattern_leg_m(turn_deg_s: f64) -> f64 {
+    let speed = RUN_CRUISE_KMH / 3.6;
+    let fall_s = (2.0 * RUN_BOMB_CEILING_M / (RUN_GRAVITY_MPS2 * RUN_BOMB_GRAVITY_SCALE)).sqrt();
+    0.5 * RUN_ROLL_IN_S * speed + speed * fall_s.max(2.0) + 2.0 * speed / turn_deg_s.to_radians()
 }
 
 /// The test rules for the run tests, with the test jet carrying `weapons`,
@@ -92,8 +98,17 @@ pub(crate) fn run_rules(weapons: &[&str]) -> serde_json::Value {
 
 /// A battle on the run field with `units` placed, the test jet first.
 pub(crate) fn run_field(rules: serde_json::Value, units: serde_json::Value) -> sim::battle::Battle {
+    square_field(RUN_FIELD_M, rules, units)
+}
+
+/// A battle on a square field `side_m` across with `units` placed.
+pub(crate) fn square_field(
+    side_m: f64,
+    rules: serde_json::Value,
+    units: serde_json::Value,
+) -> sim::battle::Battle {
     let setup = serde_json::from_value(json!({
-        "map": { "size": [RUN_FIELD_M, RUN_FIELD_M], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "map": { "size": [side_m, side_m], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
         "units": units,
         "events": [], "scripts": []
@@ -141,14 +156,16 @@ struct Run {
     fired: u32,
 }
 
-/// What a jet flew over a window: its runs, and each stretch of one phase
-/// (`None` with no run planned) with when it began and how long it lasted.
+/// What a jet flew over a window: its runs, each stretch of one phase
+/// (`None` with no run planned) with when it began and how long it lasted,
+/// and when each of its rounds left it, in a run or not.
 struct Flown {
     runs: Vec<Run>,
     stretches: Vec<(Option<PassPhase>, f64, f64)>,
+    released: Vec<f64>,
 }
 
-fn rounds(battle: &sim::battle::Battle) -> u32 {
+pub(crate) fn rounds(battle: &sim::battle::Battle) -> u32 {
     battle
         .unit(UnitId(0))
         .unwrap()
@@ -164,6 +181,7 @@ fn fly_runs(battle: &mut sim::battle::Battle, aim: [f64; 2], window_s: f64) -> F
     let mut flown = Flown {
         runs: Vec::new(),
         stretches: Vec::new(),
+        released: Vec::new(),
     };
     let mut current: Option<(Option<PassPhase>, f64)> = None;
     let mut rounds_at_commit = 0;
@@ -172,6 +190,7 @@ fn fly_runs(battle: &mut sim::battle::Battle, aim: [f64; 2], window_s: f64) -> F
         let at = battle.unit(UnitId(0)).unwrap().position.xy();
         battle.step();
         let now = tick as f64 / hz;
+        flown.released.extend((before..rounds(battle)).map(|_| now));
         let jet = battle.unit(UnitId(0)).unwrap();
         let phase = jet.air.unwrap().pass.map(|p| p.phase);
         if current.is_some_and(|(p, _)| p == phase) {
@@ -209,7 +228,7 @@ fn fly_runs(battle: &mut sim::battle::Battle, aim: [f64; 2], window_s: f64) -> F
 /// The run contract, for a jet that started at `RUN_START` and attacked
 /// `aim` for `window_s`: each run begins nose-on and is over (fired, or
 /// broken) within the time to fly its own run-in; no phase is held longer
-/// than one run's length; and runs that fire keep coming.
+/// than one run's length; and its rounds keep coming, in a run or not.
 fn assert_runs_keep_firing(weapon: &str, aim: [f64; 2], flown: &Flown, window_s: f64) {
     let bounds = run_bounds();
     let approach_s = (sim::math::v2(aim[0], aim[1]) - sim::math::v2(RUN_START[0], RUN_START[1]))
@@ -253,16 +272,10 @@ fn assert_runs_keep_firing(weapon: &str, aim: [f64; 2], flown: &Flown, window_s:
     }
     let mut last = 0.0;
     let mut limit = approach_s + bounds.run_s;
-    for end in flown
-        .runs
-        .iter()
-        .filter(|r| r.fired > 0)
-        .filter_map(|r| r.end_s)
-        .chain([window_s])
-    {
+    for end in flown.released.iter().copied().chain([window_s]) {
         assert!(
             end - last <= limit,
-            "{at}: no run fired between {last:.1}s and {end:.1}s; runs {:?}",
+            "{at}: nothing fired between {last:.1}s and {end:.1}s; runs {:?}",
             flown.runs
         );
         last = end;
