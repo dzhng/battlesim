@@ -222,7 +222,15 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .expect("a pass was begun");
                     let agl_m =
                         state.pos.z - ctx.world.height_at(state.pos.x, state.pos.y).unwrap_or(0.0);
-                    let aim = pass::PassAim { point, release };
+                    let aim = pass::PassAim {
+                        point,
+                        release,
+                        // A drop that lands inside the strike's footprint,
+                        // the circle drawn round the attack cursor, does
+                        // its damage there.
+                        reach_m: crate::strike::footprint_m(ctx.rules, ctx.arsenal, unit.kind, 0.0)
+                            .unwrap_or(0.0),
+                    };
                     let (intent, cue) =
                         pass::advance(pass, &state, agl_m, &limits, &bounds, &aim, dt);
                     pass_release_now = cue;

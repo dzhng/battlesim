@@ -6,7 +6,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::attack_passes::{far, ground_attack_battle, ground_attack_battle_with, state, wing};
-use crate::attack_runs::{attack_ground, run_field, run_rules, RUN_START};
+use crate::attack_runs::{
+    attack_ground, pattern_leg_m, rounds, run_field, run_rules, square_field,
+    RUN_BOMB_GRAVITY_SCALE, RUN_CRUISE_KMH, RUN_EDGE_MARGIN_M, RUN_GRAVITY_MPS2, RUN_ROLL_IN_S,
+    RUN_START, RUN_WINDOW_S,
+};
 use crate::common::air_field::wing_limits;
 use contract::catalog::TypeIndex;
 use contract::ids::UnitId;
@@ -14,6 +18,7 @@ use contract::random::Rng;
 use serde_json::json;
 use sim::air::pass::{advance, begin, PassAim, PassPhase, PassWeapon};
 use sim::air::Bounds;
+use sim::fixtures;
 use sim::flight::{FlightEvent, Release};
 use sim::math::{v2, v3, V2};
 
@@ -190,6 +195,7 @@ fn a_bombing_run_releases_at_its_release_point_and_is_over() {
     let aim_at = PassAim {
         point: aim,
         release,
+        reach_m: 50.0,
     };
     // 100 m/s in 0.6 s steps: 60 m a step.
     let dt = 0.6;
@@ -221,9 +227,74 @@ fn a_bombing_run_releases_at_its_release_point_and_is_over() {
     assert_eq!(plan.phase, PassPhase::LineUp);
 }
 
-/// A run the edge guard takes over is broken: it releases nothing, though
-/// this tick would have carried it to its release point, and the jet lines
-/// up again.
+/// A bomb leaves the jet whenever one dropped now would land where it still
+/// does its damage at the aim, whatever the jet is doing: a pilot passing
+/// near the target drops on it without first lining up a perfect run. One
+/// that would land past its reach stays on: flying over the aim with no
+/// time left for the fall to carry it there, or abeam it too far out.
+#[test]
+fn a_bomb_leaves_whenever_it_would_land_on_the_aim() {
+    let aim = v3(1000.0, 0.0, 0.0);
+    // A drop flies 300 m on as it falls, and does its damage 130 m round
+    // where it lands.
+    let reach_m = 130.0;
+    // 100 m/s in 0.6 s steps: 60 m a step, flying east along `y`, from `x`.
+    let fly = |y: f64, from_x: f64| {
+        let mut plan = begin(
+            &state(250.0),
+            &wing_limits(),
+            aim,
+            PassWeapon::Bomb,
+            &wing(),
+            &mut Rng::new(7),
+        );
+        let mut released = Vec::new();
+        for step in 0..20 {
+            let mut current = state(250.0);
+            current.pos = v3(from_x + step as f64 * 60.0, y, 250.0);
+            let aim_at = PassAim {
+                point: aim,
+                release: Release {
+                    fall_s: 3.0,
+                    ahead_m: 300.0,
+                    at: v2(700.0, 0.0),
+                },
+                reach_m,
+            };
+            let (_, cue) = advance(
+                &mut plan,
+                &current,
+                250.0,
+                &wing_limits(),
+                &far(),
+                &aim_at,
+                0.6,
+            );
+            if cue {
+                // Where this tick's step carries the jet.
+                released.push(current.pos.x + 60.0);
+            }
+        }
+        released
+    };
+    // 50 m abeam, its nose never on the aim: it drops as its fall carries
+    // the bomb level with the aim, once.
+    let released = fly(50.0, 0.0);
+    assert_eq!(released.len(), 1, "released at {released:?}");
+    assert!(
+        (released[0] - 700.0).abs() <= 30.0,
+        "released {} m along, more than half a step from where it lands level with the aim",
+        released[0]
+    );
+    // Over the aim: a drop now lands its throw long, past its reach.
+    assert_eq!(fly(0.0, 1000.0), Vec::<f64>::new(), "dropped long");
+    // Abeam past where a bomb's damage reaches.
+    assert_eq!(fly(200.0, 0.0), Vec::<f64>::new(), "dropped wide");
+}
+
+/// A run the edge guard takes over is broken, and the jet lines up again;
+/// a bomb that lands on the aim from where the guard takes it still leaves,
+/// as the jet breaks away.
 #[test]
 fn a_run_the_edge_guard_takes_over_is_broken() {
     let aim = v3(1000.0, 0.0, 0.0);
@@ -242,6 +313,7 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
             ahead_m: 300.0,
             at: v2(700.0, 0.0),
         },
+        reach_m: 50.0,
     };
     // The east edge lies just past the aim: by the release point the jet,
     // heading straight at it, is at its point of no return.
@@ -258,7 +330,10 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
     // 100 m/s in 0.05 s steps: this step would carry it to the release point.
     current.pos.x = 697.0;
     let (_, cue) = advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
-    assert!(!cue, "released as the edge guard turned it away");
+    assert!(
+        cue,
+        "held a bomb that lands on the aim as the edge guard turned it away"
+    );
     assert_eq!(plan.phase, PassPhase::LineUp);
 }
 
@@ -363,4 +438,65 @@ fn a_bomb_holds_for_a_friendly_vehicle_in_its_blast() {
     }
     // It held at the release point, not short of it.
     assert!(cued, "the jet never reached its release point");
+}
+
+/// When, in seconds from the order, each of the jet's rounds left it over
+/// `window_s`.
+fn release_times(battle: &mut sim::battle::Battle, window_s: f64) -> Vec<f64> {
+    let hz = f64::from(battle.rules().tick_hz);
+    let mut released = Vec::new();
+    for tick in 1..=(window_s * hz) as u64 {
+        let before = rounds(battle);
+        battle.step();
+        released.extend((before..rounds(battle)).map(|_| tick as f64 / hz));
+    }
+    released
+}
+
+/// A target in the middle of a field with little more room round it than a
+/// pilot's own pattern needs is bombed on every lap: the jet never circles
+/// over it for want of a long run-in. The room on every side is an edge
+/// margin, a turn's diameter, and a run-in of its roll out of the turn and
+/// a bomb's throw from the lowest it bombs from. The jet turns wide, so its
+/// pattern fills the field.
+#[test]
+fn a_jet_bombs_the_middle_of_a_field_barely_bigger_than_its_pattern() {
+    const WIDE_TURN_DEG_S: f64 = 30.0;
+    const FLOOR_M: f64 = 100.0;
+    let speed = RUN_CRUISE_KMH / 3.6;
+    let diameter_m = 2.0 * speed / WIDE_TURN_DEG_S.to_radians();
+    let throw_m = speed * (2.0 * FLOOR_M / (RUN_GRAVITY_MPS2 * RUN_BOMB_GRAVITY_SCALE)).sqrt();
+    let half = RUN_EDGE_MARGIN_M + diameter_m + 0.5 * RUN_ROLL_IN_S * speed + throw_m;
+    let aim = [half, half];
+    // It comes in from just inside the west margin, heading east at it.
+    let start = [RUN_EDGE_MARGIN_M + 50.0, half];
+    let mut rules = run_rules(&["air_bomb"]);
+    rules["air"]["high_air"]["floor_agl_m"] = json!(FLOOR_M);
+    fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mobility": { "air": { "turn_deg_s": WIDE_TURN_DEG_S } } }),
+    );
+    let mut battle = square_field(
+        2.0 * half,
+        rules,
+        json!([{ "side": "blue", "kind": "test_jet", "position": start, "yaw": 0.0 }]),
+    );
+    assert_eq!(battle.accept(attack_ground(1, aim)).error, None);
+    let released = release_times(&mut battle, RUN_WINDOW_S);
+    // One lap: a turn round, and the leg out past the aim and back.
+    let lap_s = std::f64::consts::TAU / WIDE_TURN_DEG_S.to_radians()
+        + 2.0 * pattern_leg_m(WIDE_TURN_DEG_S) / speed;
+    let mut last = 0.0;
+    let mut limit = (half - start[0]) / speed;
+    for end in released.iter().copied().chain([RUN_WINDOW_S]) {
+        assert!(
+            end - last <= limit + 1.0,
+            "no bomb fell between {last:.1}s and {end:.1}s on a field {:.0} m across; released at {released:?}",
+            2.0 * half
+        );
+        last = end;
+        limit = lap_s;
+    }
 }
