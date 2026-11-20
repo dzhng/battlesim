@@ -630,11 +630,24 @@ fn every_need_is_served_at_once_and_an_empty_launcher_reloads() {
         ]),
         14,
     );
-    assert_eq!(own(&b, Side::Blue, 1).unwrap().mounts[1].loaded, None);
+    let (at, tank) = (
+        own(&b, Side::Blue, 1).unwrap(),
+        own(&b, Side::Blue, 2).unwrap(),
+    );
+    assert_eq!(at.mounts[1].loaded, None);
+    let (squad, missiles) = (at.members.len() + 1, at.mounts[1].ammo[0].map(|n| n + 4));
+    let ap = |b: &Battle| own(b, Side::Blue, 2).unwrap().mounts[0].ammo[0];
+    let rounds = ap(&b).map(|n| n + 10);
+    let max_hp = common::rules()
+        .catalog
+        .by_id("test_tank")
+        .hull()
+        .unwrap()
+        .hp;
     let hz = b.rules().tick_hz as f64;
     let service = b.rules().service.clone();
     let replacement = (service.soldier_replacement_s * hz) as u64;
-    let repair = (10.0 / service.vehicle_hp_per_s * hz) as u64;
+    let repair = ((max_hp - tank.hp) / service.vehicle_hp_per_s * hz) as u64;
     let ap_full = (10.0 / b.rules().weapons["tank_ap"].resupply_rounds_per_s.unwrap() * hz) as u64;
     assert!(
         replacement.max(repair) < ap_full,
@@ -644,21 +657,21 @@ fn every_need_is_served_at_once_and_an_empty_launcher_reloads() {
     let at = own(&b, Side::Blue, 1).unwrap();
     assert_eq!(
         at.members.len(),
-        3,
+        squad,
         "the replacement joins on his own clock"
     );
     let tank = own(&b, Side::Blue, 2).unwrap();
-    assert_eq!(tank.hp, 100.0, "repaired while the rounds still come");
-    assert!(tank.mounts[0].ammo[0] < Some(20), "rounds still coming");
+    assert_eq!(tank.hp, max_hp, "repaired while the rounds still come");
+    assert!(ap(&b) < rounds, "rounds still coming");
     run(&mut b, ap_full);
     let at = own(&b, Side::Blue, 1).unwrap();
-    assert_eq!(at.mounts[1].ammo, vec![Some(4)]);
+    assert_eq!(at.mounts[1].ammo, vec![missiles]);
     assert!(
         at.mounts[1].loaded.is_some(),
         "the refilled launcher reloads"
     );
     assert_eq!(at.service, ServiceStatus::Full);
-    assert_eq!(own(&b, Side::Blue, 2).unwrap().mounts[0].ammo[0], Some(20));
+    assert_eq!(ap(&b), rounds);
 }
 
 #[test]
