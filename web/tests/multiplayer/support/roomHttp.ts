@@ -45,7 +45,13 @@ export async function roomHttp(
       return (
         await fetch(`${address}${path}`, {
           method: "POST",
-          headers: { "X-Player": who, "Content-Type": "application/json", ...headers },
+          // Its own connection each time: `cut` never strands a socket this reuses.
+          headers: {
+            "X-Player": who,
+            "Content-Type": "application/json",
+            Connection: "close",
+            ...headers,
+          },
           body: JSON.stringify(value),
         })
       ).json();
