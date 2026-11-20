@@ -107,7 +107,7 @@ pub struct WeaponDefinition {
     pub decoyable: bool,
     /// The launcher holds fire while anything stands in its round's first
     /// flight from the muzzle (`launch.clearance_m`): the ground, a
-    /// body that stops rounds, or tree crowns. A launcher that would not fire
+    /// body that stops rounds, or a wood's canopy. A launcher that would not fire
     /// into branches or a wall at its own muzzle, as a gun firing through
     /// what it can break does.
     #[serde(default)]

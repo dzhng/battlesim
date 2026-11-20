@@ -207,6 +207,10 @@ const HUD_ICONS = {
   // ticks.
   fires_regardless:
     '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/>',
+  // Full screen, as a video player marks it: four corners opening out to the
+  // screen's edges, or (leaving it) folding in toward its middle.
+  fullscreen: '<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
+  exit_fullscreen: '<path d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>',
 } as const;
 
 export type HudIcon = keyof typeof HUD_ICONS;

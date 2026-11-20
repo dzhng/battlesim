@@ -40,9 +40,9 @@ pub struct PropBody {
     /// infantry, or from inside a ground body (rubble) that does not.
     #[serde(default)]
     pub cover_tier: Option<CoverTier>,
-    /// How much of a fog cell one such body conceals, in [0, 1) (Q21): a
-    /// cell's foliage is `1 − Π(1 − conceals)` over the concealing bodies
-    /// whose canopy covers it.
+    /// How much a wood of such trees conceals, in [0, 1) (Q21): its
+    /// canopy's foliage depth per metre is the forest rule's attenuation
+    /// times this.
     #[serde(default)]
     pub conceals: f64,
     /// Integrity (Q17, 34c): the structural damage it takes to destroy one

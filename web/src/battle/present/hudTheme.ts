@@ -6,6 +6,7 @@
  *  colour of its own. */
 import { presentationSettings } from "@web/presentationSettings";
 import type { Vec3 } from "math";
+import { applyHudProperties, hudProperties } from "./hudCss";
 
 export interface HudTheme {
   /** Every label and readout: a local or system monospace stack. */
@@ -57,50 +58,11 @@ export interface HudTheme {
 
 export const gameCalloutGlow: number = presentationSettings.overlay.glow.callouts;
 
-const COLOURS = [
-  "accent",
-  "ally",
-  "enemy",
-  "text",
-  "dim",
-  "warn",
-  "pinned",
-  "good",
-  "bad",
-  "credits",
-  "group_ink",
-  "film",
-] as const;
-
 export const gameHud: HudTheme = presentationSettings.hud as unknown as HudTheme;
-
-/** A 0–1 colour's rgb as CSS channels ("r g b", 0–255): `rgb(${…})`. */
-export const channels = (c: readonly number[]) =>
-  c
-    .slice(0, 3)
-    .map((v) => Math.round(v * 255))
-    .join(" ");
-
-/** The theme as CSS custom properties, with the callouts' glow scale and the
- *  selection ring's colour (`presentation.overlay.orders.selected`), which a
- *  selected unit's leader shares to tie its ring to its card. */
-export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, string> {
-  const out: Record<string, string> = {
-    "--hud-font": theme.font,
-    "--hud-callout-glow": String(calloutGlow),
-    "--hud-selected": channels(presentationSettings.overlay.orders.selected),
-    "--hud-glass": channels(theme.glass),
-    "--hud-glass-alpha": String(theme.glass[3]),
-    "--hud-glow": `${theme.glow_px}px`,
-    "--hud-blink-depth": `${theme.fire_blink.depth * 100}%`,
-    "--hud-blink-glow": String(theme.fire_blink.glow),
-  };
-  for (const k of COLOURS) out[`--hud-${k.replaceAll("_", "-")}`] = channels(theme[k]);
-  return out;
-}
 
 /** Set the game's theme on the document. */
 export function applyHudTheme() {
-  for (const [k, v] of Object.entries(hudProperties(gameHud, gameCalloutGlow)))
-    document.documentElement.style.setProperty(k, v);
+  applyHudProperties(
+    hudProperties(gameHud, presentationSettings.overlay.orders.selected, gameCalloutGlow),
+  );
 }
