@@ -391,8 +391,8 @@ impl PropIndex {
     }
 }
 
-/// Every body by id, and the bucket index over them. Clones share them
-/// until one changes.
+/// Every body by id, the bucket index over them, and a second over those
+/// not as the map placed them. Clones share them until one changes.
 #[derive(Clone)]
 pub(crate) struct PropStore {
     shared: Arc<Bodies>,
@@ -402,6 +402,11 @@ pub(crate) struct PropStore {
 struct Bodies {
     props: Vec<Option<Prop>>,
     index: PropIndex,
+    /// The bodies not as the map placed them (added since setup, or marked
+    /// by [`PropStore::alter`]), and the bucket index over those standing.
+    /// A side knows the map, so only these can teach it anything.
+    altered: std::collections::BTreeSet<PropId>,
+    altered_index: PropIndex,
 }
 
 impl PropStore {
@@ -409,6 +414,8 @@ impl PropStore {
         PropStore {
             shared: Arc::new(Bodies {
                 props: Vec::new(),
+                altered: Default::default(),
+                altered_index: index.clone(),
                 index,
             }),
         }
@@ -428,11 +435,15 @@ impl PropStore {
         self.shared.props.iter().filter_map(Option::as_ref)
     }
 
-    /// Add a body under the next id.
+    /// Add a body under the next id: once changes are tracked, an altered one.
     pub fn push(&mut self, prop: Prop) {
         debug_assert_eq!(prop.id as usize, self.len());
         let bodies = Arc::make_mut(&mut self.shared);
         bodies.index.insert(&prop);
+        if bodies.index.changes.is_some() {
+            bodies.altered.insert(prop.id);
+            bodies.altered_index.insert(&prop);
+        }
         bodies.props.push(Some(prop));
     }
 
@@ -440,6 +451,9 @@ impl PropStore {
         let bodies = Arc::make_mut(&mut self.shared);
         let prop = bodies.props.get_mut(id as usize)?.take()?;
         bodies.index.remove(&prop);
+        if bodies.altered.contains(&id) {
+            bodies.altered_index.remove(&prop);
+        }
         Some(prop)
     }
 
@@ -448,7 +462,22 @@ impl PropStore {
         let id = prop.id;
         let bodies = Arc::make_mut(&mut self.shared);
         bodies.index.insert(&prop);
+        if bodies.altered.contains(&id) {
+            bodies.altered_index.insert(&prop);
+        }
         bodies.props[id as usize] = Some(prop);
+    }
+
+    /// Mark a body as no longer as the map placed it, for good.
+    pub fn alter(&mut self, id: PropId) {
+        if self.shared.altered.contains(&id) {
+            return;
+        }
+        let bodies = Arc::make_mut(&mut self.shared);
+        bodies.altered.insert(id);
+        if let Some(prop) = bodies.props.get(id as usize).and_then(Option::as_ref) {
+            bodies.altered_index.insert(prop);
+        }
     }
 
     /// Change a body's flags in place: never its footprint.
@@ -467,8 +496,10 @@ impl PropStore {
         self.shared.index.near(center, radius, out)
     }
 
-    pub fn near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
-        self.shared.index.near_many(views, out)
+    /// Ascending unique candidates for a union of views, among the altered
+    /// bodies alone ([`PropIndex::near_many`]).
+    pub fn altered_near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
+        self.shared.altered_index.near_many(views, out)
     }
 
     pub fn along(&self, a: V2, b: V2, out: &mut Vec<PropId>) {
