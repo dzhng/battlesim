@@ -387,6 +387,7 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
         Order::AttackMove { units, .. } if units == &vec![frame.own[0].id]
     )));
     let assignment = Assignment {
+        allies: vec![],
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 400.0],
         force_advance: false,

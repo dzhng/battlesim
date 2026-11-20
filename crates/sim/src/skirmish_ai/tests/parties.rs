@@ -21,6 +21,7 @@ fn a_helping_detachment_moves_without_retasking_the_helper_lane() {
     frame.own = battle.observe(Side::Red).own.clone();
     let detachment = frame.own[0].id;
     let assignment = Assignment {
+        allies: vec![],
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 100.0],
         force_advance: false,
@@ -75,6 +76,7 @@ fn a_squad_sent_far_to_help_or_push_rides_its_own_carrier() {
         let (squad, carrier) = (frame.own[0].id, frame.own[1].id);
         let far = [500.0, 900.0];
         let assignment = Assignment {
+            allies: vec![],
             main_objective: if help { [520.0, 80.0] } else { far },
             staging_point: [520.0, 80.0],
             force_advance,

@@ -77,6 +77,9 @@ pub struct BalancedDoctrine {
     group_advance: Option<Assignment>,
     /// Each carrier sent to collect a squad, by the last decision.
     rides: BTreeMap<UnitId, UnitId>,
+    /// The soldiers of the largest squad the last decision found no ride
+    /// for: the next purchase buys a carrier that seats them.
+    ride_short: Option<usize>,
     airlift: airlift::Mission,
 }
 
@@ -108,6 +111,7 @@ impl Default for BalancedDoctrine {
             purchase_plan: None,
             group_advance: None,
             rides: BTreeMap::new(),
+            ride_short: None,
             airlift: airlift::Mission::Idle,
         }
     }
@@ -257,7 +261,7 @@ impl BalancedDoctrine {
         let purchases = emergency_buy.into_iter().collect::<Vec<_>>();
         let purchases = if purchases.is_empty() && !(emergency.is_some() && self.airlift.is_busy())
         {
-            self.shopping(frame, rules, me, view.phase, &eligible)
+            self.shopping(frame, rules, me, view.phase, &eligible, input.assignment)
         } else {
             purchases
         };
@@ -315,8 +319,11 @@ impl BalancedDoctrine {
             // Carriers with no one aboard, free to collect a squad, and the
             // squad each one is sent for at this decision.
             let boarding = transport::boarding_pairs(frame);
-            let mut free = transport::free_carriers(rules, frame, &self.rides, &boarding);
-            let mut collect: BTreeMap<UnitId, UnitId> = BTreeMap::new();
+            let mut dispatch = transport::Dispatch {
+                free: transport::free_carriers(rules, frame, &self.rides, &boarding),
+                collect: BTreeMap::new(),
+                short: None,
+            };
             let group_ready = context.is_some_and(|context| {
                 let radius = self.tuning.team.group_radius_m;
                 let positions = team::group_positions(
@@ -404,7 +411,7 @@ impl BalancedDoctrine {
                 // loaded squad to its drop point. Empty, it fights as its
                 // mounts let it, or waits for a squad with none.
                 if carries(unit) {
-                    if let Some(&squad) = collect.get(&unit.id) {
+                    if let Some(&squad) = dispatch.collect.get(&unit.id) {
                         let standing = own
                             .iter()
                             .find(|u| u.id == squad)
@@ -474,8 +481,7 @@ impl BalancedDoctrine {
                         && transport::wait_for_ride(
                             rules,
                             unit,
-                            &mut free,
-                            &mut collect,
+                            &mut dispatch,
                             &mut orders,
                             route_time,
                         )
@@ -518,8 +524,7 @@ impl BalancedDoctrine {
                             && transport::wait_for_ride(
                                 rules,
                                 unit,
-                                &mut free,
-                                &mut collect,
+                                &mut dispatch,
                                 &mut orders,
                                 route_time,
                             )
@@ -599,8 +604,7 @@ impl BalancedDoctrine {
                             && transport::wait_for_ride(
                                 rules,
                                 unit,
-                                &mut free,
-                                &mut collect,
+                                &mut dispatch,
                                 &mut orders,
                                 route_time,
                             )
@@ -636,8 +640,7 @@ impl BalancedDoctrine {
                         && transport::wait_for_ride(
                             rules,
                             unit,
-                            &mut free,
-                            &mut collect,
+                            &mut dispatch,
                             &mut orders,
                             route_time,
                         )
@@ -688,14 +691,7 @@ impl BalancedDoctrine {
                 // nearest free carrier to collect it (D17).
                 let heading = self.heading(rules, entry, unit, objective.center);
                 if rides.worth_riding(self, unit, heading)
-                    && transport::wait_for_ride(
-                        rules,
-                        unit,
-                        &mut free,
-                        &mut collect,
-                        &mut orders,
-                        route_time,
-                    )
+                    && transport::wait_for_ride(rules, unit, &mut dispatch, &mut orders, route_time)
                 {
                     continue;
                 }
@@ -722,7 +718,8 @@ impl BalancedDoctrine {
                     goal: objective.center,
                 });
             }
-            self.rides = collect;
+            self.rides = dispatch.collect;
+            self.ride_short = dispatch.short;
             support::support_orders(
                 &own,
                 rules,

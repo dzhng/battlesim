@@ -32,6 +32,10 @@ pub struct Assignment {
     /// The player's parties (help, hold, claim): units sent from its main
     /// group to another objective.
     pub parties: Vec<PartyTask>,
+    /// What the player's teammates field and have bought, by kind: the
+    /// side's force beyond the player's own frame, so a purchase that
+    /// answers the side's threat counts the whole team's answer.
+    pub allies: Vec<contract::catalog::TypeIndex>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

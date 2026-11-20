@@ -47,6 +47,27 @@ impl TeamPlan {
             staging_point,
             force_advance: fallback || self.stance != TeamStance::Hold,
             parties,
+            allies: Vec::new(),
         })
     }
+}
+
+/// What `player`'s teammates field and have bought, by kind, from the side's
+/// whole frame (each player's own frame holds only its units).
+pub fn allies(
+    side_frame: &contract::observation::ObservationFrame,
+    player: PlayerIndex,
+) -> Vec<contract::catalog::TypeIndex> {
+    let fielded = side_frame
+        .own
+        .iter()
+        .filter(|unit| unit.owner != Some(player))
+        .map(|unit| unit.kind);
+    let bought = side_frame
+        .skirmish
+        .iter()
+        .flat_map(|view| &view.players)
+        .filter(|other| other.index != player)
+        .flat_map(|other| other.pending.iter().flat_map(|p| p.kinds()));
+    fielded.chain(bought).collect()
 }

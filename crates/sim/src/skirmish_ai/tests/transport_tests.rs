@@ -235,6 +235,7 @@ fn a_loaded_carrier_heads_for_its_objective_not_a_fight_off_to_the_side() {
     let carrier = frame.own[1].id;
     let objective = [500.0, 800.0];
     let assignment = Assignment {
+        allies: vec![],
         main_objective: objective,
         staging_point: [500.0, 300.0],
         force_advance: true,
@@ -282,6 +283,7 @@ fn a_carrier_takes_a_party_squad_to_the_party_objective() {
     let (squad, carrier) = (frame.own[0].id, frame.own[1].id);
     let (main, claim) = ([100.0, 800.0], [900.0, 800.0]);
     let assignment = Assignment {
+        allies: vec![],
         main_objective: main,
         staging_point: [300.0, 300.0],
         force_advance: true,
@@ -531,7 +533,7 @@ fn a_carrier_merely_heading_near_a_squad_is_free_for_another() {
 }
 
 #[test]
-fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
+fn a_carrier_whose_squad_was_lost_is_bought_a_squad_it_seats() {
     // What the AI buys first, holding a truck and `unit`, with credits.
     let bought = |unit: &str| {
         let (rules, mut frame, entry) = transport_match(json!([
@@ -573,20 +575,73 @@ fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
     let seats = |unit: &contract::catalog::UnitType| {
         unit.capabilities.carriage.map_or(0, |c| c.seats as usize)
     };
-    // A squad whose transport was lost is bought the fewest seats that take
-    // it, a carrier that waits for it at base.
-    for squad in ["test_rifle", "test_at"] {
-        let (squad, carrier, at_base) = bought(squad);
-        let (size, seats) = (squad.squad_size(), seats(&carrier));
-        assert!(seats >= size, "{size} soldiers, {seats} seats");
-        assert!(size > 3 || seats <= 3, "{size} soldiers, {seats} seats");
-        assert!(at_base);
-    }
     // A carrier whose squad was lost is bought a squad it seats, and that
     // fewer seats would not.
     let (carrier, squad, _) = bought("test_apc");
     let size = squad.squad_size();
     assert!(size > 3 && size <= seats(&carrier), "{size} soldiers");
+}
+
+/// A carrier is bought for a squad that asked for a ride and found none, not
+/// for every squad held: one with no use for a ride would leave it idle.
+#[test]
+fn a_carrier_is_bought_only_for_a_squad_that_asks_for_a_ride() {
+    // The carriers bought on their own, and every card bought, over three
+    // decisions by a player holding a truck and a squad near its entry,
+    // whose objective lies at `objective`.
+    let bought = |objective: [f64; 2]| {
+        let (rules, mut frame, entry) = transport_match(json!([
+            {"side":"red","kind":"test_supply","position":[400,40]},
+            {"side":"red","kind":"test_rifle","position":[500,60]}
+        ]));
+        me(&mut frame).credits = 1000.0;
+        let assignment = Assignment {
+            allies: vec![],
+            main_objective: objective,
+            staging_point: objective,
+            force_advance: true,
+            parties: vec![],
+        };
+        let mut ai = BalancedDoctrine::default();
+        let (mut alone, mut names) = (0, Vec::new());
+        for decision in 0..3 {
+            frame.tick = decision * 5 * u64::from(rules.tick_hz);
+            let orders = ai.decide(
+                DecisionInput {
+                    side: Side::Red,
+                    faction: Faction::Us,
+                    entry: &entry,
+                    assignment: Some(&assignment),
+                },
+                &frame,
+                &rules,
+                |_, _| Some(1.0),
+            );
+            for order in &orders {
+                if let Order::ConfirmPurchase {
+                    variant, carrier, ..
+                } = order
+                {
+                    let kind = rules.catalog.index(variant).unwrap();
+                    alone +=
+                        usize::from(carrier.is_none() && crate::carriage::seats(&rules, kind) > 0);
+                    names.push(variant.clone());
+                }
+            }
+            confirm_purchases(&rules, &mut frame, &orders);
+        }
+        (alone, names)
+    };
+    let (far, names) = bought([500.0, 950.0]);
+    assert_eq!(
+        far, 1,
+        "a squad far from its objective is bought one ride: {names:?}"
+    );
+    let (near, names) = bought([500.0, 70.0]);
+    assert_eq!(
+        near, 0,
+        "a squad at its objective is bought none: {names:?}"
+    );
 }
 
 #[test]
@@ -601,6 +656,7 @@ fn a_squad_walks_when_its_ride_would_unload_it_here() {
         .identified
         .push(identified(42, frame.own[0].kind, [500.0, 130.0, 0.0]));
     let assignment = Assignment {
+        allies: vec![],
         main_objective: objective,
         staging_point: objective,
         force_advance: true,
@@ -639,6 +695,7 @@ fn a_distant_contact_cannot_call_a_ride_that_would_stay_at_staging() {
         .identified
         .push(identified(42, frame.own[0].kind, [900.0, 850.0, 0.0]));
     let assignment = Assignment {
+        allies: vec![],
         main_objective: [500.0, 65.0],
         staging_point: [500.0, 65.0],
         force_advance: false,

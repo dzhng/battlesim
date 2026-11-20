@@ -74,7 +74,7 @@ fn reinforcing(credits: f64) -> (Rules, ObservationFrame, EntrySite) {
 
 #[test]
 fn the_opening_buys_each_squad_with_its_ride_as_one_purchase() {
-    let (rules, mut frame, entry) = preparing(json!([]), 100_000.0);
+    let (rules, frame, entry) = preparing(json!([]), 100_000.0);
     let orders = decide(&mut BalancedDoctrine::default(), &rules, &frame, &entry);
     let purchases = bought(&rules, &orders);
     let squads: Vec<_> = (purchases.iter())
@@ -88,17 +88,6 @@ fn the_opening_buys_each_squad_with_its_ride_as_one_purchase() {
             "each squad rides in: {orders:?}"
         );
     }
-    // Every squad has its ride on the way, so pairing asks for no carrier.
-    confirm_purchases(&rules, &mut frame, &orders);
-    let pending = me(&mut frame).pending.iter().flat_map(|p| p.kinds());
-    assert!(
-        !matches!(
-            transport::want(&rules, &us_cards(&rules), pending),
-            Some(transport::Want::Carrier(_))
-        ),
-        "{orders:?}"
-    );
-
     // Credits for the first squad but not its ride: the squad goes alone.
     let &(first, _) = squads[0];
     let short = price(&rules, first) + price(&rules, ride(&rules, first).unwrap()) - 1.0;
@@ -128,27 +117,6 @@ fn a_new_squad_no_carrier_waits_for_is_bought_with_its_ride() {
     me(&mut frame).unit_count = me(&mut frame).cap - 1;
     let orders = decide(&mut BalancedDoctrine::default(), &rules, &frame, &entry);
     assert_eq!(bought(&rules, &orders), [(squad, None)], "{orders:?}");
-}
-
-/// A pending pair's squad has its ride: the AI buys no second carrier for
-/// it, as it does for a squad bought on foot.
-#[test]
-fn a_pending_pair_asks_for_no_second_carrier() {
-    let (rules, mut frame, entry) = reinforcing(10_000.0);
-    let squad = rules.catalog.index("test_rifle").unwrap();
-    let carrier = ride(&rules, squad).unwrap();
-    let lone_carriers = |frame: &ObservationFrame| {
-        let orders = decide(&mut BalancedDoctrine::default(), &rules, frame, &entry);
-        (bought(&rules, &orders).into_iter())
-            .filter(|&(kind, _)| seats(&rules, kind) > 0)
-            .count()
-    };
-    let mut row = pending(1, squad, entry.center, 0);
-    me(&mut frame).pending = vec![row.clone()];
-    assert_eq!(lone_carriers(&frame), 1, "a squad on foot gets its carrier");
-    row.carrier = Some(carrier);
-    me(&mut frame).pending = vec![row];
-    assert_eq!(lone_carriers(&frame), 0, "a squad aboard needs none");
 }
 
 #[test]

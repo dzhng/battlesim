@@ -37,6 +37,7 @@ fn a_lane_of_mortar_carriers_gathers_and_advances_as_a_group() {
     me(&mut frame).unit_count = 2;
     frame.own = battle.observe(Side::Red).own.clone();
     let assignment = Assignment {
+        allies: vec![],
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 100.0],
         force_advance: false,
@@ -80,6 +81,7 @@ fn a_ready_group_keeps_its_objective_after_leaving_staging() {
     me(&mut frame).unit_count = 2;
     frame.own = battle.observe(Side::Red).own.clone();
     let assignment = Assignment {
+        allies: vec![],
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 100.0],
         force_advance: false,

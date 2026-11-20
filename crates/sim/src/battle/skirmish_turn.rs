@@ -69,6 +69,10 @@ impl Battle {
             let entry_index =
                 player_plan.map_or_else(|| crate::entries::centre(sites, side), |plan| plan.lane);
             let entry = crate::entries::site(sites, entry_index);
+            let allies = crate::skirmish_ai::team::allies(
+                &self.observations[side.index()],
+                contract::players::PlayerIndex(index as u16),
+            );
             let mut frame = self.observations[side.index()].clone();
             frame
                 .own
@@ -77,8 +81,12 @@ impl Battle {
                 view.players
                     .retain(|player| player.index == contract::players::PlayerIndex(index as u16));
             }
-            let assignment =
-                plans[side.index()].assignment_for(contract::players::PlayerIndex(index as u16));
+            let assignment = plans[side.index()]
+                .assignment_for(contract::players::PlayerIndex(index as u16))
+                .map(|assignment| crate::skirmish_ai::Assignment {
+                    allies,
+                    ..assignment
+                });
             let opening = self.tick == 0
                 && frame.own.is_empty()
                 && frame
