@@ -287,13 +287,13 @@ site without touching any player's state.
   Frontline counts: games running and humans seated in them. A reservation
   is not a seated human; the first commander of a new game counts from tick
   zero; a departed seat running on its AI does not count.
-- **The list publishes only when what it shows changes.** Ready, a setting
-  set to what it was, and anything in a private room send no record. A new
-  reader is still sent the current list.
+- **The list publishes only when what it shows someone changes.** Ready, a
+  setting set to what it was, and anything in a private room's lobby send no
+  record. A new reader is still sent the current list.
 - **`yours` is added for its reader alone:** the started room they hold a
-  seat in, as of the record it rides on. It is how a page offers the way
-  back to a battle still running. It causes no record of its own, so a page
-  may hold a stale one; opening a room that has gone is refused `unknown`.
+  seat in. It is how a page offers the way back to a battle still running.
+  A room starting or a started room going publishes the list, so every
+  reader's `yours` follows its battle.
 
 ### One game for each device
 

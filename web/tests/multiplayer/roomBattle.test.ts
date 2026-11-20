@@ -37,7 +37,9 @@ afterEach(() => {
   for (const close of cleanups.splice(0).reverse()) close();
 });
 
-async function room() {
+/** `earlyMs` fires the lobby's timers that much before they are due, as a real
+ *  timer may against a finer clock. */
+async function room(earlyMs = 0) {
   const clock = new PageClock();
   let host!: BattleHost;
   let draw = 0;
@@ -50,7 +52,10 @@ async function room() {
           spec.candidates,
         ),
     }),
-    clock: clock,
+    clock: {
+      now: clock.now,
+      schedule: (run, delay) => clock.schedule(run, delay - earlyMs),
+    },
     callsign: (who) =>
       ({
         [testBrowser("alpha")]: "SCOUT",
@@ -257,6 +262,20 @@ test("a member who chooses to leave the battle hands their army to its AI at onc
   r.act({ kind: "leave" }, testBrowser("bravo"));
   await expect(b.host.referee()).rejects.toThrow(/ended/);
   expect(r.service.create(testBrowser("alpha"), "public")).toEqual({ code: expect.any(String) });
+}, 120_000);
+
+test("a grace timer that fires a moment early still hands a dropped army to its AI", async () => {
+  const r = await room(0.5),
+    b = await r.start();
+  const a = ticket(r.alpha.view());
+  await b.run(3);
+  r.alpha.close();
+  await r.clock.advance(PRESENCE_GRACE_MS);
+  await vi.waitFor(async () =>
+    expect((await b.host.referee()).seats.find((s) => s.player === a.player)!.controller).toBe(
+      "active_ai",
+    ),
+  );
 }, 120_000);
 
 test("an AI-run dropped seat does not hold preparation open, and controller changes preserve ready flags", async () => {

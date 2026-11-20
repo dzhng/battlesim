@@ -119,10 +119,11 @@ six characters and is not a secret, and nothing throttles guesses.
   Promotion deploys only when what the two ends share has changed or the
   lobby cannot be reached; a deploy pushed by hand always does.
 - **A player's unreadable input is refused to that player and the battle
-  goes on.** No request a player can send ends a battle. A battle ends when
-  it is won, when the simulation traps, when its lobby ends it (a room
-  nobody is connected to, a Frontline game with no human left), when its
-  lobby goes silent, or when the lobby sends it something it cannot apply.
+  goes on.** No request a player can send ends a battle someone else is
+  still playing. A battle ends when it is won, when the simulation traps,
+  when its lobby ends it (a room every human has left or nobody is in, a
+  Frontline game with no human left), when its lobby goes silent, or when
+  the lobby sends it something it cannot apply.
 
 ## Where the code is
 

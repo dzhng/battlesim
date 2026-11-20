@@ -1,7 +1,6 @@
 import type { MultiplayerEntry } from "../onlineSession";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { RequestRefused } from "@packages/multiplayer/src/refusal";
 import { normalizeRoomCode } from "@packages/multiplayer/src/room";
 import type { RoomList } from "@packages/multiplayer/src/wire";
 import { spoken } from "../battleLinks";
@@ -94,20 +93,6 @@ export function MultiplayerPage() {
       await joinRoom(address, room, signal);
       if (!signal.aborted) navigate(`/room/${encodeURIComponent(room)}${location.search}`);
     });
-  /** The row can outlive its battle: the list says whose room is whose only
-   *  when it next has something to say. */
-  const rejoin = (room: string) =>
-    run(async (signal) => {
-      try {
-        await joinRoom(address, room, signal);
-      } catch (error) {
-        if (!(error instanceof RequestRefused)) throw error;
-        setList((current) => current && { ...current, yours: undefined });
-        setError("That battle has ended.");
-        return;
-      }
-      if (!signal.aborted) navigate(`/room/${encodeURIComponent(room)}${location.search}`);
-    });
   const make = (visibility: "public" | "private") =>
     run(async (signal) => {
       // A refusal is read on the page, not behind the dialog.
@@ -172,7 +157,7 @@ export function MultiplayerPage() {
             <div className="online-return" role="group" aria-label="Your battle">
               <strong>Your battle is still running</strong>
               <span>Your seat is held</span>
-              <button type="button" disabled={busy} onClick={() => void rejoin(list.yours!)}>
+              <button type="button" disabled={busy} onClick={() => void enter(list.yours!)}>
                 Rejoin battle
               </button>
             </div>

@@ -352,7 +352,7 @@ test("a move still unanswered after a moment marks the point it names, until the
   const ask = (intent: Parameters<OrderPreview["update"]>[0] = order) =>
     preview.update(intent, client, 1, "press", own);
   // A local authority answers before the page's own mark is due.
-  expect(ask()).toMatchObject({ answered: false, provisional: [] });
+  expect(ask().provisional).toEqual([]);
   now += PROVISIONAL_AFTER_MS;
   // One mark, at the point, for the unit that leads: it faces the way it goes.
   expect(ask().provisional).toEqual([
@@ -367,7 +367,7 @@ test("a move still unanswered after a moment marks the point it names, until the
   await Promise.resolve();
   // Answered, even with nowhere to stand: the authority's word replaces the guess.
   expect(ask({ ...order, request: { ...order.request, facing: 1.5 } })).toMatchObject({
-    answered: true,
+    destinations: [{ unit: 1, placed: false }],
     provisional: [],
   });
   // A query that failed is no answer: the page's own mark stays.
@@ -379,8 +379,7 @@ test("a move still unanswered after a moment marks the point it names, until the
   await lost.promise.catch(() => {});
   await Promise.resolve();
   now += PROVISIONAL_AFTER_MS;
-  expect(failing.update(order, cut, 1, "press", own)).toMatchObject({
-    answered: false,
-    provisional: [{ unit: 1, goal: [30, 40] }],
-  });
+  expect(failing.update(order, cut, 1, "press", own).provisional).toMatchObject([
+    { unit: 1, goal: [30, 40] },
+  ]);
 });

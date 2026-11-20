@@ -104,7 +104,7 @@ test("a player whose started room is still running is offered the way back to it
   expect((await page.findByRole("heading", { name: "Room reached" })).dataset.code).toBe(room.code);
 });
 
-test("a way back whose battle has since ended says so and goes", async () => {
+test("the way back goes when its battle ends, without the page asking", async () => {
   service = await roomHttp();
   address.value = service.address;
   setCallsign("SCOUT");
@@ -119,18 +119,13 @@ test("a way back whose battle has since ended says so and goes", async () => {
     <MemoryRouter initialEntries={["/multiplayer"]}>
       <Routes>
         <Route path="/multiplayer" element={<MultiplayerPage />} />
-        <Route path="/room/:code" element={<RoomReached />} />
       </Routes>
     </MemoryRouter>,
   );
-  const rejoin = await page.findByRole("button", { name: "Rejoin battle" });
-  // Its last human leaves from elsewhere: the battle ends, and the list has
-  // nothing new to tell this page.
+  await page.findByRole("button", { name: "Rejoin battle" });
+  // Its last human leaves from elsewhere, and the battle ends.
   expect(await act({ kind: "leave" })).toEqual({ ok: true });
-  fireEvent.click(rejoin);
-  expect((await page.findByRole("alert")).textContent).toMatch(/battle has ended/i);
-  expect(page.queryByRole("button", { name: "Rejoin battle" })).toBeNull();
-  expect(page.queryByRole("heading", { name: "Room reached" })).toBeNull();
+  await waitFor(() => expect(page.queryByRole("button", { name: "Rejoin battle" })).toBeNull());
 });
 
 test("creation reports full capacity, and public and private creation both enter the room", async () => {

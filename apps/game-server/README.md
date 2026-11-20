@@ -53,7 +53,7 @@ no lobby membership. Empty-room deletion disposes its host too.
 
 [Presence](src/presence.ts) counts all of a browser's open streams together.
 Its disconnect grace protects seats across stream cuts. That count holds a
-browser's callsign and Frontline's seats. A room keeps a count of its own
+browser's callsign and Frontline's seats. Each room keeps a count of its own
 with the same module, over its state stream and its battle's streams only:
 a member reading the room list is connected, and is not in their room. A
 room's lifetime is measured from the last human in it, including a room
