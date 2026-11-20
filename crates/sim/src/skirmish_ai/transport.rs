@@ -1,5 +1,8 @@
 //! The AI's transport (D16–D18): which carrier a squad rides, what pairing
 //! asks the purchase rotation for, and where a carrier lets its squad out.
+//! A carrier is bought with its squad, or for a squad that asked for a ride
+//! and found none; never for a squad with no use for one, which would leave
+//! it idle.
 //! Pairs are never stored: each decision reads them off its own units, from
 //! seat counts and squad sizes alone, never a unit's role or family.
 use contract::catalog::{AltitudeLayer, TypeIndex};
@@ -33,24 +36,17 @@ fn paired_seats(rules: &Rules, eligible: &[TypeIndex], kind: TypeIndex) -> Optio
     carrier_for(rules, eligible, rules.catalog.get(kind).squad_size()).map(|c| seats(rules, c))
 }
 
-/// What pairing asks the purchase rotation for.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Want {
-    /// A squad has no carrier: buy it one (a lost transport is rebought).
-    Carrier(TypeIndex),
-    /// A carrier has no squad: buy one it seats (a lost squad is replaced).
-    Squad(TypeIndex),
-}
-
-/// One carrier per squad, counted by seats over every unit the player has
-/// or has paid for (`kinds`): a squad short of a carrier comes first, then a
-/// carrier short of a squad. A carrier no squad card pairs with (more seats
-/// than any squad needs) asks for nothing.
-pub(super) fn want(
+/// The squad card a carrier short of a squad is bought (a lost squad is
+/// replaced), counted by seats over every unit the player has or has paid
+/// for (`kinds`): the cheapest card that pairs with the seat count where
+/// carriers outnumber their squads. A carrier no squad card pairs with
+/// (more seats than any squad needs) asks for nothing. A squad short of a
+/// carrier asks for its ride only when it needs one (`Dispatch::short`).
+pub(super) fn squad_wanted(
     rules: &Rules,
     eligible: &[TypeIndex],
     kinds: impl Iterator<Item = TypeIndex>,
-) -> Option<Want> {
+) -> Option<TypeIndex> {
     // Per seat count: squads that pair with it, less carriers that have it.
     let mut balance: BTreeMap<usize, i64> = BTreeMap::new();
     for kind in kinds {
@@ -62,11 +58,11 @@ pub(super) fn want(
             *balance.entry(s).or_default() -= 1;
         }
     }
-    let cheapest = |matches: &dyn Fn(TypeIndex) -> bool| {
+    balance.iter().filter(|(_, &b)| b < 0).find_map(|(&s, _)| {
         eligible
             .iter()
             .copied()
-            .filter(|&k| matches(k))
+            .filter(|&k| paired_seats(rules, eligible, k) == Some(s))
             .min_by(|&a, &b| {
                 rules
                     .catalog
@@ -75,15 +71,7 @@ pub(super) fn want(
                     .cmp(&rules.catalog.get(b).cost)
                     .then(rules.catalog.id(a).cmp(rules.catalog.id(b)))
             })
-    };
-    if let Some((&s, _)) = balance.iter().find(|(_, &b)| b > 0) {
-        return cheapest(&|k| seats(rules, k) == s).map(Want::Carrier);
-    }
-    balance
-        .iter()
-        .filter(|(_, &b)| b < 0)
-        .find_map(|(&s, _)| cheapest(&|k| paired_seats(rules, eligible, k) == Some(s)))
-        .map(Want::Squad)
+    })
 }
 
 /// The carrier `unit` is aboard, boarding or leaving.
@@ -236,18 +224,27 @@ pub(super) fn free_carriers<'a>(
         .collect()
 }
 
-/// Send the nearest of `free` that seats every living soldier of `squad`
-/// and can route to it to collect it (into `collect`, carrier to squad),
-/// and stop the squad for it. False, with nothing sent, when none can.
+/// One decision's ride dispatch: the carriers still free, the collections
+/// sent (carrier to squad), and the largest squad that asked for a ride and
+/// found no carrier, for which the next purchase buys one (D17).
+pub(super) struct Dispatch<'a> {
+    pub free: Vec<FreeCarrier<'a>>,
+    pub collect: BTreeMap<UnitId, UnitId>,
+    pub short: Option<usize>,
+}
+
+/// Send the nearest free carrier that seats every living soldier of `squad`
+/// and can route to it to collect it, and stop the squad for it. False, with
+/// nothing sent, when none can: the squad is then short of a ride.
 pub(super) fn wait_for_ride(
     rules: &Rules,
     squad: &OwnUnit,
-    free: &mut Vec<FreeCarrier>,
-    collect: &mut BTreeMap<UnitId, UnitId>,
+    dispatch: &mut Dispatch,
     orders: &mut Vec<Order>,
     route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
 ) -> bool {
-    let Some(carrier) = collector(rules, squad, free, route_time) else {
+    let Some(carrier) = collector(rules, squad, &mut dispatch.free, route_time) else {
+        dispatch.short = dispatch.short.max(Some(squad.members.len()));
         return false;
     };
     if squad.goal.is_some() {
@@ -255,7 +252,7 @@ pub(super) fn wait_for_ride(
             units: vec![squad.id],
         });
     }
-    collect.insert(carrier, squad.id);
+    dispatch.collect.insert(carrier, squad.id);
     true
 }
 

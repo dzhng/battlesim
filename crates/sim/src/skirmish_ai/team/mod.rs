@@ -22,6 +22,7 @@ mod help;
 mod influence;
 mod party;
 mod plan;
+pub use plan::allies;
 mod stance;
 mod value;
 pub(crate) use backline::{holds as holds_backline, order as backline_order};

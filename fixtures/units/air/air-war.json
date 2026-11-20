@@ -67,7 +67,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3
         },
         "air": {

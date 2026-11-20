@@ -88,6 +88,9 @@ pub(crate) struct Report {
     /// Each side's cards accepted before the battle starts, a squad's
     /// carrier after it when they were bought as one purchase.
     pub(crate) opening: [Vec<String>; 2],
+    /// Each side's cards accepted over the whole match, by card, carriers
+    /// bought with a squad included.
+    pub(crate) bought: [std::collections::BTreeMap<String, u32>; 2],
     pub(crate) living_cost: [u64; 2],
     pub(crate) recon_range_m: f64,
     /// Seconds each unit kind needing a clear launch path stood held for it

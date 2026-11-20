@@ -231,7 +231,7 @@ fn an_open_objective_near_the_lane_gets_a_claim_and_the_main_group_goes_elsewher
         "the main group does not go there"
     );
     assert!(!claim.units.is_empty() && claim.units.len() <= tuning().claim_party_size);
-    let assignment = plan.assignment_for(PlayerIndex(0)).unwrap();
+    let assignment = plan.assignment_for(PlayerIndex(0), vec![]).unwrap();
     assert!(assignment
         .parties
         .iter()
@@ -499,7 +499,7 @@ fn a_player_answering_help_keeps_its_other_parties_on_their_goals() {
         push_started_tick: None,
         outgunned: BTreeSet::new(),
     };
-    let tasks = plan.assignment_for(PlayerIndex(1)).unwrap().parties;
+    let tasks = plan.assignment_for(PlayerIndex(1), vec![]).unwrap().parties;
     for (unit, goal) in [(1, site(0).center), (2, site(2).center)] {
         assert!(
             tasks

@@ -61,6 +61,7 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         replay_match: None,
         credit_spend: [0, 0],
         opening: [vec![], vec![]],
+        bought: Default::default(),
         living_cost: [0, 0],
         recon_range_m: 0.0,
         launcher_held_s: BTreeMap::new(),
@@ -514,14 +515,20 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     )
     .saturating_mul(u64::from(setup.rules.tick_hz));
     for (tick, command) in battle.replay().accepted {
-        if tick > preparation_ticks {
-            continue;
-        }
-        if let Order::ConfirmPurchase {
+        let Order::ConfirmPurchase {
             variant, carrier, ..
         } = command.order
-        {
-            report.opening[command.side.index()].extend(std::iter::once(variant).chain(carrier));
+        else {
+            continue;
+        };
+        let cards: Vec<String> = std::iter::once(variant).chain(carrier).collect();
+        for card in &cards {
+            *report.bought[command.side.index()]
+                .entry(card.clone())
+                .or_default() += 1;
+        }
+        if tick <= preparation_ticks {
+            report.opening[command.side.index()].extend(cards);
         }
     }
     report.replay_digest = contract::identity::json_hash(&battle.replay()).ok();

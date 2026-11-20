@@ -867,6 +867,9 @@
         "family_name": "J-20"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -917,6 +920,9 @@
         "family_name": "Ka-52 Alligator"
       },
       "extends": "roster_profile_attack_helicopter",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "hp": 200,
@@ -1851,6 +1857,9 @@
         "family_name": "Su-57 Felon"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -2069,6 +2078,9 @@
         "family_name": "Flanker"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -2152,6 +2164,9 @@
         "family_name": "Flanker"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [

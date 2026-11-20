@@ -22,7 +22,9 @@ What the photos settle:
   (`boxer.drive`), the turret with its 30 mm KCE gun, the four radar
   panels round its top and a missile launcher box on its side.
 
-The hull carries each slew ring, and the launcher hinges ride the rotating module.
+The hull carries each slew ring. The Buk's and Pantsir's launcher hinges ride
+the rotating module; the Skyranger fires on the move, its gun pitching on its
+mantlet's trunnions and its missile box riding the turret, and nothing deploys.
 """
 import math
 import os
@@ -39,7 +41,7 @@ import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from launcher_rig import launcher as articulate_launcher  # noqa: E402
+from launcher_rig import laid_with_gun, launcher as articulate_launcher  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -189,9 +191,9 @@ def build(variant, v):
                             ("module_ring", "module_body", "module_hatch", "module_ladder", "search_radar", "tracking_radar", "eo_"),
                             pitch_with_deploy=True)
     else:
-        articulate_launcher(v, (-0.8, -1.0, boxer.ROOF + 0.5), 25, ("missile_",),
-                            ("turret_", "radar_panel_", "radar_frame_", "gun_", "kce_", "eo_", "smoke_1", "smoke_-1",
-                             "dressing_antenna_turret"), pitch_with_deploy=True)
+        laid_with_gun(v, ("gun_", "kce_"),
+                      ("turret_", "radar_panel_", "radar_frame_", "missile_", "eo_", "smoke_1", "smoke_-1",
+                       "dressing_antenna_turret"), trunnion=1.10)
 
 
 def wreck(variant, v):

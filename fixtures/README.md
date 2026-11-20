@@ -124,7 +124,7 @@ and listing policy. Directory discovery requires no parallel index.
 
 ## The unit catalog
 
-Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish. Ground vehicles that deploy can release a shot or provide supply once setup is complete.
+Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish. Ground vehicles that deploy can release a shot or provide supply once setup is complete. An attack-move halted on an enemy has nowhere to go until the fight frees it, so a deployer sets up there and fires, then packs and moves on. A unit whose weapons fire on the move, such as a short-range air defence gun, authors no `deploy`.
 
 A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams_sep_v3_trophy"`, `"test_tank"`). No code lists unit types. Its `name` is what the player reads (`"M1A2 SEP v3 Trophy"`), authored, never derived from the id; so are its family's, its mounts', its weapon rows', its protection's and its planned weapons' labels, each held to [the label rule](../crates/contract/src/labels.rs), and each weapon names its generated icon. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
@@ -210,7 +210,10 @@ A weapon keeps the same firing cycle against every target band.
 
 Unit durability stays on a narrow health scale. Stronger armour should buy
 survival against frontal fire while weaker sides and roofs keep the right
-weapon dangerous; raw health must not erase that distinction.
+weapon dangerous; raw health must not erase that distinction. Armour belongs to
+the hull: a variant built on an armoured hull (an air defence turret on an
+infantry carrier) carries that hull's armour, not a softer copy, so small arms
+that only chip the carrier only chip it too.
 
 A replacement soldier brings a fresh default gun; a transferable special weapon keeps its identity, rounds and reload progress across handoffs. Living original carriers operate their own guns, survivors retain recovered assignments, and free soldiers take up remaining stocked weapons. One soldier operates one special weapon at a time. Additional recovered weapons remain spares: their reload pauses until an operator is available, while movement still interrupts stationary weapons. An empty launcher's operator finishes guiding its last missile before taking up a stocked spare. Guidance belongs to the physical launcher, so an eligible survivor can continue an in-flight missile; loss of support, Stop or lost sight releases it, and so does movement for a row whose `guidance` is `"stationary"`. Movement means the body carrying the weapon changing place: the soldier operating a squad weapon, otherwise the unit, so a gunner standing still keeps aiming and guiding while a teammate moves. Every guided row states its `guidance`: `"stationary"` (a ground crew's wire-guided missile) or `"on_the_move"` (a helicopter's, which keeps guiding as it flies).
 
