@@ -441,7 +441,7 @@ pub(super) fn draw_blast(p: &EffectPresentation, e: &Effect, age: f64, batch: &m
     let frame = if age < s.bloom_s {
         FIRE_BLOOMED * age / s.bloom_s
     } else {
-        let burn = (age - s.bloom_s) / (e.span / 1.15 - s.bloom_s);
+        let burn = (age - s.bloom_s) / (e.span / 1.15 - s.bloom_s).max(1e-6);
         FIRE_BLOOMED + burn.min(1.0) * (FIRE_FRAMES - 1.0 - FIRE_BLOOMED)
     };
     let opacity = s.opacity * ((1.0 - x) * 3.0).min(1.0);
