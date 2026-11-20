@@ -248,19 +248,19 @@ pub(super) fn step_vehicle(
     // Tracks backing to clear a pivot may move away from the waypoint.
     // Wheeled shuffling must still close on it, or traffic recovery never runs.
     if motion.making_space && motion.step > 0.0 {
-        unit.progress.1 = ctx.tick;
+        unit.headway.excused(ctx.tick);
     }
 
     let route = unit.route.as_mut().unwrap();
     let left = (route[0] - next).length();
     if left < PROGRESS_EPSILON_M.min(motion.step + 1e-9) || left < 1e-6 {
         route.remove(0);
-        unit.progress = (f64::INFINITY, ctx.tick);
+        unit.headway.waypoint(ctx.tick);
         if route.is_empty() {
             route_end(ctx.rules, unit, awaiting);
         }
-    } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
-        unit.progress = (left, ctx.tick);
+    } else {
+        unit.headway.closes(left, ctx.tick);
     }
 }
 

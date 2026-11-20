@@ -61,7 +61,7 @@ pub(super) fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
 /// tries. A shunt already worked out is given its chance before another is.
 pub(super) fn gives_way(ctx: &super::MovementContext, units: &[Unit], i: usize, b: UnitId) -> bool {
     let (unit, other) = (&units[i], &units[b.0 as usize]);
-    let patience = (super::STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
+    let patience = (super::headway::STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
     let waited = |since: u64| ctx.tick.saturating_sub(since) > patience;
     let wheeled = unit.ground(ctx.rules).drive.is_some_and(|d| !d.tracked);
     let standing = other.drive_speed_mps.abs() <= super::ROLLING_MPS;
@@ -71,6 +71,6 @@ pub(super) fn gives_way(ctx: &super::MovementContext, units: &[Unit], i: usize, 
     wheeled
         && standing
         && (!mutual || unit.id > other.id || found_no_way)
-        && (parked || waited(unit.stalls.1))
+        && (parked || waited(unit.headway.since()))
         && unit.shunt.as_ref().is_none_or(|s| waited(s.tick))
 }

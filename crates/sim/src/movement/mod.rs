@@ -30,6 +30,7 @@ mod crowd;
 pub(crate) mod drive;
 mod drive_on;
 mod final_leg;
+mod headway;
 mod line_up;
 mod push;
 mod shunt;
@@ -41,6 +42,7 @@ mod vehicle;
 
 pub use drive::{final_facing, final_yaw};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
+pub use headway::Headway;
 use line_up::line_up;
 pub use push::Shove;
 pub use shunt::Shunt;
@@ -51,24 +53,9 @@ use vehicle::step_vehicle;
 
 /// A pursuit goal this far from the planned one is replanned.
 const GOAL_REPLAN_M: f64 = 5.0;
-/// Seconds without closing on the next waypoint before a route is replanned.
-const STALL_REPLAN_S: f64 = 2.0;
-/// How long a unit may get nowhere before it stops near enough to its goal
-/// or finds no way, and how long it holds blocked before it tries again
-/// (unless its side learns something new of the ground first): longer than
-/// a truck's shunt out of a tight spot takes. Waiting behind a rolling vehicle is
-/// traffic, not a stall.
-const GIVE_UP_S: f64 = 30.0;
-/// A unit that has got no farther than this from where its stuck clock
-/// started is not getting anywhere, however its routes change; a reversing
-/// leg can take a vehicle most of this way and back.
-const STUCK_REACH_M: f64 = 15.0;
 /// A vehicle slower than this is standing, not rolling: waiting behind it
 /// is not traffic (two vehicles waiting for each other would never move).
 const ROLLING_MPS: f64 = 0.1;
-/// A unit that has found no way to its goal this many times gives the
-/// order up and stands, ready for another.
-const MAX_TRIES: u8 = 3;
 /// A vehicle sent on to a goal this near the one it is driving to keeps
 /// the whole of its way while the new one is worked out.
 const KEEP_ROUTE_M: f64 = 25.0;
@@ -229,13 +216,13 @@ fn request_route(
         // Holding for its route somewhere new is planning, not being stuck;
         // working out a new way to where it is already stuck is not.
         if unit.route.is_none() && request.new_goal {
-            unit.restart_stalls(ctx.tick);
+            unit.headway.restart(unit.position.xy(), ctx.tick);
         }
         return;
     }
     let changed = unit.planned_revision != side.revision;
-    let stall_ticks = (STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
-    let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
+    let hz = ctx.rules.tick_hz;
+    let stalled = unit.route.is_some() && unit.headway.stalled(ctx.tick, hz);
     // The stuck clock: where it stood when the clock started, and when. A
     // new route does not wind it back, nor an order again to the same
     // place; getting well away from that spot does, a goal somewhere new
@@ -248,18 +235,15 @@ fn request_route(
     let traffic = unit.blocker.is_some_and(|b| rolling[b.0 as usize]);
     let here = unit.position.xy();
     if goal_moved && !same_place {
-        unit.restart_stalls(ctx.tick);
-        unit.tries = 0;
+        unit.headway.new_goal(here, ctx.tick);
     } else if traffic {
-        unit.restart_stalls(ctx.tick);
+        unit.headway.restart(here, ctx.tick);
     } else if unit.route.is_some() {
         // A squad's men getting nearer their spots wind it back too
         // (`soldier::step_squad`).
-        if (here - unit.stalls.0).outside_radius(STUCK_REACH_M) {
-            unit.restart_stalls(ctx.tick);
-        } else if ctx.tick.saturating_sub(unit.stalls.1)
-            > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
-        {
+        if unit.headway.got_away(here) {
+            unit.headway.restart(here, ctx.tick);
+        } else if unit.headway.spent(ctx.tick, hz) {
             planner.cancel(unit.id);
             let reach = unit.hull.map_or(0.0, |h| h.x) + NEAR_GOAL_M;
             if (goal - here).within_radius(reach) {
@@ -298,9 +282,7 @@ fn request_route(
         _ if goal_moved => true,
         // Blocked, it tries again once a give-up spell has passed since it
         // last tried: what its side has learned meanwhile may open a way.
-        (_, MoveState::RouteBlocked) => {
-            ctx.tick.saturating_sub(unit.stalls.1) > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
-        }
+        (_, MoveState::RouteBlocked) => unit.headway.spent(ctx.tick, hz),
         (None, _) => true,
         (Some(route), _) => {
             let from = if unit.is_vehicle() {
@@ -351,7 +333,7 @@ fn request_route(
     // Trying again after finding no way, it gets a whole spell to get
     // somewhere before it can be found stuck again.
     if unit.state == MoveState::RouteBlocked {
-        unit.restart_stalls(ctx.tick);
+        unit.headway.restart(here, ctx.tick);
     }
     side.searches += 1;
     unit.planned_goal = Some(goal);
@@ -489,7 +471,7 @@ fn take_route(
     // What its side learned while the route was worked out is checked
     // along it on the next tick, as every later change is.
     unit.planned_revision = revision;
-    unit.progress = (f64::INFINITY, ctx.tick);
+    unit.headway.waypoint(ctx.tick);
     // A vehicle that drove on meanwhile joins the new route where it is.
     if let (true, Plan::Route(route)) = (unit.is_vehicle(), &mut plan) {
         rejoin(unit.position.xy(), from, route);
@@ -627,8 +609,8 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
         unit.cover.due = true;
         take_cover::halt(ctx, unit);
     }
-    unit.progress.1 = ctx.tick;
-    unit.restart_stalls(ctx.tick);
+    unit.headway.excused(ctx.tick);
+    unit.headway.restart(unit.position.xy(), ctx.tick);
     unit.state = held;
     false
 }
@@ -636,8 +618,7 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
 /// No way to its goal: it says so and tries again later, but the third time
 /// it gives the order up and stands, so no unit is blocked for good.
 fn blocked(unit: &mut Unit, tick: u64) {
-    unit.tries += 1;
-    if unit.tries >= MAX_TRIES {
+    if unit.headway.no_way() {
         unit.orders.pop_front();
         unit.planned_goal = None;
         unit.state = if unit.orders.is_empty() {
@@ -648,7 +629,7 @@ fn blocked(unit: &mut Unit, tick: u64) {
         return;
     }
     unit.state = MoveState::RouteBlocked;
-    unit.restart_stalls(tick);
+    unit.headway.restart(unit.position.xy(), tick);
 }
 
 /// A route's end reached: a destination completes its move; a pursuit point

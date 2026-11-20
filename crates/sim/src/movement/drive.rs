@@ -732,7 +732,7 @@ pub(super) fn prune(
             break;
         }
         route.remove(0);
-        unit.progress = (f64::INFINITY, unit.progress.1);
+        unit.headway.waypoint_dropped();
     }
     route.is_empty()
 }
