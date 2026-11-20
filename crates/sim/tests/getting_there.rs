@@ -238,6 +238,64 @@ fn a_vehicle_that_cannot_get_there_gives_the_order_up_after_trying_again() {
     assert!(b.unit(UnitId(0)).unwrap().orders.is_empty());
 }
 
+/// A tank sent down a street walled the width of the map, with a truck
+/// parked in its way and no way round. It waits, finds no way and says so. Then the truck drives
+/// off: the next time the tank tries, the street is clear, and it goes. It
+/// is not blocked again the moment it sets off for having stood there so
+/// long, nor kept waiting by a blocker that has long since gone.
+#[test]
+fn a_vehicle_blocked_by_a_parked_one_sets_off_once_it_has_gone() {
+    let wall = |center: [f64; 2], half: [f64; 2]| json!({ "kind": "wall", "center": center, "yaw": 0, "half_extents": [half[0], half[1], 4.0] });
+    let mut map = open([400, 100]);
+    map["props"] = json!([
+        wall([200.0, 22.5], [200.0, 22.5]),
+        wall([200.0, 77.5], [200.0, 22.5]),
+    ]);
+    let mut b = battle(
+        map,
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [40, 50], "yaw": 0 },
+            { "side": "blue", "kind": "test_supply", "position": [150, 50], "yaw": 0 },
+        ]),
+        json!([]),
+        common::scenario_rules(),
+    );
+    let goal = [250.0, 50.0];
+    go(&mut b, 1, 0, goal);
+    let hz = b.rules().tick_hz as u64;
+    let mut blocked_at = None;
+    for tick in 1..=120 * hz {
+        b.step();
+        if own(&b, 0).state == MoveState::RouteBlocked {
+            blocked_at = Some(tick);
+            break;
+        }
+    }
+    blocked_at.expect("it never found its way blocked");
+    assert_eq!(
+        b.unit(UnitId(0)).unwrap().blocker,
+        None,
+        "it waits behind nothing now"
+    );
+    // The truck drives on down the street, past where the tank is going.
+    go(&mut b, 2, 1, [360.0, 50.0]);
+    let mut arrived = false;
+    for _ in 0..150 * hz {
+        b.step();
+        let tank = own(&b, 0);
+        if tank.state == MoveState::Idle {
+            arrived = dist(tank.position, goal) < 3.0;
+            break;
+        }
+    }
+    assert!(
+        arrived,
+        "it ended {:?} at {:?}",
+        own(&b, 0).state,
+        own(&b, 0).position
+    );
+}
+
 /// What a truck cruising east over open ground does when it is sent to
 /// `goal` with a planner that spends `work` a tick: how many ticks the new
 /// route took to work out, the ticks it held for it (planning), how far it

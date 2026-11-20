@@ -9,7 +9,7 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-use super::{Mobility, Mover, NavGrid, NAV_CELL_M, START_REACH_M};
+use super::{Mobility, Mover, NavGrid, START_REACH_M};
 use crate::math::V2;
 
 /// The most cells a flood visits before it calls the ground open: a 128 m
@@ -47,7 +47,8 @@ impl NavGrid {
         let Some(start) = self.nearest_fit(from, Mover::free(m), START_REACH_M, false) else {
             return true;
         };
-        let Some(end) = self.nearest_fit(to, Mover::free(m), NAV_CELL_M * 3.0, false) else {
+        let Some(end) = self.nearest_fit(to, Mover::free(m), super::search::GOAL_REACH_M, false)
+        else {
             return false;
         };
         if !self.base.terrain.connected(start, end, self.nx) {

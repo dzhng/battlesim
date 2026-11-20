@@ -71,6 +71,8 @@ pub(super) fn step_vehicle(
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
         units[i].shunt = None;
+        // It waits behind nothing: a vehicle once in its way is forgotten.
+        units[i].blocker = None;
         // At rest, a gun fixed in the hull is brought onto its target (D8).
         // Tracks pivot onto whatever it engages; wheels cannot turn on the
         // spot and hold fire, except under an attack order, which pivots any

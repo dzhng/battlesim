@@ -23,7 +23,9 @@ pub struct Mobility {
     pub locomotion: Locomotion,
     /// Its locomotion's (`movement.speed_factors`).
     pub speed_factors: SpeedFactors,
-    /// Distance the footprint needs from any obstacle centre line.
+    /// Distance the footprint's centre line keeps from any obstacle: for a
+    /// hull, half its width and the room a route keeps beside it
+    /// (`navigation.hull_margin_m`).
     pub half_width_m: f64,
     /// Which props stop it.
     pub class: MoverClass,

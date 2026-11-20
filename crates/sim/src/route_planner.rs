@@ -29,8 +29,6 @@ pub struct Request {
     /// A way round these footprints: the vehicles it has waited among too
     /// long. Empty for an ordinary request.
     pub detour: Vec<Obb2>,
-    /// The route a detour replaces if one is found, and resumes if not.
-    pub kept: Option<Vec<V2>>,
     /// The goal is not the one the unit last planned to.
     pub new_goal: bool,
 }
@@ -205,10 +203,6 @@ impl RoutePlanner {
                     .f64(b.yaw)
                     .f64(b.half.x)
                     .f64(b.half.y);
-            }
-            d.u64(r.kept.as_ref().map_or(u64::MAX, |route| route.len() as u64));
-            for p in r.kept.iter().flatten() {
-                d.f64(p.x).f64(p.y);
             }
             d.u64(job.revision).u64(job.served);
             match &job.journey {

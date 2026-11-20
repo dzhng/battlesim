@@ -701,7 +701,6 @@ fn checking_a_long_route_after_learning_stays_inside_the_tick_allowance() {
             mobility: m,
             policy: RoutePolicy::Shortest,
             detour: vec![],
-            kept: None,
             new_goal: true,
         },
     );
@@ -760,7 +759,6 @@ fn initial_long_open_orders_do_not_sample_every_half_metre() {
                 mobility: m,
                 policy: RoutePolicy::Fastest,
                 detour: vec![],
-                kept: None,
                 new_goal: true,
             },
         );
@@ -814,7 +812,6 @@ fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
             mobility: m,
             policy: RoutePolicy::Fastest,
             detour: vec![],
-            kept: None,
             new_goal: true,
         },
     );

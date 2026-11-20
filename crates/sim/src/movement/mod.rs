@@ -351,6 +351,11 @@ fn request_route(
     if !needs {
         return;
     }
+    // Trying again after finding no way, it gets a whole spell to get
+    // somewhere before it can be found stuck again.
+    if unit.state == MoveState::RouteBlocked {
+        unit.restart_stalls(ctx.tick);
+    }
     side.searches += 1;
     unit.planned_goal = Some(goal);
     // A vehicle drives on along the way it has while it works out a new one
@@ -360,7 +365,6 @@ fn request_route(
     if !(unit.is_vehicle() && same_place) {
         unit.route = (goal_moved.then(|| drive_on::stretch(ctx, unit, goal))).flatten();
     }
-    let kept = unit.route.clone().filter(|_| !detour.is_empty());
     if unit.route.is_none() {
         unit.state = MoveState::Planning;
     }
@@ -377,7 +381,6 @@ fn request_route(
             mobility: unit.ground(ctx.rules),
             policy,
             detour,
-            kept,
             new_goal: goal_moved,
         },
     );
@@ -517,7 +520,7 @@ fn take_route(
                 }
                 Some(route)
             }
-            Plan::Blocked(_) => request.kept,
+            Plan::Blocked(_) => unit.route.take(),
         };
         unit.state = MoveState::Waiting;
         return;

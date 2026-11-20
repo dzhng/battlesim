@@ -38,7 +38,7 @@ pub(super) fn stretch(ctx: &MovementContext, unit: &Unit, goal: V2) -> Option<Ve
         let leg = point - at;
         let length = leg.length();
         if length >= left {
-            stretch.push(at + leg * (left / length.max(f64::MIN_POSITIVE)));
+            stretch.push(at + leg * (left / length));
             break;
         }
         stretch.push(point);
