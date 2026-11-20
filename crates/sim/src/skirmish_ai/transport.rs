@@ -1,8 +1,8 @@
 //! The AI's transport (D16–D18): which carrier a squad rides, what pairing
 //! asks the purchase rotation for, and where a carrier lets its squad out.
 //! A carrier is bought with its squad, or for a squad that asked for a ride
-//! and found none; never for a squad with no use for one, which would leave
-//! it idle.
+//! and has no free carrier with room; never for a squad with no use for
+//! one, which would leave it idle.
 //! Pairs are never stored: each decision reads them off its own units, from
 //! seat counts and squad sizes alone, never a unit's role or family.
 use contract::catalog::{AltitudeLayer, TypeIndex};
@@ -233,9 +233,18 @@ pub(super) struct Dispatch<'a> {
     pub short: Option<usize>,
 }
 
+/// Whether free carrier `c` seats every living soldier of `squad` and is not
+/// coming for another squad.
+fn room_for(rules: &Rules, c: &FreeCarrier, squad: &OwnUnit) -> bool {
+    seats(rules, c.unit.kind) >= squad.members.len()
+        && c.coming_for.is_none_or(|other| other == squad.id)
+}
+
 /// Send the nearest free carrier that seats every living soldier of `squad`
 /// and can route to it to collect it, and stop the squad for it. False, with
-/// nothing sent, when none can: the squad is then short of a ride.
+/// nothing sent, when none can. The squad is short of a ride only when no
+/// free carrier seats it: one that can't route to it would buy another that
+/// can't either.
 pub(super) fn wait_for_ride(
     rules: &Rules,
     squad: &OwnUnit,
@@ -243,8 +252,11 @@ pub(super) fn wait_for_ride(
     orders: &mut Vec<Order>,
     route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
 ) -> bool {
+    let seated = dispatch.free.iter().any(|c| room_for(rules, c, squad));
     let Some(carrier) = collector(rules, squad, &mut dispatch.free, route_time) else {
-        dispatch.short = dispatch.short.max(Some(squad.members.len()));
+        if !seated {
+            dispatch.short = dispatch.short.max(Some(squad.members.len()));
+        }
         return false;
     };
     if squad.goal.is_some() {
@@ -278,10 +290,7 @@ fn collector(
     let mut room: Vec<_> = free
         .iter()
         .enumerate()
-        .filter(|(_, c)| {
-            seats(rules, c.unit.kind) >= squad.members.len()
-                && c.coming_for.is_none_or(|other| other == squad.id)
-        })
+        .filter(|(_, c)| room_for(rules, c, squad))
         .map(|(i, c)| {
             let far = super::distance(here, [c.unit.position[0], c.unit.position[1]]);
             (i, !coming_for(rules, c.unit, squad), far, c.unit.id)

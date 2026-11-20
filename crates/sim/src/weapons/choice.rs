@@ -164,7 +164,7 @@ pub(super) fn share_through(
 ) -> f64 {
     let armor = target
         .armor(ctx.rules)
-        .map(|a| (a, target.hull_face(unit.position)));
+        .map(|a| a.face(target.hull_face(unit.position)));
     (0..spec.kinds.len())
         .filter(|&k| mount.has_rounds(k))
         .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
@@ -172,11 +172,7 @@ pub(super) fn share_through(
             def.engages(target.layer(), Some(target.target_class(ctx.rules)))
                 .is_some()
         })
-        .map(|def| {
-            armor.map_or(1.0, |(armor, face)| {
-                damage::pierce_share(def, 0, ctx.rules, armor, face)
-            })
-        })
+        .map(|def| armor.map_or(1.0, |armor| damage::pierce_share(def, 0, ctx.rules, armor)))
         .fold(0.0, f64::max)
 }
 

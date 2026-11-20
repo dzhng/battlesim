@@ -234,20 +234,20 @@ pub struct Armor {
     pub roof: f64,
     /// Chance, per face, that a kinetic round failing to penetrate glances
     /// off. It stands in for the plate's slope: independent of any 3D model.
-    pub ricochet: FaceShares,
+    pub ricochet: FaceChances,
 }
 
-/// A share in [0, 1] per hull face.
+/// A probability in [0, 1] per hull face.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct FaceShares {
+pub struct FaceChances {
     pub front: f64,
     pub side: f64,
     pub rear: f64,
     pub roof: f64,
 }
 
-impl FaceShares {
+impl FaceChances {
     pub fn face(&self, face: Face) -> f64 {
         match face {
             Face::Front => self.front,

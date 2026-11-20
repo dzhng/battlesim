@@ -8,7 +8,7 @@ use crate::common::*;
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::random::Rng;
-use contract::scenario::FaceShares;
+use contract::scenario::FaceChances;
 use serde_json::json;
 use sim::battle::Battle;
 use sim::damage::RoundPower;
@@ -37,7 +37,7 @@ fn tank(id: u32, x: f64, y: f64, yaw: f64) -> Mover {
     }
 }
 
-const ALWAYS: FaceShares = FaceShares {
+const ALWAYS: FaceChances = FaceChances {
     front: 1.0,
     side: 1.0,
     rear: 1.0,
@@ -459,7 +459,7 @@ fn hull_scatter_retains_portable_velocity_bits_and_random_draws() {
         side: 100.0,
         rear: 60.0,
         roof: 40.0,
-        ricochet: FaceShares {
+        ricochet: FaceChances {
             front: 0.5,
             side: 0.35,
             rear: 0.2,

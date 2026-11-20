@@ -30,12 +30,12 @@ objective eligibility, and combat.
 
 Squads ride (transport D16–D18). A carrier is chosen by seats alone: the
 fewest that take the squad. A squad is bought aboard its carrier; a carrier is
-bought on its own only for a squad that asked for a ride and found none free,
-so a squad with no use for one (an AA team holding back) never leaves a
-transport idle. A carrier whose squad was lost is bought a squad it seats.
-Both come before the role rotation. A squad far from its objective,
-or from an enemy on the ground it is sent at, stops for a free carrier. The
-carrier collects it and drives toward the nearest such enemy, else the
+bought on its own only for a squad that asked for a ride and has no free
+carrier with room, so a squad with no use for one (an AA team holding back)
+never leaves a transport idle. A carrier whose squad was lost is bought a
+squad it seats. Both come before the role rotation. A squad far from its
+objective, or from an enemy on the ground it is sent at, stops for a free
+carrier. The carrier collects it and drives toward the nearest such enemy, else the
 objective. It lets the squad out short of it, beyond the reach of every enemy
 the side identifies. An empty carrier whose mounts can fight is a combat unit
 like any other until a squad claims it; an unarmed one waits for its next

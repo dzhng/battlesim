@@ -11773,7 +11773,7 @@
           ],
           "name": "Tigr-M",
           "roles": [
-            "light_vehicle"
+            "recon"
           ],
           "roster": {
             "category": "rec",
@@ -11905,7 +11905,7 @@
           ],
           "name": "ZTQ-15",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -14001,7 +14001,7 @@
           ],
           "name": "CV90120",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -16572,7 +16572,7 @@
           ],
           "name": "Puma Level C",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -17378,7 +17378,7 @@
           ],
           "name": "VBL",
           "roles": [
-            "light_vehicle"
+            "recon"
           ],
           "roster": {
             "category": "rec",
@@ -20216,7 +20216,7 @@
           ],
           "name": "M10 Booker",
           "roles": [
-            "mbt"
+            "light_vehicle"
           ],
           "roster": {
             "category": "veh",
@@ -32727,7 +32727,7 @@
       ],
       "name": "Tigr-M",
       "roles": [
-        "light_vehicle"
+        "recon"
       ],
       "roster": {
         "category": "rec",
@@ -32863,7 +32863,7 @@
       ],
       "name": "ZTQ-15",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -35086,7 +35086,7 @@
       ],
       "name": "CV90120",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -37827,7 +37827,7 @@
       ],
       "name": "Puma Level C",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -38671,7 +38671,7 @@
       ],
       "name": "VBL",
       "roles": [
-        "light_vehicle"
+        "recon"
       ],
       "roster": {
         "category": "rec",
@@ -41975,7 +41975,7 @@
       ],
       "name": "M10 Booker",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "roster": {
         "category": "veh",
@@ -46444,13 +46444,7 @@
       "min_range_m": 0.0,
       "name": "Heavy Sniper",
       "near_miss_suppression": 0.025,
-      "partial_damage_scale": {
-        "front": 0.0,
-        "rear": 0.02,
-        "roof": 0.0,
-        "side": 0.02
-      },
-      "partial_from": 0.15,
+      "partial_from": 0.5,
       "penetration": 9.0,
       "range_m": 700.0,
       "reload_s": 5.0,
@@ -46642,12 +46636,6 @@
       "min_range_m": 0.0,
       "name": "HMG",
       "near_miss_suppression": 0.04,
-      "partial_damage_scale": {
-        "front": 0.05,
-        "rear": 0.1,
-        "roof": 0.1,
-        "side": 0.1
-      },
       "partial_from": 0.5,
       "penetration": 20.0,
       "range_m": 500.0,
@@ -47073,12 +47061,6 @@
       "min_range_m": 0.0,
       "name": "LMG",
       "near_miss_suppression": 0.05,
-      "partial_damage_scale": {
-        "front": 0.0,
-        "rear": 0.02,
-        "roof": 0.0,
-        "side": 0.02
-      },
       "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 400.0,
@@ -47152,12 +47134,6 @@
       "min_range_m": 0.0,
       "name": "Marksman Rifle",
       "near_miss_suppression": 0.025,
-      "partial_damage_scale": {
-        "front": 0.0,
-        "rear": 0.02,
-        "roof": 0.0,
-        "side": 0.02
-      },
       "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 500.0,

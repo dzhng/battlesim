@@ -110,8 +110,7 @@ fn hit_damage(def: &WeaponDefinition, rules: &Rules, target: &Unit, from: V3) ->
     let Some(armor) = target.armor(rules) else {
         return def.damage;
     };
-    let face = target.hull_face(from);
-    def.damage * pierce_share(def, 0, rules, armor, face)
+    def.damage * pierce_share(def, 0, rules, armor.face(target.hull_face(from)))
 }
 
 /// Whether committed damage landing by this shot's arrival destroys `target`.

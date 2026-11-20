@@ -195,10 +195,10 @@ seats it, as one purchase ([purchase](src/skirmish_ai/purchase.rs)); boarding
 pairs a squad with a carrier it already has, as after a loss. A squad calls
 for a ride only when the driver’s intended drop brings it closer to its task.
 The driver waits while the squad walks to board. A carrier is bought on its
-own only for a squad that called for a ride and found none, so a squad with no
-use for one never leaves a transport idle. Aircraft in sight buy air defence
-until the side's, its teammates' included, is worth the aircraft seen; then
-the ordinary rotation rebuilds the rest of the force.
+own only for a squad that called for a ride and has no carrier with room, so a
+squad with no use for one never leaves a transport idle. Aircraft in sight buy
+air defence until the side's, its teammates' included, is worth the aircraft
+seen; then the ordinary rotation rebuilds the rest of the force.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 Each AI opens on the lane its slot holds; that pull fades over the battle, so

@@ -2787,7 +2787,7 @@
       "faction": "eastern",
       "family": "tigr",
       "roles": [
-        "light_vehicle"
+        "recon"
       ],
       "cost": 90,
       "roster": {
@@ -2870,7 +2870,7 @@
       "faction": "eastern",
       "family": "type_15",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "cost": 200,
       "roster": {

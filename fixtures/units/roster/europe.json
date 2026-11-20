@@ -984,7 +984,7 @@
       "faction": "europe",
       "family": "cv90120",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "cost": 220,
       "roster": {
@@ -2780,7 +2780,7 @@
       "faction": "europe",
       "family": "puma",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "cost": 250,
       "roster": {
@@ -3339,7 +3339,7 @@
       "faction": "europe",
       "family": "vbl",
       "roles": [
-        "light_vehicle"
+        "recon"
       ],
       "cost": 90,
       "roster": {

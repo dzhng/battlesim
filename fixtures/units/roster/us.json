@@ -1368,7 +1368,7 @@
       "faction": "us",
       "family": "m10_booker",
       "roles": [
-        "mbt"
+        "light_vehicle"
       ],
       "cost": 210,
       "roster": {

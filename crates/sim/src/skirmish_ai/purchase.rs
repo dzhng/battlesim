@@ -320,8 +320,7 @@ impl BalancedDoctrine {
     /// one purchase (M17). The opening, a scripted plan and an answer to
     /// aircraft buy it alone when credits cover only the squad, and its
     /// carrier is bought once it asks for a ride (D17); the rotation saves
-    /// for both. With room
-    /// under the cap for one unit, the squad goes alone.
+    /// for both. With room under the cap for one unit, the squad goes alone.
     pub(super) fn shopping(
         &mut self,
         frame: &ObservationFrame,
