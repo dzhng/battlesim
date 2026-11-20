@@ -13067,16 +13067,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 20.0,
-                "rear": 10.0,
+                "front": 65.0,
+                "rear": 25.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 20.0,
+                "side": 40.0
               },
               "half_extents_m": [
                 4.04,
@@ -13088,12 +13088,7 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {
-            "deploy": {
-              "pack_seconds": 1.0,
-              "seconds": 3.0
-            }
-          },
+          "capabilities": {},
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -13112,9 +13107,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.5861,
-                -1.05,
-                0.5085
+                3.34,
+                0.25,
+                0.26
               ],
               "name": "Skyranger 30",
               "on": null,
@@ -22437,16 +22432,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 20.0,
-                "rear": 10.0,
+                "front": 35.0,
+                "rear": 15.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 10.0,
+                "side": 25.0
               },
               "half_extents_m": [
                 3.57,
@@ -22458,12 +22453,7 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {
-            "deploy": {
-              "pack_seconds": 1.0,
-              "seconds": 3.0
-            }
-          },
+          "capabilities": {},
           "concealment": 2.8,
           "cost": 170,
           "description": "Gun-and-missile air-defense vehicle",
@@ -22482,9 +22472,9 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                0.938,
-                0.85,
-                0.7652
+                2.17,
+                0.0,
+                0.4
               ],
               "name": "Stryker M-SHORAD",
               "on": null,
@@ -34133,16 +34123,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 20.0,
-            "rear": 10.0,
+            "front": 65.0,
+            "rear": 25.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 20.0,
+            "side": 40.0
           },
           "half_extents_m": [
             4.04,
@@ -34154,12 +34144,7 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {
-        "deploy": {
-          "pack_seconds": 1.0,
-          "seconds": 3.0
-        }
-      },
+      "capabilities": {},
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -34180,9 +34165,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.5861,
-            -1.05,
-            0.5085
+            3.34,
+            0.25,
+            0.26
           ],
           "name": "Skyranger 30",
           "on": null,
@@ -44536,16 +44521,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 20.0,
-            "rear": 10.0,
+            "front": 35.0,
+            "rear": 15.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 10.0,
+            "side": 25.0
           },
           "half_extents_m": [
             3.57,
@@ -44557,12 +44542,7 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {
-        "deploy": {
-          "pack_seconds": 1.0,
-          "seconds": 3.0
-        }
-      },
+      "capabilities": {},
       "concealment": 2.8,
       "cost": 170,
       "description": "Gun-and-missile air-defense vehicle",
@@ -44583,9 +44563,9 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            0.938,
-            0.85,
-            0.7652
+            2.17,
+            0.0,
+            0.4
           ],
           "name": "Stryker M-SHORAD",
           "on": null,
@@ -46662,6 +46642,12 @@
       "min_range_m": 0.0,
       "name": "HMG",
       "near_miss_suppression": 0.04,
+      "partial_damage_scale": {
+        "front": 0.05,
+        "rear": 0.1,
+        "roof": 0.1,
+        "side": 0.1
+      },
       "partial_from": 0.5,
       "penetration": 20.0,
       "range_m": 500.0,
@@ -47087,6 +47073,12 @@
       "min_range_m": 0.0,
       "name": "LMG",
       "near_miss_suppression": 0.05,
+      "partial_damage_scale": {
+        "front": 0.0,
+        "rear": 0.02,
+        "roof": 0.0,
+        "side": 0.02
+      },
       "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 400.0,
@@ -47160,6 +47152,12 @@
       "min_range_m": 0.0,
       "name": "Marksman Rifle",
       "near_miss_suppression": 0.025,
+      "partial_damage_scale": {
+        "front": 0.0,
+        "rear": 0.02,
+        "roof": 0.0,
+        "side": 0.02
+      },
       "partial_from": 0.5,
       "penetration": 8.0,
       "range_m": 500.0,

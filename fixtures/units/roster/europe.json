@@ -430,7 +430,6 @@
       }
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
-      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } },
       "concealment": 2.8,
       "name": "Skyranger 30",
       "description": "Gun-and-missile air-defense vehicle",
@@ -458,10 +457,10 @@
           ],
           "hp": 120,
           "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
+            "front": 65,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
             "ricochet": {
               "front": 0,
               "side": 0,
@@ -500,9 +499,9 @@
             2.62
           ],
           "muzzle_m": [
-            0.5861,
-            -1.05,
-            0.5085
+            3.34,
+            0.25,
+            0.26
           ]
         }
       ],
