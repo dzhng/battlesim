@@ -552,11 +552,11 @@ fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
         depths,
         vec![
             0x3fceb851eb851eb8,
-            0x3fdeb851eb851ebc,
+            0x3fdf15f15f15f161,
             0x3faeb851eb851eb8,
-            0x3fceb851eb851eb8,
-            0x3fceb851eb851eb8,
-            0x3fade396dd04e041,
+            0x3fd0750750750751,
+            0x3fceb851eb851eb7,
+            0x3fad8f818361a853,
             0x0,
             0x0,
         ]

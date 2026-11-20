@@ -51,7 +51,7 @@ impl Coverage<'_> {
         for p in &positions {
             let (bx, by) = key(*p);
             let mut met = false;
-            for q in (-1..=1).flat_map(|j| (-1..=1).map(move |i| (bx + i, by + j))) {
+            for q in (-1..=1).flat_map(|dy| (-1..=1).map(move |dx| (bx + dx, by + dy))) {
                 for o in buckets.get(&q).into_iter().flatten() {
                     if !self.queries.work.spend(1) {
                         return Err("stand search exceeds ground-sight operation envelope".into());
@@ -109,8 +109,7 @@ impl Coverage<'_> {
                 }
             }
         }
-        let trunks = positions.len();
         self.queries.work.check()?;
-        Ok(trunks)
+        Ok(positions.len())
     }
 }

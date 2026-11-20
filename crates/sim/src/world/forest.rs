@@ -104,7 +104,9 @@ impl ForestState {
         let mut ground_buckets = vec![Vec::new(); ground_nx * ground_ny];
         for (id, forest) in forests.iter().enumerate() {
             let [x, y, w, h] = forest.shape.bounds();
-            let r = rule.canopy_radius_m;
+            // The canopy keeps to the wood's ground, but a sample reads the
+            // whole cell around it: half a cell past the ground limits.
+            let r = foliage_m / 2.0;
             let [lo_x, lo_y, hi_x, hi_y] = ground_regions[id].0;
             // Ground membership and foliage spans share these buckets. Include
             // the exact ground limits and the canopy's recomposed span bounds.
@@ -153,31 +155,31 @@ impl ForestState {
             .then(|| j as usize * self.cleared_nx + i as usize)
     }
 
-    /// The foliage cell holding (x, y), when a forest's crowns may reach
-    /// it. A crown reaches only cells whose middle lies in a bucket of its
-    /// forest's span, so a cell in an empty bucket is open without a search
-    /// of its page.
-    fn crowned_cell(&self, x: f64, y: f64) -> Option<usize> {
+    /// The foliage cell holding (x, y), when a wood's canopy may cover it.
+    /// Canopy covers only cells whose middle lies on forest ground, inside
+    /// a bucket of its wood's span, so a cell in an empty bucket is open
+    /// without a search of its page.
+    fn canopy_cell(&self, x: f64, y: f64) -> Option<usize> {
         let (i, j) = ((x / self.foliage_m).floor(), (y / self.foliage_m).floor());
         if !(i >= 0.0 && j >= 0.0 && (i as usize) < self.nx && (j as usize) < self.ny) {
             return None;
         }
         let bucket = |c: f64| ((c + 0.5) * self.foliage_m / GROUND_BUCKET_M) as usize;
         let (bi, bj) = (bucket(i), bucket(j));
-        let crowned = bi >= self.ground_nx
+        let covered = bi >= self.ground_nx
             || self
                 .ground_buckets
                 .get(bj * self.ground_nx + bi)
                 .is_none_or(|forests| !forests.is_empty());
         let cell = j as usize * self.nx + i as usize;
         debug_assert!(
-            crowned
+            covered
                 || self.cells[cell / 256]
                     .as_ref()
                     .is_none_or(|page| page.get(cell % 256).is_open()),
             "foliage outside its forest's span buckets"
         );
-        crowned.then_some(cell)
+        covered.then_some(cell)
     }
 }
 
@@ -195,7 +197,7 @@ impl WorldGeometry {
     /// Record a forest's reach once its trunks stand.
     pub(super) fn note_forest(&mut self, forest: &Forest, range: [u32; 2]) {
         self.forest.trunk_ranges.push(range);
-        let r = self.forest.rule.canopy_radius_m;
+        let r = self.forest.foliage_m / 2.0;
         let [x, y, w, h] = forest.shape.bounds();
         self.forest
             .bounds
@@ -308,7 +310,7 @@ impl WorldGeometry {
     pub fn foliage_at(&self, x: f64, y: f64) -> Foliage {
         let foliage = self
             .forest
-            .crowned_cell(x, y)
+            .canopy_cell(x, y)
             .and_then(|k| self.forest.cells[k / 256].as_ref().map(|p| p.get(k % 256)))
             .unwrap_or_else(Foliage::open);
         // Clearing can only remove foliage, so open cells need no mask query.
@@ -319,10 +321,10 @@ impl WorldGeometry {
         }
     }
 
-    /// The foliage depth of the segment `a`→`b` (Q21), tree crowns only:
+    /// The foliage depth of the segment `a`→`b` (Q21), the woods' canopy only:
     /// each metre below the canopy of uncleared foliage adds its cell's depth
     /// per metre. Sight adds smoke to it ([`Self::sight_depth`]); a launch
-    /// path and map analysis read the crowns alone.
+    /// path and map analysis read the canopy alone.
     pub fn foliage_depth(&self, a: V3, b: V3) -> f64 {
         if self.forest.bounds.is_empty() {
             return 0.0;
@@ -389,8 +391,8 @@ impl WorldGeometry {
         total
     }
 
-    /// Knock a tree down (Q16): its body goes, the foliage its crown gave
-    /// goes with it, and the obstacle revision bumps.
+    /// Knock a tree down (Q16): its body goes, the canopy it held up goes
+    /// with it, and the obstacle revision bumps.
     pub fn knock_down(&mut self, id: super::PropId) -> Option<super::Prop> {
         let prop = self.remove_prop(id)?;
         if prop.forest_tree {
