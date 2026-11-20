@@ -1,5 +1,5 @@
 //! Observation-bound player-match policy; all outcomes remain ordinary commands.
-use contract::catalog::{AltitudeLayer, Category, Faction, TypeIndex};
+use contract::catalog::{AltitudeLayer, Category, TypeIndex};
 use contract::command::{Order, TargetRef};
 use contract::encounter::EntrySite;
 use contract::ids::{Side, Tick, UnitId};
@@ -26,8 +26,12 @@ pub use capability::{is_jet, unit_engages_aircraft_in};
 pub(crate) use capability::{unit_can_engage_ground, unit_can_engage_target};
 use purchase::{own_player, PurchasePlan};
 use relocation::{Held, Relocation};
+mod input;
 mod transport;
+mod tuning;
+pub use input::{Assignment, DecisionInput, PartyTask, SkirmishPolicy};
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
+use tuning::Tuning;
 
 fn attack_if_changed(
     orders: &mut Vec<Order>,
@@ -43,120 +47,7 @@ fn attack_if_changed(
     }
 }
 
-/// A side-scoped skirmish policy. Implementations emit the same ordinary
-/// orders as a human controller; the battle host owns admission and replay.
-pub trait SkirmishPolicy {
-    fn decide(
-        &mut self,
-        input: DecisionInput<'_>,
-        frame: &ObservationFrame,
-        rules: &Rules,
-        route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
-    ) -> Vec<Order>;
-}
-
-/// The assignment a side planner gives one AI player for this decision.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Assignment {
-    pub main_objective: [f64; 2],
-    pub staging_point: [f64; 2],
-    pub force_advance: bool,
-    /// The player's parties (help, hold, claim): units sent from its main
-    /// group to another objective.
-    pub parties: Vec<PartyTask>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct PartyTask {
-    pub objective: [f64; 2],
-    pub units: Vec<UnitId>,
-    pub kind: team::PartyKind,
-}
-
-#[derive(Clone, Copy)]
-pub struct DecisionInput<'a> {
-    pub side: Side,
-    pub faction: Faction,
-    pub entry: &'a EntrySite,
-    pub assignment: Option<&'a Assignment>,
-}
-
 pub use doctrine::Doctrine;
-
-/// The doctrine's timings and distances, authored in
-/// `fixtures/skirmish-ai.json`: its playbook's numbers, not battle rules.
-#[derive(Clone, Copy, Debug, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Tuning {
-    /// Seconds between decisions.
-    decision_s: f64,
-    /// The longest delay before it answers air evidence; each AI draws its
-    /// own once, up to this.
-    reaction_max_s: f64,
-    /// Seconds air evidence keeps it ready to answer after the last sighting.
-    air_memory_s: f64,
-    /// A doctrine holds at least `min_dwell_s` before a threat turns it, and
-    /// moves on after `max_dwell_s`.
-    min_dwell_s: f64,
-    max_dwell_s: f64,
-    /// Seconds a sighting or contact stays fresh enough for its artillery.
-    sighting_horizon_s: f64,
-    /// Its supply trucks wait this share of the way from its entry to its
-    /// combat units, and move only when farther than `truck_slack_m` off.
-    supply_share: f64,
-    truck_slack_m: f64,
-    /// Its artillery aims this share of a contact's radius off the contact's
-    /// centre, and this share of an objective's radius past the objective's
-    /// centre, each radius capped at `aim_cap_m`.
-    contact_aim_share: f64,
-    objective_aim_share: f64,
-    aim_cap_m: f64,
-    /// Its recon stands this share of its sight short of an objective, and
-    /// at most this share of the way back along its approach.
-    recon_sight_share: f64,
-    recon_approach_share: f64,
-    /// How long it lets a unit of its own stand held by its own cover
-    /// (`BlockedTrajectory`, from any weapon) before it moves it, and how
-    /// far: farther than the cover a unit is likely to stand under.
-    relocate_after_s: f64,
-    relocate_m: f64,
-    /// With no identified enemy in reach, its carriers let squads out this
-    /// share of the way from its entry to an objective short of it.
-    unload_share: f64,
-    /// A squad rides only when the ride sets it down at least this much
-    /// nearer its objective; nearer than that, it walks.
-    ride_min_m: f64,
-    /// A loaded carrier keeps its drop point until a new one lies farther
-    /// than this from it, and lets its squad out within this of it.
-    reaim_m: f64,
-    /// Ground purchases stop this far up their assigned lane, clear of the
-    /// entry footprint and before the staging point.
-    purchase_advance_m: f64,
-    /// A unit that loses this share of its strength within this window
-    /// pops smoke and reverses this far (`smoke.rs`).
-    smoke_loss_share: f64,
-    smoke_window_s: f64,
-    smoke_reverse_m: f64,
-    /// A group below either share triggers an emergency airlift when no
-    /// supplier can reach it in this many seconds.
-    emergency_ammo_share: f64,
-    emergency_health_share: f64,
-    emergency_reach_s: f64,
-    #[serde(flatten)]
-    team: team::TeamTuning,
-}
-
-impl Tuning {
-    fn shipped() -> Self {
-        serde_json::from_str(include_str!("../../../../fixtures/skirmish-ai.json"))
-            .expect("authored skirmish AI tuning")
-    }
-
-    /// `s` seconds in ticks at `hz`.
-    fn ticks(s: f64, hz: u32) -> Tick {
-        (s * f64::from(hz)) as Tick
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct BalancedDoctrine {
