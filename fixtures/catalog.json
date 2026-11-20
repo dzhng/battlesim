@@ -2693,7 +2693,7 @@
           "patch": {
             "capabilities": {
               "active_protection": {
-                "capacity": 4,
+                "capacity": 2,
                 "cooldown_s": 3,
                 "icon": "trophy",
                 "name": "Trophy",
@@ -7095,7 +7095,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -8274,7 +8274,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -8410,7 +8410,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -8513,7 +8513,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -8737,7 +8737,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -8854,7 +8854,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -8974,7 +8974,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -9104,7 +9104,7 @@
               "seconds": 3.0
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "supply": {
@@ -9245,7 +9245,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -9402,7 +9402,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -10212,7 +10212,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -10348,7 +10348,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -10505,7 +10505,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -10641,7 +10641,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "radar_receiver": {
@@ -10780,7 +10780,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -10937,7 +10937,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -12167,7 +12167,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -12287,7 +12287,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -12673,7 +12673,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -12798,7 +12798,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -13394,7 +13394,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -13524,7 +13524,7 @@
               "seconds": 3.0
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "supply": {
@@ -13785,7 +13785,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -14381,7 +14381,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -14498,7 +14498,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -14627,7 +14627,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -15045,7 +15045,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -15770,7 +15770,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -16149,7 +16149,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -16373,7 +16373,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -16733,7 +16733,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -16982,7 +16982,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "radar_receiver": {
@@ -17121,7 +17121,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -17450,7 +17450,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -17608,7 +17608,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -17921,7 +17921,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18141,7 +18141,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18258,7 +18258,7 @@
           },
           "capabilities": {
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18378,7 +18378,7 @@
               "seats": 3
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18605,7 +18605,7 @@
               "seats": 16
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -18735,7 +18735,7 @@
               "seconds": 3.0
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "supply": {
@@ -18876,7 +18876,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             },
             "radar_receiver": {
@@ -19015,7 +19015,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19172,7 +19172,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19308,7 +19308,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19444,7 +19444,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 2,
               "reload_s": 3.0
             }
           },
@@ -19601,7 +19601,7 @@
               }
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -20888,7 +20888,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -21032,7 +21032,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -21176,7 +21176,7 @@
           },
           "capabilities": {
             "active_protection": {
-              "capacity": 4,
+              "capacity": 2,
               "cooldown_s": 3.0,
               "icon": "trophy",
               "name": "Trophy",
@@ -22559,7 +22559,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -22687,7 +22687,7 @@
               "seats": 8
             },
             "flares": {
-              "capacity": 4,
+              "capacity": 1,
               "reload_s": 3.0
             }
           },
@@ -22800,7 +22800,7 @@
       "patch": {
         "capabilities": {
           "active_protection": {
-            "capacity": 4,
+            "capacity": 2,
             "cooldown_s": 3,
             "icon": "trophy",
             "name": "Trophy",
@@ -27202,7 +27202,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -28737,7 +28737,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -28877,7 +28877,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -28983,7 +28983,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -29304,7 +29304,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29425,7 +29425,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29549,7 +29549,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29683,7 +29683,7 @@
           "seconds": 3.0
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "supply": {
@@ -29828,7 +29828,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -29990,7 +29990,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -31128,7 +31128,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -31268,7 +31268,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -31430,7 +31430,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -31570,7 +31570,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "radar_receiver": {
@@ -31713,7 +31713,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -31875,7 +31875,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -33143,7 +33143,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -33267,7 +33267,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -33726,7 +33726,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -33855,7 +33855,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -34470,7 +34470,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -34604,7 +34604,7 @@
           "seconds": 3.0
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "supply": {
@@ -34873,7 +34873,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -35487,7 +35487,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -35608,7 +35608,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -35741,7 +35741,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -36172,7 +36172,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -36866,7 +36866,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -37400,7 +37400,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -37631,7 +37631,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -38002,7 +38002,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -38272,7 +38272,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "radar_receiver": {
@@ -38415,7 +38415,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -38754,7 +38754,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -38917,7 +38917,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -39474,7 +39474,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -39701,7 +39701,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -39822,7 +39822,7 @@
       },
       "capabilities": {
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -39946,7 +39946,7 @@
           "seats": 3
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -40301,7 +40301,7 @@
           "seats": 16
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -40435,7 +40435,7 @@
           "seconds": 3.0
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "supply": {
@@ -40580,7 +40580,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         },
         "radar_receiver": {
@@ -40723,7 +40723,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -40885,7 +40885,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -41025,7 +41025,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -41165,7 +41165,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 2,
           "reload_s": 3.0
         }
       },
@@ -41327,7 +41327,7 @@
           }
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -42677,7 +42677,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -42825,7 +42825,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -42973,7 +42973,7 @@
       },
       "capabilities": {
         "active_protection": {
-          "capacity": 4,
+          "capacity": 2,
           "cooldown_s": 3.0,
           "icon": "trophy",
           "name": "Trophy",
@@ -44661,7 +44661,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
@@ -44793,7 +44793,7 @@
           "seats": 8
         },
         "flares": {
-          "capacity": 4,
+          "capacity": 1,
           "reload_s": 3.0
         }
       },
