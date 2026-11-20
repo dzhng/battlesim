@@ -74,7 +74,7 @@ code that holds each one to that:
   of an eye; that margin must cover everything an edit can change in what a
   ray reads. A checking build that re-swept every reused field across the
   recorded battle found each equal.
-- **Foliage.** `ForestState::crowned_cell` answers open ground from the forest
+- **Foliage.** `ForestState::canopy_cell` answers open ground from the forest
   span buckets without searching a page. It holds only while every foliage
   cell lies in a bucket of its forest's span; a debug assertion checks the
   page whenever the shortcut is taken.

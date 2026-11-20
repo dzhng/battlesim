@@ -29,7 +29,7 @@
           "id": "gun",
           "name": "Cannon",
           "weapons": [
-            "air_gun"
+            "gau_8"
           ],
           "turret": false,
           "pivot_m": [
@@ -3241,7 +3241,7 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800,
+        "low_air_m": 1000,
         "high_air_m": 3000
       },
       "capabilities": {

@@ -1,11 +1,12 @@
 //! Recovery with finite stock. A fully deployed supply vehicle
-//! serves its side's living units within its radius that stand still:
-//! finite ammunition in parallel first, defensive charges
-//! (active protection, then flares), then vehicle health, then replacement
-//! soldiers, then smoke charges, each at its configured rate and paid from the
-//! vehicle's stock. Stock is debited in ascending unit order; its final
-//! positive remainder buys one last item, never going below zero or refilling
-//! (L05). Readiness is the deployment module's.
+//! serves its side's living units within its radius that stand still. Every
+//! need runs at once, each on its own clock at its configured rate and paid
+//! from the vehicle's stock: each finite ammunition kind, defensive charges
+//! (active protection, flares), vehicle health, replacement soldiers, first
+//! aid for wounded ones, and smoke charges. Stock is debited in ascending unit
+//! order, then in that order of needs; its final positive remainder buys one
+//! last item, never going below zero or refilling (L05). Readiness is the
+//! deployment module's.
 use contract::map::MoverClass;
 use contract::observation::ServiceStatus;
 use contract::scenario::Rules;
@@ -27,6 +28,7 @@ pub struct Progress {
     pub flare_s: f64,
     pub hp_s: f64,
     pub soldier_s: f64,
+    pub first_aid_s: f64,
     pub smoke_s: f64,
 }
 
@@ -48,6 +50,8 @@ enum Need {
     },
     Health,
     Soldier,
+    /// A treatment for the squad's most wounded living soldier.
+    FirstAid,
     /// A smoke charge, up to its capacity, at the capability's rate and price.
     Smoke {
         capacity: u32,
@@ -56,61 +60,73 @@ enum Need {
     },
 }
 
-/// All missing ammunition kinds, or the next recovery item in service order.
+/// Every item the unit is short of, in the order its stock is paid.
 /// `room`: a replacement soldier has a seat in the squad's host, if it has one.
 fn needs(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Vec<Need> {
     let specs = arsenal.specs(unit.kind);
-    let mut ammunition = Vec::new();
+    let t = unit.unit_type(rules);
+    let mut needs = Vec::new();
     for (m, mount) in unit.mounts.iter().enumerate() {
         for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
             if let (AmmoCapacity::Rounds(cap), Some(n)) =
                 (&arsenal.weapons[row].def.ammo, mount.ammo[k])
             {
                 if n < *cap {
-                    ammunition.push(Need::Round(m, k, row));
+                    needs.push(Need::Round(m, k, row));
                 }
             }
         }
     }
-    if !ammunition.is_empty() {
-        return ammunition;
-    }
-    if let (Some(state), Some(cap)) = (
-        unit.protection,
-        &unit.unit_type(rules).capabilities.active_protection,
-    ) {
+    if let (Some(state), Some(cap)) = (unit.protection, &t.capabilities.active_protection) {
         if state.charges < cap.capacity {
-            return vec![Need::Protection {
+            needs.push(Need::Protection {
                 capacity: cap.capacity,
                 service_s: cap.service_s,
                 stock_per_charge: cap.stock_per_charge,
-            }];
+            });
         }
     }
-    if let (Some(state), Some(cap)) = (unit.flares, &unit.unit_type(rules).capabilities.flares) {
+    if let (Some(state), Some(cap)) = (unit.flares, &t.capabilities.flares) {
         if state.charges < cap.capacity {
-            return vec![Need::Flare {
+            needs.push(Need::Flare {
                 capacity: cap.capacity,
-            }];
+            });
         }
     }
-    if unit.hull.is_some() && unit.hp < unit.max_hp(rules) {
-        return vec![Need::Health];
+    if unit.hp < unit.max_hp(rules) {
+        needs.push(Need::Health);
     }
     let living = unit.members.iter().filter(|s| s.alive()).count();
-    if unit.hull.is_none() && room && living < unit.unit_type(rules).squad_size() {
-        return vec![Need::Soldier];
+    if room && living < t.squad_size() {
+        needs.push(Need::Soldier);
     }
-    if let (Some(state), Some(cap)) = (unit.smoke, &unit.unit_type(rules).capabilities.smoke) {
+    if most_wounded(unit, rules).is_some() {
+        needs.push(Need::FirstAid);
+    }
+    if let (Some(state), Some(cap)) = (unit.smoke, &t.capabilities.smoke) {
         if state.charges < cap.capacity {
-            return vec![Need::Smoke {
+            needs.push(Need::Smoke {
                 capacity: cap.capacity,
                 service_s: cap.service_s,
                 stock_per_charge: cap.stock_per_charge,
-            }];
+            });
         }
     }
-    Vec::new()
+    needs
+}
+
+/// The living soldier furthest below his type's health, the first of equals,
+/// with that health; none when nobody is hurt.
+fn most_wounded(unit: &Unit, rules: &Rules) -> Option<(usize, f64)> {
+    let slots = unit.unit_type(rules).slots()?;
+    unit.members
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.alive())
+        .map(|(k, s)| (k, rules.catalog.soldier(&slots[s.slot]).hp, s.hp))
+        .filter(|&(_, max, hp)| hp < max)
+        .min_by(|a, b| (a.2 - a.1).total_cmp(&(b.2 - b.1)))
+        .map(|(k, max, _)| (k, max))
 }
 
 /// The stock an item costs.
@@ -127,6 +143,7 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
         Need::Flare { .. } => s.stock_per_flare,
         Need::Health => s.stock_per_hp,
         Need::Soldier => s.stock_per_soldier,
+        Need::FirstAid => s.stock_per_first_aid,
         Need::Smoke {
             stock_per_charge, ..
         } => stock_per_charge,
@@ -265,6 +282,7 @@ fn serve(
         Need::Flare { .. } => (&mut progress.flare_s, s.flare_service_s),
         Need::Health => (&mut progress.hp_s, 1.0 / s.vehicle_hp_per_s),
         Need::Soldier => (&mut progress.soldier_s, s.soldier_replacement_s),
+        Need::FirstAid => (&mut progress.first_aid_s, s.first_aid_s),
         Need::Smoke { service_s, .. } => (&mut progress.smoke_s, service_s),
     };
     *clock += dt;
@@ -290,6 +308,11 @@ fn serve(
             state.charges = (state.charges + 1).min(capacity);
         }
         Need::Health => unit.hp = (unit.hp + 1.0).min(unit.max_hp(rules)),
+        Need::FirstAid => {
+            let (k, max) = most_wounded(unit, rules).expect("a wounded soldier");
+            let soldier = &mut unit.members[k];
+            soldier.hp = (soldier.hp + s.first_aid_hp).min(max);
+        }
         Need::Smoke { capacity, .. } => {
             let state = unit.smoke.as_mut().expect("a smoke recipient");
             state.charges = (state.charges + 1).min(capacity);

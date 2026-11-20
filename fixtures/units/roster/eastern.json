@@ -3397,7 +3397,7 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800,
+        "low_air_m": 1000,
         "high_air_m": 3000
       },
       "capabilities": {
@@ -3479,7 +3479,7 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800,
+        "low_air_m": 1000,
         "high_air_m": 3000
       },
       "capabilities": {

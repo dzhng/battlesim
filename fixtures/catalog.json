@@ -8358,7 +8358,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -8473,7 +8473,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9350,7 +9350,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9486,7 +9486,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -9943,7 +9943,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -10040,7 +10040,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -10296,7 +10296,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10453,7 +10453,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10589,7 +10589,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10728,7 +10728,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -10885,7 +10885,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -11021,7 +11021,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -14706,7 +14706,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -15145,7 +15145,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -16228,7 +16228,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -16325,7 +16325,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16833,7 +16833,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17064,7 +17064,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17200,7 +17200,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17551,7 +17551,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17709,7 +17709,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -17960,7 +17960,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "air_gun"
+                "gau_8"
               ]
             },
             {
@@ -18000,7 +18000,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -18958,7 +18958,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19115,7 +19115,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19251,7 +19251,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19387,7 +19387,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19544,7 +19544,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -19701,7 +19701,7 @@
           "sensors": {
             "ground_m": 1.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.5,
@@ -22040,7 +22040,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 3000.0,
-            "low_air_m": 1800.0,
+            "low_air_m": 1000.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -28814,7 +28814,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -28932,7 +28932,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -29927,7 +29927,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -30067,7 +30067,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -30751,7 +30751,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30851,7 +30851,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31205,7 +31205,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31367,7 +31367,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31507,7 +31507,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31650,7 +31650,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31812,7 +31812,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -31952,7 +31952,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -35813,7 +35813,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -36266,7 +36266,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -37472,7 +37472,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -37572,7 +37572,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38096,7 +38096,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38347,7 +38347,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38487,7 +38487,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -38849,7 +38849,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39012,7 +39012,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -39505,7 +39505,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "air_gun"
+            "gau_8"
           ]
         },
         {
@@ -39546,7 +39546,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40655,7 +40655,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40817,7 +40817,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -40957,7 +40957,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41097,7 +41097,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41259,7 +41259,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -41421,7 +41421,7 @@
       "sensors": {
         "ground_m": 1.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.5,
@@ -44104,7 +44104,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 3000.0,
-        "low_air_m": 1800.0,
+        "low_air_m": 1000.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -45356,7 +45356,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 1000.0
+            "range_m": 750.0
           }
         ]
       },
@@ -45373,7 +45373,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 1000.0,
+      "range_m": 750.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45387,7 +45387,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 1000.0,
+          "range_m": 750.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45403,7 +45403,7 @@
       "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 13.0,
+      "damage": 15.0,
       "decoyable": false,
       "default": true,
       "derived": {
@@ -45412,17 +45412,17 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 750.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 750.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 900.0
+            "range_m": 700.0
           }
         ]
       },
@@ -45444,8 +45444,8 @@
       "name": "Aircraft cannon",
       "near_miss_suppression": 0.0325,
       "partial_from": 0.08,
-      "penetration": 25.0,
-      "range_m": 900.0,
+      "penetration": 20.0,
+      "range_m": 700.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
       "speed_mps": 600.0,
@@ -45458,7 +45458,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 750.0,
+          "range_m": 500.0,
           "scatter_mrad": 6.0
         },
         "high_air": {
@@ -45466,7 +45466,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 900.0,
+          "range_m": 700.0,
           "scatter_mrad": 20.0
         },
         "low_air": {
@@ -45474,7 +45474,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 750.0,
+          "range_m": 500.0,
           "scatter_mrad": 24.0
         }
       },
@@ -45490,7 +45490,7 @@
       "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "damage": 90.0,
+      "damage": 220.0,
       "decoyable": true,
       "default": false,
       "derived": {
@@ -45499,12 +45499,12 @@
           {
             "intercepts": false,
             "layer": "low_air",
-            "range_m": 1500.0
+            "range_m": 1200.0
           },
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 1500.0
+            "range_m": 1200.0
           }
         ]
       },
@@ -45520,9 +45520,9 @@
       "name": "Air missile",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 40.0,
+      "penetration": 100.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1500.0,
+      "range_m": 1200.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45539,7 +45539,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
@@ -45547,7 +45547,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1200.0,
           "scatter_mrad": 0.5
         }
       },
@@ -46239,6 +46239,93 @@
       "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
+    },
+    "gau_8": {
+      "accel_mps2": null,
+      "aim_s": 1.0,
+      "ammo": "unlimited",
+      "anti_radiation": false,
+      "appearance": "aa_gun",
+      "armor_piercing": false,
+      "blast_radius_m": 2.0,
+      "damage": 18.0,
+      "decoyable": false,
+      "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 700.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 500.0
+          },
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 700.0
+          }
+        ]
+      },
+      "description": "The A-10's 30 mm cannon: it opens up on the ground from farther out than other aircraft guns.",
+      "fires_on_its_own": false,
+      "gravity_scale": 0.5,
+      "icon": "autocannon",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 0.3,
+          "rounds": 12
+        },
+        "rounds": 120,
+        "shot_interval_s": 0.1
+      },
+      "min_range_m": 0.0,
+      "name": "GAU-8 Avenger",
+      "near_miss_suppression": 0.0325,
+      "partial_from": 0.08,
+      "penetration": 25.0,
+      "range_m": 700.0,
+      "reload_s": 3.5,
+      "requires_clear_launch_path": false,
+      "speed_mps": 600.0,
+      "stationary": false,
+      "structural_damage": 2.6,
+      "suppression_radius_m": 6.0,
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 700.0,
+          "scatter_mrad": 6.0
+        },
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 700.0,
+          "scatter_mrad": 20.0
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 500.0,
+          "scatter_mrad": 24.0
+        }
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
     },
     "grenade": {
       "accel_mps2": null,

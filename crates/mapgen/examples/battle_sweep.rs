@@ -1,5 +1,7 @@
 //! Integrated generation → assault placement → short battle, one JSON line
 //! per exact request. Refusals remain rows; no failed seed is replaced.
+//! Each row's tick cost names the phase of the step its instructions went
+//! to (`phase_instructions`, macOS only), to attribute a change in cost.
 //!
 //! cargo run -p mapgen --release --example battle_sweep --
 //!     [--seeds 10] [--seconds 30] [--only metro:small] [--region paris]
@@ -144,10 +146,25 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
     let mut peak = total;
     let mut peak_tick = None;
     let mut planning = (0u64, 0u64);
+    // Instructions by phase of the step, to attribute the ticks' cost. The
+    // counter is read again after the tally, so no phase pays for it.
+    let mut phases: Vec<(sim::battle::TickPhase, u64)> = Vec::new();
     for t in 1..=ticks {
         let before = instructions::instructions();
         let started = Instant::now();
-        battle.step();
+        let mut previous = before;
+        battle.step_profiled(|phase| {
+            if let Some(cost) = instructions::instructions()
+                .zip(previous)
+                .map(|(a, b)| a.saturating_sub(b))
+            {
+                match phases.iter_mut().find(|(p, _)| *p == phase) {
+                    Some((_, sum)) => *sum += cost,
+                    None => phases.push((phase, cost)),
+                }
+            }
+            previous = instructions::instructions();
+        });
         let elapsed = started.elapsed();
         if let Some(cost) = instructions::instructions()
             .zip(before)
@@ -235,6 +252,8 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
         "max_instructions": peak, "max_instruction_tick": peak_tick,
         "wall_ms": {"p50": quantile(0.5), "p95": quantile(0.95), "p99": quantile(0.99), "max": times.last()},
         "ticks_over_33_ms": slow_ticks, "planning_work": planning.0,
+        "phase_instructions": total.map(|_| phases.iter()
+            .map(|(phase, n)| (format!("{phase:?}"), *n)).collect::<BTreeMap<_, _>>()),
         "max_planning_work": planning.1,
     }}})
 }
