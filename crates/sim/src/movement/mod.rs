@@ -10,7 +10,6 @@
 //! route on the exact bodies for the final stretch ([`final_leg`]). Craters
 //! slow a driving vehicle here, in integration only: planning never reads them.
 
-use contract::command::MoveDirection;
 use contract::ids::Tick;
 use contract::map::MoverClass;
 use contract::observation::MoveState;
@@ -29,6 +28,7 @@ mod changes;
 mod crowd;
 pub(crate) mod drive;
 mod final_leg;
+mod line_up;
 mod push;
 mod shunt;
 mod side;
@@ -39,6 +39,7 @@ mod vehicle;
 
 pub use drive::{final_facing, final_yaw};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
+use line_up::line_up;
 pub use push::Shove;
 pub use shunt::Shunt;
 use side::ROUTE_RECHECK_REACH_M;
@@ -462,44 +463,6 @@ fn plan_routes(
             unit,
             sides[unit.side.index()].grid(ctx.world, ctx.authored),
         );
-    }
-}
-
-/// A wheeled vehicle sent forward to a right-drag's facing drives in along
-/// it: its route ends on a straight lead-in on the heading it can line up on
-/// ([`drive::line_up_heading`]), long enough that the turn onto it is a
-/// forward one ([`drive::lead_in`]). Without room for it, the vehicle keeps
-/// the route it has.
-fn line_up(rules: &contract::scenario::Rules, unit: &mut Unit, grid: &NavGrid) {
-    let Some(drive) = unit.ground(rules).drive.filter(|d| !d.tracked) else {
-        return;
-    };
-    let Some(order) = unit.orders.front().and_then(|o| o.movement()) else {
-        return;
-    };
-    let (Some(facing), MoveDirection::Forward) = (order.facing, order.direction) else {
-        return;
-    };
-    let Some(route) = unit
-        .route
-        .as_ref()
-        .filter(|r| r.last() == Some(&order.destination))
-    else {
-        return;
-    };
-    let end = order.destination;
-    let here = unit.position.xy();
-    let before = route.len().checked_sub(2).map_or(here, |i| route[i]);
-    let Some(heading) = drive::line_up_heading(before, end, facing) else {
-        return;
-    };
-    let lead = drive::lead_in(end, heading, &drive, unit.hull.map_or(0.0, |h| h.x));
-    let mut lined = route[..route.len() - 1].to_vec();
-    lined.extend([lead, end]);
-    if grid.placement_fits(lead, &unit.ground(rules))
-        && grid.route_fits(here, &lined, &unit.ground(rules))
-    {
-        unit.route = Some(lined);
     }
 }
 
