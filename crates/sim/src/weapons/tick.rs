@@ -52,10 +52,33 @@ pub(super) fn preferred_mount(
                 .iter()
                 .any(|&k| weapons[k].def.default)
     };
+    // A gun already shouldered stays up while it still tracks a target worth
+    // its round and only the shot's line is in question (the target out of
+    // sight a moment, the way blocked, no sight of his own, a friend in
+    // front): the aim it has
+    // built would be lost putting it down. It goes down once the target is
+    // gone, out of reach or not worth it.
+    let shouldered = |m: usize| {
+        let spec = &specs[unit.mounts[m].spec];
+        assigned(m)
+            && unit.members[member].active_mount == Some(unit.mounts[m].spec)
+            && plans[m].as_ref().is_some_and(|p| {
+                matches!(
+                    p.assessment,
+                    Some(Err(ActionReason::TrackingLastSighting
+                        | ActionReason::BlockedTrajectory
+                        | ActionReason::NoOwnSight
+                        | ActionReason::FriendlyInLine))
+                ) && p
+                    .resolved
+                    .is_some_and(|r| spec.kinds.iter().any(|&k| r.worth(&weapons[k].def, rules)))
+            })
+    };
     let mounts = || 0..unit.mounts.len();
     mounts()
         .find(|&m| assigned(m) && unit.mounts[m].support.is_some())
         .or_else(|| mounts().find(|&m| assigned(m) && useful(m)))
+        .or_else(|| mounts().find(|&m| shouldered(m)))
         .or_else(|| {
             mounts().find(|&m| {
                 default(m)
