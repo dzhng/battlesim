@@ -2897,7 +2897,7 @@
             "occludes": false,
             "stops_rounds": true,
             "topples": false,
-            "weight_class": "medium"
+            "weight_class": "light"
           },
           "destroyed": "removed"
         },
@@ -3578,7 +3578,7 @@
             "occludes": false,
             "stops_rounds": true,
             "topples": false,
-            "weight_class": "medium"
+            "weight_class": "light"
           },
           "destroyed": "removed"
         },
@@ -4517,7 +4517,7 @@
             "occludes": false,
             "stops_rounds": true,
             "topples": false,
-            "weight_class": "medium"
+            "weight_class": "light"
           },
           "destroyed": "removed"
         },
@@ -22994,7 +22994,7 @@
         "occludes": false,
         "stops_rounds": true,
         "topples": false,
-        "weight_class": "medium"
+        "weight_class": "light"
       },
       "destroyed": "removed"
     },
@@ -23675,7 +23675,7 @@
         "occludes": false,
         "stops_rounds": true,
         "topples": false,
-        "weight_class": "medium"
+        "weight_class": "light"
       },
       "destroyed": "removed"
     },
@@ -24614,7 +24614,7 @@
         "occludes": false,
         "stops_rounds": true,
         "topples": false,
-        "weight_class": "medium"
+        "weight_class": "light"
       },
       "destroyed": "removed"
     },
