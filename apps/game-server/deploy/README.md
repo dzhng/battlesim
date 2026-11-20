@@ -25,7 +25,9 @@ lists every file it would send, without invoking the host CLI. The folder holds
 the hosted lobby, its build identity and [allocation data](settings.json), plus
 one gzip-compressed battle archive (`battle.tar.gz`) containing the standalone server, worker and runtime data.
 All runtime paths resolve beside the bundles, independently of the working
-directory. [The local static-site fixture](localSite.testSupport.ts) publishes
+directory. The lobby writes its battle records to `battles/` there, in the app's
+workspace folder; a deploy uploads files without deleting any, so the records
+outlive releases. [The local static-site fixture](localSite.testSupport.ts) publishes
 the existing simulation bytes with this same layout for the deploy rehearsal;
 it needs no browser build or network access.
 

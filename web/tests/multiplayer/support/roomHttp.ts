@@ -1,4 +1,5 @@
 import { inProcessBattleMachines } from "../../../../apps/game-server/src/machines/inProcess";
+import { archiveFolder } from "./archive";
 import type { BattleHost } from "@apps/game-server/src/battleHost/index";
 import type { BattleSetup } from "@packages/multiplayer/src/wire";
 import type { PresenceClock } from "@apps/game-server/src/presence";
@@ -20,6 +21,7 @@ export async function roomHttp(
   clientAddressHeader: string | null = null,
 ) {
   const server = createLobbyHttp(build, {
+    archive: archiveFolder(),
     machines: inProcessBattleMachines({
       capacity,
       createBattle: (spec) => createBattle(spec.candidates[0]),
