@@ -744,6 +744,10 @@ impl Presentation {
         let metres_per_px = metres_per_pixel(c.fov_y, f64::from(c.size[1].max(1)));
         let view_proj: &[f32; 16] = self.frame.camera.view_proj.first_chunk().unwrap();
         frame_params(params, view_proj, c.eye, metres_per_px, window);
+        if let Some(fit) = &self.shadow {
+            let [x, y, z] = fit.sun_direction().map(|v| v as f32);
+            params.sun = [x, y, z, 0.0];
+        }
     }
 
     pub fn shadow_stats(&self) -> ReceiverStats {

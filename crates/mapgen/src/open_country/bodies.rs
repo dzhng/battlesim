@@ -31,6 +31,7 @@ impl<'a> Country<'a> {
         let ask = Ask {
             radius: radius + f.gap_m,
             blocks_sight: false,
+            level: true,
             road_gap: rules.clear.road_m,
             own_from: usize::MAX,
         };

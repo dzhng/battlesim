@@ -7,7 +7,7 @@
 // references.json is `{ "entries": [ReferenceEntry...], "gaps": [string...] }`.
 
 import { contentSha256, lfsPointerOid } from "./glb.ts";
-import type { Severity } from "./schema.ts";
+import type { Severity } from "./finding.ts";
 
 /** The views a reference shows, in the order a sheet lays them out. A soldier
  *  subject (a uniform, a carrier, a team weapon deployed or carried) is a

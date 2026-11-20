@@ -17,7 +17,7 @@ use crate::command::Engagement;
 use crate::ids::{Side, Tick, UnitId};
 use crate::observation::SuppressionTier;
 use crate::scenario_document::{CreditGrant, Zone};
-use crate::skirmish::{Phase, PurchaseSpec};
+use crate::skirmish::{MatchResult, Phase, PurchaseSpec};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -90,6 +90,17 @@ pub enum Trigger {
     },
     /// Every unit the selector names is dead, and it named at least one.
     Destroyed(Selector),
+    /// `player` has `purchase` on its way, not yet on the field.
+    Pending {
+        player: String,
+        purchase: PurchaseSpec,
+    },
+    /// `side` holds a contact its radar receivers found.
+    RadarContact {
+        side: Side,
+    },
+    /// The match ended so.
+    MatchResult(MatchResult),
     All(Vec<Trigger>),
     Any(Vec<Trigger>),
 }
@@ -128,6 +139,10 @@ pub enum UnitFact {
     Deployed,
     /// Being replenished, repaired or reinforced by a supply vehicle now.
     Serviced,
+    /// In the air.
+    Airborne,
+    /// On the field: a purchase that arrived, or a carried squad set down.
+    Arrived,
 }
 
 /// What a unit's current order is.
@@ -188,6 +203,8 @@ pub enum Action {
     },
     /// Say `player` is ready to start; only a directed seat says so.
     Ready { player: String },
+    /// Give `player` back its faction's whole shop.
+    OpenShop { player: String },
 }
 
 /// An order a beat gives, in the scenario's own terms.
@@ -217,6 +234,8 @@ pub enum DirectedOrder {
     Attack(Selector),
     /// Set up where it stands (a unit that deploys).
     Deploy,
+    /// Attack the contact the ordering side holds that meets the zone.
+    AttackContactIn(String),
 }
 
 /// A scenario's solution: beats, in the director's own terms, that play its
@@ -289,6 +308,17 @@ impl Director {
                 }
             }
         }
+        // The story ends where the match does.
+        if let Some(last) = self.chapters.last() {
+            let ends = (last.beats.iter())
+                .any(|b| !b.recovery && matches!(b.when, Trigger::MatchResult(_)));
+            if !ends {
+                return Err(format!(
+                    "director.{}: the last chapter ends on a match result",
+                    last.id
+                ));
+            }
+        }
         Ok(())
     }
 }
@@ -337,7 +367,8 @@ impl Names<'_> {
                     .then_some(())
                     .ok_or("a beat's delay is a time from it".into())
             }
-            Trigger::Bought { player, .. } => self.player(player),
+            Trigger::Bought { player, .. } | Trigger::Pending { player, .. } => self.player(player),
+            Trigger::RadarContact { .. } | Trigger::MatchResult(_) => Ok(()),
             Trigger::Units { who, are } => {
                 self.selector(who)?;
                 match are {
@@ -351,7 +382,9 @@ impl Names<'_> {
                     | UnitFact::PoppedSmoke
                     | UnitFact::Reversing
                     | UnitFact::Deployed
-                    | UnitFact::Serviced => Ok(()),
+                    | UnitFact::Serviced
+                    | UnitFact::Airborne
+                    | UnitFact::Arrived => Ok(()),
                 }
             }
             Trigger::Identifies { who, .. } | Trigger::Destroyed(who) => self.selector(who),
@@ -373,7 +406,8 @@ impl Names<'_> {
                     | DirectedOrder::AttackGround(zone)
                     | DirectedOrder::Occupy(zone)
                     | DirectedOrder::AttackMoveTo(zone)
-                    | DirectedOrder::ReverseTo(zone) => self.zone(zone),
+                    | DirectedOrder::ReverseTo(zone)
+                    | DirectedOrder::AttackContactIn(zone) => self.zone(zone),
                     DirectedOrder::Attack(target) => self.selector(target),
                     DirectedOrder::Engage(_)
                     | DirectedOrder::Unload
@@ -384,7 +418,8 @@ impl Names<'_> {
             }
             Action::Grant { player, .. }
             | Action::Offer { player, .. }
-            | Action::Ready { player } => self.player(player),
+            | Action::Ready { player }
+            | Action::OpenShop { player } => self.player(player),
             Action::Buy { player, at, .. } => {
                 self.player(player)?;
                 self.zone(at)

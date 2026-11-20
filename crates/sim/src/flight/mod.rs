@@ -50,6 +50,8 @@ pub struct Guidance {
     pub turn_rad_s: f64,
     /// Launcher support only; an autonomous seeker also flies with this false.
     pub supported: bool,
+    /// Seconds spent on the launcher heading before guidance turns.
+    pub launch_hold_s: f64,
     /// A top-attack round's path above its point.
     pub loft: Option<Loft>,
 }
@@ -635,6 +637,7 @@ impl Projectiles {
                     .f64(g.point.y)
                     .f64(g.point.z)
                     .f64(g.turn_rad_s)
+                    .f64(g.launch_hold_s)
                     .u64(g.supported as u64);
                 // Hashed only when present: a battle firing no top-attack
                 // round keeps its digest.

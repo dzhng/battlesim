@@ -299,6 +299,10 @@ impl Skirmish {
     pub fn grant(&mut self, player: usize, credits: u64) {
         self.players[player].wallet += credits * CREDIT_SCALE;
     }
+    /// Give `player` back its faction's whole shop.
+    pub fn open_shop(&mut self, player: usize) {
+        self.offers[player] = None;
+    }
     /// Top `player`'s wallet up to `credits`: only the shortfall.
     pub fn top_up(&mut self, player: usize, credits: u64) {
         let wallet = &mut self.players[player].wallet;

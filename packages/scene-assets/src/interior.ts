@@ -12,11 +12,11 @@ import {
   CHANNEL_FORMAT,
   INTERIOR_ATLAS,
   type Bundle,
-  type Finding,
   type InteriorSheet,
   type SkeletonClips,
   type Texture,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import { bakeTexture, decodePng } from "./texture.ts";
 
 /** A sheet's texture from its source PNG. Throws when the picture is not the

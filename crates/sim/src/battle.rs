@@ -603,6 +603,11 @@ impl Battle {
                 }
             }
         }
+        // A battle decided this tick runs its director once more, so a beat
+        // can answer the result: nothing ticks after.
+        if self.finished() && self.director.is_some() {
+            self.direct();
+        }
         completed(TickPhase::Weapons);
         let bucket = (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as u64;
         for side in Side::ALL {

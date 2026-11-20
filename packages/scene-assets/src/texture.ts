@@ -8,7 +8,6 @@ import {
   TEXTURE_MAX_PX,
   TEXTURE_MIN_PX,
   type Bundle,
-  type Finding,
   type Material,
   type MeshData,
   type SkeletonClips,
@@ -16,6 +15,7 @@ import {
   type TextureChannel,
   type TextureFormat,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import { finding } from "./finding.ts";
 
 /** Decoded RGBA8 pixels, rows top to bottom. */

@@ -15,7 +15,7 @@ use super::Context;
 use crate::Half;
 use contract::encounter::SkirmishSites;
 use contract::ground::GroundShape;
-use contract::map::{Bridge, Forest, SurfaceArea};
+use contract::map::{Bridge, Forest, Relief, SurfaceArea};
 use contract::swamp::Swamp;
 
 /// What a swamp keeps clear of.
@@ -27,6 +27,8 @@ pub struct Clear<'a> {
     pub roads: &'a [SurfaceArea],
     pub woods: &'a [Forest],
     pub skirmish: Option<&'a SkirmishSites>,
+    /// The rises of hill country, settled first.
+    pub relief: &'a [Relief],
 }
 
 pub fn place(context: &Context, clear: &Clear) -> Vec<Swamp> {
@@ -149,11 +151,18 @@ fn fits(context: &Context, clear: &Clear, placed: &[Outline], swamp: &Outline) -
             .chain(sites.entries.iter().map(|e| (e.center, 0.0)));
         circles.all(|(c, r)| ring_distance(ring, c) >= r + rules.settlement_gap_m)
     });
+    // Off every rise, by the hills' own gap, so a swamp lies in the flat.
+    let hills = super::hills::clear_of(
+        clear.relief,
+        center,
+        reach + context.presets.hills.swamp_gap_m,
+    );
     river
         && roads
         && woods
         && decks
         && objectives
+        && hills
         && !clear.reserved.iter().any(|c| c.blocks(center, reach))
         && clear
             .towns

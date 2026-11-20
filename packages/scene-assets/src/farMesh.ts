@@ -4,7 +4,8 @@
 // static state and appearance to these rules.
 
 import { triangleCount } from "./build.ts";
-import { FAR_TIER, TIER_COUNT, type Finding, type MeshData } from "./schema.ts";
+import { FAR_TIER, TIER_COUNT, type MeshData } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import type { SceneryRule } from "./scenery.ts";
 import { finding } from "./finding.ts";
 

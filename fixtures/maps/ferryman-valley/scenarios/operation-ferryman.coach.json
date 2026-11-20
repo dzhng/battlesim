@@ -275,7 +275,8 @@
           "until": {
             "beat": "outpost_seen"
           },
-          "card": "Enemies your units can see show their names in red. You see only what your own units see."
+          "card": "Enemies your units can see show their names in red. You see only what your own units see.",
+          "reacts": true
         },
         {
           "id": "gunfire",
@@ -283,7 +284,8 @@
           "until": {
             "beat": "gunfire_heard"
           },
-          "card": "A red area is a contact: something was heard or last seen there, not an exact position."
+          "card": "A red area is a contact: something was heard or last seen there, not an exact position.",
+          "reacts": true
         },
         {
           "id": "jump",
@@ -362,7 +364,8 @@
           "until": {
             "beat": "outpost_pinned"
           },
-          "card": "Keep firing until they're pinned: slowed, shooting badly, hugging the ground."
+          "card": "Keep firing until they're pinned: slowed, shooting badly, hugging the ground.",
+          "reacts": true
         },
         {
           "id": "attack_move",
@@ -402,21 +405,33 @@
         {
           "id": "captured",
           "line": "c3.captured",
+          "reacts": true,
+          "until": {
+            "beat": "crossroads_taken"
+          },
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Stay in the ring while the flag turns."
+        },
+        {
+          "id": "contested",
+          "line": "c3.contested",
+          "reacts": true,
           "until": {
             "beat": "crossroads_contested"
           },
           "highlight": [
             "score"
           ],
-          "card": "Objective 1 is yours. Your victory score climbs every second you hold it."
+          "card": "Objective 1 is yours, and your victory score climbs every second you hold it."
         },
         {
-          "id": "contested",
-          "line": "c3.contested",
+          "id": "clear",
           "until": {
             "beat": "crossroads_held"
           },
-          "card": "Enemy infantry is in the ring: it's contested, and nobody scores. Clear them out."
+          "card": "Enemy infantry in the ring: it's contested, and nobody scores. Clear them out."
         }
       ]
     },
@@ -433,7 +448,8 @@
           "marks": [
             "north_road"
           ],
-          "card": "Enemy armour on the north road. Your Bradley can't trade blows with a tank: keep it out of the gun's way."
+          "card": "Enemy armour on the north road. Your Bradley can't trade blows with a tank: keep it out of the gun's way.",
+          "reacts": true
         },
         {
           "id": "groups",
@@ -492,7 +508,8 @@
           "until": {
             "beat": "tank_destroyed"
           },
-          "card": "Infantry beats armour from cover, and from the side."
+          "card": "Keep the Javelin team on the tank until it stops.",
+          "reacts": true
         }
       ]
     },
@@ -562,7 +579,153 @@
           "until": {
             "beat": "treeline_gone"
           },
-          "card": "Indirect fire reaches what nobody can see, as long as you know where to aim."
+          "card": "Let the mortar work. Indirect fire reaches what nobody can see, as long as you know where to aim.",
+          "reacts": true
+        }
+      ]
+    },
+    {
+      "id": "sky",
+      "title": "Eyes in the sky",
+      "steps": [
+        {
+          "id": "rotors",
+          "line": "c6.helicopter",
+          "reacts": true,
+          "until": {
+            "beat": "heli_seen"
+          },
+          "card": "Something is coming in low from the north. Keep watching the sky."
+        },
+        {
+          "id": "air_defence",
+          "line": "c6.air_defence",
+          "until": {
+            "beat": "air_defence_bought"
+          },
+          "highlight": [
+            "shop"
+          ],
+          "card": "Open Reinforcements and buy the Stinger team. Its missiles bring down helicopters and jets."
+        },
+        {
+          "id": "splash",
+          "line": "c6.helicopter_down",
+          "reacts": true,
+          "until": {
+            "beat": "heli_down"
+          },
+          "card": "Get the Stinger team where it can see the helicopter, and let it fire."
+        },
+        {
+          "id": "own_heli",
+          "line": "c6.own_helicopter",
+          "until": {
+            "beat": "own_heli_up"
+          },
+          "highlight": [
+            "shop"
+          ],
+          "card": "Buy the Viper attack helicopter, then right-click to send it out. It lifts off from your edge at once."
+        },
+        {
+          "id": "jet",
+          "line": "c6.jet",
+          "until": {
+            "beat": "jet_arrived"
+          },
+          "highlight": [
+            "army"
+          ],
+          "card": "Buy the A-10. A jet isn't on the field until it arrives: its card counts down until then."
+        },
+        {
+          "id": "passes",
+          "line": "c6.jet_attack",
+          "until": {
+            "beat": "jet_attacking"
+          },
+          "marks": [
+            "bridge"
+          ],
+          "card": "Select the jet, press {key:attack_ground} and click the bridge. It flies passes until its fuel runs low, then heads home."
+        },
+        {
+          "id": "radar",
+          "line": "c6.radar",
+          "until": {
+            "beat": "sead_bought"
+          },
+          "highlight": [
+            "shop"
+          ],
+          "card": "Buy the Growler. Its receiver finds radars that are switched on, even ones nobody can see."
+        },
+        {
+          "id": "radar_found",
+          "line": "c6.radar_found",
+          "reacts": true,
+          "until": {
+            "beat": "radar_found"
+          },
+          "card": "Wait while the Growler's receiver searches."
+        },
+        {
+          "id": "radar_down",
+          "line": "c6.radar_down",
+          "reacts": true,
+          "until": {
+            "beat": "sam_down"
+          },
+          "card": "Select the Growler and right-click inside the radar contact. Its missiles ride the radar's beam down."
+        }
+      ]
+    },
+    {
+      "id": "push",
+      "title": "The push",
+      "steps": [
+        {
+          "id": "take",
+          "line": "c7.push",
+          "until": "continue",
+          "highlight": [
+            "objectives"
+          ],
+          "card": "Take the bridge (flag 2) and the hill (flag 3). The shop is open again: buy what you need for it."
+        },
+        {
+          "id": "fighting",
+          "line": "c7.contested",
+          "reacts": true,
+          "until": {
+            "beat": "flag_contested"
+          },
+          "card": "Push into the flags. A flag held by nobody turns to whoever stands in its ring alone."
+        },
+        {
+          "id": "score",
+          "line": "c7.score",
+          "until": "continue",
+          "highlight": [
+            "score"
+          ],
+          "card": "Your score fills the bar from the left, theirs from the right; the first to the middle wins. Holding every flag at once wins outright."
+        },
+        {
+          "id": "victory",
+          "line": "c7.victory",
+          "reacts": true,
+          "until": {
+            "beat": "won"
+          },
+          "card": "Take every flag and hold them all at once."
+        },
+        {
+          "id": "guide",
+          "line": "c7.guide",
+          "until": "continue",
+          "card": "The Guide is in the menu: press Esc any time to look something up."
         }
       ]
     }

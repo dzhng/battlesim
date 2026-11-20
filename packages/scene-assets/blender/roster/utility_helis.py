@@ -32,6 +32,7 @@ import math
 import os
 import sys
 
+import bmesh
 import bpy
 from mathutils import Vector
 
@@ -115,18 +116,56 @@ def merlin_surface_details(mats, hull):
                 "Y", mats["steel"], hull, seg=8, lods=MID)
 
 
+# The donor is posed with its cargo ramp lowered from its hinge at the aft
+# cabin floor, its loading toes resting on the ground. Closed, the leaf is the
+# aft belly, climbing from that hinge to the tail boom's underside; the toes
+# have nothing to rest on and go.
+RAMP_HINGE = Vector((-0.25, 0, 0.87))  # in the donor's frame, metres
+RAMP_LOWERED_TIP = Vector((-2.40, 0, 0.10))  # the leaf's edge where the toes hinge
+RAMP_CLOSED_TIP = Vector((-3.00, 0, 1.89))  # the boom's underside, where the aperture ends
+
+
+def close_nh90_ramp(part):
+    """Swing the donor's lowered ramp leaf, with the rams and tie-downs on it,
+    shut on its hinge."""
+    hinge = RAMP_HINGE
+    lowered, closed = RAMP_LOWERED_TIP - hinge, RAMP_CLOSED_TIP - hinge
+    along, along_closed = lowered.normalized(), closed.normalized()
+    up, up_closed = along.cross(Vector((0, 1, 0))), along_closed.cross(Vector((0, 1, 0)))
+    stretch = closed.length / lowered.length
+
+    def on_ramp(co):
+        # Under the lowered leaf's plane (or up to 0.15 m above it, its
+        # rams), from its hinge to its toes' tips, inside the fuselage's width.
+        below_leaf = co.z < hinge.z + (co.x - hinge.x) * lowered.z / lowered.x + 0.15
+        return -2.85 < co.x < -0.15 and abs(co.y) < 0.97 and below_leaf
+
+    mesh = bmesh.new()
+    mesh.from_mesh(part.data)
+    to_world, to_local = part.matrix_world, part.matrix_world.inverted()
+    leaf = [face for face in mesh.faces if all(on_ramp(to_world @ vert.co) for vert in face.verts)]
+    toes = [face for face in leaf if any((to_world @ vert.co).x < RAMP_LOWERED_TIP.x - .01 for vert in face.verts)]
+    bmesh.ops.delete(mesh, geom=toes, context='FACES')
+    leaf = [face for face in leaf if face.is_valid]
+    if leaf:
+        geom = bmesh.ops.split(mesh, geom=leaf)["geom"]
+        for vert in (item for item in geom if isinstance(item, bmesh.types.BMVert)):
+            offset = to_world @ vert.co - hinge
+            d, h = offset.dot(along), offset.dot(up)
+            moved = hinge + along_closed * d * stretch + up_closed * h
+            moved.y = offset.y
+            vert.co = to_local @ moved
+    mesh.to_mesh(part.data)
+    mesh.free()
+
+
 def nh90(v):
     mats = A.fit(v)
     mats["paint"] = flat_paint("nh90_olive", (.042, .060, .034), rough=.67, grime=.08, role="paint")
     mats["paint"]["paint_edge_scale"] = 3.0
     mats["canopy"] = flat_paint("nh90_glass", (.011, .023, .028), rough=.14, grime=0,
                                coverage=("blended", .30), role="glass")
-    fitted_airframe(v, "nh90", mats)
-    # The donor is an operational transport with its aft ramp lowered. The
-    # roster card shows the aircraft in transit, so close that aperture with a
-    # seated, painted ramp panel and a shallow perimeter seam.
-    box("nh90_rear_ramp_closed", (.28, 2.02, 1.38), (-2.34, 0, .86),
-        mats["paint"], v.hull, bevel=.07, rot=(0, -.12, 0))
+    fitted_airframe(v, "nh90", mats, adjust=close_nh90_ramp)
     for station in ("nose_L", "nose_R", "main_L", "main_R"):
         tyre = bpy.data.objects[f"tyre_{station}_LOD0"]
         corners = [Vector(corner) for corner in tyre.bound_box]
@@ -146,7 +185,7 @@ def nh90(v):
     A.markings(v, [
         ("insignia", dict(kind="it", centre=(-3.6, .9, 2.15), normal=(0, 1, 0), up=(0, 0, 1),
                           size=.24, onto=("fuselage",))),
-        ("text", dict(text="ESERCITO", height=.19, centre=(-2.42, 1.12, 2.13), normal=(0, 1, 0),
+        ("text", dict(text="ESERCITO", height=.12, centre=(-4.45, 1.12, 2.3), normal=(0, 1, 0),
                       up=(0, 0, 1), onto=("fuselage",), colour="black")),
     ])
 

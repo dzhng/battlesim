@@ -6,6 +6,7 @@ import { CommandBindings } from "@web/battle/input/commandBindings";
 import {
   cardParts,
   coachView,
+  linesBetween,
   validateCoach,
   type CoachDocument,
   type ScenarioOutline,
@@ -172,4 +173,55 @@ test("every shipped coach fits its scenario's director", () => {
     }
   }
   expect(checked).toBeGreaterThan(0);
+});
+
+test("a step's line is spoken as it appears, or, if it reacts, as its gate is met", () => {
+  const ask = { id: "ask", card: "", line: "go", until: { beat: "went" } } as const;
+  const react = {
+    id: "react",
+    card: "",
+    line: "gone",
+    reacts: true,
+    until: { beat: "went" },
+  } as const;
+  const after = { id: "after", card: "", line: "next", until: "continue" } as const;
+  expect(linesBetween(null, ask, new Set())).toEqual(["go"]);
+  // A reacting step says nothing as it appears...
+  expect(linesBetween(ask, react, new Set())).toEqual([]);
+  // ...its line comes as its gate is met, before the next step's own.
+  expect(linesBetween(react, after, new Set(["went"]))).toEqual(["gone", "next"]);
+  // A step a closing chapter dropped never had its gate met: no reaction.
+  expect(linesBetween(react, after, new Set())).toEqual(["next"]);
+});
+
+test("once every chapter closed, the last chapter's remaining steps stay", () => {
+  // The last chapter ("two") waits on "arrived"; it fired, and the director
+  // closed every chapter, so a step the player has yet to dismiss stays.
+  const closing = {
+    ...DOC,
+    chapters: [
+      DOC.chapters[0],
+      {
+        ...DOC.chapters[1],
+        steps: [...DOC.chapters[1].steps, { id: "bye", card: "Bye", until: "continue" as const }],
+      },
+    ],
+  };
+  const shown = coachView(closing, {
+    scenario: { chapter: null, beats: [{ beat: "arrived", tick: 9 }] },
+    signals: new Set(),
+    dismissed: new Set(),
+  });
+  expect(shown?.step.id).toBe("bye");
+});
+
+test("a card the story has already moved past is done, but an act still waits", () => {
+  // Chapter one's "bought" beat is told: its "hello" card (continue) comes
+  // before it, so a run that starts there skips it; "look" asks for an act.
+  const shown = coachView(DOC, {
+    scenario: { chapter: "one", beats: [{ beat: "bought", tick: 3 }] },
+    signals: new Set(),
+    dismissed: new Set(),
+  });
+  expect(shown?.step.id).toBe("look");
 });

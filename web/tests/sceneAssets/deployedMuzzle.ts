@@ -1,4 +1,4 @@
-import type { Finding } from "@packages/scene-assets/src/schema.ts";
+import type { Finding } from "@packages/scene-assets/src/finding.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import type { MountRow } from "@packages/scene-assets/src/units.ts";
 import { AUTHORITY, TOLERANCES, syntheticUnits, truckGlb } from "./synthetic";

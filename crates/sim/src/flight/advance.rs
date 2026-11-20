@@ -182,12 +182,15 @@ struct Hit {
 
 impl Flight<'_> {
     fn acceleration(&self, p: &mut Projectile, span: f64) -> V3 {
-        if p.guidance.is_some_and(|g| !p.tracks(g.point, None)) {
+        if p.guidance
+            .is_some_and(|g| p.age_s >= g.launch_hold_s && !p.tracks(g.point, None))
+        {
             // A missed aim behind the flight direction ends this attempt;
             // the live round continues under its ordinary physical forces.
             p.guidance = None;
         }
         let gravity = match p.guidance {
+            Some(g) if p.age_s < g.launch_hold_s => V3::default(),
             Some(g) => {
                 p.velocity = p
                     .velocity

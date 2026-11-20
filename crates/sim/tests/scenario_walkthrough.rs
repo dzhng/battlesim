@@ -1,10 +1,10 @@
 //! Every shipped scenario with a solution, played by it to its end: each
-//! chapter opens in turn, every beat but a recovery fires, no order the solution or the
-//! director gives is refused, and the replay is the battle. Then its latest
-//! chapter restarts, resumed from that replay, and its beats fire again. It
-//! names no scenario and pins nothing about one; a change that breaks a
-//! scenario's story fails here by the beat that never fired.
-
+//! chapter opens in turn, every beat but a recovery fires, the human side
+//! wins, no order the solution or the director gives is refused, and the
+//! replay is the battle. Then its latest chapter restarts, resumed from that
+//! replay, and its beats fire again. It names no scenario and pins nothing
+//! about one; a change that breaks a scenario's story fails here by the beat
+//! that never fired.
 use contract::maps::MapCategory;
 use contract::scenario::Rules;
 use sim::battle::Battle;
@@ -34,7 +34,10 @@ fn every_scenario_plays_through_by_its_solution() {
             let mut battle = Battle::new(&setup, seed);
             let limit = budget * u64::from(battle.rules().tick_hz);
             let mut openings = Vec::new();
-            while battle.director().unwrap().chapter() < chapters.len() && battle.tick() < limit {
+            while battle.director().unwrap().chapter() < chapters.len()
+                && battle.tick() < limit
+                && !battle.finished()
+            {
                 let before = battle.director().unwrap().chapter();
                 battle.step();
                 let now = battle.director().unwrap().chapter();
@@ -56,6 +59,13 @@ fn every_scenario_plays_through_by_its_solution() {
                 unfired.is_empty(),
                 "{id}/{name}: by minute {}, beats never fired: {unfired:?}",
                 battle.tick() / u64::from(battle.rules().tick_hz) / 60
+            );
+            // The story ends in the human side's victory.
+            let human = setup.players.iter().find(|p| p.human_capable).unwrap().side;
+            assert_eq!(
+                battle.observe(human).skirmish.as_ref().unwrap().result,
+                Some(contract::skirmish::MatchResult::Winner { side: human }),
+                "{id}/{name}: the human side wins"
             );
             assert!(
                 run.refusals().is_empty(),

@@ -588,3 +588,81 @@ hills session was told what the valley needs.
   outcomes with them. Chapter 4's ambush, which had passed by luck, failed
   until it was rebuilt on sight lines (above).
 
+## Slice 16
+
+- **Vocabulary added** (agent): facts `airborne` and `arrived` (on the
+  field); triggers `pending` (a purchase reserved and on its way) and
+  `radar_contact` (a side holds a contact its receivers found); the directed
+  order `attack_contact_in` (attack the ordering side's contact meeting a
+  zone). Red's helicopter is bought by the existing `buy` with a red grant,
+  as the spec asked, so it arrives by an ordinary purchase. It can't be worn
+  and short of ammunition, since a purchase takes no condition, so it is a
+  full Mi-8.
+- **Mechanic changed: an anti-radiation seeker rides the beam** (agent, by
+  `tweak-mechanics`). A seeker fired into a radar contact steered at the
+  contact's centre, which radar reports in 100 m range steps. The Growler's
+  missiles fell 50 m off a Buk they had locked on to: a HARM that misses a
+  radar it was riding is a moment a viewer calls wrong. Now an anti-radiation
+  seeker (the weapon's `anti_radiation`) aimed at a radar contact homes on
+  the emitter behind it while it lives and emits. Any other round aimed at
+  the contact still aims at the reported area, and the side learns nothing.
+  Proven by `radar::an_anti_radiation_seeker_rides_the_beam_to_the_radar_not_the_reports_centre`
+  (red before the change). Parity, capture and publication digests were
+  unchanged.
+- **The SAM's missiles are spent** (lopsided): the Buk reaches most of the
+  map, and the chapter teaches finding it, not trading with it.
+- **Chapter 4's tank is P4's T-72** (agent): the earlier T-14 came from a
+  search that missed the T-72's card.
+- **Reaction lines are spoken when their gate is met** (agent, found while
+  writing chapter 6). A step's line was spoken as it appeared, so "Tank
+  down", "Splash one" and "They're pinned" played before the moment. A step
+  that `reacts` speaks its line when its gate is met, before the next step's
+  line, one after the other (`linesBetween`, unit-tested). A step a closing
+  chapter dropped says nothing. Chapters 2–6 mark their reactions, and
+  chapter 3's capture became four steps (capturing, taken, contested,
+  cleared), so each line meets its moment.
+- **Directed orders are proven where the solution leans on them** (agent):
+  the walkthrough fails by beat if one stops working. Only the facts and
+  triggers each have a test on test units.
+
+## Slice 17
+
+- **Vocabulary added** (agent): the trigger `match_result`, and the action
+  `open_shop` (the faction's whole shop back). A battle decided this tick runs
+  its director once more, so a beat answers the result on the deciding tick.
+  Nothing ticks after. Tested in `director_facts`.
+- **Admission: the last chapter ends on a match result** (slice 08's named
+  relaxation removed). Every test director gets a closing chapter, and a
+  director that doesn't end there is refused (`director` tests). The
+  walkthrough now stops when the battle ends and asserts the human side
+  won.
+- **Defenders hide off the flags and move on 30 seconds in** (agent): two worn
+  squads, holding fire until they step onto the bridge and the hill. A
+  timer rather than "as blue approaches", because no selector yet names "any
+  blue unit".
+- **Chapter 4's tank halts in the lane** (found when chapter 7's forces
+  renumbered the battle again). A Javelin gunner also carries a rifle, and
+  flips to it whenever the Javelin's shot stops assessing as good, which
+  resets his aim. Against a moving tank behind flickering cover he never
+  fired. The tank now stops 15 s in the team's view before it turns.
+  Found, not fixed: a launcher operator who flips weapons as a sight line
+  flickers never finishes aiming. That belongs to the weapon owner, not
+  this spec.
+- **The last chapter's steps outlast the battle** (agent): once every chapter
+  closed, or the battle ended, the coach keeps the last chapter's steps, so
+  the closing line plays over the result. Its panel moved to its own layer,
+  above the result's scrim and under the pause menu.
+- **A Continue card the story moved past is done** (agent): a Continue step
+  before a step whose beat was told is skipped, as a restarted or resumed run
+  finds it. A step that asks for an act still waits for the act, because
+  beats fire in any order (chapter 2's outpost is seen early).
+- **The dev loop can start on the deciding beat** (agent): a start on the
+  tick that decided the match resumes one tick earlier, which decides it
+  again. The scene shoots the Victory frame this way.
+- **The closing card docks bottom left over the result** (unprimed
+  critique): at the top left it hid the VICTORY title. Once the match ends
+  it loses its Continue, since the report's exit is the way on. The
+  critique's report findings are left to the match report's owner, outside
+  this spec: the winner's score drawn no bigger than the loser's, the event
+  log outweighing the win, and the report's plain button.
+

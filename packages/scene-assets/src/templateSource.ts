@@ -17,9 +17,9 @@ import {
   type Bounds,
   type BuildingCollapse,
   type CitySetEntry,
-  type Finding,
   type StaticBundle,
 } from "./schema.ts";
+import { finding, type Finding } from "./finding.ts";
 import {
   ALL_TIERS,
   ROW_TRANSFORM_FLOATS,
@@ -97,13 +97,6 @@ export const TEMPLATE_TIER_TRIANGLES = [150_000, 50_000, 12_000, 2_000] as const
 /** Slack on the fit for single-precision transforms, in metres. */
 const FIT_ROUNDING_M = 1e-3;
 
-const error = (code: Finding["code"], message: string, fix: string): Finding => ({
-  code,
-  severity: "error",
-  message,
-  fix,
-});
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
@@ -114,10 +107,10 @@ export function readTemplateSet(
   path: string,
 ): { set: TemplateSetSource | null; findings: Finding[] } {
   const fix = "write the set as packages/scene-assets/blender/city/README.md describes";
-  const refuse = (finding: Finding) => ({ set: null, findings: [finding] });
+  const refuse = (refused: Finding) => ({ set: null, findings: [refused] });
   if (lfsPointerOid(bytes) !== null)
     return refuse(
-      error(
+      finding(
         "structure.lfs_pointer",
         `${path} is a Git LFS pointer, not its content`,
         `run: ${lfsPullCommand(path)}`,
@@ -127,15 +120,15 @@ export function readTemplateSet(
   try {
     json = JSON.parse(new TextDecoder().decode(bytes));
   } catch (e) {
-    return refuse(error("templates.source", `${path}: not JSON (${(e as Error).message})`, fix));
+    return refuse(finding("templates.source", `${path}: not JSON (${(e as Error).message})`, fix));
   }
   if (!isRecord(json) || !Array.isArray(json.templates) || !Array.isArray(json.modules))
     return refuse(
-      error("templates.source", `${path}: a set needs "modules" and "templates" lists`, fix),
+      finding("templates.source", `${path}: a set needs "modules" and "templates" lists`, fix),
     );
   const findings: Finding[] = [];
   const add = (code: Finding["code"], message: string, repair = fix) =>
-    findings.push(error(code, `${path}: ${message}`, repair));
+    findings.push(finding(code, `${path}: ${message}`, repair));
   if (typeof json.set !== "string" || typeof json.kit !== "string")
     add("templates.source", `"set" and "kit" must be names`);
   const fit = json.fit;
@@ -429,7 +422,7 @@ function damageStateFindings(
 ): Finding[] {
   const findings: Finding[] = [];
   const add = (message: string, fix: string) =>
-    findings.push(error("templates.state", `${path}: ${message}`, fix));
+    findings.push(finding("templates.state", `${path}: ${message}`, fix));
   const id = template.descriptor.id;
   const ends = damageState(canonical, collapse);
   const other = ends === "ruin" ? "gutted" : "ruin";
@@ -463,7 +456,7 @@ function catalogueFindings(
     const row = rows.get(id);
     if (row !== entry.canonical)
       findings.push(
-        error(
+        finding(
           "templates.catalogue",
           `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"}`,
           "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`",
@@ -474,7 +467,7 @@ function catalogueFindings(
   for (const id of unread ? [] : rows.keys())
     if (!dressed.has(id))
       findings.push(
-        error(
+        finding(
           "templates.coverage",
           `template ${id} is in the physical catalogue, but no set has art for it`,
           "the catalogue's rows are the sets' descriptors: add it to a set, or run `bun run --cwd web asset -- catalogue` to drop its row",
@@ -487,7 +480,7 @@ function catalogueFindings(
 function kitFindings(path: string, input: TemplateSetInput, set: TemplateSetSource): Finding[] {
   const findings: Finding[] = [];
   const add = (message: string, fix: string) =>
-    findings.push(error("templates.kit", `${path}: ${message}`, fix));
+    findings.push(finding("templates.kit", `${path}: ${message}`, fix));
   if (set.set !== input.name || set.kit !== input.entry.kit)
     add(
       `the file says set "${set.set}" on kit "${set.kit}"; the catalog lists it as set "${input.name}" on kit "${input.entry.kit}"`,
@@ -570,7 +563,7 @@ export function packTemplateSets(
   for (const input of [...inputs].sort((a, b) => (a.name < b.name ? -1 : 1))) {
     const path = input.entry.templates;
     const add = (code: Finding["code"], message: string, fix: string) =>
-      findings.push(error(code, `${path}: ${message}`, fix));
+      findings.push(finding(code, `${path}: ${message}`, fix));
     const read = readTemplateSet(input.bytes, path);
     findings.push(...read.findings);
     const set = read.set;
@@ -677,7 +670,7 @@ export function packTemplateSets(
     admitted = physical.catalogue(catalogue);
   } catch (e) {
     findings.push(
-      error(
+      finding(
         "templates.catalogue",
         `the physical catalogue is refused: ${(e as Error).message}`,
         "fix the catalogue's rows; contract::templates is the rule",
@@ -688,7 +681,7 @@ export function packTemplateSets(
   for (const [id, entry] of dressed)
     if (entry.sets.length > 1)
       findings.push(
-        error(
+        finding(
           "templates.coverage",
           `template ${id} is dressed by ${entry.sets.length} sets (${entry.sets.join(", ")}); exactly one set owns a template`,
           "drop the template from all but one set",
@@ -696,7 +689,7 @@ export function packTemplateSets(
       );
   if (modules.length > 0xffff)
     findings.push(
-      error(
+      finding(
         "templates.module",
         `the sets name ${modules.length} modules; a row indexes at most 65535`,
         "widen the library's module column",

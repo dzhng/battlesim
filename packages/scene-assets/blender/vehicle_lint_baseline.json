@@ -1886,17 +1886,6 @@
       "severity": "error"
     }
   ],
-  "eastern_ka_52_alligator_ka_52m": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.023,
-      "message": "Part 'mast' is 2.3cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "mast"
-      ],
-      "severity": "error"
-    }
-  ],
   "eastern_kamikaze_drone_anti_armor": [
     {
       "check": "floating_part",
