@@ -10,20 +10,29 @@ import {
 } from "./battleHost/remote.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import type { createPresence } from "./presence.ts";
+import { seatDigest, type BattleArchive } from "./archive.ts";
+
+type ReplayLookup = { replay: string } | { refused: "unknown" | "not_seated" | "unavailable" };
 
 export function hostedBattles(
   machines: BattleMachines,
   presence: ReturnType<typeof createPresence>,
+  archive: BattleArchive,
 ) {
   const active = new Map<
     HostedBattle,
     {
+      id: string;
       remote: RemoteBattleHost;
       seating: Map<string, BattleSeat>;
+      /** Everyone who held a seat at any time; they may export it once it is over. */
+      seated: Set<string>;
       connections: Map<string, () => void>;
       pending: Promise<void>;
     }
   >();
+  /** Records still being written, so an export right after the end waits for its file. */
+  const archiving = new Map<string, Promise<void>>();
   return {
     /** `attend` is the mode's own count of who is in this battle, opened and
      *  closed with each of a browser's battle streams, as presence is. */
@@ -33,10 +42,42 @@ export function hostedBattles(
       attend?: (who: string) => () => void,
     ): HostedBattle {
       const key = randomBytes(16).toString("hex");
-      const remote = createRemoteBattleHost({ candidates }, id, machines.start(key), key);
+      const seated = new Set<string>();
+      const remote = createRemoteBattleHost(
+        { candidates },
+        id,
+        machines.start(key),
+        key,
+        (outcome, replay) => {
+          const endedAt = new Date().toISOString();
+          // A battle that never started has nothing to keep.
+          const kept = Promise.all([started, replay])
+            .then(
+              ([{ ready, at }, replay]) =>
+                archive.save({
+                  id,
+                  setup: candidates[ready.candidate],
+                  mapIdentity: ready.mapIdentity,
+                  startedAt: at,
+                  endedAt,
+                  outcome,
+                  seated,
+                  replay,
+                }),
+              () => {},
+            )
+            .catch((error: Error) => console.error(`A battle was not archived: ${error.message}`))
+            .finally(() => archiving.delete(id));
+          archiving.set(id, kept);
+        },
+      );
+      const started = remote.ready.then((ready) => ({ ready, at: new Date().toISOString() }));
+      started.catch(() => {});
       const entry = {
+        id,
         remote,
         seating: new Map<string, BattleSeat>(),
+        seated,
         connections: new Map<string, () => void>(),
         pending: Promise.resolve(),
       };
@@ -81,15 +122,31 @@ export function hostedBattles(
       )
         return entry.pending;
       entry.seating = new Map(entries);
+      for (const [who] of entries) entry.seated.add(who);
       entry.pending = entry.remote.setSeating(entries);
       await entry.pending;
     },
-    release(host: HostedBattle) {
+    /** A seated browser's export: from the running battle, or its record once it is over. */
+    async replay(id: string, who: string): Promise<ReplayLookup> {
+      const live = [...active.values()].find((entry) => entry.id === id);
+      if (live) {
+        if (!live.seating.has(who)) return { refused: "not_seated" };
+        return { replay: await live.remote.replay() };
+      }
+      await archiving.get(id);
+      const record = await archive.find(id);
+      if (!record) return { refused: "unknown" };
+      if (!record.seated.includes(seatDigest(who))) return { refused: "not_seated" };
+      return record.replay === null ? { refused: "unavailable" } : { replay: record.replay };
+    },
+    /** Settles when the battle's machine is gone and its capacity is free. */
+    release(host: HostedBattle): Promise<void> {
       const entry = active.get(host);
-      if (!entry) return;
+      if (!entry) return Promise.resolve();
       for (const close of entry.connections.values()) close();
       active.delete(host);
       host.dispose();
+      return entry.remote.stopped;
     },
     dispose() {
       for (const [host, entry] of active) {

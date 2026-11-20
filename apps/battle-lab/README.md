@@ -44,6 +44,11 @@ To work on one chapter, open `/battle?scenario=<map>/<name>&chapter=<id>`
 (optionally `&beat=<id>`, ids from the scenario's director): its solution plays
 the battle that far and hands it back to the player.
 
+[Full screen](src/fullscreen.ts) is the page's, as a video player's is: its
+key toggles it anywhere, and the main menu and the pause menu each carry a
+control. Esc stays the game's while full screen (Chromium's keyboard lock), so
+holding it, not pressing it, leaves.
+
 [The Guide](src/Guide.tsx) is the game's reference: a live battle's pause menu
 opens it as a modal over the paused battle that closes back to that menu. It
 reads

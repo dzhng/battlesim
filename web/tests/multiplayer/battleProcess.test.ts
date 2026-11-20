@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeAll, expect, test } from "vitest";
+import { archiveFolder } from "./support/archive";
 import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
@@ -31,7 +32,13 @@ test("a battle refuses an unauthenticated controller and an unseated browser wit
   const denied = await fetch(`${m.address}/control/referee`, { method: "POST" });
   expect(denied.status).toBe(403);
   expect((await denied.text()).includes(key), "credential appeared in readable output").toBe(false);
-  const host = createRemoteBattleHost({ candidates: [duel] }, "duel", Promise.resolve(m), key);
+  const host = createRemoteBattleHost(
+    { candidates: [duel] },
+    "duel",
+    Promise.resolve(m),
+    key,
+    () => {},
+  );
   cleanups.push(host.dispose);
   await host.ready;
   const reply = await fetch(`${m.address}/battles/duel/up`, {
@@ -90,6 +97,7 @@ async function lobby() {
     },
   };
   const server = createLobbyHttp(build, {
+    archive: archiveFolder(),
     machines,
     clock,
     random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
@@ -555,10 +563,17 @@ test("a refused map releases its machine before the next battle is admitted", as
     "refused",
     provider.start(key),
     key,
+    () => {},
   );
   cleanups.push(refused.dispose);
   await expect(refused.ready).rejects.toThrow();
-  const next = createRemoteBattleHost({ candidates: [duel] }, "admitted", provider.start(key), key);
+  const next = createRemoteBattleHost(
+    { candidates: [duel] },
+    "admitted",
+    provider.start(key),
+    key,
+    () => {},
+  );
   cleanups.push(next.dispose);
   expect(await next.ready).toMatchObject({
     layout: expect.any(String),

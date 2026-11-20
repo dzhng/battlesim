@@ -45,8 +45,10 @@ uses the observed center and declared offset, never a hidden operator position.
 ## Sensing
 
 [Optical sensing](src/sensing.rs) identifies visibility samples through clear
-lines of sight, tree crowns and smoke (`WorldGeometry::sight_depth`; a launch
-path and map analysis read the crowns alone). A sample's target concealment is
+lines of sight, the woods' canopy and smoke (`WorldGeometry::sight_depth`; a
+launch path and map analysis read the canopy alone). The canopy lies on a wood's
+own ground under its stands, never past its edge or over a lone tree
+([forests](src/world/forest.rs)). A sample's target concealment is
 **ground × unit × moving**: ground takes the strongest of forest, garrison
 shelter and a smoke cloud it stands in, the unit supplies its own concealment
 even in the open, and an in-progress move applies the authored movement

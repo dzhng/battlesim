@@ -4,6 +4,9 @@ use super::*;
 fn physics() -> GenerationPhysics {
     GenerationPhysics::from_rules_json(&sim::fixtures::test_rules().to_string()).unwrap()
 }
+/// A map with one rectangular wood; at 9 m spacing a 24 m wood is nine
+/// trees whose canopy is exactly a 3x3 block of fog cells, the least that
+/// witnesses.
 fn map(size: f64, bounds: [f64; 4]) -> MapDefinition {
     serde_json::from_value(serde_json::json!({
         "size":[size,size], "fog_cell_m":8., "height_grid_m":4., "slope_cutoff_deg":35.,
@@ -36,8 +39,7 @@ fn whole_rectangle_reach_uses_its_furthest_corner() {
     let mut physics = physics();
     physics.forests.rule.trunk_spacing_m = 9.;
     physics.forests.rule.trunk_jitter = 0.;
-    physics.forests.rule.canopy_radius_m = 12.;
-    let map = map(2_000., [999.5, 999.5, 1008.5, 1008.5]);
+    let map = map(2_000., [992., 992., 1016., 1016.]);
     let c = Coverage::new(&map, &physics, 100.).unwrap();
     assert!(c.covered([954., 604.], [1054., 704.]));
     // Its centre is within reach, but its far corner is not.
@@ -49,8 +51,7 @@ fn an_outward_only_patch_cannot_certify_an_in_bounds_fog_cut() {
     let mut physics = physics();
     physics.forests.rule.trunk_spacing_m = 9.;
     physics.forests.rule.trunk_jitter = 0.;
-    physics.forests.rule.canopy_radius_m = 12.;
-    let map = map(2_000., [7.5, 999.5, 16.5, 1008.5]);
+    let map = map(2_000., [0., 992., 24., 1016.]);
     let c = Coverage::new(&map, &physics, 100.).unwrap();
     assert_eq!(c.points, vec![[12., 1004.]]);
     // The only foliage is west of this eye. Its attenuated rays leave
@@ -72,8 +73,7 @@ fn a_three_cell_witness_keeps_its_far_bit_dark_across_native_ray_phases() {
     let mut physics = physics();
     physics.forests.rule.trunk_spacing_m = 9.;
     physics.forests.rule.trunk_jitter = 0.;
-    physics.forests.rule.canopy_radius_m = 12.;
-    let map = map(2_000., [999.5, 999.5, 1008.5, 1008.5]);
+    let map = map(2_000., [992., 992., 1016., 1016.]);
     let c = Coverage::new(&map, &physics, 100.).unwrap();
     assert_eq!(c.points, vec![[1004., 1004.]]);
     let rules: contract::scenario::Rules =
@@ -208,7 +208,6 @@ fn dense_physics() -> GenerationPhysics {
     let mut physics = physics();
     physics.forests.rule.trunk_spacing_m = 9.;
     physics.forests.rule.trunk_jitter = 0.;
-    physics.forests.rule.canopy_radius_m = 12.;
     physics
 }
 

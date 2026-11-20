@@ -3,10 +3,11 @@ import { isBrowserId, BROWSER_ID_HEADER } from "../../../../packages/multiplayer
 // credentials and sockets; the services see a browser id and a device.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { httpServer } from "./server.ts";
-import type { BuildIdentity } from "../../../../packages/multiplayer/src/wire.ts";
+import type { BuildIdentity, ReplayAnswer } from "../../../../packages/multiplayer/src/wire.ts";
 import { helloRegistry } from "./hello.ts";
 
-import { body, json } from "./io.ts";
+import { body, json, player } from "./io.ts";
+import { battleArchive } from "../archive.ts";
 import { createOnlineState } from "../online.ts";
 import { createFrontlineService } from "../frontline.ts";
 import { frontlineRequest } from "./frontline.ts";
@@ -17,6 +18,8 @@ import type { PresenceClock } from "../presence.ts";
 
 export type OnlineHttpOptions = {
   machines: BattleMachines;
+  /** The folder that keeps every battle's record. */
+  archive: string;
   clock: PresenceClock;
   random: () => number;
   /** How many maps a new Frontline game may draw before giving up. */
@@ -28,6 +31,7 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
   const hello = helloRegistry(build);
   const online = createOnlineState({
     ...options,
+    archive: battleArchive(options.archive, build),
     callsign: hello.callsignOf,
     releaseCallsign: hello.release,
   });
@@ -72,6 +76,14 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
     }
     if (url.pathname === "/rooms" || url.pathname.startsWith("/rooms/"))
       return roomRequest(request, response, url, rooms, options.clientAddressHeader);
+    const exported = /^\/battles\/([^/]+)\/replay$/.exec(url.pathname);
+    if (exported) {
+      if (request.method !== "POST") return json(response, 405, { refused: "method" });
+      const answer = await online.battleReplay(decodeURIComponent(exported[1]), player(request));
+      if (!("refused" in answer)) return json(response, 200, answer satisfies ReplayAnswer);
+      const status = { unknown: 404, not_seated: 403, unavailable: 410 }[answer.refused];
+      return json(response, status, answer);
+    }
     if (url.pathname.startsWith("/frontline/"))
       return frontlineRequest(request, response, url, frontline, options.clientAddressHeader);
     json(response, 404, { refused: "unknown" });

@@ -176,8 +176,10 @@ test("foliage thins exactly where the side's cleared ground runs say", () => {
     expect(ground.clearedCount).toBe(cleared.length);
     expect(ground.isCleared(lo, lo) && !ground.isCleared(lo - 1, lo)).toBe(true);
     const known = cells(world.foliage_cleared(ground.clearedRuns(), size, 1));
-    // A fallen crown reaches no further than this past the block's edge.
-    const reach = TEST_RULES.forests.rule.canopy_radius_m + 2 * cellM;
+    // A fallen tree opens canopy no further than this past the block's edge:
+    // its own, and that of a partner it leaves alone.
+    const { trunk_spacing_m, canopy_radius_m } = TEST_RULES.forests.rule;
+    const reach = trunk_spacing_m + 2 * canopy_radius_m + 2 * cellM;
     let opened = 0;
     let untouched = 0;
     for (const [key, cell] of standing) {

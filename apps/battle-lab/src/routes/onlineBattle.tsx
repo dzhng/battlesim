@@ -166,8 +166,9 @@ function PreparedOnlineBattle({
       side={ticket.side}
       player={ticket.player}
       onSaveReplay={async ({ sim }, camera) => {
+        // The lobby answers after the battle's own server has gone.
         const { replay } = await onlineRequest<ReplayAnswer>(
-          ticket.address,
+          address,
           `/battles/${encodeURIComponent(ticket.battle)}/replay`,
           {},
           AbortSignal.timeout(10_000),

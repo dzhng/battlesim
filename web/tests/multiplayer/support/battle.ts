@@ -103,7 +103,13 @@ export function testHost(candidates: BattleSetup[], clock: BattleClock): BattleH
     createBattle: (spec) => createBattleHost(spec, { clock, generator }, data),
     ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
   });
-  const remote = createRemoteBattleHost({ candidates }, "contract", machines.start(key), key);
+  const remote = createRemoteBattleHost(
+    { candidates },
+    "contract",
+    machines.start(key),
+    key,
+    () => {},
+  );
   let ended: string | null = null;
   remote.onEnd((end) => {
     ended = end.kind === "finished" ? "finished" : "crashed";

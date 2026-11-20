@@ -41,7 +41,7 @@ the content.
 
 ## Try it
 
-You need Bun, Rustup, `wasm-pack`, and a WebGPU browser.
+You need Bun, Rustup, `wasm-pack`, and Chrome (or another Chromium browser).
 
 ```bash
 bun run setup

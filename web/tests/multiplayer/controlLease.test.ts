@@ -39,6 +39,7 @@ test(
       "lease",
       Promise.resolve({ address, stop: stopped }),
       "a".repeat(32),
+      () => {},
     );
     host.onEnd((end) => ended.push(end));
     try {
@@ -90,6 +91,7 @@ test("a broken control stream fails explicitly even while its health checks answ
     "broken",
     Promise.resolve({ address, stop() {} }),
     "b".repeat(32),
+    () => {},
   );
   host.onEnd((end) => ended.push(end));
   try {

@@ -1,8 +1,8 @@
 /** The one command key table (the user's key decisions): the keys
  *  `useUnitControl` dispatches. Camera keys (WASD, Q/E, arrows) belong to
  *  renderer-core's camera, and UI keys to their own owners (contact focus in
- *  `LabViewport`, the shop and the pause menu in their components); no
- *  command may take one of them. */
+ *  `LabViewport`, the shop and the pause menu in their components, full
+ *  screen at the app's root); no command may take one of them. */
 import { isGameKey, type KeyPress } from "./keyGuard";
 
 export type KeyCommand =
@@ -29,14 +29,14 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   stop: { code: "Backspace", label: "Backspace" },
   attack_move: { code: "KeyC", label: "C or Ctrl+right-click" },
   reverse_move: { code: "KeyR", label: "R, or right-click behind one vehicle" },
-  toggle_fire_policy: { code: "KeyF", label: "F" },
+  /** F is full screen's, so the fire policy takes H. */
+  toggle_fire_policy: { code: "KeyH", label: "H" },
   attack_ground: { code: "KeyG", label: "G" },
   toggle_deployment: { code: "KeyT", label: "T" },
   toggle_afterburner: { code: "KeyV", label: "V" },
   /** Arms Unload; pressed again while armed, unloads where the carriers stand. */
   unload: { code: "KeyU", label: "U" },
-  /** X is the camera's pitch key, so smoke takes H. */
-  pop_smoke: { code: "KeyH", label: "H" },
+  pop_smoke: { code: "KeyM", label: "M" },
   /** Refund: the selection heads home and is refunded on arrival; Shift
    *  sends it once its other orders are done. */
   return_to_base: { code: "KeyB", label: "B" },
@@ -49,6 +49,9 @@ export const ShowOrdersBinding: CommandBinding = { code: "Space", label: "Space"
 
 /** The view to the newest contact, then each older one (Shift: newer). */
 export const ContactFocusBinding: CommandBinding = { code: "KeyN", label: "N" };
+
+/** Full screen on and off, anywhere in the app (`fullscreen.ts`). */
+export const FullscreenBinding: CommandBinding = { code: "KeyF", label: "F" };
 
 const BY_CODE = new Map(
   (Object.entries(CommandBindings) as [KeyCommand, CommandBinding][]).map(([c, b]) => [b.code, c]),

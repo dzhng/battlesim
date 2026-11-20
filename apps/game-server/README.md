@@ -113,10 +113,16 @@ Disconnects use presence's one grace; Deploy starts that grace again for a page
 about to open its first battle stream. The last active human or reservation out
 ends the game, even if an AI still holds an absent commander's seat.
 
-[Replay exports](../../packages/multiplayer/wire.md#a-battle-servers-endpoints)
-give a seated browser the full command history while its battle server is live.
-They include both sides' orders; the ordinary battle stream still carries only
-the caller's side's knowledge. Camera history stays with the recording browser.
+[The archive](src/archive.ts) keeps one record per battle in `battles/` beside
+the lobby bundle: its setup, build, outcome, accepted command history and a
+digest of each browser that held a seat, never the browser id itself. Hosting
+asks the battle server for the history before it stops the machine, whether
+the battle finished or the lobby stopped it; a crashed battle keeps its record
+without one. [Replay exports](../../packages/multiplayer/wire.md#the-lobbys-endpoints)
+are the lobby's: a seated browser gets the running battle's history through the
+control link, and anyone who held a seat gets the archived one afterwards. Both
+include both sides' orders; the ordinary battle stream still carries only the
+caller's side's knowledge. Camera history stays with the recording browser.
 
 The referee view is server accounting, read directly from battle state. It is
 separate from either side's fog-limited publication. Administrative seat events

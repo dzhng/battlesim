@@ -4,7 +4,8 @@
 // the film behind never restarts and the menu's own cover never comes back. A
 // loading screen stands in the plate's place until the backdrop is first
 // ready; after that, a page still loading (the Armory, until its stage draws)
-// stands under a cover of its own, so the film never stands in for it.
+// stands under a cover of its own, so the film never stands in for it. Home
+// keeps full screen in the screen's corner, outside the plate.
 import {
   createContext,
   useCallback,
@@ -25,6 +26,10 @@ import { graphicsDetectionState, subscribeGraphicsDetection } from "../graphicsD
 import { GRAPHICS_TIERS, graphicsSettings } from "../graphicsSettings";
 import { allowRuntimePrefetch } from "../runtimePrefetch";
 import { menuPage, type MenuPageId } from "./pages";
+import { hudIcon } from "@packages/scene-assets/src/icons";
+import { FullscreenBinding } from "@web/battle/input/commandBindings";
+import { Icon } from "@web/battle/present/icons";
+import { fullscreenLabel, toggleFullscreen, useFullscreen } from "../fullscreen";
 
 /** What the shell tells the page it holds. */
 export interface MenuShellState {
@@ -143,6 +148,7 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
             </GraphicsDetectionHost>
           </div>
         </LoadingTasks>
+        {page === "home" && <FullscreenButton />}
       </main>
       {displayLoading && (
         <LoadingScreen
@@ -162,5 +168,22 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
         />
       )}
     </Shell>
+  );
+}
+
+/** Full screen on and off, in the screen's bottom-right corner. */
+function FullscreenButton() {
+  const full = useFullscreen();
+  const label = fullscreenLabel(full);
+  return (
+    <button
+      type="button"
+      className="hud-panel hud-icon-button menu-fullscreen"
+      aria-label={label}
+      title={`${label} (${FullscreenBinding.label})`}
+      onClick={() => void toggleFullscreen().catch(() => {})}
+    >
+      <Icon path={hudIcon(full ? "exit_fullscreen" : "fullscreen")} />
+    </button>
   );
 }

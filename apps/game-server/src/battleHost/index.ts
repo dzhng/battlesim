@@ -90,6 +90,8 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   /** Why the battle is over, once it is. */
   let over: string | null = null;
   let end: BattleEnd | null = null;
+  /** The history a finished battle keeps after its worker stops, for its lobby's archive. */
+  let final: Promise<string> | null = null;
   const endings: ((end: BattleEnd) => void)[] = [];
   let nextId = 1;
   const acks = new Map<number, Waiter<CommandAck>>();
@@ -232,7 +234,12 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
         return settle(replays, message.id, message.json);
       case "status":
         // The wire has three statuses; the last two are said by `close`.
-        if (message.status === "finished") return close("finished", { kind: "finished" });
+        if (message.status === "finished") {
+          if (final) return;
+          final = ask(replays, (id) => ({ type: "replay", id }));
+          const finish = () => close("finished", { kind: "finished" });
+          return void final.then(finish, finish);
+        }
         if (message.status !== "running") return;
         if (told?.status === message.status && told.slow === message.slow) return;
         told = { status: "running", slow: message.slow };
@@ -356,7 +363,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
       if (end) handle(end);
       else endings.push(handle);
     },
-    replay: () => ask(replays, (id) => ({ type: "replay", id })),
+    replay: () => final ?? ask(replays, (id) => ({ type: "replay", id })),
     dispose: () => close("disposed", null),
   };
 }
