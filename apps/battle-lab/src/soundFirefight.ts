@@ -177,7 +177,7 @@ export function firefightScript(units: UnitCatalog): Script {
           "ground",
         ),
       );
-      blasts.push({ point: [5, 12, 0], radius: 6, kind: "tank_he" });
+      blasts.push({ point: [5, 12, 0], radius: 6, kind: "tank_he", hit: "ground" });
     }
     if (inBurst("hmg", hmgStarts, tick)) {
       tankShots = [tankShots[0], tankShots[1] + 1];
@@ -223,7 +223,7 @@ export function firefightScript(units: UnitCatalog): Script {
       const done = u >= 1;
       segments.push(seg([missile, next], "atgm", null, done ? "hull" : "none"));
       if (done) {
-        blasts.push({ point: next, radius: 3, kind: "atgm" });
+        blasts.push({ point: next, radius: 3, kind: "atgm", hit: "hull" });
         missile = null;
       } else missile = next;
     }

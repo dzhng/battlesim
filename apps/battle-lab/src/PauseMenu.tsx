@@ -4,7 +4,9 @@ import { Link } from "react-router";
 // pauses the battle, and closing it resumes a battle it paused. It holds
 // what the player reaches between moments of play: the Guide, the settings,
 // restart, and the route's own items (the scenario). Restart and main menu
-// ask first: either loses the battle in progress.
+// ask first: either loses the battle in progress. Leaving an online battle
+// loses nothing (the seat's AI takes over, and the seat can be returned to),
+// so its item leaves at once.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
@@ -89,6 +91,8 @@ export function PauseMenu({
   /** Take an authored scenario back to its open chapter's start; none
    *  before that start is ready to restart. */
   onRestartChapter?: () => void;
+  /** Leave an online battle for Multiplayer; none offline, which asks first
+   *  and goes to the main menu. */
   onLeave?: () => void;
   onSettingsApply?: () => void | Promise<void>;
   onSaveReplay?: () => Promise<unknown>;
@@ -128,11 +132,9 @@ export function PauseMenu({
             <>
               <strong className="hud-menu-title">{question.title}</strong>
               <div className="hud-menu-note">
-                {online
-                  ? "An AI will take command of your units."
-                  : asking === "chapter"
-                    ? "Progress since the chapter began will be lost."
-                    : "Progress in this battle will be lost."}
+                {asking === "chapter"
+                  ? "Progress since the chapter began will be lost."
+                  : "Progress in this battle will be lost."}
               </div>
               <button
                 type="button"
@@ -142,11 +144,7 @@ export function PauseMenu({
               >
                 {question.back}
               </button>
-              {asking === "leave" && onLeave ? (
-                <button type="button" className="hud-menu-item" onClick={onLeave}>
-                  {question.go}
-                </button>
-              ) : asking === "leave" ? (
+              {asking === "leave" ? (
                 <Link className="hud-menu-item" to="/">
                   {question.go}
                 </Link>
@@ -196,9 +194,15 @@ export function PauseMenu({
                 </button>
               )}
               {children}
-              <button type="button" className="hud-menu-item" onClick={() => setAsking("leave")}>
-                {onLeave ? "Multiplayer" : "Main menu"}
-              </button>
+              {onLeave ? (
+                <button type="button" className="hud-menu-item" onClick={onLeave}>
+                  Leave battle
+                </button>
+              ) : (
+                <button type="button" className="hud-menu-item" onClick={() => setAsking("leave")}>
+                  Main menu
+                </button>
+              )}
             </>
           )}
         </div>

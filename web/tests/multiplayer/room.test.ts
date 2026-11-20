@@ -4,6 +4,7 @@ import {
   battleSetup,
   canStart,
   createRoom,
+  deserted,
   roomCode,
   ROOM_CODE_ALPHABET,
   recordBattle,
@@ -203,7 +204,7 @@ test("each human gets the battle player for their own seat and side", () => {
   expect(guestPhase).toMatchObject({ kind: "battle", ticket: { side: "red", player: "red-1" } });
 });
 
-test("leaving after start keeps the member, seat and ticket", () => {
+test("leaving after start keeps the member's seat and ticket for their return, and marks them away", () => {
   let state = room();
   state = changed(state, host.who, { kind: "set_seat", seat: "seat-2", to: "ai" });
   state = changed(state, host.who, { kind: "ready", ready: true });
@@ -213,12 +214,29 @@ test("leaving after start keeps the member, seat and ticket", () => {
     id: "battle-42",
     mapIdentity: "map-42",
   });
-  const afterLeave = roomReduce(state, host.who, { kind: "leave" }, 30);
-  expect(afterLeave).toEqual(state);
-  expect(roomView(afterLeave as Room, host.who).phase).toMatchObject({
+  expect(deserted(state)).toBe(false);
+  const left = changed(state, host.who, { kind: "leave" }, 30);
+  expect(left.members.map((member) => member.away)).toEqual([true]);
+  expect(deserted(left)).toBe(true);
+  expect(roomView(left, host.who).phase).toMatchObject({
     kind: "battle",
     ticket: { battle: "battle-42", player: "blue-1" },
   });
+  // Opening the room again is the way back to the same seat.
+  const back = changed(left, host.who, { kind: "join", callsign: host.callsign }, 40);
+  expect(back).toEqual(state);
+  expect(deserted(back)).toBe(false);
+});
+
+test("a battle one human has left is not deserted while another is still in it", () => {
+  let state = changed(room(), guest.who, { kind: "join", callsign: guest.callsign });
+  state = changed(state, host.who, { kind: "ready", ready: true });
+  state = changed(state, guest.who, { kind: "ready", ready: true });
+  expect(deserted(state)).toBe(false);
+  state = changed(state, host.who, { kind: "start" });
+  state = changed(state, host.who, { kind: "leave" });
+  expect(deserted(state)).toBe(false);
+  expect(deserted(changed(state, guest.who, { kind: "leave" }))).toBe(true);
 });
 
 test("a human-held seat cannot be changed with set_seat", () => {

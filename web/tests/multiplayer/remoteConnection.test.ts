@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { timerClock } from "./timerClock";
 import { afterEach, expect, test, vi } from "vitest";
-import { loopback } from "../../../packages/multiplayer/src/link";
+import { loopback, PREVIEW_INTERVAL_MS } from "../../../packages/multiplayer/src/link";
 import { KEYFRAME, recordSource } from "../../../packages/multiplayer/src/stream/index";
 import type { UpBatch, UpReply } from "../../../packages/multiplayer/src/wire";
 import { remoteConnection } from "../../src/battle/remote/connection";
@@ -154,7 +154,7 @@ test("previews keep only the newest waiting intent, settle dropped requests, and
     reason: "superseded",
   });
   finish({ moves: [] });
-  await flush();
+  await vi.advanceTimersByTimeAsync(PREVIEW_INTERVAL_MS);
   expect(destinations).toEqual([1, 3]);
   expect(c.replies).toContainEqual({ type: "move_preview", id: 1, destinations: [] });
   expect(c.replies).toContainEqual({
@@ -165,6 +165,40 @@ test("previews keep only the newest waiting intent, settle dropped requests, and
   });
   await vi.runOnlyPendingTimersAsync();
   expect(destinations).toEqual([1, 3]);
+  expect(c.failures).toEqual([]);
+});
+
+test("a page asks for previews no faster than the server answers them, and the newest waits its turn", async () => {
+  vi.useFakeTimers();
+  const c = connected();
+  const destinations: number[] = [];
+  c.port.onPreview((query) => {
+    if (query.kind !== "move") throw new Error("wrong query");
+    destinations.push(query.move.goal[0]);
+    return Promise.resolve({ moves: [] });
+  });
+  const move = (id: number): SimRequest => ({
+    type: "move_preview",
+    id,
+    side: "blue",
+    move: { units: [], goal: [id, 0] },
+  });
+  c.channel.send(move(1));
+  await flush();
+  // The first answer is back at once; the pointer has already moved twice.
+  c.channel.send(move(2));
+  c.channel.send(move(3));
+  await vi.advanceTimersByTimeAsync(PREVIEW_INTERVAL_MS - 1);
+  expect(destinations).toEqual([1]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(destinations).toEqual([1, 3]);
+  expect(c.replies).toContainEqual({
+    type: "request_refused",
+    request: "preview",
+    id: 2,
+    reason: "superseded",
+  });
+  expect(c.replies).toContainEqual({ type: "move_preview", id: 3, destinations: [] });
   expect(c.failures).toEqual([]);
 });
 

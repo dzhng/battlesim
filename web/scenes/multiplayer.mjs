@@ -101,6 +101,15 @@ export async function run(ctx) {
       );
     }
     await capture(page, folder, "rooms");
+    await page.getByRole("button", { name: "Create room", exact: true }).click();
+    await page.getByRole("dialog", { name: "Create room" }).waitFor();
+    await capture(page, folder, "create");
+    await page.keyboard.press("Escape");
+    ctx.check(
+      "Escape closes the create dialog and stays on Multiplayer",
+      (await page.getByRole("dialog").count()) === 0 &&
+        (await page.getByRole("list", { name: "Rooms" }).isVisible()),
+    );
     await page.goto(new URL(ctx.url).origin);
     await page.locator("main.menu:not([inert])").waitFor({ timeout: 120_000 });
     await page.getByRole("navigation", { name: "Main menu" }).waitFor();

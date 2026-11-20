@@ -43,7 +43,7 @@ export interface HeardPublication {
       hit: string;
       normal: Point | null;
     }[];
-    blasts: readonly { point: Point; radius: number; kind: string }[];
+    blasts: readonly { point: Point; radius: number; kind: string; hit: string }[];
     smokes: readonly { key: string; kind: string; center: Point; yaw: number; half: Point }[];
     cookOffs?: readonly { center: Point; height: number; landing: Point | null }[];
     flareDeploys?: readonly Point[];

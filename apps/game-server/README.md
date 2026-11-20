@@ -44,13 +44,20 @@ A finished or failed battle deletes its room and frees the reserved capacity;
 existing battle readers receive the final observation before the stream ends.
 Preparation failures and crashes close room streams with `battle_failed`.
 
-A dropped member keeps their seat and army, driven by AI until any of their
-streams reopens. Controller changes belong to the battle's recorded history;
-they change no lobby membership. Empty-room deletion disposes its host too.
+A dropped member keeps their seat and army, driven by AI until one of the
+room's streams reopens for them. A member who chooses to leave a battle is
+away from it at once, with no grace, and a battle every human has left that
+way ends there and then: nobody is left to play it, and its machine is given
+back. Controller changes belong to the battle's recorded history; they change
+no lobby membership. Empty-room deletion disposes its host too.
 
 [Presence](src/presence.ts) counts all of a browser's open streams together.
-Its disconnect grace protects seats across stream cuts; a room's lifetime is
-measured from its last connected human, including a room nobody ever opens.
+Its disconnect grace protects seats across stream cuts. That count holds a
+browser's callsign and Frontline's seats. Each room keeps a count of its own
+with the same module, over its state stream and its battle's streams only:
+a member reading the room list is connected, and is not in their room. A
+room's lifetime is measured from the last human in it, including a room
+nobody ever opens.
 Callsigns are assigned by `/hello` and held while connected or remembered by an
 online mode, including admission still preparing a battle. Once both have
 forgotten a browser, its name is available again.

@@ -380,6 +380,8 @@ export interface BlastView {
   radius: number;
   /** The round kind (a weapon row name). */
   kind: string;
+  /** What it burst against, from the layout's `hitKinds`. */
+  hit: string;
 }
 
 /** What a mount is aimed at: a side-scoped handle or a ground point. */

@@ -16,8 +16,8 @@ export function battleCapacity(cores = cpus().length, memoryBytes = totalmem()):
 }
 
 type Member = {
-  changed(who: string): void;
-  gone(who: string): void;
+  changed?(who: string): void;
+  gone?(who: string): void;
   remembers(who: string): boolean;
 };
 
@@ -42,10 +42,10 @@ export function createOnlineState(options: {
   const presence = createPresence(
     options.clock,
     (who) => {
-      for (const m of members) m.changed(who);
+      for (const m of members) m.changed?.(who);
     },
     (who) => {
-      for (const m of members) m.gone(who);
+      for (const m of members) m.gone?.(who);
       releaseIfForgotten(who);
     },
   );
@@ -60,9 +60,11 @@ export function createOnlineState(options: {
         devicesWithGame.delete(device);
       };
     },
-    createBattle: (candidates: BattleSetup[], id: string): HostedBattle => {
-      return battles.create(candidates, id);
-    },
+    createBattle: (
+      candidates: BattleSetup[],
+      id: string,
+      attend?: (who: string) => () => void,
+    ): HostedBattle => battles.create(candidates, id, attend),
     battleAddress: (host: HostedBattle) => battles.address(host),
     frontline: () => frontline,
     publishFrontline(next: RoomList["frontline"]) {

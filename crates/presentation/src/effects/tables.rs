@@ -347,13 +347,18 @@ pub struct SparkStyle {
 
 /// A burst: its fireball per metre of blast radius, and the one the
 /// style's numbers describe (`reference_size_m`); smaller ones burn, spark,
-/// throw and light less.
-#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+/// throw and light less. What it went off against (`surfaces`, by a
+/// segment's `hit`, else `default`) decides how much of it is fire and
+/// what it throws up.
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BlastStyle {
     pub size_per_radius: f64,
     pub reference_size_m: f64,
     pub duration_s: f64,
+    /// How long the fireball takes to reach its full size: the fire sheet's
+    /// growing frames play within it, the rest over the blast's remaining life.
+    pub bloom_s: f64,
     pub tint: Vec3,
     pub emissive: f64,
     pub opacity: f64,
@@ -363,9 +368,20 @@ pub struct BlastStyle {
     pub spark_scale: f64,
     pub flash_duration_s: f64,
     pub sparks: f64,
-    pub plume: PuffBurst,
+    pub surfaces: HashMap<String, BlastSurface>,
     pub smoke: PuffBurst,
     pub cast: CastStyle,
+}
+
+/// A burst against one surface: its fireball's size and glow (`fire`) and
+/// its sparks over the style's, and what it throws up (`plume`): a fountain
+/// of earth off the ground, dust and debris off a wall or a hull.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlastSurface {
+    pub fire: f64,
+    pub sparks: f64,
+    pub plume: PuffBurst,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
@@ -507,6 +523,17 @@ impl EffectPresentation {
         ensure(b.cast.duration_s <= b.duration_s, || {
             "blast.cast outlives its blast".into()
         })?;
+        ensure(b.bloom_s > 0.0 && b.bloom_s < b.duration_s, || {
+            "blast.bloom_s must be positive and inside its blast".into()
+        })?;
+        ensure(b.surfaces.contains_key("default"), || {
+            "blast.surfaces needs a default".into()
+        })?;
+        for (hit, s) in &b.surfaces {
+            ensure(s.fire > 0.0 && s.sparks >= 0.0, || {
+                format!("blast.surfaces.{hit}: fire > 0 and sparks ≥ 0")
+            })?;
+        }
         self.cook_off.validate()?;
         if let Some(d) = &self.shot_dust {
             for (k, b) in [("hull", &d.hull), ("ground", &d.ground.burst)] {
@@ -582,7 +609,8 @@ impl EffectPresentation {
     fn max_lifetime(&self) -> f64 {
         let b = &self.blast;
         let burst = |p: &PuffBurst| p.over_s + p.puff.life_s;
-        let fire = b.duration_s.max(burst(&b.plume)).max(burst(&b.smoke));
+        let plumes = b.surfaces.values().map(|s| burst(&s.plume));
+        let fire = plumes.fold(b.duration_s.max(burst(&b.smoke)), f64::max);
         let c = &self.cook_off;
         let mut longest = fire
             .max(self.dust.puff.life_s)
@@ -596,7 +624,7 @@ impl EffectPresentation {
         for f in &c.fireballs {
             longest = longest.max(c.delay_s + f.after_s + fire);
         }
-        longest = longest.max(c.impact_after() + burst(&b.plume));
+        longest = longest.max(c.impact_after() + burst(&pick(&b.surfaces, "ground").plume));
         for look in self.looks.looks.values() {
             let Some(f) = &look.flash else { continue };
             let lit = f.cast.map_or(0.0, |c| c.duration_s);

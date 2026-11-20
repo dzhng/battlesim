@@ -135,13 +135,10 @@ test("a completed preview can confirm without another pointer movement", async (
   });
 });
 
-test("a click that outruns the preview still buys, where the authority sends it", async () => {
-  // Every answer comes a moment after it is asked, as from a remote authority.
+test("a click that outruns the preview buys at once, at the spot under the pointer", async () => {
+  // No preview ever answers, as on a link slower than the player's hand.
   const client = {
-    previewPurchase: vi.fn(async (_variant: string, [x, y]: [number, number]) => {
-      await settle();
-      return { Ok: { kind: 1, destination: [x + 2, y], spots: [], area_radius_m: null } };
-    }),
+    previewPurchase: vi.fn(() => new Promise<PurchasePlacement>(() => {})),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
@@ -150,15 +147,17 @@ test("a click that outruns the preview still buys, where the authority sends it"
   const placed = control.confirm(send);
   // The pointer moves on before any answer: the click was for (10, 20).
   control.at([50, 60], client, "1");
-  expect(await placed).toMatchObject({ destination: [12, 20], valid: true });
+  expect(await placed).toMatchObject({ destination: [10, 20], valid: true });
+  // The authority places it: the order names the spot, not a preview's answer.
   expect(send).toHaveBeenCalledExactlyOnceWith({
     kind: "confirm_purchase",
     variant: "test_scout",
-    destination: [12, 20],
+    destination: [10, 20],
   });
+  expect(control.variant).toBeNull();
 });
 
-test("a click on ground the authority refuses buys nothing, answered or not", async () => {
+test("a click the authority refuses buys nothing and keeps the unit in hand", async () => {
   const client = {
     previewPurchase: vi.fn(async () => {
       await settle();
@@ -168,14 +167,45 @@ test("a click on ground the authority refuses buys nothing, answered or not", as
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
   control.at([10, 20], client, "1");
-  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
-  expect(await control.confirm(send)).toBeNull();
+  // Unanswered, the click goes to the authority, which refuses the order.
+  const refuse = vi.fn(async () => ({
+    seq: 1,
+    applied_tick: 2,
+    error: { reason: "no_valid_destination" },
+    refused: [],
+  }));
+  expect(await control.confirm(refuse)).toBeNull();
+  expect(refuse).toHaveBeenCalledTimes(1);
+  expect(control.variant).toBe("test_scout");
+  // Once the spot's preview has refused it, a click there sends nothing.
   control.at([10, 20], client, "1");
   await settle();
   expect(control.at([10, 20], client, "1")?.valid).toBe(false);
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
   expect(await control.confirm(send)).toBeNull();
   expect(send).not.toHaveBeenCalled();
   expect(control.variant).toBe("test_scout");
+});
+
+test("a preview that never arrives leaves the ghost undecided and the click still buys", async () => {
+  // A dropped or timed-out preview is no answer about the ground.
+  const client = {
+    previewPurchase: vi.fn(async () => {
+      await settle();
+      throw new Error("dropped");
+    }),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  await settle();
+  await settle();
+  expect(control.at([10, 20], client, "1")?.valid).toBeNull();
+  // The failure is not asked again until the pointer or the battle moves on.
+  expect(client.previewPurchase).toHaveBeenCalledTimes(1);
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  expect(await control.confirm(send)).toMatchObject({ destination: [10, 20] });
+  expect(send).toHaveBeenCalledTimes(1);
 });
 
 test("placing several in a row buys each, though the last is not yet acknowledged", async () => {

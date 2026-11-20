@@ -237,7 +237,7 @@ fn nested_misspellings_including_flat_puffs_are_refused() {
         "/fog/styles/dusk/lines",
         "/pose/stance",
         "/effects/shot_dust/ground",
-        "/effects/blast/plume",
+        "/effects/blast/surfaces/ground/plume",
         "/overlay/orders/flash",
         "/camera/clearance",
     ] {

@@ -347,6 +347,7 @@ pub(super) fn pack_record(
             b.point[2] as f32,
             b.radius as f32,
             b.kind as f32,
+            tag(&SEGMENT_HITS, &b.hit),
         ]);
     }
     if let Some(ends) = ends.as_mut() {

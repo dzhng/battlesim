@@ -31,8 +31,9 @@ const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(
 /** The overlay draws for the session's commanding viewer (Blue's colours
  *  when watching) through a camera opening at `camera`; nothing when not `shown`.
  *  `overlayFeed` is what the viewport uploads, and `partsFeed` the layers it
- *  combines (`battleOverlayParts`), set together. Call `follow` with each
- *  frame's camera and render scale. */
+ *  combines (`battleOverlayParts`), set together; `entries` are the side's
+ *  roads in, for their cards. Call `follow` with each frame's camera and
+ *  render scale. */
 export function useBattleOverlay(
   session: BattleSession,
   {
@@ -140,5 +141,5 @@ export function useBattleOverlay(
     },
     [face],
   );
-  return { overlayFeed, partsFeed, follow };
+  return { overlayFeed, partsFeed, follow, entries: parsed.drawn.deployments };
 }

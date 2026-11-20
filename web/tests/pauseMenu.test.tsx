@@ -57,6 +57,15 @@ test("leaving for the main menu asks first, and staying keeps the battle", async
   view.unmount();
 });
 
+test("an online battle's menu leaves in one press, with no question to answer", async () => {
+  let left = 0;
+  const view = render(<PauseMenu online onClose={() => {}} onLeave={() => left++} />);
+  await act(async () => view.getByRole("button", { name: "Leave battle" }).click());
+  expect(left).toBe(1);
+  expect(view.queryByRole("dialog", { name: "Leave the battle?" })).toBeNull();
+  view.unmount();
+});
+
 test("restart asks first, and only confirming restarts", async () => {
   let restarts = 0;
   const view = render(<PauseMenu onClose={() => {}} onRestart={() => restarts++} />);

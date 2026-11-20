@@ -3,7 +3,9 @@ import { shippedRules } from "@web/shippedRules";
 // A side's players share its roads in, and a purchase may arrive by any of
 // them, so every road in of the viewer's side carries its beacons, and no
 // road in of the other side does. Each also paints its lane's number nearer
-// the edge, and a unit's marks draw over it.
+// the edge, and a unit's marks draw over it. Pulled far out, where the
+// painted marker shrinks to a few pixels, it glows across a patch of screen
+// so the roads in still stand out.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
@@ -12,6 +14,9 @@ import type { ObservationView } from "@web/battle/sim/observationView";
 import { battleOverlayScenario, buildBattleOverlay } from "@apps/battle-lab/src/battleOverlay";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
+import { gameStroke, OPENING_METRES_PER_PX } from "@apps/battle-lab/src/gameOverlay";
+import { gameCamera } from "@apps/battle-lab/src/gameCamera";
+import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 
 /** The way Blue's roads run in from its edge. */
 const BLUE_IN = -Math.PI / 2;
@@ -61,6 +66,7 @@ beforeAll(() => {
 type P = [number, number];
 interface Vertex {
   at: P;
+  alpha: number;
   /** The marching pass reads the normal as pulse data; still marks have none. */
   pulses: boolean;
 }
@@ -82,8 +88,13 @@ const catalog = {
 } as unknown as UnitCatalog;
 
 /** The marching paint's vertices in draw order, as `side` sees the battle
- *  with Blue 1 human, and Blue 1's tank beside its road selected or not. */
-function marching(side: "blue" | "red", selected: number[] = []): Vertex[] {
+ *  with Blue 1 human, and Blue 1's tank beside its road selected or not,
+ *  through a camera where one pixel spans `metresPerPx`. */
+function marching(
+  side: "blue" | "red",
+  selected: number[] = [],
+  metresPerPx = OPENING_METRES_PER_PX,
+): Vertex[] {
   const players = ["blue-1", "blue-2", "red-1", "red-2"].map((id) => seat(id, id === "blue-1"));
   const lanes = lanesOf(wasm, JSON.stringify(scenario.skirmish.sites), players).entries;
   const own = { ...observation, own: selected.length ? [TANK] : [] } as unknown as ObservationView;
@@ -95,11 +106,13 @@ function marching(side: "blue" | "red", selected: number[] = []): Vertex[] {
     () => 0,
     battleOverlayScenario(scenario, lanes, side),
     { showOrders: false, reveal: new Map(), contacts: [], facing: () => 0 } as never,
+    null,
+    gameStroke(metresPerPx),
   );
   const mesh = meshes.paintedMarching ?? new Float32Array();
   const out: Vertex[] = [];
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
-    out.push({ at: [mesh[i], mesh[i + 1]], pulses: mesh[i + 5] !== 0 });
+    out.push({ at: [mesh[i], mesh[i + 1]], alpha: mesh[i + 9], pulses: mesh[i + 5] !== 0 });
   return out;
 }
 
@@ -155,4 +168,30 @@ test("a unit's marks draw over the road in it stands beside", () => {
   expect(marker.length).toBeGreaterThan(0);
   expect(ring.length).toBeGreaterThan(0);
   expect(Math.max(...marker.map(order))).toBeLessThan(Math.min(...ring.map(order)));
+});
+
+/** One pixel at the camera's target, pulled all the way out on a 1080-pixel
+ *  viewport. */
+const FARTHEST_M_PER_PX = metresPerPxAt(gameCamera.config.zoom_max, gameCamera.lens.fovY, 1080);
+
+/** How far across its road, either way, a road in's visible paint reaches. */
+const spread = (vertices: Vertex[], road: P) =>
+  Math.max(
+    ...near(vertices, road, 120)
+      .filter((v) => v.alpha > 0.02)
+      .map((v) => Math.abs(aside(road, v.at))),
+  );
+
+test("pulled all the way out, each road in still glows across a patch of screen", () => {
+  // The painted marker is a few metres wide: a pixel or two from this far.
+  // A dozen pixels either way of the road reads as a mark at a glance.
+  const far = marching("blue", [], FARTHEST_M_PER_PX);
+  for (const road of BLUE_ROADS)
+    expect(spread(far, road) / FARTHEST_M_PER_PX, `blue road at ${road}`).toBeGreaterThan(12);
+});
+
+test("close in, a road in is only its painted marker, with no glow around it", () => {
+  const near = marching("blue");
+  // The widest beacon's radius is the marker's own width.
+  for (const road of BLUE_ROADS) expect(spread(near, road), `blue road at ${road}`).toBeLessThan(4);
 });

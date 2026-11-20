@@ -44,6 +44,9 @@ export interface Member {
   seat: SeatId;
   ready: boolean;
   since: number;
+  /** They chose to leave the room's battle. Their seat and ticket stay theirs
+   *  to return to, and its AI commands meanwhile. */
+  away: boolean;
 }
 
 export type RoomPhase = "lobby" | "starting" | "battle";
@@ -96,7 +99,7 @@ export function createRoom(
     code,
     visibility,
     lobby,
-    members: [{ ...host, seat: hostSeat, ready: false, since: now }],
+    members: [{ ...host, seat: hostSeat, ready: false, since: now, away: false }],
     host: host.who,
     phase: "lobby",
     battle: null,
@@ -233,7 +236,16 @@ export function roomReduce(
   now: number,
 ): Room | RoomRefusal {
   if (action.kind === "join") {
-    if (memberOf(room, by)) return room;
+    const returning = memberOf(room, by);
+    if (returning)
+      return returning.away
+        ? {
+            ...room,
+            members: room.members.map((member) =>
+              member === returning ? { ...member, away: false } : member,
+            ),
+          }
+        : room;
     if (room.phase !== "lobby") return refusal("started");
     const sideOrder = [...SIDES].sort((a, b) => humanCount(room, a) - humanCount(room, b));
     const destination = sideOrder
@@ -246,14 +258,31 @@ export function roomReduce(
       lobby,
       members: [
         ...room.members,
-        { who: by, callsign: action.callsign, seat: destination.id, ready: false, since: now },
+        {
+          who: by,
+          callsign: action.callsign,
+          seat: destination.id,
+          ready: false,
+          since: now,
+          away: false,
+        },
       ],
     };
   }
 
   if (action.kind === "leave") {
-    if (!memberOf(room, by) || room.phase !== "lobby") return room;
-    return withoutMember(room, by);
+    const leaving = memberOf(room, by);
+    if (!leaving) return room;
+    if (room.phase === "lobby") return withoutMember(room, by);
+    // A battle's seats are fixed: the member keeps theirs and is away from it.
+    return leaving.away
+      ? room
+      : {
+          ...room,
+          members: room.members.map((member) =>
+            member === leaving ? { ...member, away: true } : member,
+          ),
+        };
   }
 
   if (room.phase !== "lobby") return refusal("this room has started");
@@ -313,6 +342,12 @@ export function canStart(room: Room): boolean {
       room.lobby.seats.some((seat) => seat.side === side && seat.occupant.kind !== "open"),
     )
   );
+}
+
+/** A started room every human has chosen to leave: nobody is left to play
+ *  its battle, so it ends. A member who merely dropped may still come back. */
+export function deserted(room: Room): boolean {
+  return room.phase !== "lobby" && room.members.every((member) => member.away);
 }
 
 /** Records the server-created battle once its id and map identity are known. */

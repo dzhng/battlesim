@@ -9,7 +9,7 @@ import { MAX_ORDER_UNITS, MAX_ORDER_BYTES } from "../../../apps/game-server/src/
 import { battleRoute } from "../../../apps/game-server/src/http/seatTransport";
 import { createBattleHost, type BattleClock } from "../../../apps/game-server/src/battleHost/index";
 import { nodeSetupData } from "../../../apps/game-server/src/serverData";
-import type { BattleSeat } from "../../../packages/multiplayer/src/link";
+import { PREVIEW_INTERVAL_MS, type BattleSeat } from "../../../packages/multiplayer/src/link";
 import { toBattleSetup } from "../../../packages/multiplayer/src/setup";
 import { preset, setOccupant } from "../../../packages/skirmish-setup/src/lobby";
 import type { MapGenerator } from "../../src/maps/source";
@@ -357,14 +357,13 @@ test("excess orders are refused before recording, retries spend no allowance, an
 test("preview floods are dropped per seat and the next interval answers the actual query", async () => {
   const b = await serving();
   const query = { kind: "building", building: { units: [], building: 0 } };
-  expect(await (await b.request("/battles/duel/preview", query)).json()).toEqual({
-    building: null,
-  });
-  for (let i = 0; i < 10; i++) {
-    expect(await (await b.request("/battles/duel/preview", query)).json()).toEqual({
-      dropped: true,
-    });
-  }
+  const ask = async () => (await b.request("/battles/duel/preview", query)).json();
+  // A page asks an interval apart, and a network delivers two of them a
+  // little closer than that: both are answered.
+  expect(await ask()).toEqual({ building: null });
+  b.clock.advance(PREVIEW_INTERVAL_MS - 30);
+  expect(await ask()).toEqual({ building: null });
+  for (let i = 0; i < 10; i++) expect(await ask()).toEqual({ dropped: true });
   expect(await (await b.request("/battles/duel/preview", query, redId)).json()).toEqual({
     building: null,
   });
@@ -476,7 +475,11 @@ test("the online client decodes a real loopback battle, survives visibility chan
     expect(listeners.mock.calls.filter(([event]) => event === "visibilitychange")).toEqual([]);
     expect(status).not.toContain("failed");
     expect(await client.previewMove({ units: [], goal: [0, 0] })).toEqual([]);
-    await expect(client.previewMove({ units: [], goal: [0, 0] })).rejects.toThrow("dropped");
+    // The next one waits its turn on the page, so the server never drops it.
+    const next = client.previewMove({ units: [], goal: [0, 0] });
+    b.clock.advance(PREVIEW_INTERVAL_MS);
+    await pageClock.advance(PREVIEW_INTERVAL_MS);
+    expect(await next).toEqual([]);
     const ack = await client.command({ kind: "ready" });
     expect(ack.error).toBeNull();
     for (const action of [

@@ -150,6 +150,8 @@ export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
  *  font glyph or emoji as an icon; every one is here or among the state
  *  marks. Each differs from its neighbours by form. */
 const HUD_ICONS = {
+  // A road in (an entry): one beacon of its ground marker, a solid disc.
+  entry: '<circle cx="12" cy="12" r="4" fill="currentColor"/>',
   objective: '<path d="M6 21V3h13l-3 4 3 4H6"/>',
   // Tip at (2, 2) is a cursor hotspot, so this icon keeps its authored grid.
   cursor_arrow: '<path d="M2 2L25 11L14 15L11 26Z"/>',

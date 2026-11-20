@@ -56,7 +56,9 @@ FILTERS = {
     # The moving emitter already swells as it passes the listener.
     "flyby-loop": "highpass=f=80,lowpass=f=6000,acompressor=threshold=0.1:ratio=4:attack=35:release=240",
     "running-gear": "highpass=f=50,lowpass=f=5000",
-    "blast": "highpass=f=30,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
+    # An explosion as a war film plays it: the weight below 150 Hz lifted, the
+    # top eased back, and a slow release so the boom's tail rolls on.
+    "deep-blast": "highpass=f=25,equalizer=f=60:t=o:w=1.5:g=6,equalizer=f=3500:t=o:w=2:g=-2,acompressor=threshold=0.2:ratio=2.5:attack=10:release=250",
     "bassy-cannon": BASSY_CANNON,
 }
 

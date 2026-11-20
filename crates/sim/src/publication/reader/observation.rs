@@ -443,6 +443,7 @@ impl Reader {
             point: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
             radius: v!(f, "radius"),
             kind: self.name("roundKinds", v!(f, "kind"))?,
+            hit: self.name("hitKinds", v!(f, "hit"))?,
         })
     }
 

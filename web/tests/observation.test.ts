@@ -643,7 +643,9 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.guided).toEqual([
     { id: big + 6, position: [1, 2, 3], point: [4, 5, 6], supported: true },
   ]);
-  expect(o.blasts).toEqual([{ point: [5, 6, 0.5], radius: 12, kind: layout.roundKinds[3] }]);
+  expect(o.blasts).toEqual([
+    { point: [5, 6, 0.5], radius: 12, kind: layout.roundKinds[3], hit: "ground" },
+  ]);
   expect(o.corpses).toEqual([
     { position: [2, 3, 0], own: false, soldier: big + 10, kind: "test_at", slot: 2, yaw: -1.25 },
   ]);

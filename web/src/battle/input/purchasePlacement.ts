@@ -19,7 +19,8 @@ export interface PurchaseGhost {
    *  a vehicle, or until a preview answers. */
   areaRadius: number | null;
 }
-/** Free previews are coalesced; only an acknowledgement commits a purchase. */
+/** Free previews are coalesced and only draw the ghost; a click sends the
+ *  purchase without waiting for one, and only its acknowledgement commits it. */
 export class PurchasePlacementControl {
   variant: string | null = null;
   /** The carrier the chosen squad rides in, or null on foot. */
@@ -36,8 +37,14 @@ export class PurchasePlacementControl {
   /** The latest answer for a spot. It stands while the side's knowledge moves
    *  on (in a team battle it does every tick or two, faster than an answer
    *  comes back): a fresh preview is asked meanwhile, and the authority checks
-   *  the purchase again when it is confirmed. */
-  private resolved: { spot: string; revision: string; placement: PurchasePlacement } | null = null;
+   *  the purchase again when it is confirmed. A preview that did not arrive
+   *  (dropped, timed out) is no answer about the ground: its placement is
+   *  null, and it is not asked again until the pointer or the battle moves. */
+  private resolved: {
+    spot: string;
+    revision: string;
+    placement: PurchasePlacement | null;
+  } | null = null;
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
   private shape: [number, number][] = [];
@@ -122,11 +129,7 @@ export class PurchasePlacementControl {
         },
         () => {
           if (this.intent?.spot === run)
-            this.resolved = {
-              spot: intent.spot,
-              revision: intent.revision,
-              placement: { Err: { reason: "preview_unavailable" } },
-            };
+            this.resolved = { spot: intent.spot, revision: intent.revision, placement: null };
         },
       )
       .finally(() => {
@@ -137,10 +140,12 @@ export class PurchasePlacementControl {
   /** The ghost the authority accepted, or null when nothing was placed.
    *  `another` keeps the choice after an accepted placement, for the next.
    *
-   *  A click is for the spot under the pointer when it lands, whether or not
-   *  that spot's preview has answered yet: an unanswered one is asked now
-   *  and waited for, so a click never outruns the ghost. Only ground the
-   *  authority refuses (no standing room, off the map) buys nothing. */
+   *  A click is for the spot under the pointer when it lands, and it never
+   *  waits for a preview: the order goes at once, and the authority, which
+   *  places every purchase itself, admits or refuses it. On a slow link a
+   *  preview is a round trip behind the pointer, so a click that waited for
+   *  one would be late or lost. Only a spot whose own preview has already
+   *  refused it sends nothing. */
   async confirm(
     send: (order: Order) => Promise<CommandAck | null | undefined>,
     another = false,
@@ -150,21 +155,17 @@ export class PurchasePlacementControl {
     if (!intent || (this.confirming > 0 && !another)) return null;
     const generation = this.generation;
     const answered = this.resolved?.spot === intent.spot ? this.resolved.placement : null;
+    if (answered && !("Ok" in answered)) return null;
+    // Answered, the ghost already stands where the authority sends it;
+    // unanswered, it stands under the pointer and the authority snaps it.
+    const ghost: PurchaseGhost = { ...intent.ghost, valid: true };
     this.confirming++;
     try {
-      const placement =
-        answered ??
-        (await intent.client
-          .previewPurchase(intent.ghost.variant, intent.cursor, intent.ghost.carrier)
-          .catch(() => null));
-      if (!placement || !("Ok" in placement) || generation !== this.generation) return null;
-      const { destination, spots } = placement.Ok;
-      const ghost: PurchaseGhost = { ...intent.ghost, destination, spots, valid: true };
       const ack = await send({
         kind: "confirm_purchase",
         variant: ghost.variant,
         ...(ghost.carrier && { carrier: ghost.carrier }),
-        destination,
+        destination: ghost.destination,
       });
       if (!ack || ack.error) return null;
       if (generation === this.generation && !another) this.cancel();

@@ -102,6 +102,9 @@ export type RoomList = {
     blue: ("human" | "open" | "ai")[];
     red: ("human" | "open" | "ai")[];
   }[];
+  /** For this reader alone: the started room they hold a seat in, which
+   *  opening it returns them to. */
+  yours?: RoomCode;
 };
 
 export type RoomSettingsPatch = {

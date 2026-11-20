@@ -25,7 +25,13 @@ export function hostedBattles(
     }
   >();
   return {
-    create(candidates: BattleSetup[], id: string): HostedBattle {
+    /** `attend` is the mode's own count of who is in this battle, opened and
+     *  closed with each of a browser's battle streams, as presence is. */
+    create(
+      candidates: BattleSetup[],
+      id: string,
+      attend?: (who: string) => () => void,
+    ): HostedBattle {
       const key = randomBytes(16).toString("hex");
       const remote = createRemoteBattleHost({ candidates }, id, machines.start(key), key);
       const entry = {
@@ -45,7 +51,11 @@ export function hostedBattles(
         for (const stream of streams) {
           if (entry.connections.has(stream.connection)) continue;
           const who = [...entry.seating].find(([, s]) => s.player === stream.player)?.[0];
-          if (who) entry.connections.set(stream.connection, presence.open(who));
+          if (!who) continue;
+          const closes = [presence.open(who), attend?.(who)];
+          entry.connections.set(stream.connection, () => {
+            for (const close of closes) close?.();
+          });
         }
       });
       remote.onEnd(() => {

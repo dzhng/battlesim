@@ -519,25 +519,43 @@
       "size_per_radius": 0.9,
       "reference_size_m": 3,
       "duration_s": 1.6,
+      "bloom_s": 0.06,
       "tint": [1.1, 1.0, 0.85],
       "emissive": 4,
       "opacity": 1,
       "flash": [1.0, 0.75, 0.4],
       "flash_intensity": 30,
       "flash_duration_s": 0.08,
-      "spill": 1.2,
-      "cast": { "color": [1.0, 0.55, 0.25], "intensity": 18, "radius_m": 16, "duration_s": 0.45 },
+      "spill": 0.6,
+      "cast": { "color": [1.0, 0.55, 0.25], "intensity": 18, "radius_m": 16, "duration_s": 0.2 },
       "sparks": 32,
       "spark_scale": 3.5,
-      "plume": {
-        "albedo": [0.33, 0.27, 0.2],
-        "opacity": 0.85,
-        "size_m": [0.8, 2.6],
-        "life_s": 3,
-        "rise_mps": 7,
-        "spread_mps": 0.8,
-        "count": 8,
-        "over_s": 0.3
+      "surfaces": {
+        "default": {
+          "fire": 1,
+          "sparks": 1.6,
+          "plume": {"albedo": [0.4, 0.38, 0.36], "opacity": 0.8, "size_m": [1.0, 3.4], "life_s": 3.2, "rise_mps": 3.5, "spread_mps": 2.2, "count": 10, "over_s": 0.35}
+        },
+        "prop": {
+          "fire": 0.9,
+          "sparks": 0.8,
+          "plume": {"albedo": [0.62, 0.58, 0.52], "opacity": 0.85, "size_m": [1.2, 4.0], "life_s": 3.6, "rise_mps": 3, "spread_mps": 2.6, "count": 10, "over_s": 0.35}
+        },
+        "ground": {
+          "fire": 0.6,
+          "sparks": 0.1,
+          "plume": {"albedo": [0.22, 0.18, 0.13], "opacity": 1, "size_m": [1.0, 3.0], "life_s": 2.4, "rise_mps": 12, "spread_mps": 1.6, "count": 16, "over_s": 0.1}
+        },
+        "soldier": {
+          "fire": 0.6,
+          "sparks": 0.1,
+          "plume": {"albedo": [0.22, 0.18, 0.13], "opacity": 1, "size_m": [1.0, 3.0], "life_s": 2.4, "rise_mps": 12, "spread_mps": 1.6, "count": 16, "over_s": 0.1}
+        },
+        "water": {
+          "fire": 0.45,
+          "sparks": 0,
+          "plume": {"albedo": [0.85, 0.88, 0.9], "opacity": 0.8, "size_m": [0.6, 2.4], "life_s": 2, "rise_mps": 11, "spread_mps": 1, "count": 12, "over_s": 0.1}
+        }
       },
       "smoke": {
         "albedo": [0.12, 0.115, 0.11],

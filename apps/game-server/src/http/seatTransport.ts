@@ -1,11 +1,16 @@
 // Browser seat transports own retry caches and per-occupant allowances.
 import { HttpRefusal } from "./refusal.ts";
-import type { BattleSeat, SeatPort } from "../../../../packages/multiplayer/src/link.ts";
+import {
+  PREVIEW_INTERVAL_MS,
+  type BattleSeat,
+  type SeatPort,
+} from "../../../../packages/multiplayer/src/link.ts";
 import type { UpReply } from "../../../../packages/multiplayer/src/wire.ts";
 import type { BattleHost } from "../battleHost/index.ts";
 
-/** Five evenly spaced previews a second keep cursor work out of the order path. */
-const PREVIEW_INTERVAL_MS = 200;
+/** One preview may arrive early: a page spaces its own by the interval, and a
+ *  network closes the gap between two. A flood still gets the interval's rate. */
+const PREVIEW_ALLOWANCE = 2;
 /** Convert the simulation's per-second allowance to the transport's monotonic clock. */
 const ORDER_WINDOW_MS = 1000;
 
@@ -54,7 +59,8 @@ function limited(port: Handlers, ordersPerSecond: number, now: () => number): Ha
   let pending = false;
   let tokens = ordersPerSecond;
   let replenished = now();
-  let nextPreview = -Infinity;
+  let previews = PREVIEW_ALLOWANCE;
+  let previewsAt = replenished;
   return {
     reader: port.reader,
     up(batch) {
@@ -83,8 +89,10 @@ function limited(port: Handlers, ordersPerSecond: number, now: () => number): Ha
     },
     preview(query) {
       const at = now();
-      if (at < nextPreview) return Promise.resolve({ dropped: true });
-      nextPreview = at + PREVIEW_INTERVAL_MS;
+      previews = Math.min(PREVIEW_ALLOWANCE, previews + (at - previewsAt) / PREVIEW_INTERVAL_MS);
+      previewsAt = at;
+      if (previews < 1) return Promise.resolve({ dropped: true });
+      previews -= 1;
       return port.preview(query);
     },
   };

@@ -37,7 +37,9 @@ afterEach(() => {
   for (const close of cleanups.splice(0).reverse()) close();
 });
 
-async function room() {
+/** `earlyMs` fires the lobby's timers that much before they are due, as a real
+ *  timer may against a finer clock. */
+async function room(earlyMs = 0) {
   const clock = new PageClock();
   let host!: BattleHost;
   let draw = 0;
@@ -50,7 +52,10 @@ async function room() {
           spec.candidates,
         ),
     }),
-    clock: clock,
+    clock: {
+      now: clock.now,
+      schedule: (run, delay) => clock.schedule(run, delay - earlyMs),
+    },
     callsign: (who) =>
       ({
         [testBrowser("alpha")]: "SCOUT",
@@ -232,6 +237,44 @@ test("one presence grace hands a dropped army to AI; returning reclaims it and r
   expect(direct.failure()).toBeNull();
   expect([...digests(seen)].filter(([tick, digest]) => direct.seen.get(tick) !== digest)).toEqual(
     [],
+  );
+}, 120_000);
+
+test("a member who chooses to leave the battle hands their army to its AI at once, and returning takes it back", async () => {
+  const r = await room(),
+    b = await r.start();
+  const a = ticket(r.alpha.view());
+  const alpha = seat(b, a);
+  await b.run(3);
+  const commander = async () =>
+    (await b.host.referee()).seats.find((s) => s.player === a.player)!.controller;
+  expect(await commander()).toBe("human");
+  r.act({ kind: "leave" });
+  // No grace: they said so. The battle goes on for the human still in it.
+  await vi.waitFor(async () => expect(await commander()).toBe("active_ai"));
+  expect((await alpha.order({ kind: "ready" })).error?.reason).toBe("ai_controlled");
+  expect(b.ended).toEqual([]);
+  const returned = r.open(testBrowser("alpha"));
+  await vi.waitFor(async () => expect(await commander()).toBe("human"));
+  expect(ticket(returned.view())).toEqual(a);
+  // The last human out ends the battle itself, not a timer.
+  r.act({ kind: "leave" });
+  r.act({ kind: "leave" }, testBrowser("bravo"));
+  await expect(b.host.referee()).rejects.toThrow(/ended/);
+  expect(r.service.create(testBrowser("alpha"), "public")).toEqual({ code: expect.any(String) });
+}, 120_000);
+
+test("a grace timer that fires a moment early still hands a dropped army to its AI", async () => {
+  const r = await room(0.5),
+    b = await r.start();
+  const a = ticket(r.alpha.view());
+  await b.run(3);
+  r.alpha.close();
+  await r.clock.advance(PRESENCE_GRACE_MS);
+  await vi.waitFor(async () =>
+    expect((await b.host.referee()).seats.find((s) => s.player === a.player)!.controller).toBe(
+      "active_ai",
+    ),
   );
 }, 120_000);
 

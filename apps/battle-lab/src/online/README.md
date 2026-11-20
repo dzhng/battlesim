@@ -51,7 +51,9 @@ battle view keeps its loading cover until the first authoritative snapshot
 and first drawn frame, including on a slow link.
 
 Backing out returns the reservation; a chosen battle departure returns control
-to AI. An idle stream returns to the Frontline band with its reason. Losing a
+to AI, in a room as in Frontline, and tells the lobby so. Returning from a
+finished battle tells it nothing. The room list says which started room is the
+reader's own, and the page offers the way back to it through that room's link. An idle stream returns to the Frontline band with its reason. Losing a
 connection or reloading keeps the server's return grace: Play asks placement
 to resume the command. No client-side seat or credit accounting substitutes
 for that decision.

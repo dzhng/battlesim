@@ -2,6 +2,12 @@
 // page speaks SeatLink. HTTP joins them; loopback joins them in tests.
 import type { PreviewAnswer, PreviewQuery, StreamRecord, UpBatch, UpReply } from "./wire";
 
+/** How often a seat's previews are answered: five a second keep cursor work
+ *  out of the order path. A page asks no faster, so none of its own are
+ *  dropped; the server allows one early, for two that a network delivers
+ *  closer together than they were sent. */
+export const PREVIEW_INTERVAL_MS = 200;
+
 export interface BattleSeat {
   side: "blue" | "red";
   player: string;

@@ -25,6 +25,8 @@ const SHADOW: f64 = 4.0;
 pub(super) const FIRE: f64 = 0.0;
 pub(super) const DUST: f64 = 1.0;
 pub(super) const FIRE_FRAMES: f64 = 25.0;
+/// The fire layer's first frame at full size; the ones before it grow the ball.
+pub(super) const FIRE_BLOOMED: f64 = 6.0;
 pub(super) const DUST_FRAMES: f64 = 64.0;
 
 /// What the effect pass draws this frame, and the lights it casts.

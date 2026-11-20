@@ -105,8 +105,9 @@ export function Guide() {
         <ul>
           <li>
             Look over the ground: the numbered objective flags, the roads, the woods and the towns.
-            Your forces will arrive from <strong>your entry point</strong>, the road marker at your
-            edge of the map; the enemy arrives from the opposite edge.
+            Your forces arrive by <strong>your side's entry points</strong>, the numbered road
+            markers at your edge of the map, which glow when you zoom out; the enemy arrives from
+            the opposite edge.
           </li>
           <li>
             Buy units and <strong>place</strong> them where you want them to go (see{" "}
@@ -554,6 +555,12 @@ export function Guide() {
         <p>
           <kbd>Esc</kbd> (or the menu button at the top) pauses the battle. From the pause menu you
           can resume, open this guide, change the settings, restart, or leave the battle.
+        </p>
+        <p>
+          An online battle never pauses: its menu opens over a battle that goes on.{" "}
+          <strong>Leave battle</strong> hands your army to an AI at once. While other players fight
+          on, Multiplayer shows <strong>Rejoin battle</strong>, which gives you the same seat and
+          army back; a battle its last player has left ends.
         </p>
       </Section>
     </article>

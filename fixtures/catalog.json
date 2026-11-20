@@ -7081,14 +7081,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 7.35,
                 2.615,
                 2.36
               ],
-              "hp": 200.0,
+              "hp": 150.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8499,14 +8499,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 6.825,
                 3.65,
                 2.425
               ],
-              "hp": 200.0,
+              "hp": 150.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8720,14 +8720,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 8.75,
                 2.635,
                 1.95
               ],
-              "hp": 170.0,
+              "hp": 110.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8840,14 +8840,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 8.536,
                 2.495,
                 2.355
               ],
-              "hp": 200.0,
+              "hp": 150.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -8964,7 +8964,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 120.0,
+              "hp": 90.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -9092,7 +9092,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 120.0,
+              "hp": 90.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12153,14 +12153,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 7.088,
                 2.175,
                 1.75
               ],
-              "hp": 150.0,
+              "hp": 110.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12277,7 +12277,7 @@
                 2.19,
                 1.875
               ],
-              "hp": 120.0,
+              "hp": 90.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12663,7 +12663,7 @@
                 2.2,
                 2.31
               ],
-              "hp": 140.0,
+              "hp": 100.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -12791,7 +12791,7 @@
                 1.515,
                 1.7
               ],
-              "hp": 80.0,
+              "hp": 32.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -13379,7 +13379,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 100.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -13507,7 +13507,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 100.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14362,14 +14362,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 7.04,
                 2.158,
                 1.75
               ],
-              "hp": 200.0,
+              "hp": 150.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -14479,14 +14479,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 7.04,
                 2.226,
                 2.16
               ],
-              "hp": 200.0,
+              "hp": 150.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -16358,7 +16358,7 @@
                 1.8,
                 2.0
               ],
-              "hp": 120.0,
+              "hp": 90.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18122,14 +18122,14 @@
                   "side": 0.1
                 },
                 "roof": 65.0,
-                "side": 95.0
+                "side": 50.0
               },
               "half_extents_m": [
                 6.851,
                 2.066,
                 1.725
               ],
-              "hp": 200.0,
+              "hp": 150.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18246,7 +18246,7 @@
                 1.64,
                 1.213
               ],
-              "hp": 80.0,
+              "hp": 32.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18363,7 +18363,7 @@
                 1.475,
                 1.213
               ],
-              "hp": 80.0,
+              "hp": 32.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18590,7 +18590,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 100.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -18718,7 +18718,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 140.0,
+              "hp": 100.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -22539,7 +22539,7 @@
                 1.45,
                 1.8
               ],
-              "hp": 120.0,
+              "hp": 90.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -22667,7 +22667,7 @@
                 2.19,
                 1.825
               ],
-              "hp": 120.0,
+              "hp": 90.0,
               "weight_class": "light",
               "wreck": "light_wreck"
             }
@@ -27178,14 +27178,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             7.35,
             2.615,
             2.36
           ],
-          "hp": 200.0,
+          "hp": 150.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -28959,14 +28959,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             6.825,
             3.65,
             2.425
           ],
-          "hp": 200.0,
+          "hp": 150.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29277,14 +29277,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             8.75,
             2.635,
             1.95
           ],
-          "hp": 170.0,
+          "hp": 110.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29401,14 +29401,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             8.536,
             2.495,
             2.355
           ],
-          "hp": 200.0,
+          "hp": 150.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29529,7 +29529,7 @@
             2.7,
             2.2
           ],
-          "hp": 120.0,
+          "hp": 90.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -29661,7 +29661,7 @@
             2.7,
             2.2
           ],
-          "hp": 120.0,
+          "hp": 90.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33119,14 +33119,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             7.088,
             2.175,
             1.75
           ],
-          "hp": 150.0,
+          "hp": 110.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33247,7 +33247,7 @@
             2.19,
             1.875
           ],
-          "hp": 120.0,
+          "hp": 90.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33706,7 +33706,7 @@
             2.2,
             2.31
           ],
-          "hp": 140.0,
+          "hp": 100.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -33838,7 +33838,7 @@
             1.515,
             1.7
           ],
-          "hp": 80.0,
+          "hp": 32.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -34445,7 +34445,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 100.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -34577,7 +34577,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 100.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35458,14 +35458,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             7.04,
             2.158,
             1.75
           ],
-          "hp": 200.0,
+          "hp": 150.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -35579,14 +35579,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             7.04,
             2.226,
             2.16
           ],
-          "hp": 200.0,
+          "hp": 150.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -37606,7 +37606,7 @@
             1.8,
             2.0
           ],
-          "hp": 120.0,
+          "hp": 90.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39672,14 +39672,14 @@
               "side": 0.1
             },
             "roof": 65.0,
-            "side": 95.0
+            "side": 50.0
           },
           "half_extents_m": [
             6.851,
             2.066,
             1.725
           ],
-          "hp": 200.0,
+          "hp": 150.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39800,7 +39800,7 @@
             1.64,
             1.213
           ],
-          "hp": 80.0,
+          "hp": 32.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -39921,7 +39921,7 @@
             1.475,
             1.213
           ],
-          "hp": 80.0,
+          "hp": 32.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40276,7 +40276,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 100.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -40408,7 +40408,7 @@
             1.945,
             2.713
           ],
-          "hp": 140.0,
+          "hp": 100.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -44631,7 +44631,7 @@
             1.45,
             1.8
           ],
-          "hp": 120.0,
+          "hp": 90.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }
@@ -44763,7 +44763,7 @@
             2.19,
             1.825
           ],
-          "hp": 120.0,
+          "hp": 90.0,
           "weight_class": "light",
           "wreck": "light_wreck"
         }

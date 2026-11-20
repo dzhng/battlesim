@@ -189,8 +189,8 @@ function PreparedOnlineBattle({
       camera={view.camera}
       cameraConfig={view.config}
       cover={cover}
-      onLeave={() => {
-        leave();
+      onLeave={(over) => {
+        if (!over) leave();
         back();
       }}
       onFailure={(message) =>

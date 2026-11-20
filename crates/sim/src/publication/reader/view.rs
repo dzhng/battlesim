@@ -152,7 +152,8 @@ view!(Ricochet {
 view!(Blast {
     point: Point3,
     radius: f64,
-    kind: Name
+    kind: Name,
+    hit: Name
 });
 view!(Guided { id: Option<f64>, position: Point3, point: Point3, supported: bool });
 view!(AirTransit {

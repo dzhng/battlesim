@@ -120,3 +120,33 @@ test("a reopened stream starts afresh from its first record", () => {
   expect(feed.due(reopened + DELAY_MS - 1)).toEqual([]);
   expect(ticks(feed.due(reopened + DELAY_MS))).toEqual([90]);
 });
+
+test("the delay a stall adds is played off, a little fast, instead of kept for the rest of the battle", () => {
+  const feed = playout(TICK_HZ, DELAY_MS);
+  const arrivals = new Map<number, number>();
+  const released: [tick: number, at: number][] = [];
+  // A stall longer than the buffer: ticks 4 to 6 arrive together, late.
+  const STALLED_UNTIL = 6.5 * TICK_MS;
+  const arrival = (tick: number) => (tick >= 4 && tick <= 6 ? STALLED_UNTIL : tick * TICK_MS);
+  let next = 1;
+  for (let now = 0; now <= 60 * TICK_MS; now += 10) {
+    for (; next <= 55 && arrival(next) <= now; next++) {
+      arrivals.set(next, now);
+      feed.push(publication(next), now);
+    }
+    for (const tick of ticks(feed.due(now))) released.push([tick, now]);
+  }
+  expect(released.map(([tick]) => tick)).toEqual(Array.from({ length: 55 }, (_, i) => i + 1));
+  const waited = (index: number) => released[index][1] - arrivals.get(released[index][0])!;
+  // Right after the stall the page is behind by the stall as well as the buffer.
+  expect(waited(7)).toBeGreaterThan(DELAY_MS + TICK_MS);
+  // It never jumps: no tick leaves closer than half a tick behind the one before.
+  for (let i = 1; i < released.length; i++)
+    expect(released[i][1] - released[i - 1][1]).toBeGreaterThanOrEqual(TICK_MS / 2);
+  // In the end a tick waits the buffer again, and plays a tick apart.
+  for (let i = 45; i < 55; i++) {
+    expect(waited(i)).toBeLessThanOrEqual(DELAY_MS);
+    expect(waited(i)).toBeGreaterThan(DELAY_MS - TICK_MS);
+    expect(released[i][1] - released[i - 1][1]).toBe(TICK_MS);
+  }
+});

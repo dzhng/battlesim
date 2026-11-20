@@ -92,6 +92,7 @@ impl Battle {
                 point: xyz(at),
                 radius: def.blast_radius_m,
                 kind: weapon,
+                hit: SegmentHit::Ground,
             },
         });
         let fallen_before: BTreeSet<PropId> = self.fallen.keys().copied().collect();

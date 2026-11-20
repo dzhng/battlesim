@@ -9,7 +9,9 @@ export const PRESENCE_GRACE_MS = 5_000;
 
 type Entry = { streams: number; absentAt: number | null; cancel: () => void };
 
-/** One presence for all a browser's streams, including its room list and battle. */
+/** One count of open streams for each key, with one grace after the last
+ *  closes. The lobby keeps one keyed by browser, for all its streams (its room
+ *  list and battle among them); each room keeps its own, for its members. */
 export function createPresence(
   clock: PresenceClock,
   changed: (who: string) => void,
@@ -51,7 +53,9 @@ export function createPresence(
         if (closed) return;
         closed = true;
         entry.streams--;
-        if (entry.streams === 0) becomeAbsent(who, entry);
+        // A forgotten entry's streams close into nothing: whoever holds the
+        // key now has an entry, and a grace, of their own.
+        if (entry.streams === 0 && entries.get(who) === entry) becomeAbsent(who, entry);
       };
     },
     /** Null means connected; otherwise the duration since the last stream closed. */
