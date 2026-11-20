@@ -1,7 +1,7 @@
 import { decodePublication } from "../../../../packages/multiplayer/src/stream/publication";
 // Adapt a seat's wire protocol to the page's channel to an authority.
 // No simulation controls cross this seam: only orders and previews go up.
-import type { SeatLink } from "../../../../packages/multiplayer/src/link";
+import { PREVIEW_INTERVAL_MS, type SeatLink } from "../../../../packages/multiplayer/src/link";
 import type {
   PreviewAnswer,
   PreviewQuery,
@@ -50,6 +50,9 @@ export function remoteConnection(
     let flight: { batch: UpBatch; cancel: (() => void) | null } | null = null;
     let preview: Preview | null = null;
     let activePreview: Preview | null = null;
+    /** When the last preview left, and the wait for the next one's turn. */
+    let previewSentAt = -Infinity;
+    let cancelPreviewTurn: (() => void) | undefined;
     let stream: AbortController | undefined;
     let cancelRelease: (() => void) | undefined;
     let feed: Playout;
@@ -59,6 +62,7 @@ export function remoteConnection(
       if (closed) return;
       closed = true;
       flight?.cancel?.();
+      cancelPreviewTurn?.();
       cancelRelease?.();
       stream?.abort();
       clock.dispose();
@@ -105,8 +109,20 @@ export function remoteConnection(
 
     const dropPreview = (request: Preview, reason: string) =>
       refused("preview", request.id, reason);
+    /** One preview in flight, and no faster than the server answers them:
+     *  one sent sooner would be dropped there, and a dropped preview leaves
+     *  the pointer without its marks. The newest intent waits for the turn. */
     function sendPreview() {
-      if (closed || ending || activePreview || !preview) return;
+      if (closed || ending || activePreview || !preview || cancelPreviewTurn) return;
+      const wait = previewSentAt + PREVIEW_INTERVAL_MS - clock.now();
+      if (wait > 0) {
+        cancelPreviewTurn = clock.schedule(() => {
+          cancelPreviewTurn = undefined;
+          sendPreview();
+        }, wait);
+        return;
+      }
+      previewSentAt = clock.now();
       const request = preview;
       preview = null;
       activePreview = request;
@@ -193,7 +209,9 @@ export function remoteConnection(
     }
 
     /** Release on the battle clock, independently of stream arrival. Check the
-     *  bound before due(): fast-forwarding must never hide an oversized queue. */
+     *  bound before due(): fast-forwarding must never hide an oversized queue.
+     *  It wakes when the next publication is due, and within a tick whatever
+     *  is waiting: a wake a tick apart would hand each one on up to a tick late. */
     function release() {
       if (closed) return;
       if (!ending && feed.queuedMs() > MAX_QUEUED_MS) {
@@ -217,7 +235,13 @@ export function remoteConnection(
           receive(reply);
         }
       }
-      if (!closed) cancelRelease = clock.schedule(release, 1000 / description!.tickHz!);
+      if (closed) return;
+      const tickMs = 1000 / description!.tickHz!;
+      const due = feed.nextAt();
+      cancelRelease = clock.schedule(
+        release,
+        due === null ? tickMs : Math.min(tickMs, Math.max(0, due - clock.now())),
+      );
     }
 
     /** Follow from a snapshot taken now. A deliberate reopen starts a new
