@@ -14,6 +14,7 @@ impl<'de> Deserialize<'de> for TrailStyle {
             life_s: f64,
             rise_mps: f64,
             spread_mps: f64,
+            fade_in_s: f64,
             ribbon: f64,
             spacing_m: f64,
             max_length_m: Option<f64>,
@@ -26,6 +27,7 @@ impl<'de> Deserialize<'de> for TrailStyle {
             life_s: f.life_s,
             rise_mps: f.rise_mps,
             spread_mps: f.spread_mps,
+            fade_in_s: f.fade_in_s,
         };
         Ok(Self {
             puff,
@@ -47,6 +49,7 @@ impl<'de> Deserialize<'de> for PuffBurst {
             life_s: f64,
             rise_mps: f64,
             spread_mps: f64,
+            fade_in_s: f64,
             count: f64,
             over_s: f64,
         }
@@ -58,6 +61,7 @@ impl<'de> Deserialize<'de> for PuffBurst {
             life_s: f.life_s,
             rise_mps: f.rise_mps,
             spread_mps: f.spread_mps,
+            fade_in_s: f.fade_in_s,
         };
         Ok(Self {
             puff,
@@ -78,6 +82,7 @@ impl<'de> Deserialize<'de> for DustStyle {
             life_s: f64,
             rise_mps: f64,
             spread_mps: f64,
+            fade_in_s: f64,
             spacing_m: f64,
             min_speed_mps: f64,
             full_speed_mps: f64,
@@ -90,6 +95,7 @@ impl<'de> Deserialize<'de> for DustStyle {
             life_s: f.life_s,
             rise_mps: f.rise_mps,
             spread_mps: f.spread_mps,
+            fade_in_s: f.fade_in_s,
         };
         Ok(Self {
             puff,
@@ -111,6 +117,7 @@ impl<'de> Deserialize<'de> for DamageSmokeStyle {
             life_s: f64,
             rise_mps: f64,
             spread_mps: f64,
+            fade_in_s: f64,
             rate_hz: f64,
         }
         let f = Fields::deserialize(deserializer)?;
@@ -121,6 +128,7 @@ impl<'de> Deserialize<'de> for DamageSmokeStyle {
             life_s: f.life_s,
             rise_mps: f.rise_mps,
             spread_mps: f.spread_mps,
+            fade_in_s: f.fade_in_s,
         };
         Ok(Self {
             puff,
@@ -140,6 +148,7 @@ impl<'de> Deserialize<'de> for GroundDust {
             life_s: f64,
             rise_mps: f64,
             spread_mps: f64,
+            fade_in_s: f64,
             count: f64,
             over_s: f64,
             reach_m: f64,
@@ -152,6 +161,7 @@ impl<'de> Deserialize<'de> for GroundDust {
             life_s: f.life_s,
             rise_mps: f.rise_mps,
             spread_mps: f.spread_mps,
+            fade_in_s: f.fade_in_s,
         };
         Ok(Self {
             burst: PuffBurst {

@@ -12,7 +12,7 @@ fn a_faded_smoke_trail_does_not_glow() {
     p["looks"]["looks"]["bomb"]["tracer"]["smoke"] = json!({
         "albedo": [0.9, 0.9, 0.9], "ribbon": 0.5, "opacity": 0.2,
         "size_m": [0.1, 0.7], "life_s": 2, "rise_mps": 0.1,
-        "spread_mps": 0.1, "spacing_m": 1
+        "spread_mps": 0.1, "fade_in_s": 0.25, "spacing_m": 1
     });
     let p = EffectPresentation::from_value(&p).unwrap();
     let mut batch = EffectBatch::new(p.capacity);
