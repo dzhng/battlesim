@@ -473,7 +473,8 @@ impl<'a> Coverage<'a> {
                 bounds[i + 2] = bounds[i + 2].max(b[i + 2]);
             }
         }
-        let r = self.physics.forests.rule.canopy_radius_m + self.cell;
+        // Canopy keeps to the woods' own ground; a cell beyond, for the blocks.
+        let r = self.cell;
         let (x0, y0, _, _) = self.bounds([bounds[0], bounds[1]], r);
         let (_, _, x1, y1) = self.bounds([bounds[2], bounds[3]], r);
         let points = self.patches(x0, y0, x1, y1);

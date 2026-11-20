@@ -510,7 +510,7 @@ fn stroke_forest_is_its_square_ended_band_instead_of_its_bounds() {
 fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
     let map: contract::map::MapDefinition = serde_json::from_value(json!({
         "size":[300,300], "fog_cell_m":8, "height_grid_m":4, "slope_cutoff_deg":35,
-        "forests":[forest([66.0,58.0,12.0,12.0]), forest([74.0,62.0,12.0,12.0]),
+        "forests":[forest([54.0,58.0,12.0,12.0]), forest([66.0,62.0,12.0,12.0]),
             forest([-30.0,50.0,12.0,20.0]), forest([96.0,92.0,12.0,12.0])]
     }))
     .unwrap();
@@ -524,7 +524,8 @@ fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
     let mut rules: contract::scenario::Rules = serde_json::from_value(rules).unwrap();
     rules.forests.rule.trunk_spacing_m = 12.0;
     rules.forests.rule.trunk_jitter = 0.0;
-    rules.forests.rule.canopy_radius_m = 16.0;
+    // Crowns wide enough that the three on the map are one stand.
+    rules.forests.rule.canopy_radius_m = 24.0;
     rules.forests.rule.canopy_height_m = 6.0;
     rules.forests.rule.attenuation_per_m = 0.03;
     let world = WorldGeometry::new(&map, &rules);
@@ -550,14 +551,14 @@ fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
     assert_eq!(
         depths,
         vec![
-            0x3ff3333333333337,
+            0x3fceb851eb851eb8,
             0x3fdeb851eb851ebc,
             0x3faeb851eb851eb8,
-            0x3feeb851eb851ebe,
-            0x3ff317e4b17e4b1b,
-            0x3fd62ba122893e40,
+            0x3fceb851eb851eb8,
+            0x3fceb851eb851eb8,
+            0x3fade396dd04e041,
             0x0,
-            0x0
+            0x0,
         ]
     );
 }
@@ -610,8 +611,11 @@ fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
     );
 }
 
+/// Q21: a tree line's canopy is its strip's own ground under its trees:
+/// every canopy cell is on the strip within a spacing of a trunk, none
+/// hangs past the strip's edge, and the line is unbroken along its length.
 #[test]
-fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
+fn tree_line_foliage_lies_on_its_strip_under_its_trees() {
     let map: contract::map::MapDefinition = serde_json::from_value(json!({
         "size":[300,240],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
         "forests":[{"shape":{"kind":"stroke","points":[[30,30],[150,60],[250,190]],"width_m":18}}]
@@ -627,22 +631,167 @@ fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
     assert!(!trunks.is_empty());
     let grid = w.export_foliage();
     assert!(grid.len() > 3);
-    let mut over_edge = false;
     for record in grid[3..].as_chunks::<4>().0 {
         let center = v2(
             (record[0] as f64 + 0.5) * grid[2] as f64,
             (record[1] as f64 + 0.5) * grid[2] as f64,
         );
         assert!(
+            w.forest_ground(center.x, center.y),
+            "canopy at {center:?} off the strip"
+        );
+        assert!(
             trunks
                 .iter()
-                .any(|p| (*p - center).length() <= r.forests.rule.canopy_radius_m + 1e-9),
-            "foliage at {center:?} needs a real crown"
+                .any(|p| (*p - center).length() <= r.forests.rule.trunk_spacing_m),
+            "canopy at {center:?} needs a tree"
         );
-        over_edge |= !w.forest_ground(center.x, center.y);
     }
-    assert!(
-        over_edge,
-        "canopy reaches past the strip edge instead of being clipped to it"
+    // Along the centreline, a step at a time: canopy everywhere.
+    for (a, b) in [
+        (v2(30.0, 30.0), v2(150.0, 60.0)),
+        (v2(150.0, 60.0), v2(250.0, 190.0)),
+    ] {
+        let steps = ((b - a).length() / 4.0) as usize;
+        for k in 2..steps - 1 {
+            let p = a + (b - a) * (k as f64 / steps as f64);
+            assert!(
+                !w.foliage_at(p.x, p.y).is_open(),
+                "a gap in the line at {p:?}"
+            );
+        }
+    }
+}
+
+/// A world of `list`'s forests whose trunks stand exactly on their lattice,
+/// `spacing` apart, each crown `crown` wide in radius.
+fn exact_trunks(list: Value, spacing: f64, crown: f64) -> WorldGeometry {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[400,200], "fog_cell_m":8, "height_grid_m":4, "slope_cutoff_deg":35,
+        "forests": list
+    }))
+    .unwrap();
+    let mut rules = common::rules();
+    rules.forests.rule.trunk_spacing_m = spacing;
+    rules.forests.rule.trunk_jitter = 0.0;
+    rules.forests.rule.canopy_radius_m = crown;
+    WorldGeometry::new(&map, &rules)
+}
+
+/// The foliage a ground-level sight line meets crossing `x` from south to
+/// north over the whole map.
+fn depth_across(w: &WorldGeometry, x: f64) -> f64 {
+    w.foliage_depth(v3(x, 0.5, 1.5), v3(x, 199.5, 1.5))
+}
+
+/// Q21: a canopy is crowns that touch. A lone tree in a park hides
+/// nothing behind it; two trees whose crowns meet hide like any wood.
+#[test]
+fn a_lone_tree_hides_nothing_and_touching_crowns_do() {
+    let w = exact_trunks(
+        json!([
+            // One lattice cell: one trunk, at (54.5, 104.5).
+            forest([50.0, 100.0, 9.0, 9.0]),
+            // Two cells: two trunks 9 m apart, crowns of 6.5 m touching.
+            forest([250.0, 100.0, 18.0, 9.0])
+        ]),
+        9.0,
+        6.5,
     );
+    let trunks: Vec<V2> = w
+        .props()
+        .filter(|p| p.forest_tree)
+        .map(|p| p.center)
+        .collect();
+    assert_eq!(trunks.len(), 3, "{trunks:?}");
+    assert_eq!(depth_across(&w, 54.5), 0.0, "a lone crown hides nothing");
+    assert!(w.foliage_at(54.5, 104.5).is_open());
+    for x in [254.5, 259.0, 263.5] {
+        assert!(depth_across(&w, x) > 0.0, "the pair's canopy at x {x}");
+    }
+    // The drawn fog's foliage is the world's: nothing under the lone tree.
+    let grid = w.export_foliage();
+    assert!(grid[3..]
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .all(|r| (r[0] as f64 + 0.5) * grid[2] as f64 > 150.0));
+}
+
+/// Q21: crowns too far apart to meet are scattered trees, not a canopy,
+/// however many there are.
+#[test]
+fn trees_whose_crowns_do_not_meet_hide_nothing() {
+    // A row of trunks 15 m apart under 6.5 m crowns: a 2 m gap between each.
+    let w = exact_trunks(json!([forest([20.0, 100.0, 150.0, 15.0])]), 15.0, 6.5);
+    assert!(w.props().filter(|p| p.forest_tree).count() >= 9);
+    let grid = w.export_foliage();
+    assert_eq!(grid.len(), 3, "no cell is under a canopy");
+    for x in (20..170).step_by(5) {
+        assert_eq!(depth_across(&w, x as f64), 0.0, "x {x}");
+    }
+}
+
+/// Q21: a single-file tree line whose crowns touch is one canopy end to end:
+/// sight across it is cut everywhere along it, not only between the trees.
+#[test]
+fn a_single_file_tree_line_whose_crowns_touch_stays_unbroken() {
+    let w = exact_trunks(json!([forest([20.0, 100.0, 180.0, 9.0])]), 9.0, 6.5);
+    let trunks: Vec<f64> = w
+        .props()
+        .filter(|p| p.forest_tree)
+        .map(|p| p.center.x)
+        .collect();
+    let (first, last) = (
+        trunks.iter().cloned().fold(f64::INFINITY, f64::min),
+        trunks.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+    );
+    let mut x = first;
+    while x <= last {
+        assert!(depth_across(&w, x) > 0.0, "a gap in the line at x {x}");
+        x += 1.0;
+    }
+}
+
+/// Q16, Q21: a tree felled from a pair leaves its partner standing alone,
+/// and a lone tree hides nothing, so the pair's cover goes entirely; the
+/// drawn fog of a side that saw the ground cleared agrees.
+#[test]
+fn felling_one_of_a_pair_opens_its_partner_too() {
+    let list = json!([forest([250.0, 100.0, 18.0, 9.0])]);
+    let fixed = exact_trunks(list.clone(), 9.0, 6.5);
+    let mut live = exact_trunks(list, 9.0, 6.5);
+    assert!(depth_across(&live, 263.5) > 0.0);
+    let first = live
+        .props()
+        .filter(|p| p.forest_tree)
+        .min_by(|a, b| a.center.x.total_cmp(&b.center.x))
+        .map(|p| p.id)
+        .unwrap();
+    live.knock_down(first);
+    for x in [254.5, 259.0, 263.5] {
+        assert_eq!(depth_across(&live, x), 0.0, "the partner alone at x {x}");
+    }
+    let known = fixed.export_foliage_cleared(|x, _| x < 259.0);
+    assert_eq!(known.len(), 3, "the side that saw it fall draws no canopy");
+}
+
+/// Q21: the wood's edge divides concealment and canopy alike. A soldier a
+/// step inside it has the forest's concealment; a step outside, under the
+/// edge trees' crowns, he has neither. Canopy is decided at each fog cell's
+/// centre, so it keeps to the edge within half a cell.
+#[test]
+fn the_edge_of_a_wood_divides_concealment_and_canopy_alike() {
+    // The west edge at x 102, between fog cell centres (100 and 108).
+    let w = exact_trunks(json!([forest([102.0, 40.0, 120.0, 120.0])]), 9.0, 6.5);
+    let rule = w.forest_rule().concealment;
+    for y in [60.0, 100.0, 140.0] {
+        assert_eq!(w.forest_concealment(103.0, y), rule, "inside at y {y}");
+        assert_eq!(w.forest_concealment(101.0, y), 1.0, "outside at y {y}");
+        assert!(
+            w.foliage_at(101.0, y).is_open(),
+            "no canopy past the edge at y {y}"
+        );
+        assert!(!w.foliage_at(108.0, y).is_open(), "canopy inside at y {y}");
+    }
 }

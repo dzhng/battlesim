@@ -4,10 +4,13 @@
 //! and boulders are ordinary cover bodies, placed after all trunks; they
 //! neither supply foliage nor clear forest ground when shoved.
 //!
-//! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`) from the concealing bodies
-//!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
-//!   scaling sight-line attenuation.
-//!   Removing a trunk refreshes the cells its crown reached.
+//! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`): a wood's
+//!   canopy lies on its own ground, over its stands. A cell is under canopy
+//!   when its centre is on forest ground within a trunk spacing of a standing
+//!   tree whose crown meets another's; its strength is that tree's
+//!   `conceals`, scaling sight-line attenuation. A lone tree, and a crown
+//!   reaching past its wood's edge, hide nothing.
+//!   Removing a trunk refreshes the cells its stand reached.
 //! - **Forest ground** is the ground the forests were authored over, less
 //!   cleared ground: forest speed and concealment apply there, and the forest floor is
 //!   drawn there. A knocked tree takes its foliage but not the ground; only
@@ -197,7 +200,12 @@ impl WorldGeometry {
         self.forest
             .bounds
             .push([x - r, y - r, w + 2.0 * r, h + 2.0 * r]);
-        self.refresh_foliage(v2(x + w / 2.0, y + h / 2.0), libm::hypot(w, h) / 2.0 + r);
+        // Its trees may join a neighbouring wood's stands.
+        let reach = contract::forest::canopy_reach(&self.forest.rule);
+        self.refresh_foliage(
+            v2(x + w / 2.0, y + h / 2.0),
+            libm::hypot(w, h) / 2.0 + reach,
+        );
     }
 
     /// Recompute every foliage cell whose centre lies within `radius` of `center`.
@@ -222,30 +230,30 @@ impl WorldGeometry {
         }
     }
 
-    /// The foliage of the cell centred on `mid` (Q21), from the standing
-    /// concealing bodies whose crown covers it, less those `gone` names.
+    /// The foliage of the cell centred on `mid` (Q21): its wood's canopy
+    /// when the centre is on forest ground under a stand, counting the trees
+    /// `gone` names as fallen.
     fn foliage_cell(&self, mid: V2, gone: impl Fn(&super::Prop) -> bool) -> Foliage {
         let d = self.forest.rule;
-        let mut transmit = 1.0;
-        let mut crowned = false;
-        for prop in self.props_near(mid, d.canopy_radius_m) {
-            if !prop.forest_tree
-                || prop.body.conceals <= 0.0
-                || (prop.center - mid).length() > d.canopy_radius_m
-                || gone(prop)
-            {
-                continue;
-            }
-            transmit *= 1.0 - prop.body.conceals;
-            crowned = true;
-        }
-        if !crowned {
+        if !self.forest_ground(mid.x, mid.y) {
             return Foliage::open();
         }
-        let s = 1.0 - transmit;
-        Foliage {
-            canopy_m: d.canopy_height_m,
-            depth_per_m: d.attenuation_per_m * s,
+        let tree = |p: &super::Prop| p.forest_tree && p.body.conceals > 0.0 && !gone(p);
+        let at = |p: &super::Prop| [p.center.x, p.center.y];
+        let near = self.props_near(mid, contract::forest::canopy_reach(&d));
+        let stand = near.iter().find(|p| {
+            tree(p)
+                && contract::forest::under_stand(at(p), [mid.x, mid.y], &d)
+                && near.iter().any(|q| {
+                    q.id != p.id && tree(q) && contract::forest::crowns_meet(at(p), at(q), &d)
+                })
+        });
+        match stand {
+            Some(p) => Foliage {
+                canopy_m: d.canopy_height_m,
+                depth_per_m: d.attenuation_per_m * p.body.conceals,
+            },
+            None => Foliage::open(),
         }
     }
 
@@ -386,7 +394,7 @@ impl WorldGeometry {
     pub fn knock_down(&mut self, id: super::PropId) -> Option<super::Prop> {
         let prop = self.remove_prop(id)?;
         if prop.forest_tree {
-            let reach = self.forest.rule.canopy_radius_m + self.forest.foliage_m;
+            let reach = contract::forest::canopy_reach(&self.forest.rule) + self.forest.foliage_m;
             self.refresh_foliage(prop.center, reach);
         }
         Some(prop)
@@ -499,10 +507,12 @@ impl WorldGeometry {
     }
 
     /// How far from a point a body edit or a clearing can change what sight
-    /// reads there: a felled tree's crown leaves the foliage cell holding the
-    /// point, or the point's own cleared cell opens.
+    /// reads there: a felled tree opens the canopy of the foliage cell
+    /// holding the point, or the point's own cleared cell opens.
     pub(crate) fn sight_change_margin(&self) -> f64 {
-        self.forest.rule.canopy_radius_m + self.forest.foliage_m + self.forest.cleared_m
+        contract::forest::canopy_reach(&self.forest.rule)
+            + self.forest.foliage_m
+            + self.forest.cleared_m
     }
 
     /// Cells cleared so far.
@@ -561,8 +571,8 @@ impl WorldGeometry {
             .filter(|p| p.forest_tree && cleared(p.center.x, p.center.y))
             .map(|p| p.id)
             .collect();
-        // Only the cells a fallen crown reached change.
-        let reach = f.rule.canopy_radius_m + c;
+        // Only the cells a fallen tree's stand reached change.
+        let reach = contract::forest::canopy_reach(&f.rule) + c;
         let mut touched = BTreeSet::new();
         for id in &fallen {
             let p = self

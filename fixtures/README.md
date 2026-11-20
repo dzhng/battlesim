@@ -345,7 +345,10 @@ A record belongs here only if both sides read it, and it stores a hash of the ou
 
 Uncleared forest ground uses the single `forests.rule.concealment` multiplier
 for every unit; differences in how well bodies hide belong on the units.
-Trunk crowns separately own sight-line attenuation. The required
+The canopy separately owns sight-line attenuation: forest ground within a
+`trunk_spacing_m` of a standing tree whose crown meets another's (trunks within
+two `canopy_radius_m`), at `attenuation_per_m` times the tree's `conceals`. A
+lone tree, and crowns reaching past their wood's edge, hide nothing. The required
 `sensors.moving_concealment` multiplier applies while a move order is in
 progress; it is at least one, so moving cannot improve concealment.
 
