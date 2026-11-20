@@ -1,7 +1,8 @@
 // A forest's tree against the simulation: inside the canopy that attenuates
 // sight, and built to the one size every species shares.
 
-import type { Authority, Finding, MeshData, Tolerances } from "./schema.ts";
+import type { Authority, MeshData, Tolerances } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 import type { SceneryRule } from "./scenery.ts";
 import { finding, fmt } from "./finding.ts";
 

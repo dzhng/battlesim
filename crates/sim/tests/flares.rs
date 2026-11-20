@@ -369,6 +369,7 @@ fn a_fast_flare_cannot_fuse_a_missile_at_a_point_it_never_reaches() {
             point: v3(500.0, 200.0, 100.0),
             turn_rad_s: 1.0,
             supported: false,
+            launch_hold_s: 0.0,
             loft: None,
         }),
     };

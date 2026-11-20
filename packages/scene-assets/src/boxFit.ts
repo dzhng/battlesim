@@ -4,7 +4,8 @@
 import type { Vec3 } from "math";
 import { positionsBounds } from "./pose.ts";
 import { SCENERY_KINDS } from "./scenery.ts";
-import type { AppearanceEntry, Finding, MeshData, Tolerances } from "./schema.ts";
+import type { AppearanceEntry, MeshData, Tolerances } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 import { finding, fmt } from "./finding.ts";
 
 export interface ExtentRule {

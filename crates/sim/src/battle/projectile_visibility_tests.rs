@@ -129,6 +129,7 @@ fn airborne_round(
             point,
             turn_rad_s: 0.0,
             supported: false,
+            launch_hold_s: 0.0,
             loft: None,
         }),
         motor: None,

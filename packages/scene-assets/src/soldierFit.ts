@@ -18,7 +18,6 @@ import {
   INFANTRY_SOCKETS,
   type AimReference,
   type Authority,
-  type Finding,
   type Joint,
   type MeshData,
   type SkeletonClips,
@@ -26,6 +25,7 @@ import {
   type Socket,
   type Tolerances,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 
 /** How far below the ground a corpse may reach: limbs settle into the earth a
  *  little, a body half buried does not. */

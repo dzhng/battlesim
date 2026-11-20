@@ -27,7 +27,7 @@ import {
   worldTransforms,
 } from "./pose.ts";
 import { bindTextures, importScene, type Scene } from "./scene.ts";
-import { SOLDIER_CLASS, tierFindings, unitArtRule } from "./unitArt.ts";
+import { SOLDIER_CLASS, UNIT_ART, tierFindings, unitArtRule } from "./unitArt.ts";
 import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
@@ -47,7 +47,6 @@ import {
   type Bounds,
   type Budget,
   type Bundle,
-  type Finding,
   type Joint,
   type Material,
   type MaterialRole,
@@ -57,6 +56,7 @@ import {
   type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import type { SkeletonRef } from "./skeleton.ts";
 import { finding, fmt } from "./finding.ts";
 
@@ -521,6 +521,14 @@ function unitArtFindings(
   classes: readonly (string | null)[],
 ): Finding[] {
   const out = classes.flatMap((cls) => {
+    if (cls !== null && !Object.hasOwn(UNIT_ART, cls))
+      return [
+        finding(
+          "budget.class_row",
+          `${label}: draws as ${cls}, which has no row in UNIT_ART`,
+          `give ${cls} a row with its tier_triangles in packages/scene-assets/src/unitArt.ts, measured from its models`,
+        ),
+      ];
     const rule = unitArtRule(cls);
     return [
       ...tierFindings(label, scene, triangles, rule.tier_ratio),
@@ -528,7 +536,7 @@ function unitArtFindings(
         label,
         triangles,
         rule,
-        `the ${cls ?? "default"} row of UNIT_ART (packages/scene-assets/src/unitArt.ts)`,
+        `the ${cls ?? "shared"} rules of UNIT_ART (packages/scene-assets/src/unitArt.ts)`,
         bundle,
       ),
     ];
@@ -607,7 +615,7 @@ export function budgetFindings(
         finding(
           "budget.tier_triangles",
           `${label}: tier ${t} draws ${count} triangles, over its budget of ${budget.tier_triangles[t]}`,
-          `simplify the tier${raise("tier_triangles")}`,
+          `simplify the tier until it fits; ${owner} says when its tier_triangles may move`,
         ),
       );
   });

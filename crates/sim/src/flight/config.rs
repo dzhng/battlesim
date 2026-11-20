@@ -253,6 +253,20 @@ impl FlightConfig {
             }
             Some(deg) => Some(deg.to_radians()),
         };
+        let launch_hold_s = match weapon.launch_hold_s {
+            None => 0.0,
+            Some(seconds) if !(seconds.is_finite() && seconds >= 0.0) => {
+                return Err(FlightConfigError::LaunchElevation(
+                    "launch_hold_s must be finite and nonnegative",
+                ))
+            }
+            Some(_) if launch_elevation_rad.is_none() => {
+                return Err(FlightConfigError::LaunchElevation(
+                    "launch_hold_s needs launch_elevation_deg",
+                ))
+            }
+            Some(seconds) => seconds,
+        };
         // A heavier share of gravity bends each chord more: it must still
         // keep within the chord error at the declared chords per tick.
         let accel = self.gravity.length() * weapon.gravity_scale;
@@ -272,6 +286,7 @@ impl FlightConfig {
             suppression_radius_m: weapon.suppression_radius_m,
             turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
             launch_elevation_rad,
+            launch_hold_s,
             motor,
             loft,
         })
@@ -314,6 +329,8 @@ pub struct LaunchProfile {
     pub turn_rad_s: Option<f64>,
     /// A guided round's elevation as it leaves its launcher.
     pub launch_elevation_rad: Option<f64>,
+    /// Seconds spent on the authored launch heading before guidance turns.
+    pub launch_hold_s: f64,
     /// A rocket motor speeding the round up along its heading.
     pub motor: Option<Motor>,
     /// A guided round's top-attack path.

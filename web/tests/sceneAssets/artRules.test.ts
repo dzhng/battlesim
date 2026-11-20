@@ -6,7 +6,7 @@ import type { AppearanceEntry } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import { buildClips } from "@packages/scene-assets/src/build.ts";
 import { importScene } from "@packages/scene-assets/src/scene.ts";
-import { UNIT_ART, unitArtRule, type UnitArtRule } from "@packages/scene-assets/src/unitArt.ts";
+import { UNIT_ART, unitArtRule, type ClassRule } from "@packages/scene-assets/src/unitArt.ts";
 import {
   AUTHORITY,
   SKELETON_ENTRY,
@@ -101,18 +101,33 @@ test("dressing never excuses the hull: the body still fits its box within the to
   expect(wide.findings[0].fix).not.toMatch(/widen/);
 });
 
-/** Run `body` with `rows` added to the class table, then take them out. */
+/** Run `body` with the class table's `rows` set (`undefined` takes a row
+ *  out), then put back what was there. */
 async function withClassRows<T>(
-  rows: Record<string, Partial<UnitArtRule>>,
+  rows: Record<string, ClassRule | undefined>,
   body: () => Promise<T>,
 ) {
-  Object.assign(UNIT_ART, rows);
+  const before = Object.fromEntries(Object.keys(rows).map((cls) => [cls, UNIT_ART[cls]]));
+  const set = (table: Record<string, ClassRule | undefined>) => {
+    for (const [cls, row] of Object.entries(table)) {
+      if (row) UNIT_ART[cls] = row;
+      else delete UNIT_ART[cls];
+    }
+  };
+  set(rows);
   try {
     return await body();
   } finally {
-    for (const cls of Object.keys(rows)) delete UNIT_ART[cls];
+    set(before);
   }
 }
+
+test("a unit whose class has no row in the class table is refused, so every class names its budgets", async () => {
+  const result = await withClassRows({ tracked_heavy: undefined }, () => tank());
+  expect(result.findings.map((f) => [f.code, f.severity])).toEqual([["budget.class_row", "error"]]);
+  expect(result.findings[0].message).toContain("tracked_heavy");
+  expect(result.bundle).toBeNull();
+});
 
 test("a unit is held to its own class's budgets: triangles per tier, bundle bytes, texture layers", async () => {
   // The synthetic tank is tracked and heavy; its textured paint is three textures.

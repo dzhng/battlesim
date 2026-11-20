@@ -6,126 +6,9 @@ import type { Mat4, Vec3 } from "math";
 import type { Trs } from "./trs.ts";
 import type { Faction, MountDraws, UnitCatalog } from "./units.ts";
 
-export type Severity = "error" | "warning";
-
-/** One validation result. `fix` says what to change in the art or the catalog. */
-export interface Finding {
-  code: FindingCode;
-  severity: Severity;
-  message: string;
-  fix: string;
-}
-
-export const FINDING_CODES = [
-  // structure
-  "structure.unreadable",
-  "structure.lfs_pointer",
-  "structure.external_buffer",
-  "structure.unsupported",
-  "structure.root",
-  "structure.skin_count",
-  "structure.unskinned_mesh",
-  "structure.weights",
-  "structure.attributes",
-  "structure.scale",
-  "structure.tier_count",
-  "structure.tier_order",
-  /** A unit's or wreck's mesh names no tier (`unitArt.ts`). */
-  "structure.tier_unsuffixed",
-  /** A unit's or wreck's tier draws more than its class's ratio of the one before. */
-  "structure.tier_ratio",
-  "structure.skeleton",
-  "structure.loop_flags",
-  "structure.clips",
-  "structure.states",
-  "structure.scenery_kind",
-  "structure.regional_family",
-  "structure.paints",
-  /** A soldier's faction look is no soldier on its skeleton, or a faction no battle fields. */
-  "structure.faction_look",
-  "structure.texture",
-  "structure.grass",
-  // textures
-  "texture.size",
-  "texture.mips",
-  "texture.tangents",
-  // materials (`material.ts`): coverage, interior and role metadata
-  "material.coverage",
-  "material.coverage_source",
-  "material.wear",
-  "material.interior",
-  "material.role",
-  /** Rubber that draws lighter than black rubber looks on screen. */
-  "material.role_rubber",
-  /** Glass that draws lighter, or rougher, than sight glass looks on screen. */
-  "material.role_glass",
-  // basis
-  "basis.ground",
-  "basis.forward",
-  "basis.up",
-  // fit to authority
-  "fit.soldier_height",
-  /** A corpse that stands taller than a lying body, or sinks into the ground. */
-  "fit.lies",
-  "fit.eye",
-  "fit.muzzle",
-  /** A soldier in his aim reference pose not looking level down the sights. */
-  "fit.facing",
-  /** A shouldered weapon's sight line above the eye: the weapon held up at the brow. */
-  "fit.cheek",
-  "fit.hull_extents",
-  "fit.vehicle_muzzle",
-  "fit.deployed_muzzle",
-  "fit.muzzle_arc",
-  "fit.canopy",
-  "fit.tree_size",
-  "fit.dressing",
-  "fit.footprint",
-  "fit.piece",
-  /** A wreck's thrown debris lies past its allowance, or its state carries a
-   *  part that is not debris. */
-  "fit.debris",
-  /** A type listing a part must draw that part's hardware nodes. */
-  "fit.part_nodes",
-  "fit.mount_draw",
-  /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
-  "fit.type_appearance",
-  /** A vehicle names no wreck of its own, or one not its unit's hull. */
-  "fit.wreck",
-  // frame cost
-  /** A tier draws more triangles than its scenery kind or unit class allows. */
-  "budget.tier_triangles",
-  /** A GPU texture array would hold more distinct layers than the device allows. */
-  "budget.texture_layers",
-  /** A unit's encoded bundle is over its class's bytes. */
-  "budget.bundle_bytes",
-  /** A unit's bundle carries more distinct textures than its class allows. */
-  "budget.unit_textures",
-  // required nodes
-  "nodes.missing",
-  "nodes.hierarchy",
-  "nodes.duplicate",
-  "nodes.track_properties",
-  "nodes.deploy_motion",
-  // city kits: a kit's modules, and its bundle's byte budget
-  "kit.module",
-  "kit.bytes",
-  // city template sets (`templateSource.ts`): the source file, its rows, the
-  // physical contract, fit to the descriptor, and the catalogue they cover
-  "templates.source",
-  "templates.kit",
-  "templates.row",
-  "templates.module",
-  "templates.state",
-  "templates.physical",
-  "templates.fit",
-  "templates.catalogue",
-  "templates.coverage",
-] as const;
-export type FindingCode = (typeof FINDING_CODES)[number];
-
 /** A frame-cost budget: a scenery kind's (`SCENERY_KINDS`) or a unit
- *  class's (`UNIT_ART`). Each limit is enforced only when set. */
+ *  class's (`UNIT_ART`, where every class sets `tier_triangles`). Each limit
+ *  is enforced only when set. */
 export interface Budget {
   /** The most triangles each tier may draw, finest first. */
   tier_triangles?: readonly number[];
@@ -791,12 +674,9 @@ export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;
  * first frame (`catalogLoadBytes`): every appearance not fetched on request,
  * the skeleton clips, their textures once each, and the template library. A
  * loose tripwire against gross growth, not a target: the measured load with
- * every unit's art (775.3 MiB with the generated soldier bodies,
- * specs/done/generated-soldiers), rounded up to the next 32 MiB. */
-// Keep a small headroom allowance for the donor-derived helicopter fittings.
-// Texture layers remain separately bounded, so this is still a regression
-// guard rather than an invitation to add unbounded art payload.
-export const CATALOG_LOAD_MAX_BYTES = 804 * 1024 * 1024;
+ * every unit's art (810.6 MiB once the helicopters wore their donor
+ * airframes' textures), rounded up to the next 32 MiB. */
+export const CATALOG_LOAD_MAX_BYTES = 832 * 1024 * 1024;
 /** The fewest texture array layers the target machine's adapter grants (the
  * Mac mini, `maxTextureArrayLayers`). The device requests the adapter's own
  * limit; the bake holds each array's distinct layers to this floor, so a new

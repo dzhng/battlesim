@@ -96,6 +96,7 @@ pub fn solve_launch_past(
         profile.lifetime_s,
         profile.turn_rad_s.unwrap_or(f64::NAN),
         profile.launch_elevation_rad.unwrap_or(f64::NAN),
+        profile.launch_hold_s,
         motor[0],
         motor[1],
         carrier.x,
@@ -250,7 +251,7 @@ impl<K: std::hash::Hash + Eq, V: Clone> Kept<K, V> {
 /// What a launch is solved from, to the bit: the aim (origin, target and
 /// target and carrier velocities), the round's flight, the body it flies
 /// past, and the world's identity and obstacle revision.
-type LaunchKey = ([u64; 20], Option<PropId>, bool, usize, u64);
+type LaunchKey = ([u64; 21], Option<PropId>, bool, usize, u64);
 
 /// The ballistic intercepts and the launches already solved: kept answers
 /// ([`Kept`]). An intercept depends on nothing but its inputs; a launch also
@@ -563,6 +564,7 @@ pub fn guided_timed_path(
         point,
         turn_rad_s,
         supported: true,
+        launch_hold_s: profile.launch_hold_s,
         loft: profile.loft,
     };
     let mut points = vec![(origin, 0.0)];
@@ -571,7 +573,9 @@ pub fn guided_timed_path(
     let n = config.subsegments_per_tick();
     while duration_s - elapsed > TIME_EPSILON_S {
         let span = config.tick_s().min(duration_s - elapsed);
-        v = v.turned_toward(guidance.aim(p) - p, turn_rad_s * span);
+        if elapsed >= profile.launch_hold_s {
+            v = v.turned_toward(guidance.aim(p) - p, turn_rad_s * span);
+        }
         let thrust = profile
             .motor
             .map_or(v3(0.0, 0.0, 0.0), |m| m.thrust(v, span));
@@ -865,11 +869,12 @@ fn launch_along(
             suppression_radius_m: profile.suppression_radius_m,
             shooter,
             // Guidance turns from the authored launcher heading toward the
-            // commanded intercept on the first flight tick.
+            // commanded intercept after its authored launch hold.
             guidance: profile.turn_rad_s.map(|turn_rad_s| Guidance {
                 point: fired.intercept,
                 turn_rad_s,
                 supported: true,
+                launch_hold_s: profile.launch_hold_s,
                 loft: profile.loft,
             }),
             motor: profile.motor,

@@ -22,7 +22,8 @@ import { GRASS_HEIGHT_MAX } from "../../battle-renderer/src/records.gen.ts";
 import { vec3, type Vec3 } from "math";
 import { mulberry32, random } from "math/random";
 import { encodeGlb, type GltfJson } from "./glb.ts";
-import type { Finding, GrassSpec, MeshData } from "./schema.ts";
+import type { GrassSpec, MeshData } from "./schema.ts";
+import type { Finding } from "./finding.ts";
 
 /** Segments per blade in each LOD tier, finest first. */
 export const GRASS_SEGMENTS = [4, 3, 2, 1] as const;

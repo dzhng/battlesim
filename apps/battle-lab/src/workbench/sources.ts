@@ -19,7 +19,8 @@ import {
 import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loose";
 import { INFANTRY_CLIPS, INFANTRY_DEATHS } from "@packages/scene-assets/src/schema";
 import { reloadGameAppearances, gameAppearances } from "../gameAppearances";
-import type { AppearanceUnit, Catalog, Finding, Side } from "@packages/scene-assets/src/schema";
+import type { AppearanceUnit, Catalog, Side } from "@packages/scene-assets/src/schema";
+import type { Finding } from "@packages/scene-assets/src/finding";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { Stats } from "@packages/scene-assets/src/validate";
 import { benchAuthority, footprint, type Footprint, type PropClasses } from "./benchWorld";

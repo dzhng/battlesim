@@ -7,11 +7,11 @@ import { importScene } from "./scene.ts";
 import {
   INFANTRY_CLIPS,
   type AimReference,
-  type Finding,
   type PoseRef,
   type SkeletonClips,
   type SkeletonEntry,
 } from "./schema.ts";
+import { type Finding } from "./finding.ts";
 import { hasErrors, type Validation } from "./validate.ts";
 
 /** A skinned appearance's skeleton as validation reads it: its clips and its aim

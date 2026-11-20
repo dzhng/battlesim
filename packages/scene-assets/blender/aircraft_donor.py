@@ -27,7 +27,9 @@ def _atlas(source, family):
     return material
 
 
-def fitted_airframe(v, family, mats, skip_parts=()):
+def fitted_airframe(v, family, mats, skip_parts=(), adjust=None):
+    """Import the family's pinned donor; `adjust(part)` may re-pose a part's
+    mesh (in the donor's frame) before it is tiered."""
     source = skin_pins.verified(skin_pins.required(family, variant=v.variant["id"]))
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=source)
@@ -40,6 +42,8 @@ def fitted_airframe(v, family, mats, skip_parts=()):
         if part.name in skip_parts:
             bpy.data.objects.remove(part, do_unlink=True)
             continue
+        if adjust:
+            adjust(part)
         # Donor panes are authored with the shared `glass` role, while roster
         # scripts tune the aircraft-specific `canopy` finish. Use that finish
         # for donor glazing so the tint, coverage and cockpit depth authored by

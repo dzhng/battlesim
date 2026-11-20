@@ -17,10 +17,10 @@ import {
   bundlePath,
   type ArticulatedBundle,
   type Bundle,
-  type FindingCode,
   type Material,
   type StaticBundle,
 } from "@packages/scene-assets/src/schema.ts";
+import { type FindingCode } from "@packages/scene-assets/src/finding.ts";
 import {
   AUTHORITY,
   bakedBundle,
