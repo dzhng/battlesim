@@ -1,6 +1,8 @@
 // A reinforcement lane beacon. It answers one question, "which lane is
-// this?" with a lane number and a short trail of matching beacons.
-import type { Vec2 } from "math";
+// this?" with a lane number and a short trail of matching beacons. Pulled
+// far out, where those shrink to a few pixels, a soft glow sized on screen
+// keeps the road in standing out from the fields round it.
+import { remapClamp, type Vec2 } from "math";
 import { triangulatePolygon2 } from "math/geometry";
 import { triangle2 } from "math/shapes";
 import {
@@ -179,12 +181,38 @@ const FONT_DIGITS: Readonly<Record<number, readonly P2[]>> = {
   ],
 };
 
-// The glyph's forward extent is DIGIT_HEIGHT_M. Starting it at the road edge
+// The glyph's forward extent is ENTRY_DIGIT_HEIGHT_M. Starting it at the road edge
 // leaves the same clear gap before the first beacon as between beacon edges.
 const NUMBER_OFFSET_M = -3;
 const BEACON_STEP_M = 10.8;
 const BEACON_RADII_M = [3.525, 2.625, 1.8] as const;
-const DIGIT_HEIGHT_M = 4.65;
+/** The painted number's height on the ground. */
+export const ENTRY_DIGIT_HEIGHT_M = 4.65;
+/** From the number's back edge to the last beacon's front edge, along the
+ *  road from its entry. */
+const SPAN_M: readonly [number, number] = [NUMBER_OFFSET_M, BEACON_STEP_M * 3 + BEACON_RADII_M[2]];
+
+/** The glow's radius in screen pixels, thinning with the strokes as the
+ *  camera pulls out, and the ground radii (metres) it fades in over: none
+ *  while the painted marker reads by itself, full once it has shrunk well
+ *  inside the glow. */
+const GLOW_PX = 56;
+const GLOW_FADE_M: readonly [number, number] = [10, 25];
+const GLOW_ALPHA = 0.9;
+/** The glow's falloff: alpha (of GLOW_ALPHA) at each fraction of its radius. */
+const GLOW_FALLOFF: readonly (readonly [number, number])[] = [
+  [0, 1],
+  [0.35, 0.6],
+  [0.7, 0.2],
+  [1, 0],
+];
+
+/** A road in's marker on the ground: its two ends, the number's and the
+ *  last beacon's, and the point halfway between them. */
+export function entryMarkerSpan(marker: EntryMarker): { ends: [P2, P2]; middle: P2 } {
+  const at = (d: number) => along(marker.center, marker.facing, d);
+  return { ends: [at(SPAN_M[0]), at(SPAN_M[1])], middle: at((SPAN_M[0] + SPAN_M[1]) / 2) };
+}
 
 export function buildDeploymentMarker(
   marker: EntryMarker,
@@ -202,6 +230,7 @@ export function buildDeploymentMarker(
   ];
   const painted = new MeshBuilder();
   const marching = new MeshBuilder();
+  glow(painted, pen.z, entryMarkerSpan(marker).middle, stroke(GLOW_PX), markerColor);
   const number = along(marker.center, marker.facing, pen.line * 2 + NUMBER_OFFSET_M);
   digit(painted, pen.z, number, marker.facing, marker.lane, color);
 
@@ -219,6 +248,24 @@ export function buildDeploymentMarker(
   return { paintedMarching: concatMeshes([unpulsed(still), withMarch(marching.build(), normal)]) };
 }
 
+/** A soft disc of the marker's light, `radius` metres across the ground,
+ *  fading in as that radius grows through GLOW_FADE_M (none close in). */
+function glow(mesh: MeshBuilder, z: SurfaceHeight, center: P2, radius: number, color: Rgb) {
+  const strength = GLOW_ALPHA * remapClamp(radius, GLOW_FADE_M[0], GLOW_FADE_M[1], 0, 1);
+  if (strength <= 0) return;
+  const tone = (a: number): Rgba => [color[0], color[1], color[2], strength * a];
+  for (let i = 1; i < GLOW_FALLOFF.length; i++) {
+    const [r0, a0] = GLOW_FALLOFF[i - 1];
+    const [r1, a1] = GLOW_FALLOFF[i];
+    groundAnnulus(mesh, center, r0 * radius, r1 * radius, {
+      z,
+      segments: 32,
+      colorIn: tone(a0),
+      colorOut: tone(a1),
+    });
+  }
+}
+
 function digit(
   mesh: MeshBuilder,
   z: SurfaceHeight,
@@ -229,11 +276,11 @@ function digit(
 ) {
   const [fx, fy] = [Math.cos(facing), Math.sin(facing)];
   const at = ([x, y]: P2): [number, number, number] => [
-    center[0] + (fy * x + fx * y) * DIGIT_HEIGHT_M,
-    center[1] + (-fx * x + fy * y) * DIGIT_HEIGHT_M,
+    center[0] + (fy * x + fx * y) * ENTRY_DIGIT_HEIGHT_M,
+    center[1] + (-fx * x + fy * y) * ENTRY_DIGIT_HEIGHT_M,
     z(
-      center[0] + (fy * x + fx * y) * DIGIT_HEIGHT_M,
-      center[1] + (-fx * x + fy * y) * DIGIT_HEIGHT_M,
+      center[0] + (fy * x + fx * y) * ENTRY_DIGIT_HEIGHT_M,
+      center[1] + (-fx * x + fy * y) * ENTRY_DIGIT_HEIGHT_M,
     ),
   ];
   const points = FONT_DIGITS[lane] ?? FONT_DIGITS[1];

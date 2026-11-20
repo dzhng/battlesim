@@ -1906,19 +1906,44 @@ html {
   fill-opacity: 0.18;
 }
 
-.skirmish-objective-layer {
+/* Labels pinned over the ground (groundLabels.ts): the capture areas'
+ * flags and the entries' cards. */
+.ground-label-layer {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  font: 11px/1.45 var(--hud-font);
+  color: rgb(var(--hud-text));
   pointer-events: none;
 }
-.skirmish-objective-mark {
+.ground-label {
   position: absolute;
   top: 0;
   left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 3px 5px;
   background: rgb(var(--hud-glass) / 0.8);
   text-shadow: 0 0 4px rgb(var(--hud-glass));
+}
+.ground-label .ro-icon {
+  width: 14px;
+  height: 14px;
+}
+/* The icon fills its box, and the text's box is trimmed to its capitals, so
+ * both centre on the label's middle by their ink. */
+.ground-label .ro-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ground-label > span:not(.ro-icon) {
+  text-box: trim-both cap alphabetic;
+}
+/* An entry's card stands clear above its glow, as a flag above its ring. */
+.entry-card {
+  margin-top: -14px;
 }
 
 /* The end-of-match report: a debrief over the stilled battle. The result,

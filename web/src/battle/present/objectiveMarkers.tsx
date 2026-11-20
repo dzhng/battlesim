@@ -1,9 +1,10 @@
-import { useImperativeHandle, useRef, type Ref } from "react";
+import { useImperativeHandle, type Ref } from "react";
 import type { Project } from "./readouts";
 import type { ObjectiveView, SkirmishView } from "../sim/observationView";
 import type { SideName } from "../sim/protocol";
 import { Icon } from "./icons";
 import { hudIcon } from "@packages/scene-assets/src/icons";
+import { useGroundLabels } from "./groundLabels";
 
 export interface ObjectiveMarkersHandle {
   place(project: Project, elevation: (x: number, y: number) => number): void;
@@ -39,44 +40,39 @@ export function ObjectiveMarkers({
   viewer: SideName | null;
   handle: Ref<ObjectiveMarkersHandle>;
 }) {
-  const nodes = useRef(new Map<string, HTMLSpanElement>());
+  const labels = useGroundLabels();
   useImperativeHandle(
     handle,
     () => ({
       place(project, elevation) {
-        for (const objective of objectives) {
-          const node = nodes.current.get(objective.id);
-          if (!node) continue;
-          const [x, y] = objective.center;
-          const point = project(x, y, elevation(x, y));
-          node.style.display = point ? "" : "none";
-          if (point)
-            node.style.transform = `translate(${point[0]}px, ${point[1]}px) translate(-50%, -100%)`;
-        }
+        for (const {
+          id,
+          center: [x, y],
+        } of objectives)
+          labels.place(id, project(x, y, elevation(x, y)));
       },
     }),
-    [objectives],
+    [objectives, labels],
   );
   // Contested flags alternate their owner colour and warning yellow in CSS;
   // the data attribute remains the state contract for styling and tests.
   return (
-    <div className="hud-objective-flags skirmish-objective-layer" aria-label="Capture areas">
+    <div className="hud-objective-flags ground-label-layer" aria-label="Capture areas">
       {objectives.map((objective, index) => (
         <span
           key={objective.id}
-          ref={(node) => {
-            if (node) nodes.current.set(objective.id, node);
-            else nodes.current.delete(objective.id);
-          }}
-          className="skirmish-objective-mark"
+          ref={labels.pin(objective.id)}
+          className="ground-label"
           data-owner={objectiveStanding(objective.owner, viewer)}
           data-contested={objective.contested}
           style={{ display: "none" }}
           aria-label={`Capture area ${index + 1}`}
         >
           <Icon path={hudIcon("objective")} />
-          {index + 1}
-          {captureShare(objective)}
+          <span>
+            {index + 1}
+            {captureShare(objective)}
+          </span>
         </span>
       ))}
     </div>

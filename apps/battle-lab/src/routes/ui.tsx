@@ -21,6 +21,7 @@ import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
 } from "@web/battle/present/objectiveMarkers";
+import { EntryCards, type EntryCardsHandle } from "@web/battle/present/entryCards";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { PurchasePicker, type PurchaseLookup } from "@web/battle/present/purchasePicker";
 import {
@@ -312,6 +313,19 @@ function Objectives() {
   return <ObjectiveMarkers objectives={OBJECTIVES} viewer="blue" handle={handle} />;
 }
 
+/** Three roads in from the gallery's lower edge, as from far out. */
+const ENTRIES = [-90, 0, 90].map((x, i) => ({
+  center: [x, 60] as [number, number],
+  facing: -Math.PI / 2,
+  lane: i + 1,
+}));
+
+function Entries() {
+  const handle = useRef<EntryCardsHandle>(null);
+  useLayoutEffect(() => handle.current?.place(project, () => 0));
+  return <EntryCards entries={ENTRIES} handle={handle} />;
+}
+
 function Ruler() {
   const handle = useRef<RangeRulerLabelsHandle>(null);
   useLayoutEffect(() => handle.current?.place(project, RULER));
@@ -484,6 +498,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
   },
   { id: "armory", draw: () => <Armory /> },
   { id: "objectives", draw: () => <Objectives /> },
+  { id: "entries", draw: () => <Entries /> },
   { id: "range-ruler", draw: () => <Ruler /> },
   { id: "refused-order", draw: () => <Refusal /> },
   { id: "frame-rate", draw: () => <Frames /> },
