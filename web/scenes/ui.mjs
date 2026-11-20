@@ -557,6 +557,12 @@ export async function run(ctx) {
         "menu settings has one active graphics choice",
         (await page.getByRole("radio", { checked: true }).count()) === 1,
       );
+      // What the page folds away holds in the plate too, once unfolded.
+      const folds = body.locator("details > summary");
+      for (const fold of await folds.all()) await fold.click();
+      await contained(ctx, page, "menu settings, unfolded");
+      for (const fold of await folds.all()) await fold.click();
+      await pointerAway(page);
     }
     if (entry === "skirmish")
       await page.locator('[data-testid=lobby-status][data-status="ready"]').waitFor();

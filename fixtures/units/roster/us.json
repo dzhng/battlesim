@@ -645,6 +645,9 @@
         "family_name": "F-15 Eagle"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -728,6 +731,9 @@
         "family_name": "F-15 Eagle"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -793,6 +799,9 @@
         "family_name": "F-22 Raptor"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [
@@ -858,6 +867,9 @@
         "family_name": "F-35 Lightning II"
       },
       "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "flares": { "capacity": 2 }
+      },
       "body": {
         "hull": {
           "half_extents_m": [

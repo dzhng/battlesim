@@ -398,6 +398,41 @@
 .hud-panel .menu-notice a:hover {
   border-bottom-color: rgb(var(--hud-accent));
 }
+/* Settings' asset credits: folded under a label in the plate's small caps,
+   its chevron turning down as it opens onto the credits as notes. */
+.menu-credits summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.menu-credits summary::-webkit-details-marker {
+  display: none;
+}
+.menu-credits summary::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border: solid rgb(var(--hud-accent));
+  border-width: 0 1px 1px 0;
+  transform: rotate(-45deg);
+}
+.menu-credits[open] summary::before {
+  transform: rotate(45deg);
+}
+.menu-credits summary:hover {
+  color: rgb(var(--hud-accent));
+}
+.menu-credits .menu-notice {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
 /* The developer tools' link: quiet, under everything the player uses. */
 .hud-panel button.menu-dev {
   justify-self: end;
@@ -450,7 +485,7 @@
   box-shadow: none;
   color: rgb(var(--hud-accent));
 }
-.hud-panel.menu-body :is(a, button, input):focus-visible {
+.hud-panel.menu-body :is(a, button, input, summary):focus-visible {
   outline: 1px solid rgb(var(--hud-accent));
   outline-offset: 3px;
 }
