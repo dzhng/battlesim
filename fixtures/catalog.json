@@ -17960,7 +17960,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "air_gun"
+                "gau_8"
               ]
             },
             {
@@ -39505,7 +39505,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "air_gun"
+            "gau_8"
           ]
         },
         {
@@ -45401,7 +45401,7 @@
       "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 13.0,
+      "damage": 18.0,
       "decoyable": false,
       "default": true,
       "derived": {
@@ -46237,6 +46237,93 @@
       "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
+    },
+    "gau_8": {
+      "accel_mps2": null,
+      "aim_s": 1.0,
+      "ammo": "unlimited",
+      "anti_radiation": false,
+      "appearance": "aa_gun",
+      "armor_piercing": false,
+      "blast_radius_m": 2.0,
+      "damage": 18.0,
+      "decoyable": false,
+      "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 700.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 500.0
+          },
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 700.0
+          }
+        ]
+      },
+      "description": "The A-10's 30 mm cannon: it opens up on the ground from farther out than other aircraft guns.",
+      "fires_on_its_own": false,
+      "gravity_scale": 0.5,
+      "icon": "autocannon",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 0.3,
+          "rounds": 12
+        },
+        "rounds": 120,
+        "shot_interval_s": 0.1
+      },
+      "min_range_m": 0.0,
+      "name": "GAU-8 Avenger",
+      "near_miss_suppression": 0.0325,
+      "partial_from": 0.08,
+      "penetration": 25.0,
+      "range_m": 700.0,
+      "reload_s": 3.5,
+      "requires_clear_launch_path": false,
+      "speed_mps": 600.0,
+      "stationary": false,
+      "structural_damage": 2.6,
+      "suppression_radius_m": 6.0,
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 700.0,
+          "scatter_mrad": 6.0
+        },
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 700.0,
+          "scatter_mrad": 20.0
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 500.0,
+          "scatter_mrad": 24.0
+        }
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
     },
     "grenade": {
       "accel_mps2": null,
