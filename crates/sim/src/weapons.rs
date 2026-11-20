@@ -283,9 +283,10 @@ fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usi
         .fold(0.0, f64::max)
 }
 
-/// Whether a weapon can hurt a soldier or any face of an armoured target.
+/// Whether a weapon can hurt a target with this hull armour (`None`: a
+/// soldier) at all (P10: some of its damage gets through the weakest face).
 pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>, rules: &Rules) -> bool {
-    armor.is_none_or(|armor| damage::can_damage_hull(def, armor, rules))
+    armor.is_none_or(|armor| damage::pierce_share(def, 0, rules, armor.weakest()) > 0.0)
 }
 
 /// Whether the mount's kind `k` can hurt `target`; an area or a ground point

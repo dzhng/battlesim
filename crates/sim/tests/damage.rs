@@ -120,79 +120,6 @@ fn rounds_far_short_of_the_armour_do_nothing() {
 }
 
 #[test]
-fn stopped_rounds_only_chip_the_faces_their_weapon_allows() {
-    use contract::scenario::Face;
-
-    for (yaw, elevated, front_armor, face, expected) in [
-        (std::f64::consts::PI, false, 20, Face::Front, 0.0),
-        (std::f64::consts::FRAC_PI_2, false, 20, Face::Side, 1.0),
-        (0.0, false, 20, Face::Rear, 1.0),
-        (std::f64::consts::PI, true, 20, Face::Roof, 0.0),
-        (std::f64::consts::PI, false, 5, Face::Front, 50.0),
-    ] {
-        let mut game = rules();
-        let hmg = &mut game["weapons"]["hmg"];
-        hmg["penetration"] = json!(10);
-        hmg["partial_from"] = json!(0.0);
-        hmg["partial_damage_scale"] = json!({ "front": 0, "side": 0.04, "rear": 0.04, "roof": 0 });
-        hmg["damage"] = json!(50);
-        hmg["magazine"] = Value::Null;
-        hmg["reload_s"] = json!(1.0);
-        sim::fixtures::patch_catalog(
-            &mut game,
-            "units",
-            "test_supply",
-            json!({ "body": { "hull": { "hp": 100, "armor": {
-                "front": front_armor, "side": 20, "rear": 20, "roof": 15,
-                "ricochet": { "front": 0, "side": 0, "rear": 0, "roof": 0 }
-            } } } }),
-        );
-        let mut ground = serde_json::from_str::<Value>(&map(json!([]), json!([]))).unwrap();
-        if elevated {
-            // The crew needs to see past the plateau edge to aim downhill.
-            game["physics"]["vehicle_eye_m"] = json!(4);
-            ground["relief"] = json!([
-                { "kind": "mesa", "rect": [80, 280, 24, 40], "height_m": 65, "side_degrees": 70 }
-            ]);
-        }
-        let setup = serde_json::from_value(json!({
-            "map": ground,
-            "rules": game,
-            "units": [
-                { "side": "blue", "kind": "test_jeep", "position": [100, 300] },
-                { "side": "red", "kind": "test_supply", "position": [200, 300], "yaw": yaw }
-            ],
-            "events": [], "scripts": []
-        }))
-        .unwrap();
-        let mut b = Battle::new(&setup, 3);
-        let target = BodyId(sim::weapons::VEHICLE_BODY_BASE + 1);
-        let hit = (0..300)
-            .find_map(|_| {
-                b.step();
-                b.flight_events().iter().find_map(|event| match event {
-                    FlightEvent::Impact(hit) if hit.struck == Struck::Body(target) => Some(*hit),
-                    _ => None,
-                })
-            })
-            .unwrap_or_else(|| {
-                let shooter = own(&b, Side::Blue, 0).unwrap();
-                panic!("no hit on {face:?}, mount: {:?}", shooter.mounts[0]);
-            });
-        let unit = b.unit(UnitId(1)).unwrap();
-        assert_eq!(
-            sim::damage::struck_face(unit.hull.unwrap(), hit.pose.unwrap(), hit.point, hit.normal),
-            face
-        );
-        assert_eq!(
-            100.0 - own(&b, Side::Red, 1).unwrap().hp,
-            expected,
-            "{face:?}"
-        );
-    }
-}
-
-#[test]
 fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
     let mut b = battle(
         json!([]),
@@ -807,8 +734,6 @@ fn test_an_aircrafts_side_takes_less_only_through_its_armour() {
         hmg["penetration"] = json!(50.0);
         hmg["damage"] = json!(10.0);
         hmg["partial_from"] = json!(0.08);
-        // Faces must differ by armour alone, not by the row's own face scale.
-        hmg["partial_damage_scale"] = Value::Null;
         hmg["targets"]["low_air"] =
             json!({ "classes": ["air_rotor"], "range_m": 300, "scatter_mrad": 8 });
         sim::fixtures::patch_catalog(

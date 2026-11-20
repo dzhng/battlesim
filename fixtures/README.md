@@ -219,13 +219,7 @@ A replacement soldier brings a fresh default gun; a transferable special weapon 
 
 A guided row's `top_attack` changes only the path its supported missile flies: it shoots up at `dive_deg` to `loft_m` above the commanded point, holds that height, then dives once that point lies `dive_deg` below its horizon, so geometry, not a rule, puts the hit on the roof. Guidance, release and active protection are unchanged; a released missile flies straight at its fixed point. The dive must fit the row's turn rate: a slow-turning missile overshoots a steep pitch-over, so a top-attack row turns far faster than a direct one ([traces](../specs/done/ground-admission/assets/top-attack/)).
 
-A round's damage to a hull depends on its penetration against the armour of the
-struck face. Full penetration deals full damage. Below that, damage fades to
-zero at the weapon's `partial_from` threshold. A weapon can also scale partial
-damage by face to model which surfaces it can chip when its round falls short
-of full penetration. A ricochet deals its share and cuts the round's penetration
-for its next hit. Target eligibility uses the same damage rule across all
-faces, and target preference uses the face presented to the shooter.
+A round's damage to a hull is the share its `penetration` gets through the face it meets: all of it at or past the armour, none short of the weapon row's `partial_from`, and in proportion between, so a round that nearly gets through still shakes the hull. Whether it glances off is only how it flies on; a glancing round still does its share, and each ricochet cuts its penetration for the next face it meets. A weapon engages a hull when any of its damage gets through the weakest face, and prefers the target whose facing armour lets most of it through. Penetration is the one lever for how much a weapon hurts armour,, and each face's armour is the one lever for how much a hull resists it.
 
 Each target layer owns its launch spread, `scatter_mrad`: a one-axis angular
 standard deviation, independent of miss distance and blast radius. Admission

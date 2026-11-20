@@ -27,11 +27,6 @@ use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
 
-mod penetration;
-pub(crate) use penetration::can_damage_hull;
-pub use penetration::pierce_share;
-use penetration::reach;
-
 /// Blast samples start this far off the struck surface.
 const BLAST_LIFT_M: f64 = 0.05;
 
@@ -75,6 +70,26 @@ pub fn fragment_exposure(rules: &Rules, shelter: f64) -> f64 {
 /// pose when struck.
 pub fn struck_face(half: V3, pose: Pose, point: V3, normal: V3) -> Face {
     hull_face_at(pose.base, pose.yaw, half, point + normal * BLAST_LIFT_M)
+}
+
+/// A round's penetration once each ricochet so far has cut it by
+/// `penetration_kept`.
+fn reach(penetration: f64, bounces: u8, rules: &RicochetRules) -> f64 {
+    penetration * rules.penetration_kept.powi(bounces as i32)
+}
+
+/// The one penetration rule: the share of a round's damage that gets
+/// through `armor`, its penetration cut by `penetration_kept` per ricochet
+/// so far. Nothing short of its own `partial_from` of the armour, all of it
+/// at or past the armour, and in proportion between: a round that nearly
+/// gets through still shakes the hull, glancing off or not.
+pub fn pierce_share(def: &WeaponDefinition, bounces: u8, rules: &Rules, armor: f64) -> f64 {
+    let reach = reach(def.penetration, bounces, &rules.ricochet);
+    if reach >= armor {
+        return 1.0;
+    }
+    let from = def.partial_from;
+    ((reach / armor - from) / (1.0 - from)).max(0.0)
 }
 
 /// What armour sees of a round: its penetration before any ricochet, and
@@ -634,7 +649,7 @@ fn hull_damage(
 ) -> f64 {
     let armor = unit.armor(ctx.rules).expect("vehicle armour");
     let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
-    def.damage * pierce_share(def, bounces, ctx.rules, armor, face)
+    def.damage * pierce_share(def, bounces, ctx.rules, armor.face(face))
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.
@@ -683,7 +698,7 @@ fn blast(
                 }
                 let armor = unit.armor(ctx.rules).expect("vehicle armour");
                 let face = unit.hull_face(at);
-                let share = pierce_share(def, 0, ctx.rules, armor, face);
+                let share = pierce_share(def, 0, ctx.rules, armor.face(face));
                 if share > 0.0 {
                     unit.hp -= def.damage * share * (1.0 - r / radius);
                     hurt(i, !unit.alive());
