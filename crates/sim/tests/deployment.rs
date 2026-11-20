@@ -559,3 +559,48 @@ fn a_vehicle_weapon_waits_for_setup_before_releasing_a_ready_shot() {
     }
     panic!("gun did not fire after setup");
 }
+
+/// An attack-move that halts on an enemy has nowhere to go: a deploying
+/// vehicle sets up there and fires, then packs and drives on.
+#[test]
+fn an_attack_moving_vehicle_sets_up_on_contact_and_fires() {
+    let mut rules = common::game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({
+            "capabilities": {"deploy": {"seconds": 3, "pack_seconds": 1}}
+        }),
+    );
+    let setup = serde_json::from_value(json!({
+        "rules":rules,
+        "map":{"size":[800,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "units":[
+            {"side":"blue","kind":"test_tank","position":[100,200]},
+            {"side":"red","kind":"test_tank","position":[400,200],"engagement":"return_fire_only"}
+        ],
+        "events":[]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 12);
+    let id = UnitId(0);
+    common::order(
+        &mut battle,
+        Side::Blue,
+        1,
+        Order::AttackMove {
+            units: vec![id],
+            gesture: 1,
+            goal: [700.0, 200.0],
+        },
+    );
+    ticks_until(&mut battle, 1200, |b| {
+        b.unit(id).unwrap().mounts[0].shots > 0
+    });
+    let u = battle.unit(id).unwrap();
+    assert!(deployment::fully_deployed(u), "first shot during setup");
+    assert!(u.position.x < 400.0, "it fired from short of its enemy");
+    // The fight over, it packs and finishes the advance.
+    ticks_until(&mut battle, 6000, |b| xy(b, id)[0] > 600.0);
+}

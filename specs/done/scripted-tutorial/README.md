@@ -117,7 +117,8 @@ How to add a chapter is in [fixtures/README.md](../../../fixtures/README.md#save
   `ControllerKind::DirectedAi`, so one field says what an AI seat does.
 - **Restart needed a standby.** Probe P2 measured plain replay at about
   3 minutes for 45k ticks, so the page keeps a second worker resumed at the
-  open chapter. A restart still rebuilds the page's world (about 1.8 s).
+  open chapter. A restart still rebuilds the page's world (1.8–4.1 s in
+  the scene).
 - **The valley's hills are authored.** Generated maps were flat when the map
   was made; it began as a generated `open small` map (seed 3), regenerated in
   the `paris` region, and is saved as an authored map with two ridges and a

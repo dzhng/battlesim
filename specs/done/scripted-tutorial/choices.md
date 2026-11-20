@@ -168,12 +168,13 @@ A few terms used throughout:
 - **The choice:** "Restart chapter" swaps in a standby battle that is already
   at the chapter's opening (S7 below), so no replay runs when you press it. The
   page still rebuilds its world: the battle view drops its art while a new
-  client has no observation, as the plain Restart always has. It takes about
-  1.8 s from the confirmation to the chapter's first card.
+  client has no observation, as the plain Restart always has. The browser
+  scene measured 1.8 s from the confirmation to the chapter's first card when
+  it was built, and 4.1 s in the closeout's full run on a busy machine.
 - **The gap:** the plan asked for restart by replay and said nothing about the
   page's art.
 - **The reach:** restart shows a short loading moment.
-- **Verdict:** needs-user (feel). Provisional call: accept 1.8 s. Keeping the
+- **Verdict:** needs-user (feel). Provisional call: accept a few seconds. Keeping the
   art across a restart means changing how the battle view loads and drops its
   art with each new client, outside this spec.
 - **Confidence:** medium.
