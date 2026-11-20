@@ -355,26 +355,19 @@ fn request_route(
     unit.planned_goal = Some(goal);
     // A vehicle drives on along the way it has while it works out a new one
     // to the same place (a driver does not stop to rethink), and sent
-    // somewhere new broadly ahead, along the stretch its brakes need, from
-    // whose end the new way is planned. Otherwise, or on foot, it holds
-    // until the route comes.
-    let ahead = (goal_moved && !same_place)
-        .then(|| drive_on::stretch(ctx, unit, goal))
-        .flatten();
-    let from = match ahead.as_ref().and_then(|stretch| stretch.last()) {
-        Some(&end) => end,
-        None => {
-            let grid = side.grid(ctx.world, ctx.authored);
-            route_start(unit, |p| grid.placement_fits(p, &unit.ground(ctx.rules)))
-        }
-    };
+    // somewhere new broadly ahead, along the stretch its brakes need.
+    // Otherwise, or on foot, it holds until the route comes.
     if !(unit.is_vehicle() && same_place) {
-        unit.route = ahead;
+        unit.route = (goal_moved.then(|| drive_on::stretch(ctx, unit, goal))).flatten();
     }
     let kept = unit.route.clone().filter(|_| !detour.is_empty());
     if unit.route.is_none() {
         unit.state = MoveState::Planning;
     }
+    let from = {
+        let grid = side.grid(ctx.world, ctx.authored);
+        route_start(unit, |p| grid.placement_fits(p, &unit.ground(ctx.rules)))
+    };
     planner.submit(
         unit.id,
         Request {
@@ -499,7 +492,7 @@ fn take_route(
     unit.progress = (f64::INFINITY, ctx.tick);
     // A vehicle that drove on meanwhile joins the new route where it is.
     if let (true, Plan::Route(route)) = (unit.is_vehicle(), &mut plan) {
-        drive_on::join(unit, from, route);
+        rejoin(unit.position.xy(), from, route);
     }
     // A shunt under way is finished first, as a driver gets clear of a
     // tight spot whatever his next order, then picks the new route up from

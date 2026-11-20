@@ -294,6 +294,11 @@ choose a corner speed. A tracked unit's `mobility.tracked.turning_radius_m` is t
 arc its route's corners are rounded to, as a wheeled one's is; absent, it rounds
 none and pivots at every sharp corner. A tracked pivot blocked by traffic backs up when it needs room;
 one blocked by a body it can't shove rolls along its length to where the whole turn clears.
+A vehicle on the move ordered somewhere within `navigation.drive_on_deg` of the way it
+travels drives on, braking, while the new route is worked out, and stops only if
+the route has not come by the time its brakes would have stopped it; ordered farther
+round than that, it stops for the route. A body it shoves square on the nose glances
+aside at `pushing.aside_deg` rather than being driven ahead of it.
 Stops, collisions and gear changes discard momentum. Infantry retain their own
 pace; their yield horizon follows a vehicle's accepted velocity, including reverse
 movement. Once clear of that path, a soldier waits rather than stepping back

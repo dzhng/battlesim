@@ -1,15 +1,15 @@
 //! Driving on while a new route is worked out. A vehicle sent somewhere
 //! broadly ahead of it does not stand to wait for the planner: it keeps the
-//! stretch of its route its brakes need to stop it, the new route is planned
-//! from that stretch's end, and it follows the stretch into the new route
-//! when that comes. If the route is long in coming it has braked to rest at
-//! the stretch's end, and holds there.
+//! stretch of its route its brakes need to stop it, and steers onto the new
+//! route from wherever on the stretch it has got to when that comes. If the
+//! route is long in coming it has braked to rest at the stretch's end, and
+//! holds there.
 use contract::observation::MoveState;
 
 use crate::math::{wrap_angle, V2};
 use crate::units::Unit;
 
-use super::{arrive, drive, rejoin, MovementContext, ROLLING_MPS};
+use super::{arrive, drive, MovementContext, ROLLING_MPS};
 
 /// The stretch of its route a vehicle ordered to `goal` drives on along
 /// while its way there is worked out: as far as braking from the speed it
@@ -46,18 +46,6 @@ pub(super) fn stretch(ctx: &MovementContext, unit: &Unit, goal: V2) -> Option<Ve
         at = point;
     }
     (!stretch.is_empty()).then_some(stretch)
-}
-
-/// A route planned from `from` arrives. A vehicle still on the stretch it
-/// drove on along, which ends at `from`, follows the stretch into it; any
-/// other picks the route up at its stretch nearest it.
-pub(super) fn join(unit: &Unit, from: V2, route: &mut Vec<V2>) {
-    match unit.route.as_ref().filter(|way| way.last() == Some(&from)) {
-        Some(way) => {
-            route.splice(0..0, way.iter().copied());
-        }
-        None => rejoin(unit.position.xy(), from, route),
-    }
 }
 
 /// A vehicle reaches its route's end. While its way somewhere new is still
