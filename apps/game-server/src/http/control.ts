@@ -141,16 +141,9 @@ export function createBattleServer(options: {
           throw new HttpRefusal(404, "unknown");
       }
     }
-    const match = /^\/battles\/([^/]+)\/(stream|up|preview|replay)$/.exec(url.pathname);
+    const match = /^\/battles\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
     if (!match || match[1] !== id || !players) throw new HttpRefusal(404, "unknown");
-    return battleRequest(
-      request,
-      response,
-      url,
-      match[2],
-      () => players!.seat(player(request)),
-      () => required().replay(),
-    );
+    return battleRequest(request, response, url, match[2], () => players!.seat(player(request)));
   });
   function required() {
     if (!host) throw new HttpRefusal(409, "not_started");

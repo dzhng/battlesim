@@ -12,7 +12,8 @@
 //!   ahead of the muzzle (`FlashStyle::dust`);
 //! - an impact puff where a stretch ends in a hit, and from a tracer, sparks,
 //!   a hot flash and its light; sparks at every ricochet corner;
-//! - a fireball for every blast, and the dirt and smoke it throws up;
+//! - a fireball for every blast, and what it throws up off the surface it
+//!   burst against (earth off the ground, dust off a wall), and its smoke;
 //! - dust behind a hull the side sees move, by the distance it covers, and
 //!   smoke behind a smoking one, by time; in standing water, wake impulses
 //!   instead of dust, from a hull or a squad ([`WakeImpulse`]);
@@ -37,7 +38,7 @@ use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::sync::Arc;
 
-use super::batch::{v4, DUST, DUST_FRAMES, FIRE, FIRE_FRAMES, ROTOR};
+use super::batch::{v4, DUST, DUST_FRAMES, FIRE, FIRE_BLOOMED, FIRE_FRAMES, ROTOR};
 pub use super::batch::{EffectBatch, EFFECT_FLOATS, SHAPE_NAMES};
 use super::exhaust::{DrawnJet, JetTrails};
 use super::high_air_shadow::GroundShadow;
@@ -480,6 +481,7 @@ impl EffectFrame {
                 t1,
                 b.point,
                 b.radius,
+                &b.hit,
                 p.looks.get(&b.kind).blast.expect("fielded blast"),
                 1.0,
                 &mut rng,

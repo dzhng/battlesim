@@ -2176,35 +2176,87 @@
       "loop": false,
       "notes": "Shed-door metal impact Foley; independent alternative to take-05."
     },
-    "eod-explosion": {
-      "label": "EOD ground explosion",
+    "eod-explosion-deep": {
+      "label": "EOD ground explosion \u00b7 deep",
       "category": "explosion",
       "role": "explosion",
-      "source": "eod-blast",
-      "source_rate": 48000,
-      "source_frames": [0, 73920],
-      "processing": "blast",
-      "url": "/audio/clips/eod-explosion.wav",
-      "sha256": "9407767856a30415ba4006b1c087d86da6a1507c5afaafdd25e4d6a751f31d28",
+      "layers": [
+        {
+          "source": "eod-blast",
+          "source_rate": 48000,
+          "source_frames": [0, 73920],
+          "at_s": 0,
+          "gain": 0.6,
+          "semitones": 0,
+          "lowpass_hz": 6000
+        },
+        {
+          "source": "eod-blast",
+          "source_rate": 48000,
+          "source_frames": [0, 73920],
+          "at_s": 0,
+          "gain": 1.0,
+          "semitones": -5,
+          "lowpass_hz": 1200
+        },
+        {
+          "source": "fire-blast",
+          "source_rate": 24000,
+          "source_frames": [0, 28560],
+          "at_s": 0.005,
+          "gain": 1.6,
+          "semitones": -12,
+          "lowpass_hz": 220
+        }
+      ],
+      "processing": "deep-blast",
+      "url": "/audio/clips/eod-explosion-deep.wav",
+      "sha256": "735f9737c1372904fb76aa25917b8beeaf09df956879cc5d6bcb6f9970fc1e80",
       "sample_rate": 48000,
-      "frames": 73920,
+      "frames": 114480,
       "loop": false,
-      "notes": "CC0 excerpt of government EOD detonation."
+      "notes": "The EOD detonation's crack over itself five semitones down for the body and the fire detonation an octave down for the sub rumble."
     },
-    "fire-explosion": {
-      "label": "EOD fire explosion",
+    "fire-explosion-deep": {
+      "label": "EOD fire explosion \u00b7 deep",
       "category": "explosion",
       "role": "explosion",
-      "source": "fire-blast",
-      "source_rate": 24000,
-      "source_frames": [0, 28560],
-      "processing": "blast",
-      "url": "/audio/clips/fire-explosion.wav",
-      "sha256": "be2456fafa0092effdf9a6e15c1bd2d8ca6328f5299ac6e35bb2b4043ef9dbf8",
+      "layers": [
+        {
+          "source": "fire-blast",
+          "source_rate": 24000,
+          "source_frames": [0, 28560],
+          "at_s": 0,
+          "gain": 0.6,
+          "semitones": 0,
+          "lowpass_hz": 6000
+        },
+        {
+          "source": "fire-blast",
+          "source_rate": 24000,
+          "source_frames": [0, 28560],
+          "at_s": 0,
+          "gain": 1.0,
+          "semitones": -5,
+          "lowpass_hz": 1200
+        },
+        {
+          "source": "eod-blast",
+          "source_rate": 48000,
+          "source_frames": [0, 73920],
+          "at_s": 0.005,
+          "gain": 1.5,
+          "semitones": -12,
+          "lowpass_hz": 220
+        }
+      ],
+      "processing": "deep-blast",
+      "url": "/audio/clips/fire-explosion-deep.wav",
+      "sha256": "0e45a2ee9beabd4695638c577630745bda3cbec667db4844360bad16d7197435",
       "sample_rate": 48000,
-      "frames": 57120,
+      "frames": 148080,
       "loop": false,
-      "notes": "CC0 excerpt of government EOD detonation."
+      "notes": "The fire detonation's crack over itself five semitones down for the body and the EOD detonation an octave down for the sub rumble."
     },
     "rifle-11-burst-a": {
       "label": "Rifle 11 \u00b7 3-round burst A",
@@ -5794,10 +5846,10 @@
       "loop": false
     },
     "recorded-explosion": {
-      "label": "Ground explosion \u00b7 recorded core",
-      "clips": ["eod-explosion", "fire-explosion"],
+      "label": "Ground explosion \u00b7 deep recorded core",
+      "clips": ["eod-explosion-deep", "fire-explosion-deep"],
       "synth": "explosion",
-      "synth_gain": 0.08,
+      "synth_gain": 0.2,
       "gain": 0.95,
       "loop": false
     },

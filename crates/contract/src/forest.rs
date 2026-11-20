@@ -96,3 +96,23 @@ pub fn body_contains(center: [f64; 2], half: [f64; 2], yaw: f64, p: [f64; 2], ma
     let (s, c) = libm::sincos(-yaw);
     (x * c - y * s).abs() <= half[0] + margin && (x * s + y * c).abs() <= half[1] + margin
 }
+
+/// Whether two trees' crowns meet (Q21): trunks within two crown radii. A
+/// tree whose crown meets another's stands in a stand; a lone tree, however
+/// big its crown, is no canopy.
+pub fn crowns_meet(a: [f64; 2], b: [f64; 2], rule: &ForestRule) -> bool {
+    libm::hypot(a[0] - b[0], a[1] - b[1]) <= 2. * rule.canopy_radius_m
+}
+
+/// Whether a stand's tree at `tree` puts the ground at `p` under its wood's
+/// canopy (Q21): within one trunk spacing of it, so a stand's canopy closes
+/// over the gaps its lattice leaves. The ground must also be the wood's own.
+pub fn under_stand(tree: [f64; 2], p: [f64; 2], rule: &ForestRule) -> bool {
+    libm::hypot(tree[0] - p[0], tree[1] - p[1]) <= rule.trunk_spacing_m
+}
+
+/// How far from a tree its standing or falling can change the canopy: the
+/// ground under it, and under every tree whose crown meets its own.
+pub fn canopy_reach(rule: &ForestRule) -> f64 {
+    rule.trunk_spacing_m + 2. * rule.canopy_radius_m
+}

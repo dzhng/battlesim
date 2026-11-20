@@ -420,10 +420,10 @@ pub(super) fn draw_blast(p: &EffectPresentation, e: &Effect, age: f64, batch: &m
     // The fireball rises through the blast's life; while the fire is hot
     // it sits at the height of the glow round it, as the browser draws it.
     let mut a = e.p;
-    a[2] += e.size * (0.55 + 0.5 * x);
+    a[2] += e.size * (0.3 + 0.5 * x);
     if heat > 0.0 {
         a = e.p;
-        a[2] += e.size * 0.5;
+        a[2] += e.size * 0.3;
         batch.glow(
             a,
             e.size * 1.2,
@@ -434,7 +434,14 @@ pub(super) fn draw_blast(p: &EffectPresentation, e: &Effect, age: f64, batch: &m
             0.0,
         );
     }
-    let frame = (x * 1.15).min(1.0) * (FIRE_FRAMES - 1.0);
+    // The ball grows within `bloom_s`, then burns out through the rest of
+    // the sheet, ending a little before the blast does.
+    let frame = if age < s.bloom_s {
+        FIRE_BLOOMED * age / s.bloom_s
+    } else {
+        let burn = (age - s.bloom_s) / (e.span / 1.15 - s.bloom_s).max(1e-6);
+        FIRE_BLOOMED + burn.min(1.0) * (FIRE_FRAMES - 1.0 - FIRE_BLOOMED)
+    };
     let opacity = s.opacity * ((1.0 - x) * 3.0).min(1.0);
     let radius = e.size * (0.75 + 0.5 * x.sqrt());
     let (emissive, soft) = (s.emissive * heat * heat, e.size * 0.5);

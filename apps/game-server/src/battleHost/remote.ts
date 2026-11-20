@@ -13,12 +13,15 @@ import {
 } from "../http/controlProtocol.ts";
 import type { ControlEvent, StreamPresence } from "../http/controlEvents.ts";
 import type { BattleEnd, BattleHost, BattleSpec } from "./index.ts";
+import type { BattleOutcome } from "../archive.ts";
 
 /** These operations belong to hosting, outside the simulation host interface. */
 export type HostedBattle = Omit<BattleHost, "attach">;
 
 export interface RemoteBattleHost extends HostedBattle {
   readonly address: string | undefined;
+  /** Settles once the battle has closed and its machine is stopped. */
+  readonly stopped: Promise<void>;
   setSeating(entries: [string, BattleSeat][]): Promise<void>;
   onStream(handle: (streams: StreamPresence[]) => void): void;
 }
@@ -28,6 +31,8 @@ export function createRemoteBattleHost(
   id: string,
   machine: Promise<Machine>,
   key: string,
+  /** Told once, as the battle closes, how it ended and its coming history. */
+  retire: (outcome: BattleOutcome, replay: Promise<string | null>) => void,
 ): RemoteBattleHost {
   const lifetime = new AbortController();
   const players = new Map((spec.candidates[0]?.seats ?? []).map((s) => [s.player, s]));
@@ -47,20 +52,44 @@ export function createRemoteBattleHost(
     if (!over && leased) silence = setTimeout(crash, LOBBY_LEASE_MS);
   };
   let mutations: Promise<unknown> = Promise.resolve();
+  let machineStopped!: () => void;
+  const stopped = new Promise<void>((resolve) => (machineStopped = resolve));
   const tellStreams = () => {
     for (const handle of listeners) handle([...streams.values()]);
   };
-  const close = (reason: string, result: BattleEnd | null) => {
+  /** The whole command history, asked for before the machine holding it stops. */
+  const lastReplay = async (machine: Machine): Promise<string | null> => {
+    try {
+      const response = await fetch(`${machine.address}/control/replay`, {
+        method: "POST",
+        headers: { [CONTROL_HEADER]: key },
+        signal: AbortSignal.timeout(CONTROL_REQUEST_TIMEOUT_MS),
+      });
+      return response.ok ? ((await response.json()) as string) : null;
+    } catch {
+      return null;
+    }
+  };
+  /** The machine stops once its history is kept, and only then does the
+   *  battle report its end: capacity is freed by a machine that is gone. */
+  const close = (reason: "finished" | "crashed" | "disposed", result: BattleEnd | null) => {
     if (over) return;
     over = reason;
-    end = result;
     clearTimeout(ping);
     clearTimeout(silence);
     lifetime.abort();
     streams.clear();
     tellStreams();
-    m?.stop();
-    if (result) for (const handle of endings) handle(result);
+    const machine = m;
+    const kept =
+      machine && leased && reason !== "crashed" ? lastReplay(machine) : Promise.resolve(null);
+    retire(reason === "disposed" ? "stopped" : reason, kept);
+    void kept.then(() => {
+      machine?.stop();
+      machineStopped();
+      end = result;
+      if (result) for (const handle of endings) handle(result);
+    });
   };
   const crash = () => close("crashed", { kind: "crashed", message: "battle server unavailable" });
   const endedError = () => new Error(`the battle has ended: ${over ?? "unavailable"}`);
@@ -197,6 +226,7 @@ export function createRemoteBattleHost(
     get address() {
       return m?.address;
     },
+    stopped,
     setSeating: (entries) =>
       serial(async () => {
         await ready;

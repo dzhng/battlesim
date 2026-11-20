@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import { MAP_ATTEMPTS } from "./serverData.ts";
@@ -18,6 +19,8 @@ export function startLobby(
   const build: BuildIdentity = JSON.parse(readFileSync(new URL("build.json", location), "utf8"));
   const server = createLobbyHttp(build, {
     machines,
+    // Beside the bundle, which neither a rebuild nor a deploy clears.
+    archive: fileURLToPath(new URL("battles/", location)),
     mapAttempts: MAP_ATTEMPTS,
     clock: {
       now: () => performance.now(),

@@ -190,7 +190,7 @@ const PROJECTILE_FIELDS: [&str; 10] = [
     "ny",
     "nz",
 ];
-const BLAST_FIELDS: [&str; 5] = ["x", "y", "z", "radius", "kind"];
+const BLAST_FIELDS: [&str; 6] = ["x", "y", "z", "radius", "kind", "hit"];
 const GUIDED_FIELDS: [&str; 9] = ["idLo", "idHi", "x", "y", "z", "px", "py", "pz", "supported"];
 const AIR_TRANSIT_FIELDS: [&str; 8] = [
     "kind", "x", "y", "z", "heading", "speedMps", "edgeTick", "dir",

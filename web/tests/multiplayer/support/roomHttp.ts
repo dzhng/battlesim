@@ -1,4 +1,5 @@
 import { inProcessBattleMachines } from "../../../../apps/game-server/src/machines/inProcess";
+import { archiveFolder } from "./archive";
 import type { BattleHost } from "@apps/game-server/src/battleHost/index";
 import type { BattleSetup } from "@packages/multiplayer/src/wire";
 import type { PresenceClock } from "@apps/game-server/src/presence";
@@ -20,6 +21,7 @@ export async function roomHttp(
   clientAddressHeader: string | null = null,
 ) {
   const server = createLobbyHttp(build, {
+    archive: archiveFolder(),
     machines: inProcessBattleMachines({
       capacity,
       createBattle: (spec) => createBattle(spec.candidates[0]),
@@ -45,7 +47,13 @@ export async function roomHttp(
       return (
         await fetch(`${address}${path}`, {
           method: "POST",
-          headers: { "X-Player": who, "Content-Type": "application/json", ...headers },
+          // Its own connection each time: `cut` never strands a socket this reuses.
+          headers: {
+            "X-Player": who,
+            "Content-Type": "application/json",
+            Connection: "close",
+            ...headers,
+          },
           body: JSON.stringify(value),
         })
       ).json();

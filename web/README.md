@@ -3,7 +3,9 @@
 The browser consumes the simulation's per-side observation. Presentation may
 interpolate known evidence, but it cannot query hidden battle state. The
 [application entry](src/main.tsx) mounts the [battle lab](../apps/battle-lab/README.md),
-which owns routes and composes the battle view.
+which owns routes and composes the battle view. It does so only in Chrome or
+another Chromium browser ([browser support](src/browserSupport.ts)): any other
+gets a notice to open the page in Chrome, and nothing of the game loads behind it.
 
 ## Authority and preparation
 
@@ -139,7 +141,7 @@ readiness timeouts include the page's published state so a slow or refused adapt
 does not look like an unexplained hang.
 
 The menu's graphics probe settles before the browser warms unused runtime art.
-That ordering keeps Safari's memory pressure from interrupting the frame sample
+That ordering keeps memory pressure from interrupting the frame sample
 stream while the first scene is being measured; a slow but valid stream remains
 usable evidence for selecting a lower tier.
 

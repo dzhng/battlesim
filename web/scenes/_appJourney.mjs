@@ -157,7 +157,7 @@ export async function appJourney(ctx) {
   const camera = await page.evaluate(() => window.__lab.camera());
   const log = await page.evaluate(() => window.__lab.route.acks());
   await page.getByRole("button", { name: "Resume", exact: true }).focus();
-  await page.keyboard.press("KeyF");
+  await page.keyboard.press("KeyH");
   await page.keyboard.down("ArrowRight");
   await page.waitForTimeout(80);
   await page.keyboard.up("ArrowRight");
@@ -208,7 +208,7 @@ export async function appJourney(ctx) {
     own !== undefined && (await toolbar.count()) === 1,
   );
   // Positive controls: the same keys must work outside the menu.
-  await page.keyboard.press("KeyF");
+  await page.keyboard.press("KeyH");
   await advance(page, 1);
   // The purchase and ready are acknowledged already: wait for the policy's.
   await page.waitForFunction(() =>

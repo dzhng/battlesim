@@ -1,6 +1,6 @@
 // @vitest-environment node
 import type { PreviewQuery } from "../../../packages/multiplayer/src/wire";
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { type BattleEnd } from "../../../apps/game-server/src/battleHost/index";
 import { loopback } from "../../../packages/multiplayer/src/link";
 import type { ControllerKind } from "../../src/battle/prepare/protocol";
@@ -388,8 +388,8 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
     b.host.dispose();
     expect(await answered).toMatch(/answered|ended/);
     await expect(blue.order({ kind: "ready" })).rejects.toThrow(/ended/);
-    await flush();
-    expect(reading.end).toBe("disposed");
+    // A remote battle's machine stops once its history is kept.
+    await vi.waitFor(() => expect(reading.end).toBe("disposed"));
     expect(b.ended).toEqual([]);
   });
 

@@ -78,10 +78,14 @@ fn shots(b: &Battle, unit: u32, id: &str) -> u32 {
 
 #[test]
 fn a_helicopter_guides_its_missile_while_it_flies_and_kills_a_tank() {
-    // Flying north past a tank 600 m to the east, inside its sight.
+    // Flying north past a tank to the east, nine tenths of the missile's
+    // reach off, inside its sight.
+    let reach = fixture()["weapons"]["heli_atgm"]["targets"]["ground"]["range_m"]
+        .as_f64()
+        .unwrap();
     let mut b = battle(json!([
         { "side": "blue", "kind": "test_attack_heli", "position": [300, 100], "yaw": std::f64::consts::FRAC_PI_2 },
-        { "side": "red", "kind": "test_tank", "position": [900, 300], "yaw": std::f64::consts::PI,
+        { "side": "red", "kind": "test_tank", "position": [300.0 + 0.9 * reach, 300], "yaw": std::f64::consts::PI,
           "engagement": "return_fire_only" },
     ]));
     fly(&mut b, [300.0, 500.0]);

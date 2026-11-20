@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::{Observation, Projectile, WeaponPose};
+use sim::publication::reader::{Observation, WeaponPose};
 
 use crate::seed::side_key;
 use crate::static_world::ground::water::StandingWater;
@@ -43,6 +43,8 @@ pub struct Blast {
     pub point: Vec3,
     pub radius: f64,
     pub kind: Arc<str>,
+    /// What it burst against, as a segment's `hit` names it.
+    pub hit: Arc<str>,
 }
 
 /// One weapon mount as published: a rise in `shots` is a shot.
@@ -310,7 +312,7 @@ impl EffectFeed {
                         .collect(),
                     kind: p.kind.clone(),
                     shooter: p.shooter_member,
-                    hit: splashed(water, p),
+                    hit: splashed(water, &p.hit, p.path.last().copied()),
                     normal: p.impact_normal,
                 })
                 .collect(),
@@ -321,6 +323,7 @@ impl EffectFeed {
                     point: b.point,
                     radius: b.radius,
                     kind: b.kind.clone(),
+                    hit: splashed(water, &b.hit, Some(b.point)),
                 })
                 .collect(),
             shooters,
@@ -379,14 +382,14 @@ fn wading(water: Option<&StandingWater>, s: &Shooter, members: &[Vec3]) -> Vec<W
         .collect()
 }
 
-/// What round `p` struck: water where it lands on the ground in `water`
-/// (the simulation stops it on the surface, as on ground, so it is looked
-/// for just under where it stopped; a round on a deck over the water is
-/// dry), so it splashes.
-fn splashed(water: Option<&StandingWater>, p: &Projectile) -> Arc<str> {
+/// What a round struck, `hit` at `end`: water where it lands on the ground
+/// in `water` (the simulation stops it on the surface, as on ground, so it
+/// is looked for just under where it stopped; a round on a deck over the
+/// water is dry), so it splashes.
+fn splashed(water: Option<&StandingWater>, hit: &Arc<str>, end: Option<Vec3>) -> Arc<str> {
     let wet = |[x, y, z]: Vec3| water.is_some_and(|w| w.under([x, y, z - 0.05]).is_some());
-    match p.path.last() {
-        Some(&end) if &*p.hit == "ground" && wet(end) => "water".into(),
-        _ => p.hit.clone(),
+    match end {
+        Some(end) if &**hit == "ground" && wet(end) => "water".into(),
+        _ => hit.clone(),
     }
 }
