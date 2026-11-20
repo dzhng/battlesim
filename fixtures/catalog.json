@@ -45354,7 +45354,7 @@
             "only": [
               "vehicle"
             ],
-            "range_m": 1000.0
+            "range_m": 750.0
           }
         ]
       },
@@ -45371,7 +45371,7 @@
       "near_miss_suppression": 0.3,
       "partial_from": 0.08,
       "penetration": 300.0,
-      "range_m": 1000.0,
+      "range_m": 750.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45385,7 +45385,7 @@
           "classes": [
             "vehicle"
           ],
-          "range_m": 1000.0,
+          "range_m": 750.0,
           "scatter_mrad": 0.5
         }
       },
@@ -45410,7 +45410,7 @@
           {
             "intercepts": false,
             "layer": "ground",
-            "range_m": 750.0
+            "range_m": 500.0
           },
           {
             "intercepts": false,
@@ -45456,7 +45456,7 @@
             "infantry",
             "vehicle"
           ],
-          "range_m": 750.0,
+          "range_m": 500.0,
           "scatter_mrad": 6.0
         },
         "high_air": {
@@ -45502,7 +45502,7 @@
           {
             "intercepts": false,
             "layer": "high_air",
-            "range_m": 1500.0
+            "range_m": 1000.0
           }
         ]
       },
@@ -45520,7 +45520,7 @@
       "partial_from": 0.08,
       "penetration": 40.0,
       "proximity_fuse_m": 3.0,
-      "range_m": 1500.0,
+      "range_m": 1000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
       "resupply_rounds_per_s": 0.125,
@@ -45537,7 +45537,7 @@
             "air_rotor",
             "air_fixed_wing"
           ],
-          "range_m": 1500.0,
+          "range_m": 1000.0,
           "scatter_mrad": 0.5
         },
         "low_air": {
