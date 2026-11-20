@@ -116,17 +116,19 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
               { conversion: "percent", unit: "%", max: 1 },
             ),
           ]),
-      ...(mode === "wheeled"
-        ? [
+      ...(mode === "foot"
+        ? []
+        : [
             field(
               `mobility.${mode}.turning_radius_m`,
-              "Minimum turn radius",
+              mode === "wheeled" ? "Minimum turn radius" : "Rolling turn radius",
               "Movement",
-              "Smallest circle the wheeled vehicle can drive; also constrains speed through bends.",
-              { unit: "m" },
+              mode === "wheeled"
+                ? "Smallest circle the wheeled vehicle can drive; also constrains speed through bends."
+                : "The arc tracks sweep a route's corners round on the move; they pivot on the spot only where no arc fits and for the final facing. Empty: no arc, a pivot at every sharp corner.",
+              { unit: "m", optional: mode === "tracked" },
             ),
-          ]
-        : []),
+          ]),
     ]),
     field(
       "mobility.air.cruise_kmh",

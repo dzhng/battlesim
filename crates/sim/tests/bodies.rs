@@ -364,6 +364,71 @@ fn a_tank_shoving_a_car_holds_its_heading() {
     );
 }
 
+/// The moment: a tank comes down a street lane on a car-sized body it can
+/// shove, square on its nose, the lane too narrow to drive past it. The
+/// tank glances it aside to the side it already sits a little off to (to
+/// some side when dead centre), rather than bulldozing it ahead down the
+/// lane: the body ends a few metres on from where it stood, beside the
+/// tank's way, and the tank drives on past it to its goal.
+#[test]
+fn a_tank_ramming_a_body_head_on_pushes_it_aside_not_ahead() {
+    for off in [0.4, -0.4, 0.0] {
+        let at = v2(45.0, 30.0 + off);
+        // A street 7.6 m between blocks the length of the map: room for the
+        // body beside the tank, none for the tank beside the body.
+        let map = json!({
+            "size": [120, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "props": [
+                { "kind": "wall", "center": [60, 13.4], "yaw": 0, "half_extents": [60, 12.8, 1.5] },
+                { "kind": "wall", "center": [60, 46.6], "yaw": 0, "half_extents": [60, 12.8, 1.5] },
+                { "kind": "crate", "center": [at.x, at.y], "yaw": 0, "half_extents": [2.1, 0.9, 0.75] },
+            ],
+        });
+        let mut setup = common::scenario_with(
+            &map.to_string(),
+            json!([vehicle("blue", "test_tank", [15.0, 30.0])]),
+            json!([]),
+            json!([drive("blue", 0, [105.0, 30.0])]),
+        );
+        let weight = WeightClass::Medium;
+        assert!(common::hull("test_tank").shoves(weight));
+        setup.rules = setup
+            .rules
+            .overridden(
+                json!({ "props": { "crate": { "body": { "weight_class": weight, "topples": false } } } })
+                    .as_object()
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        run(&mut b, 40.0);
+        let tank = b.unit(UnitId(0)).unwrap();
+        assert!(
+            (tank.position.xy() - v2(105.0, 30.0)).length() < 0.5,
+            "{off}: the tank reaches its goal: {:?}",
+            tank.position.xy()
+        );
+        let now = b.world().prop(BODY).unwrap().center;
+        assert!(
+            now.x - at.x < 6.0,
+            "{off}: the body is pushed {:.1} m on down the lane",
+            now.x - at.x
+        );
+        let aside = now.y - 30.0;
+        assert!(
+            aside.abs() > 2.0,
+            "{off}: the body ends {aside:.2} m off the tank's way"
+        );
+        if off != 0.0 {
+            assert_eq!(
+                aside.signum(),
+                off.signum(),
+                "{off}: it goes to the side it sat off to"
+            );
+        }
+    }
+}
+
 /// A tank driving at a row of parked cars on a slant, through one car's flank
 /// (prop 2), to a goal past it.
 fn car_row() -> ScenarioDefinition {

@@ -947,7 +947,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t3-tank-pushes-wreck",
-            caption: "a tank meets a jeep wreck across a road and shoves it aside",
+            caption: "a tank meets a jeep wreck across a road and nudges it aside",
             map: flat(
                 [140.0, 60.0],
                 json!({
@@ -970,7 +970,7 @@ fn authored() -> Vec<Scenario> {
                 check(VehiclesClearOfProps),
                 check(PropMoved {
                     near: [70.0, 30.0],
-                    min_m: 2.0,
+                    min_m: 0.5,
                 }),
             ],
         },

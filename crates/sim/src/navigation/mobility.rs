@@ -42,7 +42,9 @@ pub struct Drive {
     /// the game rules' named exceptions (development.md).
     pub tracked: bool,
     pub turn_rad_s: f64,
-    /// A wheeled vehicle's tightest turn (0 for tracks).
+    /// The turn a route's corners are rounded to: a wheeled vehicle's
+    /// tightest, a tracked one's skid-steer turn on the move (0: none, it
+    /// pivots at a sharp corner instead).
     pub radius_m: f64,
     pub reverse_speed_factor: f64,
     /// How every vehicle drives (`movement.drive`).

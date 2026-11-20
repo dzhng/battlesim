@@ -84,12 +84,13 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
         },
         Moves::Tracked {
             turn_deg_s,
+            turning_radius_m,
             reverse_speed_factor,
             ..
         } => vehicle(crate::navigation::Drive {
             tracked: true,
             turn_rad_s: turn_deg_s.to_radians(),
-            radius_m: 0.0,
+            radius_m: turning_radius_m.unwrap_or(0.0),
             reverse_speed_factor,
             feel: m.drive,
         }),

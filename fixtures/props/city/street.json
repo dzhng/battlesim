@@ -11,7 +11,7 @@
       "appearance": {"stand_in_tint": [0.45, 0.33, 0.22], "drawn_by": "bench", "map_only": true}
     },
     "bollard": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 200, "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "light", "hp": 200, "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.8, 0.72, 0.2], "drawn_by": "bollard", "map_only": true}
     },
@@ -21,12 +21,12 @@
       "appearance": {"stand_in_tint": [0.2, 0.36, 0.26], "drawn_by": "bins", "map_only": true}
     },
     "hydrant": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 150, "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "light", "hp": 150, "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.72, 0.16, 0.12], "drawn_by": "hydrant", "map_only": true}
     },
     "utility_box": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 100, "cover_tier": "medium", "metal": true},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "light", "hp": 100, "cover_tier": "medium", "metal": true},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.5, 0.56, 0.5], "drawn_by": "utility_box", "map_only": true}
     },

@@ -1,7 +1,10 @@
 //! The kinematic shove (Q2, Q14, L8): no physics engine. A vehicle's hull
 //! meets every body that stops vehicles box against box. A body strictly
 //! lighter than the vehicle's push class slides out of the hull along the
-//! axis of least overlap, turning a little when struck off-centre. Where
+//! axis of least overlap, turning a little when struck off-centre; one
+//! struck nearly square on the nose glances off it aside, toward the side of
+//! the pusher's centreline it sits on, and so leaves the hull's path rather
+//! than being driven ahead of it down a street. Where
 //! that slide would drive it into another body (a fence panel clipped at its
 //! end, pushed endwise into the next), it goes the next shortest way out of
 //! the hull, aside or ahead, never back through it. Anything heavier, and a
@@ -25,6 +28,10 @@ const CLEAR_M: f64 = 0.01;
 const TOUCH_M: f64 = 0.1;
 /// Slide-and-turn passes before a shove that still overlaps gives up.
 const PASSES: usize = 3;
+/// A body struck nearly square on slides off the pusher's nose at least
+/// this far off its travel, so it leaves the hull's path rather than being
+/// driven along ahead of it.
+const ASIDE_RAD: f64 = std::f64::consts::FRAC_PI_4;
 
 /// A body a vehicle shoves this tick, and the pose it ends in; a tree
 /// keeps its pose and is knocked down (its row `topples`).
@@ -130,7 +137,9 @@ pub struct Pusher {
 
 /// Where `prop` goes when `pusher` shoves it (Q2): slid out along the axis
 /// of least overlap, turned by `turn_rad_per_m` per metre slid when struck
-/// off the pusher's centreline. `None` when the shove would drive it into
+/// off the pusher's centreline; glanced aside when that axis lies within
+/// `ASIDE_RAD` of the pusher's travel, first to the side it sits on, then
+/// the other. `None` when the shove would drive it into
 /// another body that stops vehicles or another live hull (no chain shoves),
 /// or off the map.
 pub fn shove(
@@ -164,19 +173,39 @@ pub fn shove(
             contact: contact(&before),
         });
     }
-    let mut rect = before;
-    for _ in 0..PASSES {
-        let Some(mtv) = hull.separation(&rect) else {
-            break;
-        };
-        let depth = mtv.length();
-        let out = mtv * (1.0 / depth);
-        // The contact: on the pusher's centreline, beside the body's middle.
-        let contact = hull.center + heading * heading.dot(rect.center - hull.center);
-        let arm = (contact - rect.center).cross(out) / rect.half.length().max(1e-6);
-        rect.center = rect.center + out * (depth + CLEAR_M);
-        rect.yaw += turn_rad_per_m * depth * arm.clamp(-1.0, 1.0);
-    }
+    // Slid out of the hull and turned; or, toward `aside` (a unit vector
+    // across the pusher's travel) when it would go nearly straight ahead,
+    // glanced off the nose unturned, clearing the face it leaves.
+    let slide = |aside: Option<V2>| {
+        let mut rect = before;
+        for _ in 0..PASSES {
+            let Some(mtv) = hull.separation(&rect) else {
+                break;
+            };
+            let depth = mtv.length();
+            let out = mtv * (1.0 / depth);
+            if let Some(aside) = aside.filter(|_| out.dot(heading) > libm::cos(ASIDE_RAD)) {
+                let way = heading * libm::cos(ASIDE_RAD) + aside * libm::sin(ASIDE_RAD);
+                rect.center = rect.center + way * (depth / way.dot(out) + CLEAR_M);
+                continue;
+            }
+            // The contact: on the pusher's centreline, beside the body's middle.
+            let contact = hull.center + heading * heading.dot(rect.center - hull.center);
+            let arm = (contact - rect.center).cross(out) / rect.half.length().max(1e-6);
+            rect.center = rect.center + out * (depth + CLEAR_M);
+            rect.yaw += turn_rad_per_m * depth * arm.clamp(-1.0, 1.0);
+        }
+        rect
+    };
+    // The side of the pusher's centreline the body sits on (its left when
+    // dead centre), then the other side, then straight out.
+    let left = v2(-heading.y, heading.x);
+    let side = if left.dot(before.center - hull.center) >= 0.0 {
+        left
+    } else {
+        -left
+    };
+    let slides = [Some(side), Some(-side), None].map(slide);
     // No deeper into any other body than it already was, beyond touching.
     let frees = |rect: &Obb2| {
         let deeper = |other: &Obb2| {
@@ -200,7 +229,8 @@ pub fn shove(
             && !into_prop
             && !into_hull
     };
-    let rect = std::iter::once(rect)
+    let rect = slides
+        .into_iter()
         .chain(exits(&hull, &before, heading))
         .find(|rect| frees(rect))?;
     Some(Shove {

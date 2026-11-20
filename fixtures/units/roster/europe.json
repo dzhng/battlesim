@@ -48,6 +48,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -852,6 +853,7 @@
           "offroad_kmh": 24,
           "road_kmh": 55,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -1025,6 +1027,7 @@
           "offroad_kmh": 32,
           "road_kmh": 70,
           "turn_deg_s": 50,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -1134,6 +1137,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -1228,6 +1232,7 @@
           "offroad_kmh": 30,
           "road_kmh": 70,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -1699,6 +1704,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -1914,6 +1920,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -2027,6 +2034,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -2140,6 +2148,7 @@
           "offroad_kmh": 27,
           "road_kmh": 60,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -2253,6 +2262,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -2503,6 +2513,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.3
         }
       },
@@ -2821,6 +2832,7 @@
           "offroad_kmh": 25,
           "road_kmh": 60,
           "turn_deg_s": 45,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.4
         }
       },
@@ -2922,6 +2934,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
+          "turning_radius_m": 5,
           "reverse_speed_factor": 0.3
         }
       },

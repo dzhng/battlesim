@@ -44,6 +44,12 @@ pub enum Mobility {
         offroad_kmh: f64,
         road_kmh: f64,
         turn_deg_s: f64,
+        /// The skid-steer turn it sweeps a route's corners round while
+        /// rolling, turning on the spot only where no such arc fits and to
+        /// take its final facing. Absent, it has none: it rounds no corner
+        /// and turns on the spot at any sharp one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        turning_radius_m: Option<f64>,
         /// Speed factor in reverse, of forward speed.
         reverse_speed_factor: f64,
     },

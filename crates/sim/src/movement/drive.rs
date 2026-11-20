@@ -5,7 +5,10 @@
 //! what its yaw rate can take round it ([`approach_speed`]).
 //!
 //! Tracks turn at their own rate and pivot on the spot beyond
-//! `movement.drive.turn_in_place_deg` of heading error. A body they can't
+//! `movement.drive.turn_in_place_deg` of heading error. Their route's corners
+//! are rounded to their skid-steer radius like a wheeled one's, so on the
+//! move they pivot only where no arc fits (setting off the wrong way, a
+//! corner too tight to sweep), and at rest to their facing. A body they can't
 //! shove in the way of the turn (a trunk at the flank, a wall at the nose)
 //! sends them straight along their length to where the next turn clears
 //! ([`room_to_turn`]). Wheels never pivot on the move: the yaw turns only

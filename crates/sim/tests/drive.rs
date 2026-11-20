@@ -669,3 +669,57 @@ fn a_truck_drives_round_a_sharp_road_corner_without_reversing() {
         );
     }
 }
+
+/// The moment: a tank sent by road comes to a junction where its way turns
+/// a right angle. The crew slows and sweeps round the corner; it never
+/// stops in the road to turn on the spot and set off again. It turns on
+/// the spot only at the end, to the facing it was ordered.
+#[test]
+fn a_tank_drives_round_corners_and_pivots_only_to_its_final_facing() {
+    let road = |points: Value| json!({ "kind": "road", "shape": { "kind": "stroke", "points": points, "width_m": 10 } });
+    let (goal, facing) = ([280.0, 190.0], std::f64::consts::PI);
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [320, 320], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "surfaces": [road(json!([[60, 10], [60, 190]])), road(json!([[60, 190], [300, 190]]))] },
+        "rules": rules(),
+        "units": [{ "side": "blue", "kind": "test_tank", "position": [60, 20], "yaw": FRAC_PI_2,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": goal, "route": "fastest", "direction": "forward",
+            "facing": facing } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let mut was = b.unit(UnitId(0)).unwrap().clone();
+    let mut pivots_on_the_way = Vec::new();
+    for _ in 0..90 * 30 {
+        b.step();
+        let tank = b.unit(UnitId(0)).unwrap();
+        let still = (tank.position.xy() - was.position.xy()).length() < 1e-9;
+        if tank.route.is_some() && was.route.is_some() && still && tank.yaw != was.yaw {
+            pivots_on_the_way.push(tank.position.xy());
+        }
+        was = tank.clone();
+        if b.tick() > 2 && tank.state == MoveState::Idle && tank.turn_to.is_none() {
+            break;
+        }
+    }
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert!(
+        tank.state == MoveState::Idle
+            && (tank.position.xy() - sim::math::v2(goal[0], goal[1])).length() < 1.0,
+        "it is {:?} at {:?}, not at its spot",
+        tank.state,
+        tank.position.xy()
+    );
+    assert!(
+        pivots_on_the_way.is_empty(),
+        "it stopped to turn on the spot on its way, at {pivots_on_the_way:?}"
+    );
+    assert!(
+        wrap_angle(tank.yaw - facing).abs() < 2f64.to_radians(),
+        "it faces {:.3}, not the ordered {facing}",
+        tank.yaw
+    );
+}
