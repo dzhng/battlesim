@@ -33,6 +33,7 @@ export type Mobility =
         offroad_kmh: number;
         road_kmh: number;
         turn_deg_s: number;
+        turning_radius_m?: number;
         reverse_speed_factor: number;
       };
     }

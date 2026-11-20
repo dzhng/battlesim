@@ -1,6 +1,7 @@
-//! A wheeled route made drivable. A route's corners are where roads and
+//! A vehicle's route made drivable. A route's corners are where roads and
 //! searches turn, and a corner sharper than a vehicle can take at full lock
-//! would have it back and fill. A driver starts the turn before the corner
+//! would have wheels back and fill, and tracks stop to pivot. A driver
+//! starts the turn before the corner
 //! and sweeps round it, leaving the road for a few metres where the corner
 //! is tight: so each corner becomes an arc at a little more than the
 //! vehicle's turning radius, tangent to the ways in and out, wherever the
@@ -55,9 +56,9 @@ struct Way {
 
 impl Rounding {
     /// The rounding of the route `from` → `route` for `m`, if its corners
-    /// can need it: a wheeled vehicle's, with a corner to round.
+    /// can need it: a vehicle's with a turning radius, with a corner to round.
     pub fn new(from: V2, route: &[V2], m: &Mobility) -> Option<Self> {
-        let drive = m.drive.filter(|d| !d.tracked && d.radius_m > 0.0)?;
+        let drive = m.drive.filter(|d| d.radius_m > 0.0)?;
         (route.len() >= 2).then(|| Rounding {
             points: std::iter::once(from).chain(route.iter().copied()).collect(),
             at: 1,

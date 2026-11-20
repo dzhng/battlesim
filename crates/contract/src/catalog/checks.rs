@@ -271,6 +271,10 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         } if !positive(turning_radius_m) => {
             Some("a wheeled vehicle needs a positive turning_radius_m")
         }
+        Mobility::Tracked {
+            turning_radius_m: Some(radius),
+            ..
+        } if !positive(radius) => Some("a tracked vehicle's turning_radius_m must be positive"),
         _ => None,
     })
     .or_else(|| {
