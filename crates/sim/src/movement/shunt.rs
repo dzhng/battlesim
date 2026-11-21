@@ -11,7 +11,7 @@
 //! came, or a few metres to come round. The search is bounded; finding no
 //! way, the vehicle holds and looks again a little later.
 use std::cmp::Reverse;
-use std::collections::{BTreeSet, BinaryHeap};
+use std::collections::{BinaryHeap, HashSet};
 
 use contract::map::MoverClass;
 
@@ -350,7 +350,8 @@ pub fn search(
     }];
     let mut open = BinaryHeap::new();
     open.push(Reverse((ordered(GREED * estimate(here, unit.yaw)), 0usize)));
-    let mut seen = BTreeSet::new();
+    // Its order is never read: only whether a pose is in it.
+    let mut seen = HashSet::with_hasher(crate::hash::BuildWords);
     let mut found = None;
     while let Some(Reverse((_, i))) = open.pop() {
         let (at, yaw, gear, cost) = (poses[i].at, poses[i].yaw, poses[i].gear, poses[i].cost);
