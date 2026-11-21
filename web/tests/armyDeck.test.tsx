@@ -1,7 +1,6 @@
-import { shippedRules } from "@web/shippedRules";
 import { act, cleanup, fireEvent, render as renderView } from "@testing-library/react";
 import { Feed, useFeed } from "@web/feed";
-import { WithTestCatalog } from "./catalog";
+import { WithTestCatalog, TEST_RULES } from "./catalog";
 import { TEST_CATALOG } from "./catalog";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 import { useLayoutEffect, useState } from "react";
@@ -44,7 +43,7 @@ test("army observation and selection read the same publication before paint", ()
           state={state}
           selected={own.map((unit) => unit.id)}
           onSelect={vi.fn()}
-          rules={shippedRules as unknown as PanelRules}
+          rules={TEST_RULES as unknown as PanelRules}
           contactLines={null}
         />
       </>
@@ -79,7 +78,7 @@ test("live army publications refresh cards and command availability without repl
       state={state}
       selected={[11]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -107,7 +106,7 @@ test("the army row includes unselected own units and stays visible without a sel
       state={new Feed({ own })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -139,7 +138,7 @@ test("a click selects one card, Shift-click the run from the last clicked card, 
         state={new Feed({ own })}
         selected={selected}
         onSelect={setSelected}
-        rules={shippedRules as unknown as PanelRules}
+        rules={TEST_RULES as unknown as PanelRules}
         contactLines={null}
       />
     );
@@ -192,7 +191,7 @@ test("Shift-click after the selection changed elsewhere starts a new run at the 
           state={new Feed({ own })}
           selected={selected}
           onSelect={setSelected}
-          rules={shippedRules as unknown as PanelRules}
+          rules={TEST_RULES as unknown as PanelRules}
           contactLines={null}
         />
       </>
@@ -219,7 +218,7 @@ test("a selected card asks the camera to centre while an unselected card only se
         selected={selected}
         onSelect={setSelected}
         onCenter={onCenter}
-        rules={shippedRules as unknown as PanelRules}
+        rules={TEST_RULES as unknown as PanelRules}
         contactLines={null}
       />
     );
@@ -253,7 +252,7 @@ test("hover exposes live unit facts, health and casualty removal", () => {
   const props = {
     selected: [],
     onSelect: vi.fn(),
-    rules: shippedRules as unknown as PanelRules,
+    rules: TEST_RULES as unknown as PanelRules,
     contactLines: null,
   };
   const view = render(<ArmyDeck state={new Feed({ own: [tank, rifle] })} {...props} />);
@@ -289,7 +288,7 @@ test("hover detail anchors to the deck rather than the lower HUD stack", () => {
       state={new Feed({ own: [specimenUnit(TEST_CATALOG, "test_tank", { id: 11 })] })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={<ul className="hud-contact-lines" />}
     />,
   );
@@ -322,7 +321,7 @@ test("the army remains in replay and empty selection while commands follow only 
         state={new Feed({ own, control: replay ? undefined : control })}
         selected={selected}
         onSelect={setSelected}
-        rules={shippedRules as unknown as PanelRules}
+        rules={TEST_RULES as unknown as PanelRules}
         contactLines={null}
       />
     );
@@ -349,7 +348,7 @@ test("reinforcements remain available before the first unit enters", () => {
       state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
       reinforcements={<button>Reinforcements</button>}
     />,
@@ -364,7 +363,7 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
       state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
       pending={[
         {
@@ -402,7 +401,7 @@ test("a squad bought aboard a carrier waits as two cards, the squad marked aboar
       state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
       pending={[
         {
@@ -427,7 +426,7 @@ test("a squad bought aboard a carrier waits as two cards, the squad marked aboar
 });
 
 test("a waiting aircraft's pending card counts down to its arrival, whole seconds rounded up", () => {
-  const hz = shippedRules.tick_hz;
+  const hz = TEST_RULES.tick_hz;
   const jet = {
     id: 42,
     kind: "test_jet",
@@ -441,7 +440,7 @@ test("a waiting aircraft's pending card counts down to its arrival, whole second
       state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
       tick={tick}
       pending={[jet]}
@@ -475,7 +474,7 @@ test("the command row exposes refund for a selected skirmish unit", () => {
       state={new Feed({ own: [unit], control })}
       selected={[11]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -491,7 +490,7 @@ test("a unit returning to base says so on its army card", () => {
       state={new Feed({ own: [going, staying] })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -511,7 +510,7 @@ test("a lost unit's card holds its place, out of reach, while its blink runs, th
       state={state}
       selected={[]}
       onSelect={onSelect}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
       blinks={blinks}
     />,
@@ -564,7 +563,7 @@ test("a squad aboard a carrier keeps its card, dimmed as aboard, and clicking it
       state={new Feed({ own: [apc, rider] })}
       selected={[]}
       onSelect={onSelect}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -590,7 +589,7 @@ test("a rider's selected card centres on the carrier it selects", () => {
         selected={selected}
         onSelect={setSelected}
         onCenter={onCenter}
-        rules={shippedRules as unknown as PanelRules}
+        rules={TEST_RULES as unknown as PanelRules}
         contactLines={null}
       />
     );
@@ -619,7 +618,7 @@ test("hovering a card hovers its unit, a rider's its carrier, until the pointer 
       selected={[]}
       onSelect={vi.fn()}
       onHover={onHover}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -651,7 +650,7 @@ test("control groups lead the deck in key order, read their key, and delete from
           ])
         }
         onDeleteGroup={onDeleteGroup}
-        rules={shippedRules as unknown as PanelRules}
+        rules={TEST_RULES as unknown as PanelRules}
         contactLines={null}
       />
     );
@@ -693,7 +692,7 @@ test("right-click asks the store for the exact unit, without selecting or centri
       onSelect={onSelect}
       onCenter={onCenter}
       onLookup={onLookup}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
@@ -717,11 +716,11 @@ test("a card's reserve mark is its unit panel's reserve row", () => {
       state={new Feed({ own })}
       selected={[]}
       onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
+      rules={TEST_RULES as unknown as PanelRules}
       contactLines={null}
     />,
   );
-  const rules = shippedRules as unknown as PanelRules;
+  const rules = TEST_RULES as unknown as PanelRules;
   for (const unit of own) {
     const row = reserveRow(TEST_CATALOG.units, unit, rules);
     const panel = ownPanel(TEST_CATALOG.units, unit, own, rules);

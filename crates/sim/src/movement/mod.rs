@@ -188,6 +188,11 @@ fn request_route(
     planner: &mut RoutePlanner,
 ) {
     prefer_roads(ctx, unit);
+    // Sent onto the ground under its hull, a set-up crew is already there.
+    if crate::deployment::stands_on_goal(unit) {
+        planner.cancel(unit.id);
+        arrive(ctx.rules, unit);
+    }
     let Some((goal, policy)) = unit.movement_goal() else {
         planner.cancel(unit.id);
         unit.route = None;

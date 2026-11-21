@@ -9,7 +9,7 @@ import { createBattleHost, type BattleHost } from "../../../apps/game-server/src
 import { MAP_ATTEMPTS } from "../../../apps/game-server/src/serverData";
 import type { BattleSetup } from "../../../packages/multiplayer/src/wire";
 import { PageClock } from "./pageClock";
-import { loadBattleSupport, data, generator } from "./support/battle";
+import { loadBattleSupport, data, generator, FRONTLINE_DRAWS } from "./support/battle";
 
 beforeAll(loadBattleSupport, 60_000);
 const cleanups: (() => void)[] = [];
@@ -71,7 +71,7 @@ test.each([false, true])(
     const frontline = createFrontlineService({
       online,
       mapAttempts: MAP_ATTEMPTS,
-      random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
+      random: () => FRONTLINE_DRAWS[draw++ % FRONTLINE_DRAWS.length],
     });
     cleanups.push(online.dispose, frontline.dispose);
     const result = await frontline.join(testBrowser("alpha"));

@@ -2,7 +2,6 @@
 // stands, and hovering one opens it there too, every other card keeping its
 // place and leader, the open card drawn above every other card, the
 // high-air ones too.
-import { shippedRules } from "@web/shippedRules";
 import { cleanup, render as renderView } from "@testing-library/react";
 import { createRef } from "react";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
@@ -11,7 +10,7 @@ import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import { highAir } from "@packages/scene-assets/src/units";
 import type { PanelRules } from "../src/battle/present/panelRows";
 import { ReadoutLayer, type ReadoutLayerHandle } from "../src/battle/present/readouts";
-import { TEST_CATALOG, WithTestCatalog } from "./catalog";
+import { TEST_CATALOG, WithTestCatalog, TEST_RULES } from "./catalog";
 
 afterEach(cleanup);
 
@@ -35,7 +34,7 @@ beforeAll(() => {
 });
 afterAll(() => restore.forEach((r) => r()));
 
-const RULES = shippedRules as unknown as PanelRules;
+const RULES = TEST_RULES as unknown as PanelRules;
 
 test("Space and hover open cards in place, moving no card, the hovered one drawn above every card", () => {
   // A cluster tight enough that an open card has no free room: ground

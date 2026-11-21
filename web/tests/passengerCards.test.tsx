@@ -1,7 +1,6 @@
 // A carrier's card says its seats, and the squads riding it show as compact
 // cards under it: the Seats row from the passengers' published holds and the
 // catalog's seats, and the nested callout the battle's readout layer draws.
-import { shippedRules } from "@web/shippedRules";
 import { cleanup, render as renderView } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, expect, test } from "vitest";
@@ -11,11 +10,11 @@ import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import { enemyPanel, ownPanel, type PanelRules } from "../src/battle/present/panelRows";
 import { ReadoutLayer, type ReadoutLayerHandle } from "../src/battle/present/readouts";
 import type { OwnUnitView } from "../src/battle/sim/observationView";
-import { TEST_CATALOG, WithTestCatalog } from "./catalog";
+import { TEST_CATALOG, WithTestCatalog, TEST_RULES } from "./catalog";
 
 afterEach(cleanup);
 
-const RULES = shippedRules as unknown as PanelRules;
+const RULES = TEST_RULES as unknown as PanelRules;
 
 /** The test jeep given `seats`, so the test sets the bound it reads. */
 function carrying(seats: number): UnitCatalog {

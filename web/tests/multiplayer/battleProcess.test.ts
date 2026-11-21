@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { childBattleMachines } from "../../../apps/game-server/src/machines/child";
 import { createRemoteBattleHost } from "../../../apps/game-server/src/battleHost/remote";
-import { duel, loadBattleSupport } from "./support/battle";
+import { duel, loadBattleSupport, FRONTLINE_DRAWS } from "./support/battle";
 
 const root = join(import.meta.dirname, "../../..");
 const cleanups: (() => void)[] = [];
@@ -100,7 +100,7 @@ async function lobby() {
     archive: archiveFolder(),
     machines,
     clock,
-    random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
+    random: () => FRONTLINE_DRAWS[draw++ % FRONTLINE_DRAWS.length],
     mapAttempts: 5,
     clientAddressHeader: null,
   });

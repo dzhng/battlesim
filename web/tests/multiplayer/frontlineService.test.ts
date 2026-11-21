@@ -9,7 +9,7 @@ import { createOnlineState } from "../../../apps/game-server/src/online";
 import { createBattleHost } from "../../../apps/game-server/src/battleHost/index";
 import type { BattleHost } from "../../../apps/game-server/src/battleHost/index";
 import { PageClock } from "./pageClock";
-import { loadBattleSupport, data, generator, flush, seat } from "./support/battle";
+import { loadBattleSupport, data, generator, flush, seat, FRONTLINE_DRAWS } from "./support/battle";
 import type { BattleTicket, Briefing } from "../../../packages/multiplayer/src/wire";
 import { MAP_ATTEMPTS } from "../../../apps/game-server/src/serverData";
 
@@ -463,7 +463,7 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
     archive: archiveFolder(),
     clock,
     clientAddressHeader: null,
-    random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
+    random: () => FRONTLINE_DRAWS[draw++ % FRONTLINE_DRAWS.length],
     mapAttempts: 1,
     machines: inProcessBattleMachines({
       capacity: 1,

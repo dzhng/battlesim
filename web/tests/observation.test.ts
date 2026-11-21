@@ -361,7 +361,9 @@ test("supply stock and each unit's service status decode", () => {
   expect(frame.own[0].stock).toBe(55);
   expect(frame.own[1].stock).toBeNull();
   expect(layout.serviceStatuses).toContain("no_stock");
-  for (let t = 0; t < 600; t++) {
+  // A minute is room for the truck to set up and hand over its first
+  // replacement soldier, the first service that spends stock.
+  for (let t = 0; t < 60 * TEST_RULES.tick_hz; t++) {
     battle.step();
     frame = published(battle, layout);
     if (frame.own[1].service === "serving" && frame.own[0].stock! < 55) break;

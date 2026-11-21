@@ -45,7 +45,10 @@ fn goal(
 }
 
 /// The move that takes `unit` to its post, unless it is already headed
-/// there (within `reaim_m`).
+/// there or, with no order in hand, already stands there (within `reaim_m`).
+/// The post is a spot near the artillery, not the ground under its hull, so
+/// a move there makes a set-up unit pack and drive a few metres, only to set
+/// up again.
 pub(crate) fn order(
     rules: &Rules,
     frame: &ObservationFrame,
@@ -55,14 +58,18 @@ pub(crate) fn order(
     reaim_m: f64,
 ) -> Option<Order> {
     let goal = goal(rules, frame, unit, entry, staging);
-    super::super::live_goal(unit)
-        .is_none_or(|old| distance(old, goal) > reaim_m)
-        .then(|| Order::Move {
-            units: vec![unit.id],
-            gesture: frame.tick,
-            goal,
-            route: contract::command::RoutePolicy::Fastest,
-            direction: contract::command::MoveDirection::Forward,
-            facing: None,
-        })
+    let here = [unit.position[0], unit.position[1]];
+    let near = |p: [f64; 2]| distance(p, goal) <= reaim_m;
+    let settled = match super::super::live_goal(unit) {
+        Some(old) => near(old),
+        None => unit.goal.is_none() && near(here),
+    };
+    (!settled).then(|| Order::Move {
+        units: vec![unit.id],
+        gesture: frame.tick,
+        goal,
+        route: contract::command::RoutePolicy::Fastest,
+        direction: contract::command::MoveDirection::Forward,
+        facing: None,
+    })
 }

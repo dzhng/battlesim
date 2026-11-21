@@ -2,17 +2,16 @@
  *  catalog's squads and carriers, a skirmish view, the shop rendered under
  *  the test set, and readers of what it shows. */
 import { render as renderView, within } from "@testing-library/react";
-import { shippedRules } from "@web/shippedRules";
 import { UNIT_GROUPS } from "@web/battle/present/purchaseFilter";
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observationView";
 import type { PanelRules } from "@web/battle/present/panelRows";
-import { WithTestCatalog } from "../catalog";
+import { WithTestCatalog, TEST_RULES } from "../catalog";
 
 /** A group tab's label, by its id: the labels are data. */
 export const tab = (id: string) => UNIT_GROUPS.find((g) => g.id === id)!.label;
 
-export const RULES = shippedRules as unknown as PanelRules;
+export const RULES = TEST_RULES as unknown as PanelRules;
 
 /** Views render under the test set, as a lab page provides it. */
 export const render = (ui: Parameters<typeof renderView>[0]) =>

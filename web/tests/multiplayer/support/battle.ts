@@ -37,6 +37,13 @@ export let generator: MapGenerator;
 /** Every card of the game, to find one a seat may buy. */
 export let cards: string[];
 /** A 1v1 of two humans, and a 3v3 with two humans on Blue. */
+/** One Frontline game's draws, for a test's `random` to cycle through: the
+ *  first faction pair, the middle map type, the first region and terrain
+ *  seed 2, then the battle seed and the first seat. Seed 2 is a map the
+ *  generator admits. When a generator change refuses it, every new Frontline
+ *  game in these tests is refused "unavailable": move the seed on to the next
+ *  map it admits. */
+export const FRONTLINE_DRAWS = [0, 0, 0.5, 0, 2 / 2 ** 32, 0, 0] as const;
 export let duel: BattleSetup;
 export let squad: BattleSetup;
 
@@ -363,6 +370,10 @@ export async function shortScoringFixture() {
       // Cover the whole friendly entry edge, whichever road the purchase takes.
       objective.radius_m = prepared.report.size[0] + prepared.report.size[1];
     }
-    return { ...prepared, scenario: JSON.stringify(scenario) };
+    // The prepared world checks the scenario's map against its own by value,
+    // and `JSON.stringify` writes a map's -0.0 as 0: keep it as written.
+    const NEGATIVE_ZERO = "\u0000-0\u0000";
+    const text = JSON.stringify(scenario, (_, v) => (Object.is(v, -0) ? NEGATIVE_ZERO : v));
+    return { ...prepared, scenario: text.replaceAll(JSON.stringify(NEGATIVE_ZERO), "-0.0") };
   });
 }

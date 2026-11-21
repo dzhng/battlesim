@@ -1,4 +1,3 @@
-import { shippedRules } from "@web/shippedRules";
 import { cleanup, render } from "@testing-library/react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
@@ -6,7 +5,7 @@ import { afterEach, expect, test } from "vitest";
 import { iconSvg } from "../src/battle/present/icons";
 import { InfoPanel } from "../src/battle/present/infoPanel";
 import { ownPanel, type PanelRules } from "../src/battle/present/panelRows";
-import { TEST_CATALOG } from "./catalog";
+import { TEST_CATALOG, TEST_RULES } from "./catalog";
 
 afterEach(cleanup);
 
@@ -18,7 +17,7 @@ test("a weapon held for a blocked trajectory keeps its row and its blocked-shot 
     {},
     { ammo: [3], reason: "blocked_trajectory" },
   ]);
-  const panel = ownPanel(TEST_CATALOG.units, unit, [unit], shippedRules as unknown as PanelRules);
+  const panel = ownPanel(TEST_CATALOG.units, unit, [unit], TEST_RULES as unknown as PanelRules);
   // The blocked-shot icon as the page parses it.
   const icon = document.createElement("span");
   icon.innerHTML = iconSvg(hudIcon("blocked_shot"))!;

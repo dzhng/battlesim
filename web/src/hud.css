@@ -1944,9 +1944,9 @@ html {
 .ground-label > span:not(.ro-icon) {
   text-box: trim-both cap alphabetic;
 }
-/* An entry's card stands clear above its glow, as a flag above its ring. */
+/* An entry's card stands just above its marker, as a flag above its ring. */
 .entry-card {
-  margin-top: -14px;
+  margin-top: -4px;
 }
 
 /* The end-of-match report: a debrief over the stilled battle. The result,
