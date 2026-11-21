@@ -58,7 +58,9 @@ pub(super) fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
 /// change: it will not move off for him. Two that
 /// hold each other up do not both go round, into each other: the later
 /// (the higher id) gives way, unless it found no way round, when the other
-/// tries. A shunt already worked out is given its chance before another is.
+/// tries. A shunt already worked out is given its chance before another is;
+/// having found no way, he looks again in the search's own time
+/// ([`super::shunt`]), for nothing has changed that a look sooner would find.
 pub(super) fn gives_way(ctx: &super::MovementContext, units: &[Unit], i: usize, b: UnitId) -> bool {
     let (unit, other) = (&units[i], &units[b.0 as usize]);
     let patience = (super::headway::STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
@@ -72,5 +74,5 @@ pub(super) fn gives_way(ctx: &super::MovementContext, units: &[Unit], i: usize, 
         && standing
         && (!mutual || unit.id > other.id || found_no_way)
         && (parked || waited(unit.headway.since()))
-        && unit.shunt.as_ref().is_none_or(|s| waited(s.tick))
+        && (unit.shunt.as_ref()).is_none_or(|s| !s.legs.is_empty() && waited(s.tick))
 }

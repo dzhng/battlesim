@@ -243,3 +243,43 @@ fn a_truck_reordered_again_and_again_still_goes_round_a_parked_one() {
         truck.position.xy()
     );
 }
+
+/// A truck behind a parked one in a street with no room to pass. It looks
+/// for a way round and finds none. Nothing has changed for another look to
+/// find, so it does not look again along the same way each time its
+/// patience with the truck ahead runs out: only in the search's own time.
+#[test]
+fn a_truck_with_no_way_round_a_parked_one_does_not_keep_looking_for_one() {
+    let wall = |y: f64| json!({ "kind": "wall", "center": [80, y], "yaw": 0, "half_extents": [60, 0.5, 3] });
+    let truck = |x: f64| json!({ "side": "blue", "kind": "test_supply", "position": [x, 60], "yaw": 0, "engagement": "return_fire_only" });
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "props": [wall(57.3), wall(62.7)] },
+        "rules": sim::fixtures::test_rules(),
+        "units": [truck(80.0), truck(70.0)],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [1],
+            "gesture": 1, "goal": [130, 60], "route": "shortest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let hz = b.rules().tick_hz as u64;
+    let mut looked: Vec<(u64, Option<Vec<sim::math::V2>>)> = Vec::new();
+    for _ in 0..30 * hz {
+        b.step();
+        let unit = b.unit(UnitId(1)).unwrap();
+        if let Some(shunt) = unit.shunt.as_ref().filter(|s| s.legs.is_empty()) {
+            if looked.last().is_none_or(|(tick, _)| *tick != shunt.tick) {
+                looked.push((shunt.tick, unit.route.clone()));
+            }
+        }
+    }
+    assert!(!looked.is_empty(), "it never looked for a way round");
+    for pair in looked.windows(2) {
+        let again = pair[1].0 - pair[0].0;
+        assert!(
+            pair[0].1 != pair[1].1 || again > 3 * hz,
+            "it looked again along the same way after {again} ticks"
+        );
+    }
+}
