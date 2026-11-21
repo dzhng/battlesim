@@ -45411,7 +45411,7 @@
     },
     "air_ground_missile": {
       "accel_mps2": 140.0,
-      "aim_s": 3.0,
+      "aim_s": 0.5,
       "ammo": 4,
       "anti_radiation": false,
       "appearance": "atgm",
@@ -45533,7 +45533,7 @@
             "vehicle"
           ],
           "range_m": 500.0,
-          "scatter_mrad": 6.0
+          "scatter_mrad": 4.8
         },
         "high_air": {
           "classes": [
@@ -45541,7 +45541,7 @@
             "air_fixed_wing"
           ],
           "range_m": 700.0,
-          "scatter_mrad": 20.0
+          "scatter_mrad": 28.3
         },
         "low_air": {
           "classes": [
@@ -45549,7 +45549,7 @@
             "air_fixed_wing"
           ],
           "range_m": 500.0,
-          "scatter_mrad": 24.0
+          "scatter_mrad": 34.0
         }
       },
       "top_speed_mps": null,
@@ -46378,7 +46378,7 @@
             "vehicle"
           ],
           "range_m": 700.0,
-          "scatter_mrad": 6.0
+          "scatter_mrad": 3.43
         },
         "high_air": {
           "classes": [
@@ -46386,7 +46386,7 @@
             "air_fixed_wing"
           ],
           "range_m": 700.0,
-          "scatter_mrad": 20.0
+          "scatter_mrad": 28.3
         },
         "low_air": {
           "classes": [
@@ -46394,7 +46394,7 @@
             "air_fixed_wing"
           ],
           "range_m": 500.0,
-          "scatter_mrad": 24.0
+          "scatter_mrad": 34.0
         }
       },
       "top_speed_mps": null,

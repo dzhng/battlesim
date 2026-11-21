@@ -66,7 +66,8 @@ pub enum PassPhase {
 /// target, a missile run's included) has come: it flies in level at its
 /// entry height, dives with its nose on the aim once the aim lies its dive
 /// angle below it, and pulls out over its run height. A bomb's run stays
-/// level, as does one that fires nothing along the nose.
+/// level, as does one that fires nothing along the nose. A missile the run
+/// fires leaves in the dive, its nose on the aim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dive {
     Level,
@@ -100,8 +101,9 @@ pub struct PassPlan {
     /// on the aim: the tick it stops is a bomb's one chance on that
     /// approach.
     pub closing: bool,
-    /// How far down this run's dive has come; level for a bomb.
-    pub dive: Dive,
+    /// How far down this run's dive has come; `None` for a run that does
+    /// not dive (a bomb's, or one that fires nothing along the nose).
+    pub dive: Option<Dive>,
 }
 
 /// Limited ground stores take a run before the unlimited fixed gun.
@@ -170,7 +172,7 @@ pub fn begin(
         run_agl: None,
         heading,
         closing: false,
-        dive: Dive::Level,
+        dive: None,
     }
 }
 
@@ -424,7 +426,7 @@ pub fn advance(
         // In the run it climbs no more: pushing over from a climb would
         // swing its nose through more than its dive.
         let agl = match (plan.phase, plan.dive) {
-            (_, Dive::PulledOut) => plan.agl,
+            (_, Some(Dive::PulledOut)) => plan.agl,
             (PassPhase::Dive, _) => dive.entry_agl_m.min(agl_m),
             _ => dive.entry_agl_m,
         };
@@ -436,6 +438,7 @@ pub fn advance(
         };
         return (intent, cue);
     }
+    plan.dive = None;
     match plan.phase {
         // It pulls up only after the release: a bomb leaving a climbing jet
         // would carry the climb and fall long.
@@ -473,7 +476,7 @@ fn dive_nose(
     dt: f64,
 ) -> Option<NoseAt> {
     if plan.phase != PassPhase::Dive {
-        plan.dive = Dive::Level;
+        plan.dive = Some(Dive::Level);
         return None;
     }
     // It pushes over half the ground pushing over from its pitch now covers
@@ -482,13 +485,15 @@ fn dive_nose(
     let lead = 0.5 * state.speed_mps * push_over_s(limits, swing);
     let to = aim - state.pos;
     let below = libm::atan2(-to.z, to.xy().length() - lead);
-    if plan.dive == Dive::Level && below >= dive.angle_rad {
-        plan.dive = Dive::Diving;
+    let mut now = plan.dive.unwrap_or(Dive::Level);
+    if now == Dive::Level && below >= dive.angle_rad {
+        now = Dive::Diving;
     }
-    if plan.dive == Dive::Diving && agl_m - plan.agl <= pull_out_m(state, limits, dt) {
-        plan.dive = Dive::PulledOut;
+    if now == Dive::Diving && agl_m - plan.agl <= pull_out_m(state, limits, dt) {
+        now = Dive::PulledOut;
     }
-    (plan.dive == Dive::Diving).then_some(NoseAt {
+    plan.dive = Some(now);
+    (now == Dive::Diving).then_some(NoseAt {
         point: aim,
         lowest_agl_m: plan.agl,
     })

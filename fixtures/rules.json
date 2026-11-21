@@ -575,7 +575,7 @@
       "name": "Aircraft cannon",
       "description": "Unlimited aircraft gun.",
       "icon": "autocannon",
-      "targets": { "ground": { "range_m": 500 }, "low_air": { "range_m": 500, "scatter_mrad": 24 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 700, "scatter_mrad": 20 } },
+      "targets": { "ground": { "range_m": 500, "scatter_mrad": 4.8 }, "low_air": { "range_m": 500, "scatter_mrad": 34 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 700, "scatter_mrad": 28.3 } },
       "speed_mps": 600,
       "gravity_scale": 0.5,
       "damage": 15,
@@ -597,7 +597,7 @@
       "damage": 18,
       "penetration": 25,
       "description": "The A-10's 30 mm cannon: it opens up on the ground from farther out than other aircraft guns.",
-      "targets": { "ground": { "range_m": 700 } }
+      "targets": { "ground": { "range_m": 700, "scatter_mrad": 3.43 } }
     },
     "air_missile": {
       "resupply_rounds_per_s": 0.125,
@@ -685,6 +685,7 @@
       "name": "Air ground missile",
       "description": "A fast guided anti-armour missile for ground attack.",
       "top_speed_mps": 300,
+      "aim_s": 0.5,
       "ammo": 4,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 750, "scatter_mrad": 0.5 } }
     },

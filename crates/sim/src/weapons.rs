@@ -33,8 +33,8 @@ pub use observation::{pose, readiness};
 
 pub use window_requests::{garrison_aims, MountAim, MountAims};
 pub mod tick;
-pub(crate) use bearing::nose_aimed;
 use bearing::{bearing_from, boresight, hull_fixed, point_mount, turned_mount};
+pub(crate) use bearing::{laid_by_flight, nose_aimed};
 pub use bearing::{nose_on, nose_on_bearing, Arc};
 use bomb::bomb_release;
 use choice::{choose_lock, compatible, LockChoice};
@@ -536,7 +536,9 @@ fn fire(
             .suppression
             .penalties(unit.suppression)
             .map_or(1.0, |t| t.scatter_multiplier);
-    if moving {
+    // A row the nose aims is laid by the flight, which never stops: its
+    // authored spread is already its spread on the move.
+    if moving && !nose_aimed(unit, spec, &weapon.def) {
         scatter *= ctx.rules.physics.moving_scatter_multiplier;
     }
     // A fast pass is harder to stabilise for a ground attack.  Keep the

@@ -112,8 +112,15 @@ pub fn footprint_m(
         .filter_map(|weapon| {
             let fire = weapon.def.against(AltitudeLayer::Ground)?;
             let (scatter, range) = if jet {
+                // Always moving, so spread as on the move, but for a row its
+                // flight lays: its authored spread is its spread in flight.
+                let moving = if crate::weapons::laid_by_flight(&weapon.def) {
+                    1.0
+                } else {
+                    rules.physics.moving_scatter_multiplier
+                };
                 (
-                    fire.scatter_mrad * rules.physics.moving_scatter_multiplier,
+                    fire.scatter_mrad * moving,
                     firing_range_m(weapon, &arsenal.config, &rules.air.fixed_wing, speed)?,
                 )
             } else if (weapon.def.min_range_m..=fire.range_m).contains(&distance_m) {

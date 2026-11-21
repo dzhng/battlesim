@@ -6,7 +6,7 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::json;
-use sim::air::pass::{pass_weapon, PassPhase, PassWeapon};
+use sim::air::pass::{pass_weapon, Dive, PassPhase, PassWeapon};
 use sim::fixtures;
 use sim::math::{v3, V3};
 
@@ -94,6 +94,10 @@ const AIM: [f64; 3] = [2700.0, 2000.0, 0.0];
 /// a sane pitch, and never comes below its floor.
 #[test]
 fn every_gun_jet_dives_its_nose_onto_the_aim_and_fires_along_it() {
+    // Every round's path off the nose across it (the solve lifts a round
+    // above the nose against its drop, never across it) against its row's
+    // dispersion, squared, and how many: their mean is that axis's variance.
+    let (mut spread, mut fired) = (0.0, 0);
     for (row, others) in gun_rows() {
         let mut battle = gun_run(&row, &others);
         let rules = battle.rules().clone();
@@ -145,10 +149,14 @@ fn every_gun_jet_dives_its_nose_onto_the_aim_and_fires_along_it() {
                     "{row}'s round left {:.2} deg off its nose",
                     along.to_degrees()
                 );
+                let across = nose.cross(v3(0.0, 0.0, 1.0)).normalized();
+                let off = round.velocity.normalized().dot(across).asin();
+                spread += (off / scatter).powi(2);
                 rounds += 1;
             }
         }
         assert!(rounds > 0, "{row} never fired on its gun runs");
+        fired += rounds;
         let dive = rules.air.fixed_wing.strafe_dive_deg.to_radians();
         assert!(
             deepest > 0.5 * dive,
@@ -156,6 +164,13 @@ fn every_gun_jet_dives_its_nose_onto_the_aim_and_fires_along_it() {
             deepest.to_degrees()
         );
     }
+    // The flight lays the gun, so its rounds spread as its row is authored,
+    // with no penalty for moving (which would make them √2 wider).
+    let sigma = (spread / f64::from(fired)).sqrt();
+    assert!(
+        sigma < 1.2,
+        "jet guns spread {sigma:.2} times their authored dispersion"
+    );
 }
 
 /// The gun's fire gate is the nose, heading and pitch both: a level jet
@@ -256,4 +271,119 @@ fn a_missile_pass_fires_the_gun_when_nose_on() {
         }
     }
     panic!("ground missile pass never ended");
+}
+
+/// Every gun-armed jet that carries a missile its run fires at the ground (a
+/// stand-off missile fires on its own), sent at a lone tank a recon has
+/// spotted (the tank itself, or the ground it stands on), dives on it and
+/// pickles the missile on the way down its first dive: in the dive, with its
+/// nose on its aim, before it pulls out; and the missile strikes the tank.
+/// The tank outlasts the gun, so the missile's hit is its own.
+#[test]
+fn every_gun_jet_pickles_its_ground_missile_on_the_dive() {
+    let mut fielded = 0;
+    for (row, _) in gun_rows() {
+        for at_the_tank in [true, false] {
+            fielded += usize::from(pickles_on_its_first_dive(&row, at_the_tank));
+        }
+    }
+    assert!(fielded > 0, "the game fields gun jets with ground missiles");
+}
+
+/// [`every_gun_jet_pickles_its_ground_missile_on_the_dive`] for one row,
+/// ordered onto the tank or onto the ground under it; `false` for a row with
+/// no missile its run fires.
+fn pickles_on_its_first_dive(row: &str, at_the_tank: bool) -> bool {
+    const TANK_AT: [f64; 2] = [2700.0, 2000.0];
+    // The game's jets with the test units to spot and stand for them.
+    let mut rules = fixtures::rules();
+    rules["catalog"] = json!(fixtures::catalog_documents(fixtures::CatalogSet::Test));
+    fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({ "body": { "hull": { "hp": 1.0e6 } } }),
+    );
+    // Heading away, it lines up and turns in on the tank.
+    let mut battle = run_field(
+        rules,
+        json!([
+            { "side": "blue", "kind": row, "position": RUN_START, "yaw": std::f64::consts::PI },
+            { "side": "blue", "kind": "test_recon", "position": [TANK_AT[0], TANK_AT[1] + 100.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": TANK_AT, "yaw": 0.0, "engagement": "return_fire_only" }
+        ]),
+    );
+    let (jet, tank) = (UnitId(0), UnitId(2));
+    let missile = |battle: &sim::battle::Battle, weapon: usize| {
+        let def = &battle.arsenal().weapons[weapon].def;
+        pass_weapon(def) == Some(PassWeapon::GroundMissile) && !def.fires_on_its_own
+    };
+    let unit = battle.unit(jet).unwrap();
+    let carries = (unit.mounts.iter())
+        .flat_map(|m| battle.arsenal().specs(unit.kind)[m.spec].kinds.iter())
+        .any(|&k| missile(&battle, k));
+    if !carries {
+        return false;
+    }
+    battle.step();
+    let id = (battle.observe(Side::Blue).identified.first())
+        .map(|t| t.id)
+        .expect("the recon sees the tank");
+    let target = if at_the_tank {
+        TargetRef::Identified { id }
+    } else {
+        TargetRef::Ground {
+            point: [TANK_AT[0], TANK_AT[1], 0.0],
+        }
+    };
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![jet],
+            target,
+        },
+    });
+    assert_eq!(ack.error, None, "{row}");
+    let cone = battle.rules().air.fixed_wing.nose_on_deg.to_radians();
+    let hull = sim::flight::BodyId(sim::weapons::VEHICLE_BODY_BASE + tank.0);
+    let (mut missiles, mut struck) = (std::collections::BTreeSet::new(), false);
+    for _ in 0..90 * battle.rules().tick_hz {
+        battle.step();
+        for event in battle.flight_events() {
+            if let sim::flight::FlightEvent::Impact(i) = event {
+                struck |=
+                    missiles.contains(&i.projectile) && i.struck == sim::flight::Struck::Body(hull);
+            }
+        }
+        let unit = battle.unit(jet).unwrap();
+        let pass = unit.air.unwrap().pass;
+        for (round, fired) in battle.rounds() {
+            if fired.unit != jet || !missile(&battle, fired.weapon) || !missiles.insert(round.id) {
+                continue;
+            }
+            let run = pass.expect("a missile leaves on a run");
+            assert_eq!(
+                run.dive,
+                Some(Dive::Diving),
+                "{row} pickled its missile out of the dive"
+            );
+            let off = angle(unit.nose(), run.aim - round.position);
+            assert!(
+                off <= cone,
+                "{row} pickled its missile {:.1} deg off its aim",
+                off.to_degrees()
+            );
+        }
+        assert!(
+            pass.is_none_or(|p| p.dive != Some(Dive::PulledOut)) || !missiles.is_empty(),
+            "{row} pulled out of its first dive with its missile on the rail"
+        );
+        if struck {
+            return true;
+        }
+    }
+    panic!("{row}'s missile never struck the tank");
 }

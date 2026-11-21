@@ -85,17 +85,23 @@ pub fn nose_on(unit: &Unit, from: V3, target: V3, range: f64, cone_rad: f64) -> 
         && unit.nose().dot(delta) >= distance * libm::cos(cone_rad)
 }
 
-/// A row a winged aircraft aims by its nose: fixed in the airframe,
-/// unguided and powered (a gun, a rocket pod). A seeker row aims by its
-/// cone, a guided one by its guidance and a bomb by its pass's release cue.
+/// A row a winged aircraft aims by its nose: fixed in the airframe and
+/// [`laid_by_flight`]. A seeker row aims by its cone, a guided one by its
+/// guidance and a bomb by its pass's release cue.
 pub(crate) fn nose_aimed(
     unit: &Unit,
     spec: &MountSpec,
     def: &contract::weapons::WeaponDefinition,
 ) -> bool {
-    unit.fixed_wing()
-        && hull_fixed(unit, spec)
-        && def.ballistics.guidance.is_none()
+    unit.fixed_wing() && hull_fixed(unit, spec) && laid_by_flight(def)
+}
+
+/// A row a winged aircraft's flight lays when it is fixed in the airframe:
+/// unguided and powered (a gun, a rocket pod). Such a row only ever fires
+/// in flight, so its authored spread is its spread in flight, with no
+/// penalty for moving.
+pub(crate) fn laid_by_flight(def: &contract::weapons::WeaponDefinition) -> bool {
+    def.ballistics.guidance.is_none()
         && def.ballistics.delivery == contract::ballistics::Delivery::Powered
 }
 
