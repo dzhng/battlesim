@@ -29,6 +29,8 @@
 mod inputs;
 mod model;
 mod runner;
+#[path = "../common/standing.rs"]
+mod standing;
 
 use contract::catalog::Faction;
 use inputs::Inputs;

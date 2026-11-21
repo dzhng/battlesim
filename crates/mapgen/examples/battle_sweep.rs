@@ -22,6 +22,8 @@ use std::time::Instant;
 
 #[path = "../../sim/examples/common/instructions.rs"]
 mod instructions;
+#[path = "common/standing.rs"]
+mod standing;
 
 struct Inputs {
     presets: String,
@@ -104,11 +106,6 @@ struct Progress {
     near_goal_s: Option<f64>,
     first_moved_s: Option<f64>,
     state_ticks: BTreeMap<String, u64>,
-    /// Ticks it stood still while its state said it was on its way (moving
-    /// or waiting), and the longest such stand.
-    held_ticks: u64,
-    held_run: u64,
-    longest_held: u64,
 }
 
 fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds: u64) -> Value {
@@ -128,9 +125,6 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
                 near_goal_s: None,
                 first_moved_s: None,
                 state_ticks: BTreeMap::new(),
-                held_ticks: 0,
-                held_run: 0,
-                longest_held: 0,
             }
         })
         .collect();
@@ -154,6 +148,7 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
     let mut peak = total;
     let mut peak_tick = None;
     let mut planning = (0u64, 0u64);
+    let mut watch = standing::Watch::default();
     // Instructions by phase of the step, to attribute the ticks' cost. The
     // counter is read again after the tally, so no phase pays for it.
     let mut phases: Vec<(sim::battle::TickPhase, u64)> = Vec::new();
@@ -185,6 +180,7 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
             }
         }
         times.push(elapsed.as_secs_f64() * 1000.0);
+        watch.observe(&battle);
         let work = battle.load().planning_work;
         planning.0 += work;
         planning.1 = planning.1.max(work);
@@ -199,19 +195,6 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
                 }
             }
             let at = unit.position.xy();
-            let on_its_way = unit.alive()
-                && matches!(
-                    unit.state,
-                    contract::observation::MoveState::Moving
-                        | contract::observation::MoveState::Waiting
-                );
-            p.held_run = if on_its_way && (at - p.last).length() < 1e-6 {
-                p.held_run + 1
-            } else {
-                0
-            };
-            p.held_ticks += u64::from(p.held_run > 0);
-            p.longest_held = p.longest_held.max(p.held_run);
             p.travelled_m += (at - p.last).length();
             p.last = at;
             if p.first_moved_s.is_none() && (at - p.start).length() > 0.01 {
@@ -254,9 +237,7 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
             "remaining_m": p.goal.map(|goal| (p.last-goal).length()),
             "travelled_m": p.travelled_m, "near_goal_s": p.near_goal_s,
             "first_moved_s": p.first_moved_s, "state": unit.state,
-            "state_ticks": p.state_ticks,
-            "held_s": p.held_ticks as f64 / hz as f64,
-            "longest_held_s": p.longest_held as f64 / hz as f64})
+            "state_ticks": p.state_ticks})
         })
         .collect();
     let slow_ticks = times.iter().filter(|&&t| t > 33.0).count();
@@ -269,6 +250,7 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
     json!({"status": if refused {"command_refused"} else {"complete"},
     "command_ack": ack, "ticks": ticks, "seconds": seconds, "goal_near_m": 10,
     "units": units, "goals_not_neared": goals_not_neared, "digest": format!("{:016x}", battle.digest()),
+    "standing": watch.finish(&battle),
     "rounds_launched": battle.load().rounds_launched,
     "cost": {"battle_build": built, "ticks": {
         "instructions": total, "mean_instructions": total.map(|n| n / ticks),
