@@ -2,9 +2,9 @@
 // flash and tracer start where the model draws its muzzle (street.mjs's
 // `muzzle` tour).
 import { stageStreetMoves } from "./_streetStaging.mjs";
-import { lab, obs, advance, until, snapshot, presented, openBattle, aim } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, presented, openBattle, aim } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-import { streetAttack, streetMap, visuals } from "./_units.mjs";
+import { visuals } from "./_units.mjs";
 
 const CAMERA = visuals.camera;
 
@@ -21,6 +21,31 @@ const FLASH_LIGHT_MIN = 60;
  *  replaced was metres off for an HMG turned from the cannon. */
 const TRACER_M = 1;
 
+/** A shot as the passes name it: what fired it and how, or null. */
+function shotName(unit, mount, driving) {
+  if (unit.kind === "test_tank")
+    return `tank ${mount === 0 ? "cannon" : "HMG"}, ${driving ? "driving" : "standing"}`;
+  if (unit.kind === "test_jeep") return "jeep HMG";
+  return unit.kind === "test_rifle" && mount === 0 ? "rifle" : null;
+}
+
+/** The first own shot between `prev` and `o` of a kind still `pending`:
+ *  its name, shooter and mount, or null. */
+function newShot(prev, o, pending) {
+  for (const u of o.own) {
+    const was = prev.own.find((q) => q.id === u.id);
+    if (!was) continue;
+    const driving =
+      Math.hypot(u.position[0] - was.position[0], u.position[1] - was.position[1]) > 0.01;
+    for (const w of u.weaponPoses) {
+      const before = was.weaponPoses.find((x) => x.mount === w.mount)?.shots ?? w.shots;
+      const name = w.shots > before ? shotName(u, w.mount, driving) : null;
+      if (pending.has(name)) return { name, unit: u, mount: w.mount };
+    }
+  }
+  return null;
+}
+
 /** Every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
  *  driving and standing, its cupola HMG while driving, the jeep's HMG and a
@@ -31,10 +56,10 @@ const TRACER_M = 1;
  *  and sends the other tank into that lane: it halts there and fires its
  *  cannon standing, then drives on down the lane, its HMG firing on the move
  *  at the AT team the lane sees past the wood's edge. The rifle fights in
- *  a third battle: the street's houses see the open west and the tank shells
- *  what they see, so a squad crossing it dies short of rifle range. It rounds
- *  the west wood's south holding fire, as the woods tour's walker does, and
- *  goes into the trees at the red AT team on the wood's north edge. At each
+ *  a third battle, the street map's `lean` encounter: a blue and a red rifle
+ *  squad close in the west wood. Staged in the attack battle, red's AT team
+ *  at the wood's edge spots any squad crossing the open west for the tank,
+ *  which shells it before it reaches the trees. At each
  *  kind's first shot the default camera frames the shooter, and the flash's
  *  core and the drawn muzzle socket (posed from the model instance, apart
  *  from the flashes' own muzzles) must project within `MUZZLE_PX`, with the
@@ -72,68 +97,6 @@ export async function muzzleTour(ctx) {
     );
     return lane ? second : null;
   };
-  const flank = async () => {
-    const rifle = (await obs(page)).own.find((u) => u.kind === "test_rifle");
-    const [[x0], , [, y1]] = streetMap.forests[0].shape.ring;
-    const corner = [x0 - 60, y1 + 40];
-    // A fire policy, acknowledged before the next staging counts its own.
-    const policy = async (p) => {
-      const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
-      await lab(
-        page,
-        (c) => window.__lab.route.command({ kind: "set_engagement", units: [c.id], policy: c.p }),
-        { id: rifle.id, p },
-      );
-      await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
-    };
-    await policy("return_fire_only");
-    await stageStreetMoves(
-      ctx,
-      page,
-      [
-        {
-          kind: "move",
-          units: [rifle.id],
-          gesture: 3,
-          goal: [x0 - 300, y1 + 40],
-          route: "fastest",
-        },
-        {
-          order: { kind: "move", units: [rifle.id], gesture: 4, goal: corner, route: "fastest" },
-          queued: true,
-        },
-      ],
-      "muzzle rifle round the wood",
-    );
-    const atCorner = await until(
-      page,
-      (o) => {
-        const u = o.own.find((q) => q.id === rifle.id);
-        return (
-          u &&
-          !u.goal &&
-          u.steps.length === 0 &&
-          Math.hypot(u.position[0] - corner[0], u.position[1] - corner[1]) < 1
-        );
-      },
-      15000,
-      30,
-    );
-    ctx.check(
-      "the rifle squad reaches the wood's south-west corner",
-      !!atCorner,
-      JSON.stringify(atCorner?.own.find((q) => q.id === rifle.id)?.position ?? null),
-    );
-    if (!atCorner) throw new Error("muzzle rifle never reached the wood");
-    const at = streetAttack.units.find((u) => u.side === "red" && u.kind === "test_at");
-    await policy("fire_at_will");
-    await stageStreetMoves(
-      ctx,
-      page,
-      [{ kind: "attack_move", units: [rifle.id], gesture: 5, goal: at.position }],
-      "muzzle rifle into the wood",
-    );
-  };
   const passes = [
     { name: "road", subjects: ["tank cannon, driving", "jeep HMG"] },
     { name: "lane", subjects: ["tank cannon, standing", "tank HMG, driving"] },
@@ -147,10 +110,15 @@ export async function muzzleTour(ctx) {
     // the rifle's fight in the wood.
     if (k > 0) {
       await page.close();
-      page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
+      const url = new URL(ctx.url);
+      if (pass.name === "wood") url.searchParams.set("encounter", "lean");
+      page = await openBattle(ctx, {
+        viewport: { width: 1920, height: 1080 },
+        tick: 30,
+        url: url.href,
+      });
     }
     if (pass.name === "wood") {
-      await flank();
       // The wood's canopy roofs the rifle's fight from the capture camera:
       // that battle is drawn with the trees lifted off, as the ground
       // stations do, from before the fight so no capture rebuilds the scene.
@@ -161,28 +129,7 @@ export async function muzzleTour(ctx) {
     for (let t = 0; t < 30 * 180 && pending.size > 0; t++) {
       await advance(page, 1);
       let o = await obs(page);
-      let shot = null;
-      for (const u of o.own) {
-        const was = prev.own.find((q) => q.id === u.id);
-        if (!was || shot) continue;
-        const driving = Math.hypot(
-          u.position[0] - was.position[0],
-          u.position[1] - was.position[1],
-        );
-        for (const w of u.weaponPoses) {
-          const before = was.weaponPoses.find((x) => x.mount === w.mount)?.shots ?? w.shots;
-          if (w.shots <= before) continue;
-          const name =
-            u.kind === "test_tank"
-              ? `tank ${w.mount === 0 ? "cannon" : "HMG"}, ${driving > 0.01 ? "driving" : "standing"}`
-              : u.kind === "test_jeep"
-                ? "jeep HMG"
-                : u.kind === "test_rifle" && w.mount === 0
-                  ? "rifle"
-                  : null;
-          if (pending.has(name)) shot = { name, unit: u, mount: w.mount };
-        }
-      }
+      const shot = newShot(prev, o, pending);
       prev = o;
       if (!shot) continue;
       const { name, unit } = shot;

@@ -3,7 +3,9 @@
 // (`fixtures/maps/street/encounters/attack.json`), blue at its start west of
 // the street, red holding the street under the encounter's defender policy.
 // `?watch` plays `advance` instead, where blue's start is ordered onto the
-// street at once, so the battle plays itself under a free camera; `?seed=`
+// street at once, so the battle plays itself under a free camera;
+// `?encounter=` plays another of the map's saved encounters (a scene's
+// controlled fight, like `lean`'s two rifle squads in the wood); `?seed=`
 // sets the battle's seed. The browser scenes judge the battle view here; their
 // `remount()` probe mounts a fresh battle view (a new device, worker and
 // sound), so they can check that one releases the last.
@@ -22,10 +24,13 @@ function urlSeed(): number {
 
 export default function Street() {
   const [seed] = useState(urlSeed);
-  const [watch] = useState(() => new URLSearchParams(window.location.search).has("watch"));
+  const [encounter] = useState(() => {
+    const search = new URLSearchParams(window.location.search);
+    return search.get("encounter") ?? (search.has("watch") ? "advance" : "attack");
+  });
   const [mount, setMount] = useState(0);
   return (
-    <SavedEncounter fixture="street" encounter={watch ? "advance" : "attack"}>
+    <SavedEncounter fixture="street" encounter={encounter}>
       {(battle) => (
         <BattleView
           key={mount}
