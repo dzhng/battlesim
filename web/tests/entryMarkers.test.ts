@@ -69,6 +69,8 @@ interface Vertex {
   alpha: number;
   /** The marching pass reads the normal as pulse data; still marks have none. */
   pulses: boolean;
+  /** Where in its cycle the pulse peaks: a later phase lights later. */
+  phase: number;
 }
 const TANK = {
   id: 1,
@@ -112,7 +114,12 @@ function marching(
   const mesh = meshes.paintedMarching ?? new Float32Array();
   const out: Vertex[] = [];
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
-    out.push({ at: [mesh[i], mesh[i + 1]], alpha: mesh[i + 9], pulses: mesh[i + 5] !== 0 });
+    out.push({
+      at: [mesh[i], mesh[i + 1]],
+      alpha: mesh[i + 9],
+      pulses: mesh[i + 5] !== 0,
+      phase: mesh[i + 3],
+    });
   return out;
 }
 
@@ -153,6 +160,22 @@ test("each road's beacons march straight in along it, not toward the map's centr
     const beacons = near(marching("blue"), road).filter((v) => v.pulses);
     const widest = Math.max(...beacons.map((v) => Math.abs(aside(road, v.at))));
     expect(widest, `blue road at ${road}`).toBeLessThan(8);
+  }
+});
+
+test("each road's beacons light one after another, inward from the edge, like a runway's", () => {
+  for (const road of BLUE_ROADS) {
+    const beacons = near(marching("blue"), road)
+      .filter((v) => v.pulses)
+      .sort((a, b) => inward(road, a.at) - inward(road, b.at));
+    const phases = beacons.map((v) => v.phase);
+    // No beacon lights before one nearer the edge, they don't all light
+    // together, and the run fits in one cycle, so it never reads backwards.
+    phases.forEach((p, i) =>
+      expect(p, `blue road at ${road}`).toBeGreaterThanOrEqual(phases[i - 1] ?? p),
+    );
+    expect(new Set(phases).size, `blue road at ${road}`).toBeGreaterThan(1);
+    expect(phases[phases.length - 1] - phases[0], `blue road at ${road}`).toBeLessThan(1);
   }
 });
 

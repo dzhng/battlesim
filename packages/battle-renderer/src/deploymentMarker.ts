@@ -1,5 +1,6 @@
 // A reinforcement lane beacon. It answers one question, "which lane is
-// this?" with a lane number and a short trail of matching beacons. Pulled
+// this?" with a lane number and a short trail of matching beacons that light
+// one after another, inward from the edge, like a runway's approach. Pulled
 // far out, where those shrink to a few pixels, a soft glow sized on screen
 // keeps the road in standing out from the fields round it.
 import { remapClamp, type Vec2 } from "math";
@@ -222,30 +223,26 @@ export function buildDeploymentMarker(
   { stroke }: { stroke: StrokeWidth },
 ): { paintedMarching: Mesh } {
   const pen = orderPen(z, style, stroke);
-  const color: Rgba = [markerColor[0], markerColor[1], markerColor[2], 0.86];
-  const normal: readonly [number, number, number] = [
-    0,
-    style.march.cycles_per_s,
-    Math.min(style.march.amplitude, 0.75),
-  ];
+  const color: Rgba = [markerColor[0], markerColor[1], markerColor[2], 1];
   const painted = new MeshBuilder();
-  const marching = new MeshBuilder();
   glow(painted, pen.z, entryMarkerSpan(marker).middle, stroke(GLOW_PX), markerColor);
   const number = along(marker.center, marker.facing, pen.line * 2 + NUMBER_OFFSET_M);
   digit(painted, pen.z, number, marker.facing, marker.lane, color);
 
+  // Each beacon peaks its share of a cycle after the one nearer the edge,
+  // so one at a time lights up the road; between turns it dims short of
+  // fading out, so the road in still reads.
+  const depth = Math.min(style.march.amplitude, 0.75);
   const first = pen.line * 2 + BEACON_STEP_M;
-  for (let i = 0; i < 3; i++) {
+  const beacons = BEACON_RADII_M.map((radius, i) => {
+    const beacon = new MeshBuilder();
     const at = along(marker.center, marker.facing, first + i * BEACON_STEP_M);
-    groundAnnulus(marching, at, 0, BEACON_RADII_M[i], {
-      z: pen.z,
-      segments: 20,
-      colorIn: color,
-    });
-  }
+    groundAnnulus(beacon, at, 0, radius, { z: pen.z, segments: 20, colorIn: color });
+    const phase = i / BEACON_RADII_M.length;
+    return withMarch(beacon.build(), [phase, style.march.cycles_per_s, depth]);
+  });
 
-  const still = painted.build();
-  return { paintedMarching: concatMeshes([unpulsed(still), withMarch(marching.build(), normal)]) };
+  return { paintedMarching: concatMeshes([unpulsed(painted.build()), ...beacons]) };
 }
 
 /** A soft disc of the marker's light, `radius` metres across the ground,
