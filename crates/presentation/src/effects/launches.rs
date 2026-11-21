@@ -205,12 +205,21 @@ pub fn muzzle_offset(m: &MountMuzzle, yaw: f64, carried: f64, bearing: f64) -> V
     ]
 }
 
-/// A hull's shot from mount `m`: from its own muzzle, along its aim.
+/// A hull's shot from mount `m`: from its own muzzle, along its aim. The
+/// muzzle is raised to the aim's elevation about its pivot, as its rig's
+/// pitch node turns a barrel, so a gun fixed along a diving jet's nose
+/// flashes on the nose line its rounds leave along.
 fn hull_launch(u: &Shooter, m: usize) -> Launch {
     let mount = &u.mounts[m];
     let at = mount.muzzle.as_ref().map_or([0.0; 3], |muzzle| {
         let carried = muzzle.on.map_or(u.yaw, |on| u.mounts[on].bearing);
-        muzzle_offset(muzzle, u.yaw, carried, mount.bearing)
+        let (s, c) = libm::sincos(mount.elevation);
+        let [x, y, z] = muzzle.muzzle;
+        let raised = MountMuzzle {
+            muzzle: [x * c, y, z + x * s],
+            ..*muzzle
+        };
+        muzzle_offset(&raised, u.yaw, carried, mount.bearing)
     });
     let (s, c) = libm::sincos(mount.bearing);
     let ce = libm::cos(mount.elevation);
