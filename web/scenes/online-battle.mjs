@@ -406,6 +406,14 @@ export async function run(ctx) {
       );
       await page.screenshot({ path: `${evidence}${side}.png` });
     }
+    // The AI that runs a dropped seat fights what its army sees, so Red pulls
+    // back out of sight first: the reconnect checks need both armies whole.
+    await orderMove(pages[1], starts[1], true);
+    await pages[1].waitForFunction(
+      () => window.__lab.route.observation().identified.length === 0,
+      null,
+      { timeout: 120_000 },
+    );
     // Keep every combat and orientation check above. Then actually close a
     // commander's document: the only disconnect clock is server presence.
     const storage = await pages[0].context().storageState();

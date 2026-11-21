@@ -72,10 +72,58 @@ export async function run(ctx) {
   );
   await frame(ctx, page, "setting-up", [205, 210]);
 
-  // Set up, then serve until the squad is whole: replacement takes the
-  // rules' time per soldier, so the wait follows the rules, within a minute.
-  await advance(page, 90 + 600);
+  // Set up, then catch the service underway: what recipients and trucks
+  // show is judged while the truck serves. Supply serves every need at
+  // once, so by the time the squad is whole nobody is served any more.
+  await advance(page, 90);
   o = await obs(page);
+  for (let more = 0; more < 60 * 30 && !o.own.some((u) => u.service === "serving"); more += 15) {
+    await advance(page, 15);
+    o = await obs(page);
+  }
+  // Recipients show active service only; trucks show stock and supplying.
+  await page.evaluate(() => window.__lab.frame());
+  rows = await supplyRows(page);
+  const WORD = {
+    serving: "RESUPPLYING",
+  };
+  const serving = o.own.filter((u) => u.service === "serving").map((u) => u.id);
+  ctx.check(
+    "only actively resupplying recipients show a supply row",
+    serving.length > 0 &&
+      o.own.every((u) => (rowOf(rows, u.id)?.row ?? null) === (WORD[u.service] ?? null)),
+    JSON.stringify({ services: o.own.map((u) => [u.id, u.service]), rows }),
+  );
+  ctx.check(
+    "the scouts beside the empty truck have no redundant supply row",
+    rowOf(rows, 5)?.row === null,
+    JSON.stringify(rowOf(rows, 5)),
+  );
+  ctx.check(
+    "each truck's panel shows its stock, and the serving one SUPPLYING",
+    rowOf(rows, 0)?.words.includes(`SUPPLY ${unit(o, 0).stock}`) &&
+      rowOf(rows, 0)?.words.includes("SUPPLYING") &&
+      rowOf(rows, 4)?.words.includes("SUPPLY 0") &&
+      !rowOf(rows, 4)?.words.includes("SUPPLYING"),
+    JSON.stringify([rowOf(rows, 0), rowOf(rows, 4)]),
+  );
+  await frame(ctx, page, "empty-truck", [345, 325]);
+  // The truck's reach shows only while it is selected.
+  await frame(ctx, page, "serving-unselected", [205, 210]);
+  await select(page, [0]);
+  await frame(ctx, page, "serving", [205, 210]);
+  const truckCamera = await lab(page, () => window.__lab.camera());
+  await lab(page, (camera) => window.__lab.setCamera(camera), {
+    ...truckCamera,
+    target: [190, 210, 0],
+    distance: 150,
+    pitch: 0.85,
+  });
+  await frame(ctx, page, "marks-truck", [205, 210]);
+  await lab(page, (camera) => window.__lab.setCamera(camera), truckCamera);
+
+  // Serve until the squad is whole: replacement takes the rules' time per
+  // soldier, so the wait follows the rules, within a minute.
   for (let more = 0; more < 60 * 30 && unit(o, 3).members.length < 8; more += 30) {
     await advance(page, 30);
     o = await obs(page);
@@ -103,46 +151,6 @@ export async function run(ctx) {
     unit(o, 4).stock === 0 && unit(o, 5).service === "no_stock",
     JSON.stringify({ stock: unit(o, 4).stock, scouts: unit(o, 5).service }),
   );
-  // Recipients show active service only; trucks show stock and supplying.
-  await page.evaluate(() => window.__lab.frame());
-  rows = await supplyRows(page);
-  const WORD = {
-    serving: "RESUPPLYING",
-  };
-  const serving = o.own.filter((u) => u.service === "serving").map((u) => u.id);
-  ctx.check(
-    "only actively resupplying recipients show a supply row",
-    serving.length > 0 &&
-      o.own.every((u) => (rowOf(rows, u.id)?.row ?? null) === (WORD[u.service] ?? null)),
-    JSON.stringify({ services: o.own.map((u) => [u.id, u.service]), rows }),
-  );
-  ctx.check(
-    "the scouts beside the empty truck have no redundant supply row",
-    rowOf(rows, 5)?.row === null,
-    JSON.stringify(rowOf(rows, 5)),
-  );
-  ctx.check(
-    "each truck's panel shows its stock, and the serving one SUPPLYING",
-    rowOf(rows, 0)?.words.includes(`SUPPLY ${truck.stock}`) &&
-      rowOf(rows, 0)?.words.includes("SUPPLYING") &&
-      rowOf(rows, 4)?.words.includes("SUPPLY 0") &&
-      !rowOf(rows, 4)?.words.includes("SUPPLYING"),
-    JSON.stringify([rowOf(rows, 0), rowOf(rows, 4)]),
-  );
-  await frame(ctx, page, "empty-truck", [345, 325]);
-  // The truck's reach shows only while it is selected.
-  await frame(ctx, page, "serving-unselected", [205, 210]);
-  await select(page, [0]);
-  await frame(ctx, page, "serving", [205, 210]);
-  const truckCamera = await lab(page, () => window.__lab.camera());
-  await lab(page, (camera) => window.__lab.setCamera(camera), {
-    ...truckCamera,
-    target: [190, 210, 0],
-    distance: 150,
-    pitch: 0.85,
-  });
-  await frame(ctx, page, "marks-truck", [205, 210]);
-  await lab(page, (camera) => window.__lab.setCamera(camera), truckCamera);
 
   // A unit that moves off waits; the stock never regrows.
   await lab(page, () => window.__lab.route.demo("Tank: move off"));

@@ -496,8 +496,9 @@ async function apache(ctx, page, css, surface) {
   await advance(page, 1);
   o = await obs(page);
   const from = (p) => Math.hypot(...[0, 1, 2].map((k) => p.path[0][k] - heli.position[k]));
+  const chinRows = unitType("ah_64e_guardian").mounts[CHIN].weapons;
   const round = o.projectiles
-    .filter((p) => p.own && p.kind === "autocannon" && p.shooterMember === null)
+    .filter((p) => p.own && chinRows.includes(p.kind) && p.shooterMember === null)
     .sort((a, b) => from(a) - from(b))[0];
   ctx.check(
     "the chin gun's round leaves a tick after it fires",
