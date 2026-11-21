@@ -57,7 +57,8 @@ impl Unit {
                         .f64(p.agl)
                         .opt_f64(p.run_agl)
                         .f64(p.heading)
-                        .u64(p.closing as u64);
+                        .u64(p.closing as u64)
+                        .u64(p.dive.map_or(0, |dive| dive as u64 + 1));
                 }
                 None => {
                     d.u64(0);
