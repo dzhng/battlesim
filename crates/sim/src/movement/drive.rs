@@ -385,6 +385,82 @@ fn turn_clear(
     })
 }
 
+/// Whether a wheeled `unit` has looked for a shunt and found none.
+fn no_shunt(unit: &Unit) -> bool {
+    unit.shunt.as_ref().is_some_and(|s| s.legs.is_empty())
+}
+
+/// Whether `unit` turns on the spot this tick: tracks, and wheels that
+/// found no way to manoeuvre.
+pub(super) fn turns_on_the_spot(rules: &contract::scenario::Rules, unit: &Unit) -> bool {
+    unit.ground(rules).drive.is_some_and(|d| d.tracked) || no_shunt(unit)
+}
+
+/// This tick's motion toward `target` for a hull that turns on the spot.
+fn on_the_spot(
+    rules: &contract::scenario::Rules,
+    world: &WorldGeometry,
+    unit: &Unit,
+    target: V2,
+    speed: f64,
+    dt: f64,
+) -> Motion {
+    let drive = unit.ground(rules).drive.expect("a vehicle has a drive");
+    let gear = gear_sign(unit.direction());
+    let here = unit.position.xy();
+    let to = target - here;
+    let distance = to.length();
+    let bearing = libm::atan2(to.y, to.x);
+    // Its nose follows the route: the hull turns toward the point its
+    // leading end has reached along it, so it comes into a tight gap or
+    // out of a bend lined up with the way on, not with the way it came.
+    let nose = along_route(unit, unit.hull.expect("a vehicle has a hull").x) - here;
+    let facing = if nose.length() > 1e-9 {
+        libm::atan2(nose.y, nose.x)
+    } else {
+        bearing
+    };
+    // Its way lying behind it, where its hull cannot turn round (a
+    // street narrower than the hull is long corner to corner): it rolls
+    // to the room nearest along its length, and with none within reach
+    // backs along the route until there is.
+    let mut gear = gear;
+    if wrap_angle(facing - travel(unit.yaw, gear)).abs() > std::f64::consts::FRAC_PI_2 {
+        let turned = unit.yaw + wrap_angle(facing - travel(unit.yaw, gear));
+        if !turn_clear(rules, world, unit, here, turned) {
+            match room_to_turn(rules, world, unit, away(unit), turned) {
+                Some(room) => return give_space(rules, unit, room, speed, dt),
+                None => gear = -gear,
+            }
+        }
+    }
+    let error = wrap_angle(facing - travel(unit.yaw, gear));
+    let max = drive.turn_rad_s * dt;
+    let yaw = unit.yaw + error.clamp(-max, max);
+    let remaining = wrap_angle(facing - travel(yaw, gear)).abs();
+    let pivoting = remaining > drive.feel.turn_in_place_deg.to_radians();
+    let desired = turn_speed(&drive, speed_in(&drive, gear, speed), remaining)
+        .min(approach_speed(rules, unit, speed, gear));
+    let v = accelerate(rules, unit, desired, gear, dt);
+    let step = if pivoting {
+        0.0
+    } else {
+        (v * dt).min(distance)
+    };
+    Motion {
+        yaw,
+        heading: if distance > 0.0 {
+            to * (1.0 / distance)
+        } else {
+            v2(0.0, 0.0)
+        },
+        step,
+        backwards: gear < 0.0 && step > 0.0,
+        making_space: false,
+        blocker: None,
+    }
+}
+
 /// This tick's motion toward `target`, at surface speed `speed`.
 pub fn steer(
     ctx: &super::MovementContext,
@@ -403,54 +479,7 @@ pub fn steer(
     let bearing = libm::atan2(to.y, to.x);
     let error = wrap_angle(bearing - travel(unit.yaw, gear));
     if drive.tracked {
-        // Its nose follows the route: the hull turns toward the point its
-        // leading end has reached along it, so it comes into a tight gap or
-        // out of a bend lined up with the way on, not with the way it came.
-        let nose = along_route(unit, unit.hull.expect("a vehicle has a hull").x) - here;
-        let facing = if nose.length() > 1e-9 {
-            libm::atan2(nose.y, nose.x)
-        } else {
-            bearing
-        };
-        // Its way lying behind it, where its hull cannot turn round (a
-        // street narrower than the hull is long corner to corner): it rolls
-        // to the room nearest along its length, and with none within reach
-        // backs along the route until there is.
-        let mut gear = gear;
-        if wrap_angle(facing - travel(unit.yaw, gear)).abs() > std::f64::consts::FRAC_PI_2 {
-            let turned = unit.yaw + wrap_angle(facing - travel(unit.yaw, gear));
-            if !turn_clear(rules, world, unit, here, turned) {
-                match room_to_turn(rules, world, unit, away(unit), turned) {
-                    Some(room) => return give_space(rules, unit, room, speed, dt),
-                    None => gear = -gear,
-                }
-            }
-        }
-        let error = wrap_angle(facing - travel(unit.yaw, gear));
-        let max = drive.turn_rad_s * dt;
-        let yaw = unit.yaw + error.clamp(-max, max);
-        let remaining = wrap_angle(facing - travel(yaw, gear)).abs();
-        let pivoting = remaining > drive.feel.turn_in_place_deg.to_radians();
-        let desired = turn_speed(&drive, speed_in(&drive, gear, speed), remaining)
-            .min(approach_speed(rules, unit, speed, gear));
-        let v = accelerate(rules, unit, desired, gear, dt);
-        let step = if pivoting {
-            0.0
-        } else {
-            (v * dt).min(distance)
-        };
-        return Motion {
-            yaw,
-            heading: if distance > 0.0 {
-                to * (1.0 / distance)
-            } else {
-                v2(0.0, 0.0)
-            },
-            step,
-            backwards: gear < 0.0 && step > 0.0,
-            making_space: false,
-            blocker: None,
-        };
+        return on_the_spot(rules, world, unit, target, speed, dt);
     }
 
     // Wheels: curvature at most 1 / radius, and slower than that at speed
@@ -460,6 +489,12 @@ pub fn steer(
     let curvature = |v: f64| (1.0 / radius).min(drive.turn_rad_s / v.max(1e-9));
     let heading = travel(unit.yaw, gear);
     if let Some(motion) = super::shunt::drive_on(rules, world, unit, speed, dt, tick) {
+        // With no way to manoeuvre found it turns on the spot, as tracks
+        // do, until it looks again (a deliberate game rule, development.md):
+        // it never stands where it is with somewhere to go.
+        if no_shunt(unit) {
+            return on_the_spot(rules, world, unit, target, speed, dt);
+        }
         return motion;
     }
     // A waypoint inside the turning circle needs room worked out first.

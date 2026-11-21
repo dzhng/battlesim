@@ -487,8 +487,17 @@ pub(super) fn drive_on(
         blocker: None,
     };
     if drive::lands(rules, world, unit, &motion, leg.gear).is_some() {
-        // Something stands where the shunt meant to go: work it out again.
-        unit.shunt = None;
+        // Something stands where the shunt meant to go. Having got
+        // somewhere, it works the rest out again from there; refused its
+        // first step, the search would only find the same legs again (its
+        // arcs are checked more coarsely than a step), so that is no way
+        // found.
+        let shunt = unit.shunt.as_mut().expect("the shunt it drives");
+        if tick <= shunt.tick + 1 {
+            shunt.legs.clear();
+        } else {
+            unit.shunt = None;
+        }
         return Some(hold(unit));
     }
     Some(motion)

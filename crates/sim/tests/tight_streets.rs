@@ -14,7 +14,11 @@ const TANK: &str = "test_tank";
 
 /// Half the tank's length and half its width.
 fn hull() -> V2 {
-    let half = common::hull(TANK).half_extents_m;
+    hull_of(TANK)
+}
+
+fn hull_of(kind: &str) -> V2 {
+    let half = common::hull(kind).half_extents_m;
     v2(half[0], half[1])
 }
 
@@ -30,9 +34,14 @@ fn map(size: [f64; 2], props: Vec<Value>) -> String {
 
 /// A battle with the tank at `at` facing east, sent to `goal`.
 fn sent(map: String, at: [f64; 2], goal: [f64; 2]) -> Battle {
+    sent_as(TANK, map, at, goal)
+}
+
+/// A battle with a `kind` at `at` facing east, sent to `goal`.
+fn sent_as(kind: &str, map: String, at: [f64; 2], goal: [f64; 2]) -> Battle {
     let setup = common::scenario_with(
         &map,
-        json!([{ "side": "blue", "kind": TANK, "position": at, "yaw": 0.0,
+        json!([{ "side": "blue", "kind": kind, "position": at, "yaw": 0.0,
             "engagement": "return_fire_only" }]),
         json!([]),
         json!([{ "tick": 1, "side": "blue", "order":
@@ -122,6 +131,37 @@ fn a_tank_sent_back_down_a_street_too_narrow_to_turn_in_backs_out() {
     assert!(
         swung < 20.0,
         "it swung {swung:.0} degrees across the street"
+    );
+}
+
+/// A truck in a street too narrow for it to turn round in, sent back the
+/// way it came. It does not stand at the street's mouth with its order,
+/// working out again and again a manoeuvre whose first step the wall
+/// refuses: it comes round and arrives.
+#[test]
+fn a_truck_sent_back_down_a_street_too_narrow_to_turn_in_gets_there() {
+    let truck = "test_supply";
+    let w = hull_of(truck).x + 0.3;
+    let (y, goal) = (30.0, [40.0, 30.0]);
+    let mut b = sent_as(
+        truck,
+        map(
+            [160.0, 60.0],
+            vec![
+                wall([20.0, 120.0], [0.0, y - w]),
+                wall([20.0, 120.0], [y + w, 60.0]),
+            ],
+        ),
+        [100.0, y],
+        goal,
+    );
+    drive(&mut b, 60.0, |_| {});
+    let unit = b.unit(UnitId(0)).unwrap();
+    assert!(
+        arrived(&b, goal),
+        "it ended {:?} at {:?}",
+        unit.state,
+        unit.position.xy()
     );
 }
 

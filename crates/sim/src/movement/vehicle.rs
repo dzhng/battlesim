@@ -150,7 +150,7 @@ pub(super) fn step_vehicle(
     // a body. Give the turn room instead of deadlocking: back off from
     // traffic; from a body, roll to where this tick's turn clears. Requiring
     // the whole turn at once would forbid manoeuvring out in stages.
-    let room = (unit.ground(ctx.rules).drive.is_some_and(|d| d.tracked)
+    let room = (drive::turns_on_the_spot(ctx.rules, unit)
         && motion.yaw != unit.yaw
         && stationary_yaw(ctx.rules, ctx.world, units, i, motion.yaw) == unit.yaw)
         .then(|| match (blocker, met.solid) {
@@ -229,8 +229,8 @@ pub(super) fn step_vehicle(
             // Held by a body anyway (a jammed shove, or a corner the arc's
             // samples passed): a wheeled vehicle works out a shunt with it
             // as solid, or it would pick the same step every tick.
-            let wheeled = unit.ground(ctx.rules).drive.is_some_and(|d| !d.tracked);
-            if let Some(body) = held_by.filter(|_| wheeled) {
+            let shunts = !drive::turns_on_the_spot(ctx.rules, unit);
+            if let Some(body) = held_by.filter(|_| shunts) {
                 drive::shunt(ctx.rules, ctx.world, unit, traffic, &[body], ctx.tick);
             }
             return;
@@ -273,7 +273,7 @@ fn stationary_yaw(
     yaw: f64,
 ) -> f64 {
     let unit = &units[i];
-    if yaw == unit.yaw || !unit.ground(rules).drive.is_some_and(|d| d.tracked) {
+    if yaw == unit.yaw || !drive::turns_on_the_spot(rules, unit) {
         return unit.yaw;
     }
     let here = unit.ground_footprint().expect("a vehicle has a hull");
