@@ -488,13 +488,15 @@ fn take_route(
     }
     // A shunt under way is finished first, as a driver gets clear of a
     // tight spot whatever his next order, then picks the new route up from
-    // where it stands; one that found no way looks again along the new route.
-    if matches!(plan, Plan::Route(_)) {
+    // where it stands; one that found no way looks again at once only where
+    // the new route sets off another way.
+    if let Plan::Route(route) = &plan {
         let here = unit.position.xy();
+        let another_way = unit.route.as_ref().and_then(|old| old.first()) != route.first();
         unit.shunt = unit
             .shunt
             .take()
-            .filter(|s| !s.legs.is_empty())
+            .filter(|s| !(s.legs.is_empty() && another_way))
             .map(|s| Shunt { from: here, ..s });
     }
     if !request.detour.is_empty() {
