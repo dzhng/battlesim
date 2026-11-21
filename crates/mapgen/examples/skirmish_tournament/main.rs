@@ -21,6 +21,12 @@
 //! card; with `|`, cards before the bar run once and cards after it repeat.
 //! The report's `air` block reads the referee's spawn and kill log.
 //!
+//! Two blocks judge movement and path finding on a played battle:
+//! `standing` is how long ground units stood still with somewhere to go
+//! (held, waiting, with no way, holding for a route) and the longest single
+//! stands with what each was up against; `tick_cost` is what the ticks cost
+//! in instructions (macOS only), the dearest tick by phase of the step.
+//!
 //! Each match ends by replaying its command stream from the start and
 //! checking the digest matches, which costs nearly half a match's time.
 //! `--no-replay-check` skips it for quick iteration (`replay_match` is then

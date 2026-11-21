@@ -1,7 +1,8 @@
 //! Integrated generation → assault placement → short battle, one JSON line
 //! per exact request. Refusals remain rows; no failed seed is replaced.
-//! Each row's tick cost names the phase of the step its instructions went
-//! to (`phase_instructions`, macOS only), to attribute a change in cost.
+//! Each row's tick cost (`cost.ticks.instructions`, macOS only) names the
+//! phase of the step its instructions went to, to attribute a change in
+//! cost; `standing` is how long units stood still with somewhere to go.
 //!
 //! cargo run -p mapgen --release --example battle_sweep --
 //!     [--seeds 10] [--seconds 30] [--only metro:small] [--region paris]
