@@ -15,7 +15,7 @@ import type {
   Briefing,
 } from "../../../../packages/multiplayer/src/wire";
 import { PageClock } from "../pageClock";
-import { data, generator, seat, recordHost } from "./battle";
+import { data, generator, seat, recordHost, FRONTLINE_DRAWS } from "./battle";
 import { seatedPlayers, testBrowser } from "./player";
 export const cleanups: (() => void)[] = [];
 
@@ -67,7 +67,7 @@ export async function service(capacity = 2, admissionMs = 0, refusedMaps = 0) {
   const frontline = createFrontlineService({
     online,
     mapAttempts: MAP_ATTEMPTS,
-    random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
+    random: () => FRONTLINE_DRAWS[draw++ % FRONTLINE_DRAWS.length],
   });
   cleanups.push(online.dispose, frontline.dispose);
   const join = async (who: string) => {
