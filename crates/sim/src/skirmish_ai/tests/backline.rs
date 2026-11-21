@@ -173,3 +173,25 @@ fn only_ground_units_that_cannot_engage_ground_hold_the_backline() {
         "the aircraft is not posted behind the group: {aircraft:?}"
     );
 }
+
+#[test]
+fn air_defence_standing_at_its_post_is_left_to_set_up() {
+    // A move off the ground under its hull makes a set-up unit pack and
+    // drive, so re-sending it to a post it already stands near would only
+    // tear its setup down. With no order in hand, standing near is enough.
+    for force_advance in [true, false] {
+        let (_, frame, orders, _) = decide(
+            json!([
+                {"side":"red","kind":AIR_DEFENCE,"position":[612,120]},
+                {"side":"red","kind":ARTILLERY,"position":[620,120]}
+            ]),
+            force_advance,
+        );
+        assert!(frame.own[0].goal.is_none(), "it holds no order");
+        let order = order_for(&frame, &orders, 0);
+        assert!(
+            order.is_none(),
+            "push={force_advance}: no move to where it stands: {order:?}"
+        );
+    }
+}
