@@ -37,6 +37,72 @@ impl Battle {
         .collect()
     }
 
+    /// The standing room `side`'s vehicles have spoken for, but for
+    /// `moving`: each hull where it is parked or has been sent, where an
+    /// order given this tick sends it, and where one bought and not yet
+    /// arrived is bound, each facing as it will arrive. A hull is not sent
+    /// onto another's place to wait behind it.
+    pub(super) fn standing_room_taken(&self, side: Side, moving: &[UnitId]) -> Vec<Obb2> {
+        // Orders given this tick, not yet applied: where they send each hull.
+        let ordered: Vec<_> = (self.pending.iter())
+            .filter(|prepared| prepared.command.side == side)
+            .filter_map(|prepared| prepared.placement.as_ref())
+            .flat_map(|placement| placement.destinations.iter().filter(|d| d.placed))
+            .collect();
+        let hull_of = |id: UnitId| self.units[id.0 as usize].ground_footprint();
+        let sent = ordered
+            .iter()
+            .filter(|d| !moving.contains(&d.unit))
+            .filter_map(|d| {
+                Some(Obb2 {
+                    center: v2(d.goal[0], d.goal[1]),
+                    yaw: d.facing,
+                    ..hull_of(d.unit)?
+                })
+            });
+        let standing = self
+            .units
+            .iter()
+            .filter(|u| u.side == side && u.on_field() && !moving.contains(&u.id))
+            .filter(|u| !ordered.iter().any(|d| d.unit == u.id))
+            .filter_map(|u| {
+                let here = u.ground_footprint()?;
+                let Some(order) = u.orders.iter().rev().find_map(|o| o.movement()) else {
+                    return Some(here);
+                };
+                let from = u.position.xy();
+                let yaw =
+                    movement::final_yaw(from, order.destination, order.facing, order.direction);
+                Some(Obb2 {
+                    center: order.destination,
+                    yaw: yaw.unwrap_or(u.yaw),
+                    ..here
+                })
+            });
+        // Bought and on their way: each bound for its destination from its entry.
+        let bought = self.skirmish.iter().flat_map(|skirmish| {
+            (skirmish.players.iter())
+                .filter(move |player| player.side == side)
+                .flat_map(|player| player.reservations.iter())
+                .filter_map(|reservation| {
+                    let data = &reservation.data;
+                    let arriving = self.rules.catalog.get(data.carrier.unwrap_or(data.kind));
+                    // An aircraft hovers over its point and holds no ground.
+                    units::ground_mobility(arriving, &self.rules)?;
+                    let half = arriving.hull()?.half_extents_m;
+                    let entry = skirmish.setup.sites.entries.get(data.entry)?;
+                    let to = v2(data.destination[0], data.destination[1]);
+                    let leg = to - v2(entry.center[0], entry.center[1]);
+                    Some(Obb2 {
+                        center: to,
+                        half: v2(half[0], half[1]),
+                        yaw: libm::atan2(leg.y, leg.x),
+                    })
+                })
+        });
+        standing.chain(sent).chain(bought).collect()
+    }
+
     pub fn preview_move(
         &mut self,
         side: Side,
@@ -81,6 +147,7 @@ impl Battle {
                 }
             })
             .collect();
+        let taken = self.standing_room_taken(side, ids);
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
         let pockets = crate::navigation::Pockets::default();
@@ -120,6 +187,7 @@ impl Battle {
                             parking(u),
                             from(u),
                             &pockets,
+                            &taken,
                         )
                         .is_some_and(|p| {
                             !grid.reaches(from(u), p, &u.ground(&self.rules), &pockets)
@@ -143,15 +211,28 @@ impl Battle {
                     return Some(p);
                 }
                 let hull = parking(u);
-                let placed =
-                    grid.destination_point(p, &u.ground(&self.rules), hull, from(u), &pockets)?;
+                let placed = grid.destination_point(
+                    p,
+                    &u.ground(&self.rules),
+                    hull,
+                    from(u),
+                    &pockets,
+                    &taken,
+                )?;
                 if !grid.reaches(from(u), placed, &u.ground(&self.rules), &pockets) {
                     return None;
                 }
                 let short = hull
                     .filter(|_| placed != p)
                     .and_then(|hull| {
-                        grid.room_on_the_way(p, &u.ground(&self.rules), hull, from(u), &pockets)
+                        grid.room_on_the_way(
+                            p,
+                            &u.ground(&self.rules),
+                            hull,
+                            from(u),
+                            &pockets,
+                            &taken,
+                        )
                     })
                     .filter(|&at| at != placed)
                     .map(|at| crate::units::StopShort {

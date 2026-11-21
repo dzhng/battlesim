@@ -114,13 +114,11 @@ fn a_humans_first_order_continues_the_ai_sequence_and_drives_in_by_its_sides_roa
             .iter()
             .find(|u| u.owner == Some(contract::players::PlayerIndex(0)))
         {
-            let speed = battle
-                .rules()
-                .catalog
-                .get(unit.kind)
-                .mobility
-                .speeds_mps()
-                .0;
+            // It comes in at its side's road mouth, or beside whatever is
+            // crossing it: within its own length of it, and a tick's travel.
+            let kind = battle.rules().catalog.get(unit.kind);
+            let length = 2.0 * kind.hull().expect("a tank has a hull").half_extents_m[0];
+            let speed = kind.mobility.speeds_mps().0;
             assert!(setup
                 .skirmish
                 .as_ref()
@@ -131,7 +129,7 @@ fn a_humans_first_order_continues_the_ai_sequence_and_drives_in_by_its_sides_roa
                 .filter(|e| e.side == Side::Blue)
                 .any(
                     |e| (unit.position[0] - e.center[0]).hypot(unit.position[1] - e.center[1])
-                        <= speed / f64::from(battle.rules().tick_hz) + 1.0
+                        <= speed / f64::from(battle.rules().tick_hz) + length
                 ));
             assert!(seat(&battle, "blue-1").pending.is_empty());
             return;

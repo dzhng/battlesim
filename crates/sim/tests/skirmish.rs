@@ -306,11 +306,15 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
     assert_eq!(status.players[0].credits, 0.0);
     assert_eq!(status.players[0].unit_count, 5);
     assert_eq!(status.players[0].pending.len(), 5);
-    assert!(status
-        .players
-        .iter()
-        .flat_map(|player| player.pending.iter())
-        .all(|p| p.destination == [400.0, 300.0]));
+    // Each tank is bound for room of its own by the point they were bought to.
+    let bound: Vec<[f64; 2]> = (status.players.iter())
+        .flat_map(|player| player.pending.iter().map(|p| p.destination))
+        .collect();
+    for (k, at) in bound.iter().enumerate() {
+        let off = (at[0] - 400.0).hypot(at[1] - 300.0);
+        assert!(off < 40.0, "a tank was sent {off:.0} m from the point");
+        assert!(!bound[..k].contains(at), "two tanks were sent to {at:?}");
+    }
 }
 
 #[test]

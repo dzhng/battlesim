@@ -3042,21 +3042,17 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     .find(|u| rules.catalog.id(*u) == kind)
                     .unwrap();
                 let hull = rules.catalog.get(unit).hull().unwrap().half_extents_m;
+                let parking = Some(navigation::Parking {
+                    half: v2(hull[0], hull[1]),
+                    facing: None,
+                });
                 let pockets = navigation::Pockets::default();
                 let start = v2(ends[0][0], ends[0][1]);
                 let Some(ends) = ends
                     .iter()
                     .map(|e| {
-                        after.grid.destination_point(
-                            v2(e[0], e[1]),
-                            m,
-                            Some(navigation::Parking {
-                                half: v2(hull[0], hull[1]),
-                                facing: None,
-                            }),
-                            start,
-                            &pockets,
-                        )
+                        let p = v2(e[0], e[1]);
+                        (after.grid).destination_point(p, m, parking, start, &pockets, &[])
                     })
                     .collect::<Option<Vec<_>>>()
                     .map(|e| [[e[0].x, e[0].y], [e[1].x, e[1].y]])

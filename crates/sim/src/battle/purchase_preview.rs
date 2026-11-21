@@ -60,6 +60,7 @@ impl Battle {
         let destination = match units::ground_mobility(t, &self.rules) {
             None => destination,
             Some(mobility) => {
+                let taken = self.standing_room_taken(side, &[]);
                 let mut known = self.sides[side.index()].clone();
                 let grid = known.grid(&self.world, self.authored_props);
                 let pockets = crate::navigation::Pockets::default();
@@ -79,7 +80,7 @@ impl Battle {
                     None,
                     &self.rules.formation,
                     libm::hypot(self.world.width(), self.world.depth()),
-                    |_, p| grid.destination_point(p, &mobility, hull, from, &pockets),
+                    |_, p| grid.destination_point(p, &mobility, hull, from, &pockets, &taken),
                 );
                 let placed = plan.slots[0].point.ok_or(OrderError::NoValidDestination)?;
                 [placed.x, placed.y]

@@ -4,7 +4,7 @@
 use contract::scenario::PushClass;
 
 use super::{cell_center, cell_of, pockets, Mobility, NavGrid, Parking, Pockets, NAV_CELL_M};
-use crate::math::{v2, V2};
+use crate::math::{v2, Obb2, V2};
 
 /// The facings a hull with none ordered is tried at for standing room.
 const PARKING_FACINGS: usize = 8;
@@ -22,10 +22,12 @@ impl NavGrid {
     /// wall is not standing room. With no facing ordered it parks facing
     /// the way it drives in: the straight way from `from`, and where its box
     /// stands clear nowhere near facing that way (round a street corner the
-    /// way in is nothing like the straight one), any way it stands clear. It needs no room to turn round there; it
-    /// backs out the way it came. It must also be ground the vehicle can
-    /// drive to from `from`, not a pocket its side knows to be closed off
-    /// ([`Pockets`]), across water or up a cliff. Where the hull does not
+    /// way in is nothing like the straight one), any way it stands clear.
+    /// It also stands clear of the `taken` boxes: where its side's other
+    /// vehicles are parked or have been sent. It needs no room to turn
+    /// round there; it backs out the way it came. It must also be ground
+    /// the vehicle can drive to from `from`, not a pocket its side knows to
+    /// be closed off ([`Pockets`]), across water or up a cliff. Where the hull does not
     /// fit, it parks on the nearest ground it does within a hull's length;
     /// where that ground cannot be reached, on the nearest that can within
     /// [`pockets::POCKET_REACH_M`], and with none that near, it is sent
@@ -40,11 +42,12 @@ impl NavGrid {
         hull: Option<Parking>,
         from: V2,
         pockets: &Pockets,
+        taken: &[Obb2],
     ) -> Option<V2> {
         let Some(hull) = hull else {
             return self.placement_point(p, m);
         };
-        let stands = |q: V2| self.hull_stands(q, m, hull, from, false);
+        let stands = |q: V2| self.hull_stands(q, m, hull, from, taken, false);
         let pocketed = std::cell::Cell::new(false);
         let reached = |q: V2| {
             self.reaches(from, q, m, pockets) || {
@@ -53,7 +56,7 @@ impl NavGrid {
             }
         };
         let parks = |q: V2| stands(q) && reached(q);
-        let parks_any_way = |q: V2| self.hull_stands(q, m, hull, from, true) && reached(q);
+        let parks_any_way = |q: V2| self.hull_stands(q, m, hull, from, taken, true) && reached(q);
         let reach = (2.0 * hull.half.length() / NAV_CELL_M).ceil() as isize;
         self.nearest_standing(p, reach, parks)
             .or_else(|| self.nearest_standing(p, reach, parks_any_way))
@@ -75,7 +78,15 @@ impl NavGrid {
     /// stands clear at. The box is covered by a row of discs along its
     /// heading, each as wide as the hull and a little over, so the disc
     /// tests the grid answers decide it, a little on the safe side.
-    fn hull_stands(&self, q: V2, m: &Mobility, hull: Parking, from: V2, any_way: bool) -> bool {
+    fn hull_stands(
+        &self,
+        q: V2,
+        m: &Mobility,
+        hull: Parking,
+        from: V2,
+        taken: &[Obb2],
+        any_way: bool,
+    ) -> bool {
         if !self.placement_fits(q, m) {
             return false;
         }
@@ -88,7 +99,9 @@ impl NavGrid {
             let along = v2(libm::cos(yaw), libm::sin(yaw));
             (0..discs).all(|k| {
                 let c = q + along * (-length + step * (k as f64 + 0.5));
-                self.ground_clear(c, radius, false) && self.bodies_clear(c, radius, PushClass::None)
+                self.ground_clear(c, radius, false)
+                    && self.bodies_clear(c, radius, PushClass::None)
+                    && !taken.iter().any(|held| held.contains(c, radius))
             })
         };
         let d = q - from;
@@ -113,6 +126,7 @@ impl NavGrid {
         hull: Parking,
         from: V2,
         pockets: &Pockets,
+        taken: &[Obb2],
     ) -> Option<V2> {
         let back = from - p;
         let reach = back.length().min(pockets::POCKET_REACH_M);
@@ -120,7 +134,8 @@ impl NavGrid {
         (1..=steps)
             .map(|k| p + back * (k as f64 * NAV_CELL_M / back.length()))
             .find(|&q| {
-                self.hull_stands(q, m, hull, from, false) && self.reaches(from, q, m, pockets)
+                self.hull_stands(q, m, hull, from, taken, false)
+                    && self.reaches(from, q, m, pockets)
             })
     }
 

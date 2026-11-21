@@ -306,3 +306,55 @@ fn a_reachable_goal_places_formation_slots_beside_a_closed_pocket() {
         );
     }
 }
+
+/// The moment: two tanks are sent, one order after the other, to the spot a
+/// third of their side is parked on. Neither is sent onto the parked hull to
+/// wait behind it, nor onto the place the other was just given: each gets
+/// standing room of its own beside them.
+#[test]
+fn vehicles_sent_to_a_spot_a_parked_one_holds_each_get_room_of_their_own() {
+    let map =
+        json!({"size": [200, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35});
+    let tank =
+        |at: [f64; 2]| json!({"side": "blue", "kind": "test_tank", "position": at, "yaw": 0.0});
+    let mut battle = Battle::new(
+        &common::scenario(
+            &map.to_string(),
+            json!([
+                tank([100.0, 100.0]),
+                tank([30.0, 90.0]),
+                tank([30.0, 110.0])
+            ]),
+            json!([]),
+        ),
+        1,
+    );
+    let goal = [100.0, 100.0];
+    let hull = battle.unit(UnitId(0)).unwrap().hull.unwrap().xy();
+    let mut held = vec![battle.unit(UnitId(0)).unwrap().ground_footprint().unwrap()];
+    for (seq, unit) in [(1, 1), (2, 2)] {
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq,
+            order: move_to(&[unit], goal),
+            queued: false,
+        });
+        assert_eq!(ack.error, None, "{ack:?}");
+        let destination = &ack.placement.unwrap().destinations[0];
+        assert!(destination.placed, "{destination:?}");
+        let parked = sim::math::Obb2 {
+            center: sim::math::v2(destination.goal[0], destination.goal[1]),
+            half: hull,
+            yaw: destination.facing,
+        };
+        assert!(
+            held.iter().all(|other| !other.overlaps(&parked)),
+            "unit {unit} was sent to {:?}, onto another's place",
+            destination.goal
+        );
+        let off = (destination.goal[0] - goal[0]).hypot(destination.goal[1] - goal[1]);
+        assert!(off < 6.0 * hull.x, "it was sent {off:.0} m away");
+        held.push(parked);
+    }
+}
