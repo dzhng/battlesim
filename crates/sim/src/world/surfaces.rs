@@ -1,6 +1,6 @@
 //! Sparse broad phase over the exact authored ground shapes: the paving, the
 //! rivers and the swamps.
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 
 use contract::ground::{
     cross, edges, limits, polygon_area, polygon_contains, segment_distance, stretch_contains,
@@ -10,6 +10,7 @@ use contract::map::{MapDefinition, Rect, SurfaceArea, SurfaceKind};
 use contract::river::{section, River, Section};
 use contract::swamp::Swamp;
 
+use crate::hash::WordMap;
 use crate::math::{v2, V2};
 
 const BUCKET_M: f64 = 128.0;
@@ -40,19 +41,19 @@ pub(super) struct SurfaceIndex {
     /// Each primitive's limits `[x, y, max_x, max_y]`: a point outside
     /// them, by more than rounding, is outside the primitive.
     limits: Vec<[f64; 4]>,
-    buckets: HashMap<(i32, i32), Vec<usize>>,
+    buckets: WordMap<(i32, i32), Vec<usize>>,
     last: [i32; 2],
     triangles: Vec<f32>,
     boundaries: Vec<f32>,
     rivers: Vec<River>,
     /// Each bucket's river stretches: the river, and the first of the
     /// stretch's two rounded samples.
-    stretches: HashMap<(i32, i32), Vec<(u32, u32)>>,
+    stretches: WordMap<(i32, i32), Vec<(u32, u32)>>,
     swamps: Vec<Swamp>,
     /// Each swamp's water surface (`Swamp::surface_z`).
     swamp_levels: Vec<f64>,
     /// Each bucket's swamps, by index.
-    swamp_buckets: HashMap<(i32, i32), Vec<u32>>,
+    swamp_buckets: WordMap<(i32, i32), Vec<u32>>,
 }
 
 impl SurfaceIndex {
@@ -62,19 +63,19 @@ impl SurfaceIndex {
             areas: areas.to_vec(),
             primitives: Vec::new(),
             limits: Vec::new(),
-            buckets: HashMap::new(),
+            buckets: WordMap::default(),
             last: size.map(|v| (v / BUCKET_M).floor() as i32),
             triangles: Vec::new(),
             boundaries: Vec::new(),
             rivers: rivers.to_vec(),
-            stretches: HashMap::new(),
+            stretches: WordMap::default(),
             swamps: map.swamps.clone(),
             swamp_levels: map
                 .swamps
                 .iter()
                 .map(|s| s.surface_z(&map.relief))
                 .collect(),
-            swamp_buckets: HashMap::new(),
+            swamp_buckets: WordMap::default(),
         };
         for (swamp, definition) in map.swamps.iter().enumerate() {
             let [x0, y0, x1, y1] = index.bucket_bounds(definition.limits(0.0));

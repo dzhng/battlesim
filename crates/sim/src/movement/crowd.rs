@@ -1,6 +1,6 @@
 //! Where every standing soldier is this tick, for personal space.
-use std::collections::HashMap;
 
+use crate::hash::WordMap;
 use crate::math::V2;
 use crate::units::Unit;
 
@@ -15,7 +15,7 @@ pub struct Crowd {
     pub(super) standing: Vec<usize>,
     pub(super) radii: Vec<f64>,
     at: Vec<Option<V2>>,
-    buckets: HashMap<(i32, i32), Vec<u32>>,
+    buckets: WordMap<(i32, i32), Vec<u32>>,
 }
 
 pub(super) const CROWD_BUCKET_M: f64 = 2.0;
@@ -33,7 +33,7 @@ impl Crowd {
         let mut at = Vec::new();
         let mut standing_units = Vec::new();
         let mut radii = vec![0.0; units.len()];
-        let mut buckets: HashMap<(i32, i32), Vec<u32>> = HashMap::new();
+        let mut buckets: WordMap<(i32, i32), Vec<u32>> = WordMap::default();
         for (i, u) in units.iter().enumerate() {
             base.push(at.len());
             let standing = !u.is_vehicle() && !u.garrisoned();

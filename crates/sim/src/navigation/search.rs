@@ -7,7 +7,7 @@
 //! road. A search owns its bookkeeping and only reads the grid, so one grid
 //! serves many searches at once.
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
 
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
@@ -17,6 +17,7 @@ use super::{
     NAV_CELL_M, START_REACH_M, TILE_SAMPLES, TILE_SIDE,
 };
 use crate::digest::Digest;
+use crate::hash::WordMap;
 use crate::math::{Obb2, V2};
 
 /// A route ends at the cell nearest its goal within this reach that the
@@ -52,11 +53,11 @@ struct Component {
 /// generation instead of clearing or freeing anything.
 pub struct Scratch {
     nx: usize,
-    tiles: HashMap<usize, Box<SearchTile>>,
+    tiles: WordMap<usize, Box<SearchTile>>,
     /// Each vehicle cell's seat as this search found it: a cell is asked
     /// about from each of its neighbours. A route found on knowledge that
     /// has since changed is checked again before it is driven.
-    seats: HashMap<usize, Option<(V2, bool)>>,
+    seats: WordMap<usize, Option<(V2, bool)>>,
     generation: u32,
     visited: usize,
     component: Option<Component>,
@@ -66,8 +67,8 @@ impl Scratch {
     pub(super) fn new(nx: usize) -> Self {
         Self {
             nx,
-            tiles: HashMap::new(),
-            seats: HashMap::new(),
+            tiles: WordMap::default(),
+            seats: WordMap::default(),
             generation: 0,
             visited: 0,
             component: None,

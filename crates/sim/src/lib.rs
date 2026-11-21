@@ -25,6 +25,7 @@ pub mod flight;
 pub mod formation;
 pub mod garrison;
 pub mod ground;
+pub mod hash;
 pub mod hearing;
 pub mod hold;
 pub mod knowledge;
