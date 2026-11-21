@@ -196,11 +196,12 @@ fn road_exits_do_not_multiply_an_enclosed_destinations_search() {
         &rules,
     );
     assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
-    // At most one search of the 200×100 grid, plus local road access and
-    // the courtyard's fewer than 100 cells, before proving the obstruction.
+    // The courtyard's fewer than 100 cells prove the obstruction before the
+    // way to it from the road is searched: local road access and that
+    // proof, and no search of the 200×100 grid at all.
     assert!(
-        work.expanded < 21_000,
-        "one failed connector and courtyard proof, not a map search per exit: {work:?}"
+        work.expanded < 1_000,
+        "the courtyard's proof, not a search of the map: {work:?}"
     );
 }
 
@@ -237,15 +238,15 @@ fn thin_closed_goals_do_not_repeat_a_search_for_each_road_exit() {
     assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
     assert!(
         g.grid.work() - before < 300_000,
-        "one map search and flat road admission, not a repeated graph per exit: {}",
+        "flat road admission, not a repeated graph per exit: {}",
         g.grid.work() - before
     );
-    // One failed outside search can visit the whole 20,000-cell map.
-    // The closed courtyard has fewer than 200 cells; later exits only
-    // require membership in that same final-connector component.
+    // The closed courtyard has fewer than 200 cells, proved before any
+    // search toward it from outside; every exit only requires membership
+    // in that same final-connector component.
     assert!(
-        work.expanded < 21_000,
-        "a closed goal must not repeat the outside search per exit: {work:?}"
+        work.expanded < 1_000,
+        "a closed goal must not be searched for from outside: {work:?}"
     );
 }
 

@@ -52,8 +52,12 @@ enum Stage {
     Roads(RoadSearch),
     Driving(Box<Driving>),
     Direct(RouteSearch),
-    /// One rare-failure proof, before trying further goal road accesses.
-    GoalProof(RouteSearch, u32),
+    /// The goal's side being proved, before the way to it from the road is
+    /// searched: a search back from the goal toward where the road is left.
+    /// It reaches there, or runs out of cells (the goal is closed off from
+    /// the road, [`Journey::goal_component`]) long before a search from
+    /// outside would have looked as far as it may.
+    GoalProof(RouteSearch, Box<Driving>),
     /// A wheeled route's corners being made drivable.
     Rounding(Box<Rounding>),
     Done(Plan),
@@ -303,7 +307,7 @@ impl Journey {
                 }
             }
             Stage::Driving(driving) => self.drive(grid, roads, driving),
-            Stage::GoalProof(mut search, access) => {
+            Stage::GoalProof(mut search, driving) => {
                 search.advance(grid, 1);
                 if search.reached_target() || search.plan().is_some() {
                     if search.exhausted() {
@@ -312,10 +316,9 @@ impl Journey {
                     } else {
                         self.finish_search(search);
                     }
-                    self.rejected[1].insert(access);
-                    Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
+                    Stage::Driving(driving)
                 } else {
-                    Stage::GoalProof(search, access)
+                    Stage::GoalProof(search, driving)
                 }
             }
         };

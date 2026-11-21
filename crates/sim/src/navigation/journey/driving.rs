@@ -174,7 +174,6 @@ impl Journey {
                         .last()
                         .is_some_and(|end| (*end - sought).length() < JOIN_EPSILON_M)
             };
-            let searched_from = driving.off_lane.map_or(from, |(at, _)| at);
             return match self
                 .finish_search(search)
                 .expect("a finished search has a plan")
@@ -205,19 +204,6 @@ impl Journey {
                 }
                 _ => {
                     let side = usize::from(driving.piece != 0);
-                    if side == 1 && !self.goal_probed {
-                        self.goal_probed = true;
-                        let leg = Leg {
-                            from: searched_from,
-                            goal: self.goal,
-                            ..self.leg()
-                        };
-                        let limit = self.rules.search_limit(length);
-                        return match RouteSearch::goal_probe(grid, leg, limit) {
-                            Some(search) => Stage::GoalProof(search, driving.accesses[side]),
-                            None => Stage::Done(Plan::Blocked(super::super::BlockReason::NoRoute)),
-                        };
-                    }
                     self.rejected[side].insert(driving.accesses[side]);
                     Stage::Terrain(super::super::terrain::Probe::new(self.from, self.goal))
                 }
@@ -231,6 +217,20 @@ impl Journey {
         if !on_road {
             // From where the route stands, if it left the road off its lane.
             let from = driving.off_lane.map_or(from, |(at, _)| at);
+            if driving.piece + 1 == pieces && !self.goal_probed {
+                self.goal_probed = true;
+                let scratch = self.scratch.take();
+                let leg = Leg {
+                    from,
+                    goal: self.goal,
+                    ..self.leg()
+                };
+                let limit = self.rules.search_limit(length);
+                return match RouteSearch::goal_probe(grid, scratch, leg, limit) {
+                    Some(search) => Stage::GoalProof(search, driving),
+                    None => Stage::Done(Plan::Blocked(super::super::BlockReason::NoRoute)),
+                };
+            }
             if driving.piece + 1 == pieces
                 && self
                     .goal_component

@@ -472,10 +472,16 @@ impl RouteSearch {
         Stage::Expanding(expanding)
     }
 
-    /// Reverse a failed goal connector from its original effective target.
-    /// Exhaustion certifies this strict final-connector component only;
-    /// sampled road runs may enter it from another disconnected component.
-    pub(super) fn goal_probe(grid: &NavGrid, leg: Leg, limit: usize) -> Option<Self> {
+    /// A goal connector searched in reverse, from its effective target
+    /// toward where it starts. Exhaustion certifies this strict
+    /// final-connector component only; sampled road runs may enter it from
+    /// another disconnected component.
+    pub(super) fn goal_probe(
+        grid: &NavGrid,
+        scratch: Option<Scratch>,
+        leg: Leg,
+        limit: usize,
+    ) -> Option<Self> {
         let target = endpoint(
             grid,
             leg.goal,
@@ -497,7 +503,7 @@ impl RouteSearch {
             policy: RoutePolicy::Shortest,
             ..leg
         };
-        let mut search = Self::new(grid, None, reverse, limit);
+        let mut search = Self::new(grid, scratch, reverse, limit);
         if search.work.queued != 0 {
             let (x, y) = (search.start % grid.nx, search.start / grid.nx);
             let mut members = Digest::default();

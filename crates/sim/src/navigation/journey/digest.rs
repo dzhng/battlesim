@@ -1,5 +1,5 @@
 //! A journey's share of the battle's digest: how far it has got.
-use super::{Journey, Stage};
+use super::{Driving, Journey, Stage};
 use crate::digest::Digest;
 
 impl Journey {
@@ -45,35 +45,16 @@ impl Journey {
                 }
             }
             Stage::Driving(driving) => {
-                d.u64(1)
-                    .u64(driving.piece as u64)
-                    .f64(driving.checked)
-                    .f64(driving.committed)
-                    .u64(driving.leading as u64)
-                    .u64(driving.out.len() as u64)
-                    .u64(driving.search.is_some() as u64);
-                d.u64(driving.candidate as u64)
-                    .f64(driving.sought.0.x)
-                    .f64(driving.sought.0.y)
-                    .u64(driving.sought.1 as u64)
-                    .u64(driving.off_lane.is_some() as u64);
-                if let Some((at, shift)) = driving.off_lane {
-                    d.f64(at.x).f64(at.y).u64(shift as u64);
-                }
-                d.u64(driving.probe.is_some() as u64);
-                if let Some(probe) = &driving.probe {
-                    probe.digest(d);
-                }
-                if let Some(search) = &driving.search {
-                    search.digest(d);
-                }
+                d.u64(1);
+                driving.digest(d);
             }
             Stage::Direct(search) => {
                 d.u64(2);
                 search.digest(d);
             }
-            Stage::GoalProof(search, access) => {
-                d.u64(5).u64(*access as u64);
+            Stage::GoalProof(search, driving) => {
+                d.u64(5);
+                driving.digest(d);
                 search.digest(d);
             }
             Stage::Rounding(corners) => {
@@ -83,6 +64,32 @@ impl Journey {
             Stage::Done(_) => {
                 d.u64(3);
             }
+        }
+    }
+}
+
+impl Driving {
+    pub(super) fn digest(&self, d: &mut Digest) {
+        d.u64(self.piece as u64)
+            .f64(self.checked)
+            .f64(self.committed)
+            .u64(self.leading as u64)
+            .u64(self.out.len() as u64)
+            .u64(self.search.is_some() as u64);
+        d.u64(self.candidate as u64)
+            .f64(self.sought.0.x)
+            .f64(self.sought.0.y)
+            .u64(self.sought.1 as u64)
+            .u64(self.off_lane.is_some() as u64);
+        if let Some((at, shift)) = self.off_lane {
+            d.f64(at.x).f64(at.y).u64(shift as u64);
+        }
+        d.u64(self.probe.is_some() as u64);
+        if let Some(probe) = &self.probe {
+            probe.digest(d);
+        }
+        if let Some(search) = &self.search {
+            search.digest(d);
         }
     }
 }
