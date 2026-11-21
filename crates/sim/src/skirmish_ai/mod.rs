@@ -28,6 +28,7 @@ use purchase::{own_player, PurchasePlan};
 use relocation::{Held, Relocation};
 mod input;
 mod transport;
+mod trips;
 mod tuning;
 pub use input::{Assignment, DecisionInput, PartyTask, SkirmishPolicy};
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
@@ -81,6 +82,7 @@ pub struct BalancedDoctrine {
     /// for: the next purchase buys a carrier that seats them.
     ride_short: Option<usize>,
     airlift: airlift::Mission,
+    trips: trips::Trips,
 }
 
 #[derive(Clone, Debug)]
@@ -113,6 +115,7 @@ impl Default for BalancedDoctrine {
             rides: BTreeMap::new(),
             ride_short: None,
             airlift: airlift::Mission::Idle,
+            trips: Default::default(),
         }
     }
 }
@@ -162,7 +165,7 @@ impl BalancedDoctrine {
         rules: &Rules,
         mut route_time: impl FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order> {
-        self.decide_impl(input, frame, rules, &mut route_time)
+        self.decide_remembering(input, frame, rules, &mut route_time)
     }
 
     fn decide_impl(
@@ -754,7 +757,7 @@ impl SkirmishPolicy for BalancedDoctrine {
         rules: &Rules,
         route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order> {
-        self.decide_impl(input, frame, rules, route_time)
+        self.decide_remembering(input, frame, rules, route_time)
     }
 }
 

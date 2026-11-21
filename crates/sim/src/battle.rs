@@ -277,9 +277,6 @@ pub struct Battle {
     ai_receipts: Vec<AiReceipt>,
     /// Route times the AI seats' decisions have had worked out.
     ai_estimates: u64,
-    /// The trips an AI seat found no way for, and when
-    /// (`skirmish_turn::NO_WAY_MEMORY_S`).
-    ai_no_way: BTreeMap<(UnitId, [u64; 2]), Tick>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

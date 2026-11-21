@@ -1,5 +1,6 @@
 {
   "decision_s": 5,
+  "no_way_memory_s": 30,
   "planner_decision_s": 5,
   "reaction_max_s": 3,
   "air_memory_s": 30,

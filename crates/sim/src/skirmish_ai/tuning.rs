@@ -12,6 +12,9 @@ use super::team;
 pub(super) struct Tuning {
     /// Seconds between decisions.
     pub(super) decision_s: f64,
+    /// Seconds it leaves a trip it found no way for before having the way
+    /// worked out again (`trips.rs`).
+    pub(super) no_way_memory_s: f64,
     /// The longest delay before it answers air evidence; each AI draws its
     /// own once, up to this.
     pub(super) reaction_max_s: f64,
