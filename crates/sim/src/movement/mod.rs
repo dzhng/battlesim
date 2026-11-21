@@ -51,8 +51,12 @@ pub use side::{Seen, SideGeometry};
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
 use vehicle::step_vehicle;
 
-/// A pursuit goal this far from the planned one is replanned.
+/// A goal this far from the planned one is replanned ...
 const GOAL_REPLAN_M: f64 = 5.0;
+/// ... or, on the ground, this share of the way still to go to it: the way
+/// to a place far off serves for one a little beside it, until the unit is
+/// near enough for the difference to matter.
+const GOAL_REPLAN_SHARE: f64 = 0.1;
 /// A vehicle slower than this is standing, not rolling: waiting behind it
 /// is not traffic (two vehicles waiting for each other would never move).
 const ROLLING_MPS: f64 = 0.1;
@@ -208,10 +212,12 @@ fn request_route(
         }
         return;
     };
-    // A pursuit point that has moved on needs a new route.
+    // A goal that has moved on needs a new route.
+    let here = unit.position.xy();
+    let replan_m = GOAL_REPLAN_M.max(GOAL_REPLAN_SHARE * (goal - here).length());
     let goal_moved = unit
         .planned_goal
-        .is_none_or(|g| (g - goal).outside_radius(GOAL_REPLAN_M));
+        .is_none_or(|g| (g - goal).outside_radius(replan_m));
     // A route on its way to (near) the same place is worth waiting for: an
     // order again does not throw the search away.
     let pending = planner
@@ -238,7 +244,6 @@ fn request_route(
         .and_then(|r| r.last())
         .is_some_and(|&end| (end - goal).within_radius(KEEP_ROUTE_M));
     let traffic = unit.blocker.is_some_and(|b| rolling[b.0 as usize]);
-    let here = unit.position.xy();
     if goal_moved && !same_place {
         unit.headway.new_goal(here, ctx.tick);
     } else if traffic {
