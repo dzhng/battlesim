@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use super::{Mobility, Mover, NavGrid, START_REACH_M};
+use crate::hash::WordMap;
 use crate::math::V2;
 
 /// The most cells a flood visits before it calls the ground open: a 128 m
@@ -31,7 +32,7 @@ pub struct Pockets {
 /// it, and whether that flood ran out of cells (a pocket).
 #[derive(Default)]
 struct Flooded {
-    flood: BTreeMap<usize, usize>,
+    flood: WordMap<usize, usize>,
     closed: Vec<bool>,
 }
 
