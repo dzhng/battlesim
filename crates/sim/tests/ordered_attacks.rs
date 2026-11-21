@@ -21,8 +21,9 @@ fn missile_jet_battle(fire_tick: Option<u64>) -> Battle {
         &mut rules,
         "units",
         "test_jet",
+        // Mounts merge by id: the missile takes the place of its gun.
         json!({ "mounts": [{
-            "id": "agm", "name": "AGM", "weapons": ["air_ground_missile"],
+            "id": "gun", "name": "AGM", "weapons": ["air_ground_missile"],
             "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
         }] }),
     );
@@ -220,8 +221,9 @@ fn an_arrived_attack_move_goes_after_an_enemy_that_appears_near_its_goal() {
         &mut rules,
         "units",
         "test_jet",
+        // Mounts merge by id: the missile takes the place of its gun.
         json!({ "mounts": [{
-            "id": "agm", "name": "AGM", "weapons": ["air_ground_missile"],
+            "id": "gun", "name": "AGM", "weapons": ["air_ground_missile"],
             "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
         }] }),
     );
