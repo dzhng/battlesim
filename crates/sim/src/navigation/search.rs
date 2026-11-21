@@ -119,6 +119,17 @@ impl Scratch {
         first
     }
 
+    /// Whether reaching `k` at cost `g` would be its first or a cheaper way
+    /// there, as [`Self::relax`] judges it.
+    fn improves(&self, k: usize, g: f64) -> bool {
+        let (key, at) = self.location(k);
+        self.tiles.get(&key).is_none_or(|tile| {
+            tile.expanded[at] != self.generation
+                && (tile.stamp[at] != self.generation
+                    || g.partial_cmp(&tile.g[at]) == Some(Ordering::Less))
+        })
+    }
+
     /// Reach `k` at `value` if that is its first or a cheaper way there.
     fn relax(&mut self, k: usize, value: Reached) -> bool {
         let (key, at) = self.location(k);
@@ -757,17 +768,11 @@ fn expand(
         } else if !crosses[direction] {
             continue;
         }
-        // A step through a tight cell is checked along its length and
-        // counts more, so a route squeezes only where the room is short, and
-        // keeps to the middle of a way.
+        // A step through a tight cell counts more, so a route squeezes only
+        // where the room is short, and keeps to the middle of a way.
         let tight = match (here, seats[direction]) {
-            (Some((a, a_exact)), Some((b, b_exact))) if a_exact || b_exact => {
-                if !grid.sweep_clear((a, b), m.push, m.half_width_m, STEP_CHECK_M, true) {
-                    continue;
-                }
-                true
-            }
-            _ => false,
+            (Some((a, a_exact)), Some((b, b_exact))) if a_exact || b_exact => Some((a, b)),
+            _ => None,
         };
         let length = if diagonal {
             NAV_CELL_M * std::f64::consts::SQRT_2
@@ -782,8 +787,21 @@ fn expand(
             grid.cost(next, m, policy, length)
         };
         let step = (costs[usize::from(diagonal)] + next_cost) / 2.0
-            * if tight { TIGHT_STEP_COST } else { 1.0 };
+            * if tight.is_some() {
+                TIGHT_STEP_COST
+            } else {
+                1.0
+            };
         let tentative = g + step;
+        // It is checked along its length, once it is a better way there: a
+        // cell is stepped to from each of its neighbours, and all but the
+        // first few find it reached for less.
+        if tight.is_some_and(|ends| {
+            !(scratch.improves(next, tentative)
+                && grid.sweep_clear(ends, m.push, m.half_width_m, STEP_CHECK_M, true))
+        }) {
+            continue;
+        }
         let reached = Reached {
             g: tentative,
             parent: cell as u32,
