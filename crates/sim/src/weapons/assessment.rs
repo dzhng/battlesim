@@ -6,7 +6,7 @@ use contract::observation::ActionReason;
 
 use super::window_requests::assess_windows;
 use super::{
-    bearing_from, engage, guidance_clear, hull_fixed, nose_on, permitted, preferred_kind,
+    bearing_from, engage, guidance_clear, muzzle, nose_aimed, nose_on, permitted, preferred_kind,
     seeker_in_fov, FireContext, Mount, MountSpec, Resolved, Target,
 };
 use crate::flight::FiringSolution;
@@ -197,16 +197,13 @@ fn aim(
         }
     }
     // A winged aircraft's flight, never a weapon, points the airframe, so a
-    // hull-fixed row it aims by the nose (unguided and powered: a fixed gun,
-    // a rocket pod) fires only nose-on. A seeker row aims by its cone, a
-    // guided one by its guidance and a bomb by its pass's release cue.
-    if unit.fixed_wing()
-        && hull_fixed(unit, spec)
-        && weapon.ballistics.guidance.is_none()
-        && weapon.ballistics.delivery == contract::ballistics::Delivery::Powered
+    // row it aims by the nose fires only with the target in its nose-on
+    // cone, seen from the muzzle, heading and pitch both.
+    if nose_aimed(unit, spec, weapon)
         && !r.fire(weapon).is_some_and(|fire| {
             let cone = ctx.rules.air.fixed_wing.nose_on_deg.to_radians();
-            nose_on(unit, r.point, fire.range_m, cone)
+            let from = muzzle(unit, mount, spec, ctx.rules, mount.bearing);
+            nose_on(unit, from, r.point, fire.range_m, cone)
         })
     {
         return Err(ActionReason::NoFacingSlot);

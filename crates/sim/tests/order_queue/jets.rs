@@ -221,6 +221,8 @@ fn jet_attacks_aircraft_then_moves(enemy: &str) {
         ]),
     );
     let mut c = Commander::new();
+    // It flies at the enemy until it sees it, so its run begins nose-on.
+    c.ok(&mut b, Side::Blue, drive([x + 3000.0, y]));
     let target = seen(&mut b);
     c.ok(&mut b, Side::Blue, attack(0, target));
     let away = [x, y + 1200.0];

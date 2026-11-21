@@ -357,6 +357,10 @@ pub struct AirState {
     pub turn_rate_rad_s: f64,
     /// Last non-zero turn direction, retained by the fixed-wing flight law.
     pub turn_sign: i8,
+    /// A winged aircraft's nose above the horizon, radians, and how fast it
+    /// is changing: it flies along its nose (`air::fixed_wing`).
+    pub pitch: f64,
+    pub pitch_rate_rad_s: f64,
     /// Where an idle jet circles: the move goal it last reached, or where it
     /// was when its last order or attack run ended (choice 03).
     pub last_goal: Option<V2>,
@@ -511,6 +515,19 @@ impl Unit {
 
     /// It flies on wings: never stopping, attacking in passes, arriving and
     /// leaving by its back edge. False for a rotor aircraft and on the ground.
+    /// The unit vector along its nose: along its yaw, at its pitch.
+    pub fn nose(&self) -> V3 {
+        crate::air::nose(self.yaw, self.pitch())
+    }
+
+    /// Its nose above the horizon, radians: a winged aircraft's pitch, which
+    /// it flies along; anything else is level.
+    pub fn pitch(&self) -> f64 {
+        self.air
+            .filter(|_| self.fixed_wing())
+            .map_or(0.0, |air| air.pitch)
+    }
+
     pub fn fixed_wing(&self) -> bool {
         matches!(
             self.motion,

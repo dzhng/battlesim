@@ -33,7 +33,8 @@ pub use observation::{pose, readiness};
 
 pub use window_requests::{garrison_aims, MountAim, MountAims};
 pub mod tick;
-use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
+pub(crate) use bearing::nose_aimed;
+use bearing::{bearing_from, boresight, hull_fixed, point_mount, turned_mount};
 pub use bearing::{nose_on, nose_on_bearing, Arc};
 use bomb::bomb_release;
 use choice::{choose_lock, compatible, LockChoice};
@@ -673,10 +674,12 @@ fn fire(
             cycle.started = false;
             continue;
         }
+        // A row aimed by the nose fires where its nose points.
+        let aimed = nose_aimed(unit, spec, &weapon.def);
         let aim = Aim {
             origin,
-            target: point,
-            target_velocity: r.velocity,
+            target: boresight(unit, spec, &weapon.def, origin, point),
+            target_velocity: if aimed { V3::default() } else { r.velocity },
             carrier: unit.flight_velocity(),
         };
         // Cover widens the spread; it never softens a hit (V03).

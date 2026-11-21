@@ -112,6 +112,7 @@ fn upgrading_a_jets_move_breaks_off_its_run() {
         run_agl: Some(120.0),
         heading: 0.0,
         closing: true,
+        dive: crate::air::pass::Dive::Diving,
     });
     air.pass_release = true;
     air.dogfight_target = Some(UnitId(1));

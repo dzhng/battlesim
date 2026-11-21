@@ -67,6 +67,7 @@ pub fn wing_limits() -> FixedWingLimits {
         turn_rad_s: 1.0,
         max_turn_rad_s: 2.0,
         roll_in_s: 0.8,
+        pitch_in_s: 0.5,
         climb_mps: 30.0,
         ramp_s: 2.0,
         floor_agl_m: 100.0,

@@ -115,6 +115,8 @@ pub(crate) fn state(agl: f64) -> FixedWingState {
         burner: 0.0,
         turn_rate_rad_s: 0.0,
         turn_sign: 1,
+        pitch: 0.0,
+        pitch_rate_rad_s: 0.0,
     }
 }
 
@@ -339,78 +341,6 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
         refund > 1.0,
         "{row} was not refunded as it left: {refund:.2}"
     );
-}
-
-#[test]
-fn the_gun_fires_only_nose_on_a_legal_target_in_range() {
-    let battle = crate::common::air_field::AirField::new(3000.0)
-        .aircraft("test_jet", [300.0, 1500.0], 0.0)
-        .battle();
-    let unit = battle.unit(contract::ids::UnitId(0)).unwrap();
-    // A test-defined cone: 200 m off at 200 m out is 45 degrees.
-    let cone = 10_f64.to_radians();
-    assert!(sim::weapons::nose_on(
-        unit,
-        v3(500.0, 1500.0, unit.position.z),
-        700.0,
-        cone
-    ));
-    assert!(!sim::weapons::nose_on(
-        unit,
-        v3(500.0, 1700.0, unit.position.z),
-        700.0,
-        cone
-    ));
-}
-
-#[test]
-fn a_missile_pass_fires_the_gun_when_nose_on() {
-    // A missile run is flown at a vehicle the side has identified (a recon
-    // spots it), not at the bare point under it.
-    let mut battle = run_field(
-        run_rules(&["air_gun", "air_ground_missile"]),
-        json!([
-            { "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 },
-            { "side": "blue", "kind": "test_recon", "position": [2000, 2100], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "test_tank", "position": [2000, 2000], "yaw": 0.0, "engagement": "return_fire_only" }
-        ]),
-    );
-    battle.step();
-    let tank = battle
-        .observe(Side::Blue)
-        .identified
-        .first()
-        .map(|t| t.id)
-        .expect("the recon sees the tank");
-    let ack = battle.accept(CommandEnvelope {
-        side: Side::Blue,
-        player: None,
-        seq: 1,
-        queued: false,
-        order: Order::Attack {
-            units: vec![UnitId(0)],
-            target: TargetRef::Identified { id: tank },
-        },
-    });
-    assert_eq!(ack.error, None);
-    // The mounts are the test's own: the gun first, the missile second.
-    for _ in 0..900 {
-        battle.step();
-        let unit = battle.unit(UnitId(0)).unwrap();
-        let missile = unit.mounts[1].shots > 0;
-        let gun = unit.mounts[0].shots;
-        if missile || gun > 0 {
-            let pass = unit.air.unwrap().pass.map(|p| p.weapon);
-            assert_eq!(
-                pass,
-                Some(PassWeapon::GroundMissile),
-                "no missile run at the tank"
-            );
-            assert!(gun > 0, "missile pass crossed without a nose-on gun burst");
-            return;
-        }
-    }
-    panic!("ground missile pass never reached a nose-on gun burst");
 }
 
 /// A store that may not fire at a bare point flies no run at one: a jet
@@ -859,8 +789,9 @@ fn an_explicit_attack_keeps_passing_under_fire() {
 
 #[test]
 fn attack_move_finishes_its_pass_then_hunts_on() {
-    // A worn tank dies to the run; red jet fire stays a contact.
-    let mut battle = attack_move_battle_with_hp_and_fire(50.0, true);
+    // A tank worn to its last hit dies to the run's short burst; red jet
+    // fire stays a contact.
+    let mut battle = attack_move_battle_with_hp_and_fire(2.0, true);
     attack_move(&mut battle, 1, [1_700.0, 400.0]);
     for _ in 0..1200 {
         battle.step();

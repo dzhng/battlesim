@@ -9,7 +9,7 @@ pub mod orders;
 pub mod pass;
 pub mod steer;
 
-pub use fixed_wing::{fly, velocity, FixedWingLimits, FixedWingState, Steer};
+pub use fixed_wing::{fly, nose, velocity, FixedWingLimits, FixedWingState, NoseAt, Steer};
 pub use steer::{steer, Bounds, Intent};
 
 use crate::knowledge::SideKnowledge;
@@ -28,15 +28,9 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         unreachable!("only aircraft fly");
     };
     let dt = 1.0 / ctx.rules.tick_hz as f64;
-    let (afterburner, burner, turn_rate_rad_s, turn_sign, fuel_s) = {
+    let (afterburner, fuel_s) = {
         let air = unit.air.as_ref().expect("an aircraft's flight state");
-        (
-            air.afterburner,
-            air.burner,
-            air.turn_rate_rad_s,
-            air.turn_sign,
-            air.fuel_s,
-        )
+        (air.afterburner, air.fuel_s)
     };
     // The afterburner's speed is the type's; the toggle only says which way
     // the ramp runs, so switching it off eases back to cruise.
@@ -85,13 +79,18 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         current_order,
         Some(UnitOrder::Move(_) | UnitOrder::AttackMove(_))
     );
-    let state = FixedWingState {
-        pos: unit.position,
-        heading: unit.yaw,
-        speed_mps: speed,
-        burner,
-        turn_rate_rad_s,
-        turn_sign,
+    let state = {
+        let air = unit.air.as_ref().expect("an aircraft's flight state");
+        FixedWingState {
+            pos: unit.position,
+            heading: unit.yaw,
+            speed_mps: speed,
+            burner: air.burner,
+            turn_rate_rad_s: air.turn_rate_rad_s,
+            turn_sign: air.turn_sign,
+            pitch: air.pitch,
+            pitch_rate_rad_s: air.pitch_rate_rad_s,
+        }
     };
     let limits = FixedWingLimits {
         cruise_mps: cruise,
@@ -99,6 +98,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         turn_rad_s: flight.turn_rad_s,
         max_turn_rad_s: flight.max_turn_rad_s,
         roll_in_s: ctx.rules.air.fixed_wing.roll_in_s,
+        pitch_in_s: ctx.rules.air.fixed_wing.pitch_in_s,
         climb_mps: flight.climb_mps,
         ramp_s: ctx.rules.air.fixed_wing.afterburner_ramp_s,
         floor_agl_m: ctx
@@ -190,7 +190,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                 dogfighting = true;
                 dogfight_intent(ctx, unit, &state, &limits, chase, point.xy())
             } else {
-                let weapons = pass_weapons(ctx, unit, target, point);
+                let weapons = pass_weapons(ctx, unit, (&state, &limits), target, point);
                 let chosen =
                     pass::choose_weapon(&weapons.iter().map(|(w, ..)| *w).collect::<Vec<_>>());
                 if let Some(weapon) = chosen {
@@ -209,10 +209,10 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         plan.target = target;
                         unit.air.as_mut().expect("an aircraft's flight state").pass = Some(plan);
                     }
-                    let (release, reach_m) =
+                    let (release, reach_m, dive) =
                         weapons.iter().find(|(w, ..)| *w == weapon).map_or_else(
-                            || (at_the_aim(point), 0.0),
-                            |(_, release, reach)| (*release, *reach),
+                            || (at_the_aim(point), 0.0, None),
+                            |(_, release, reach, dive)| (*release, *reach, *dive),
                         );
                     let pass = unit
                         .air
@@ -227,6 +227,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         point,
                         release,
                         reach_m,
+                        dive,
                     };
                     let (intent, cue) =
                         pass::advance(pass, &state, agl_m, &limits, &bounds, &aim, dt);
@@ -251,16 +252,16 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         &|p| ctx.world.height_at(p.x, p.y).unwrap_or(0.0),
         dt,
     );
-    let vertical = (next.pos.z - unit.position.z) / dt;
     unit.position = next.pos;
     unit.yaw = next.heading;
     unit.drive_speed_mps = next.speed_mps;
     let air = unit.air.as_mut().expect("an aircraft's flight state");
-    let horizontal = velocity(&next);
-    air.velocity = crate::math::v3(horizontal.x, horizontal.y, vertical);
+    air.velocity = velocity(&next);
     air.burner = next.burner;
     air.turn_rate_rad_s = next.turn_rate_rad_s;
     air.turn_sign = next.turn_sign;
+    air.pitch = next.pitch;
+    air.pitch_rate_rad_s = next.pitch_rate_rad_s;
     air.pass_release = pass_release_now;
     if flying_to_goal || attacking || air.last_goal.is_none() {
         air.last_goal = Some(next.pos.xy());
@@ -398,22 +399,38 @@ pub(crate) fn dogfightable(
 /// fall onto the aim; a bomb that can't fall to the aim from here (the aim
 /// is above the jet) flies no run. Any other row fires at the aim itself.
 /// With each, how far off the aim its round may fall and still be steered
-/// onto it: a bomb's glide over its drop, nothing for a row fired at it.
+/// onto it: a bomb's glide over its drop, nothing for a row fired at it;
+/// and the dive a row fired at the aim flies.
 fn pass_weapons(
     ctx: &MovementContext,
     unit: &Unit,
+    (state, limits): (&FixedWingState, &FixedWingLimits),
     target: Target,
     aim: V3,
-) -> Vec<(pass::PassWeapon, crate::flight::Release, f64)> {
+) -> Vec<PassWeaponAim> {
     let (layer, class) = known_target(ctx.knowledge[unit.side.index()], target);
-    let mut out: Vec<(pass::PassWeapon, crate::flight::Release, f64)> = Vec::new();
+    let mut out: Vec<PassWeaponAim> = Vec::new();
     let point = matches!(target, Target::Ground(_));
-    for (weapon, _) in engaging_rows(ctx.arsenal, unit, layer, class)
-        .filter(|(weapon, _)| !point || crate::weapons::area_capable(&weapon.def))
+    let rows: Vec<_> = engaging_rows(ctx.arsenal, unit, layer, class)
+        .filter(|row| !point || crate::weapons::area_capable(&row.weapon.def))
+        .collect();
+    // A run fired at the aim dives so that the rows aimed by the nose that
+    // engage the target bear: into the shortest reach of them. With none, a
+    // guided round needs no nose on the aim and the run stays level.
+    let dive = rows
+        .iter()
+        .filter(|row| row.nose_aimed)
+        .map(|row| row.fire.range_m)
+        .reduce(f64::min)
+        .map(|reach| {
+            let angle = ctx.rules.air.fixed_wing.strafe_dive_deg.to_radians();
+            let aim_agl = aim.z - ctx.world.height_at(aim.x, aim.y).unwrap_or(0.0);
+            pass::DiveRun::new(reach, angle, aim_agl.max(0.0), limits, state.speed_mps)
+        });
+    for (weapon, mode) in rows
+        .iter()
+        .filter_map(|row| Some((row.weapon, pass::pass_weapon(&row.weapon.def)?)))
     {
-        let Some(mode) = pass::pass_weapon(&weapon.def) else {
-            continue;
-        };
         if out.iter().any(|(m, ..)| *m == mode) {
             continue;
         }
@@ -428,33 +445,60 @@ fn pass_weapons(
         };
         if let Some(release) = release {
             let glide = weapon.def.ballistics.glide_ratio.unwrap_or(0.0);
-            out.push((mode, release, glide * (unit.position.z - aim.z).max(0.0)));
+            out.push((
+                mode,
+                release,
+                glide * (unit.position.z - aim.z).max(0.0),
+                dive.filter(|_| mode != pass::PassWeapon::Bomb),
+            ));
         }
     }
     out
 }
 
+/// A pass weapon, where it leaves the jet, how far off the aim its round
+/// may fall, and the dive it flies (`pass_weapons`).
+type PassWeaponAim = (
+    pass::PassWeapon,
+    crate::flight::Release,
+    f64,
+    Option<pass::DiveRun>,
+);
+
 /// What the jet can attack a target of `class` in `layer` with: each row
-/// it carries with rounds left that engages such a target there, and how
-/// it fires there. The one test of what a jet can attack.
+/// it carries with rounds left that engages such a target there, how it
+/// fires there, and whether its nose aims it. The one test of what a jet
+/// can attack.
 pub(crate) fn engaging_rows<'a>(
     arsenal: &'a Arsenal,
     unit: &'a Unit,
     layer: AltitudeLayer,
     class: Option<TargetClass>,
-) -> impl Iterator<Item = (&'a Weapon, Fire)> + 'a {
+) -> impl Iterator<Item = EngagingRow<'a>> + 'a {
     let specs = arsenal.specs(unit.kind);
     unit.mounts.iter().flat_map(move |mount| {
-        specs[mount.spec]
-            .kinds
+        let spec = &specs[mount.spec];
+        spec.kinds
             .iter()
             .enumerate()
             .filter(|&(slot, _)| mount.has_rounds(slot))
             .filter_map(move |(_, &kind)| {
                 let weapon = &arsenal.weapons[kind];
-                weapon.def.engages(layer, class).map(|fire| (weapon, fire))
+                weapon.def.engages(layer, class).map(|fire| EngagingRow {
+                    weapon,
+                    fire,
+                    nose_aimed: crate::weapons::nose_aimed(unit, spec, &weapon.def),
+                })
             })
     })
+}
+
+/// A row a jet can attack a target with (`engaging_rows`).
+pub(crate) struct EngagingRow<'a> {
+    pub weapon: &'a Weapon,
+    pub fire: Fire,
+    /// Its nose aims it (`weapons::nose_aimed`).
+    pub nose_aimed: bool,
 }
 
 /// The release of a row fired at the aim itself, not dropped short of it.

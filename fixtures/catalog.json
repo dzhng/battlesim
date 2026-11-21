@@ -45471,7 +45471,7 @@
     },
     "air_gun": {
       "accel_mps2": null,
-      "aim_s": 1.0,
+      "aim_s": 0.2,
       "ammo": "unlimited",
       "anti_radiation": false,
       "appearance": "aa_gun",
@@ -46316,7 +46316,7 @@
     },
     "gau_8": {
       "accel_mps2": null,
-      "aim_s": 1.0,
+      "aim_s": 0.2,
       "ammo": "unlimited",
       "anti_radiation": false,
       "appearance": "aa_gun",

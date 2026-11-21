@@ -8,7 +8,7 @@ use crate::flight::Release;
 use crate::math::{v2, wrap_angle, V2, V3};
 use crate::weapons::nose_on_bearing;
 
-use super::fixed_wing::{FixedWingLimits, FixedWingState};
+use super::fixed_wing::{pull_out_m, push_over_s, FixedWingLimits, FixedWingState, NoseAt};
 use super::steer::{
     edge_guard, guard_short_of, inward_from, level_roll_lag_s, roll_lag_s, tightest_radius, Bounds,
     Intent,
@@ -57,8 +57,21 @@ pub enum PassPhase {
     /// The run: flying straight at the aim along the line it committed to,
     /// until where its round would land comes no nearer the aim (a bomb's
     /// drop point, or the jet itself: the gun has passed it) or the edge
-    /// guard turns it away.
+    /// guard turns it away. A run fired along the nose dives at the aim on
+    /// the way ([`Dive`]).
     Dive,
+}
+
+/// How far down a run fired along the nose (one whose gun engages its
+/// target, a missile run's included) has come: it flies in level at its
+/// entry height, dives with its nose on the aim once the aim lies its dive
+/// angle below it, and pulls out over its run height. A bomb's run stays
+/// level, as does one that fires nothing along the nose.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Dive {
+    Level,
+    Diving,
+    PulledOut,
 }
 
 /// A jet's attack on one target with one pass weapon: the runs it makes
@@ -87,6 +100,8 @@ pub struct PassPlan {
     /// on the aim: the tick it stops is a bomb's one chance on that
     /// approach.
     pub closing: bool,
+    /// How far down this run's dive has come; level for a bomb.
+    pub dive: Dive,
 }
 
 /// Limited ground stores take a run before the unlimited fixed gun.
@@ -155,6 +170,7 @@ pub fn begin(
         run_agl: None,
         heading,
         closing: false,
+        dive: Dive::Level,
     }
 }
 
@@ -168,6 +184,61 @@ pub struct PassAim {
     /// onto it: a bomb's glide over its drop. A release that would land
     /// farther off is held.
     pub reach_m: f64,
+    /// The dive a run fired along the nose flies; `None` for a level run (a
+    /// bomb's, or one that fires nothing along the nose).
+    pub dive: Option<DiveRun>,
+}
+
+/// The dive of a run fired along the nose: the height above the ground it
+/// flies in at, from which a dive at `angle_rad` toward the aim comes onto
+/// its line where it meets its weapon's reach (never under the floor), how
+/// far that lies above the aim, that angle, and how far ahead of
+/// where it starts pushing over its dive comes onto that line: half the
+/// ground it covers pushing over.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DiveRun {
+    pub entry_agl_m: f64,
+    /// How far its entry height lies above the aim.
+    pub above_aim_m: f64,
+    pub angle_rad: f64,
+    pub lead_m: f64,
+}
+
+impl DiveRun {
+    /// The dive into a weapon's `reach_m` at `angle_rad` for a jet `speed_mps`
+    /// fast, onto an aim `aim_agl_m` above its ground, flown in no lower than
+    /// its floor.
+    pub fn new(
+        reach_m: f64,
+        angle_rad: f64,
+        aim_agl_m: f64,
+        limits: &FixedWingLimits,
+        speed_mps: f64,
+    ) -> Self {
+        // Pushing over, it sinks about its lead's worth of the line before
+        // it is on it, so it flies in that much higher.
+        let lead_m = 0.5 * speed_mps * push_over_s(limits, angle_rad);
+        let on_line = reach_m * libm::sin(angle_rad) + lead_m * libm::tan(angle_rad);
+        let entry_agl_m = (aim_agl_m + on_line).max(limits.floor_agl_m);
+        Self {
+            entry_agl_m,
+            above_aim_m: entry_agl_m - aim_agl_m,
+            angle_rad,
+            lead_m,
+        }
+    }
+}
+
+impl PassAim {
+    /// How far short of the aim a run must have its nose on it, over the
+    /// ground: a bomb's release point, its forward throw short; a dive's
+    /// push-over, its lead short of where the aim comes its dive angle
+    /// below its entry height.
+    pub fn ends_short_m(&self) -> f64 {
+        self.dive.map_or(self.release.ahead_m, |d| {
+            d.above_aim_m.max(0.0) / libm::tan(d.angle_rad).max(f64::MIN_POSITIVE) + d.lead_m
+        })
+    }
 }
 
 /// The circle a turn toward `aim` at its turn rate flies, on the side it lies,
@@ -204,7 +275,7 @@ fn run_in_m(state: &FixedWingState, limits: &FixedWingLimits, aim: &PassAim) -> 
     let jet = state.pos.xy() - centre;
     let turn =
         (side * wrap_angle(tangent - libm::atan2(jet.y, jet.x))).rem_euclid(core::f64::consts::TAU);
-    let straight = libm::sqrt(d * d - radius * radius) - aim.release.ahead_m;
+    let straight = libm::sqrt(d * d - radius * radius) - aim.ends_short_m();
     turn * radius + straight.max(0.0)
 }
 
@@ -216,7 +287,7 @@ fn line_up(
     state: &FixedWingState,
     limits: &FixedWingLimits,
     bounds: &Bounds,
-    release: &Release,
+    (ends_short, dives): (f64, bool),
     guard: Option<f64>,
     dt: f64,
 ) -> (V2, f64) {
@@ -225,7 +296,7 @@ fn line_up(
     let distance = to_aim.length();
     let bearing = libm::atan2(to_aim.y, to_aim.x);
     let nose_on = nose_on_bearing(state.heading, bearing, limits.nose_on_rad);
-    let past_release = distance <= release.ahead_m;
+    let past_release = distance <= ends_short;
     let speed = state.speed_mps.max(1.0);
     let (centre, radius) = turn_circle(state, limits, aim);
     let from_centre = aim - centre;
@@ -245,8 +316,9 @@ fn line_up(
     // Its settle is the lag of its roll out of the turn in onto the line
     // (half its roll-in, as rolling into it costs) and, for a gun or
     // missile, two seconds' flight to fire along. A bomb needs no run to
-    // fire along: it leaves wherever it would land on the aim.
-    let fire_along_s = if plan.weapon == PassWeapon::Bomb {
+    // fire along: it leaves wherever it would land on the aim; nor does a
+    // dive, which fires on its way down.
+    let fire_along_s = if plan.weapon == PassWeapon::Bomb || dives {
         0.0
     } else {
         2.0
@@ -254,15 +326,13 @@ fn line_up(
     let settle = speed * (fire_along_s + level_roll_lag_s(limits));
     let away = bearing + core::f64::consts::PI;
     let away_dir = v2(libm::cos(away), libm::sin(away));
-    let straight_ends = release
-        .ahead_m
-        .max(guard_short_of(aim, -away_dir, state, limits, bounds, dt));
+    let straight_ends = ends_short.max(guard_short_of(aim, -away_dir, state, limits, bounds, dt));
     let tightest = tightest_radius(state, limits);
     let straight_fits = bounds.edges(aim).into_iter().all(|(room, outward)| {
         let along = away_dir.dot(outward).max(0.0);
         room >= limits.edge_margin_m + tightest + (settle + straight_ends) * along
     });
-    let free_run_in = settle + release.ahead_m;
+    let free_run_in = settle + ends_short;
     let edge_line = (!straight_fits)
         .then(|| inward_from(aim, limits.edge_margin_m + tightest + free_run_in, bounds))
         .flatten();
@@ -277,7 +347,7 @@ fn line_up(
             let on_leg = wrap_angle(state.heading - out).abs() < core::f64::consts::FRAC_PI_4
                 && (state.pos.xy() - through).dot(left).abs() < radius;
             let guarded_at = guard_short_of(aim, -out_dir, state, limits, bounds, dt);
-            (out, through, on_leg, release.ahead_m.max(guarded_at))
+            (out, through, on_leg, ends_short.max(guarded_at))
         }
     };
     let run_in = settle + ends;
@@ -326,12 +396,19 @@ fn line_up(
 /// released, or when the edge guard takes it: the jet lines up again at
 /// once, rolling into its break from wings level.
 ///
-/// Off each run the jet climbs back toward its cruise height, from the tick
-/// after its release. It dives to the run's height from wherever the climb
-/// has reached (`agl_m`, its height above the ground under it) once,
+/// Off each bomb run the jet climbs back toward its cruise height, from the
+/// tick after its release. It dives to the run's height from wherever the
+/// climb has reached (`agl_m`, its height above the ground under it) once,
 /// turning in, it is near enough its release point that a descent at its
 /// climb rate just gets it down there, or as it commits, whichever comes
 /// first. A turn in it abandons climbs again.
+///
+/// A run fired along the nose flies its lining up at its dive's entry
+/// height, and the run itself level there until the aim lies its dive angle
+/// below it. Then it points its nose at the aim, so the weapon fixed along
+/// the nose bears on it, until pulling out at its hardest would only just
+/// keep it above the run's seeded height (`PassPlan::agl`); it pulls out
+/// and holds that height until the run is over.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,
@@ -342,6 +419,23 @@ pub fn advance(
     dt: f64,
 ) -> (Intent, bool) {
     let (through, heading, cue) = advance_phase(plan, state, limits, bounds, aim, dt);
+    if let Some(dive) = aim.dive {
+        let nose_at = dive_nose(plan, state, agl_m, limits, aim.point, dive, dt);
+        // In the run it climbs no more: pushing over from a climb would
+        // swing its nose through more than its dive.
+        let agl = match (plan.phase, plan.dive) {
+            (_, Dive::PulledOut) => plan.agl,
+            (PassPhase::Dive, _) => dive.entry_agl_m.min(agl_m),
+            _ => dive.entry_agl_m,
+        };
+        let intent = Intent::Line {
+            through,
+            heading,
+            agl,
+            nose_at,
+        };
+        return (intent, cue);
+    }
     match plan.phase {
         // It pulls up only after the release: a bomb leaving a climbing jet
         // would carry the climb and fall long.
@@ -360,8 +454,44 @@ pub fn advance(
         through,
         heading,
         agl: plan.run_agl.unwrap_or(limits.cruise_agl_m),
+        nose_at: None,
     };
     (intent, cue)
+}
+
+/// Move a dive on by one tick and return where it points the nose: at the
+/// aim from the tick the aim lies the dive's angle below the point it would
+/// come onto that line pushing over, until pulling out at its hardest would only just keep it above the
+/// run's height; nothing level or pulled out. Every new run starts level.
+fn dive_nose(
+    plan: &mut PassPlan,
+    state: &FixedWingState,
+    agl_m: f64,
+    limits: &FixedWingLimits,
+    aim: V3,
+    dive: DiveRun,
+    dt: f64,
+) -> Option<NoseAt> {
+    if plan.phase != PassPhase::Dive {
+        plan.dive = Dive::Level;
+        return None;
+    }
+    // It pushes over half the ground pushing over from its pitch now covers
+    // early, so its dive comes onto the line through the aim at its angle.
+    let swing = dive.angle_rad + state.pitch.max(0.0);
+    let lead = 0.5 * state.speed_mps * push_over_s(limits, swing);
+    let to = aim - state.pos;
+    let below = libm::atan2(-to.z, to.xy().length() - lead);
+    if plan.dive == Dive::Level && below >= dive.angle_rad {
+        plan.dive = Dive::Diving;
+    }
+    if plan.dive == Dive::Diving && agl_m - plan.agl <= pull_out_m(state, limits, dt) {
+        plan.dive = Dive::PulledOut;
+    }
+    (plan.dive == Dive::Diving).then_some(NoseAt {
+        point: aim,
+        lowest_agl_m: plan.agl,
+    })
 }
 
 /// One tick of the runs' phases: the line flown (a point on it and its
@@ -387,23 +517,21 @@ fn advance_phase(
     let drop =
         plan.weapon == PassWeapon::Bomb && plan.closing && opening && landing.now <= aim.reach_m;
     plan.closing = !opening;
-    let PassAim {
-        point: aim,
-        release,
-        ..
-    } = *aim;
+    let (ends_short, dives) = (aim.ends_short_m(), aim.dive.is_some());
+    let aim = aim.point;
     if plan.phase != PassPhase::Dive {
         let to_aim = aim.xy() - state.pos.xy();
         let bearing = libm::atan2(to_aim.y, to_aim.x);
         plan.aim = aim;
         let nose_on = nose_on_bearing(state.heading, bearing, limits.nose_on_rad);
-        // Short of where it would release on this run.
-        let short = to_aim.length() > release.ahead_m;
+        // Short of where it must have its nose on for this run.
+        let short = to_aim.length() > ends_short;
         if nose_on && short && !guarded {
             plan.phase = PassPhase::Dive;
             plan.heading = bearing;
         } else {
-            let (through, heading) = line_up(plan, state, limits, bounds, &release, guard, dt);
+            let run = (ends_short, dives);
+            let (through, heading) = line_up(plan, state, limits, bounds, run, guard, dt);
             if drop {
                 plan.phase = PassPhase::LineUp;
             }
