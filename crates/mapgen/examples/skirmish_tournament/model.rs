@@ -98,6 +98,7 @@ pub(crate) struct Report {
     pub(crate) launcher_held_s: std::collections::BTreeMap<String, f64>,
     /// How long ground units stood still while on their way, both sides.
     pub(crate) standing: crate::standing::Standing,
+    pub(crate) tick_cost: crate::tick_cost::Cost,
     pub(crate) air: Option<[super::runner::AirSide; 2]>,
     pub(crate) help_requests_raised: u32,
     pub(crate) help_requests_answered: u32,

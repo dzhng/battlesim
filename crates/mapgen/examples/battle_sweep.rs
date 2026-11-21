@@ -24,6 +24,8 @@ use std::time::Instant;
 mod instructions;
 #[path = "common/standing.rs"]
 mod standing;
+#[path = "common/tick_cost.rs"]
+mod tick_cost;
 
 struct Inputs {
     presets: String,
@@ -144,41 +146,13 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
     let hz = setup.rules.tick_hz as u64;
     let ticks = seconds.checked_mul(hz).expect("duration fits a tick count");
     let mut times = Vec::new();
-    let mut total = instructions::instructions().map(|_| 0u64);
-    let mut peak = total;
-    let mut peak_tick = None;
     let mut planning = (0u64, 0u64);
     let mut watch = standing::Watch::default();
-    // Instructions by phase of the step, to attribute the ticks' cost. The
-    // counter is read again after the tally, so no phase pays for it.
-    let mut phases: Vec<(sim::battle::TickPhase, u64)> = Vec::new();
+    let mut meter = tick_cost::Meter::default();
     for t in 1..=ticks {
-        let before = instructions::instructions();
         let started = Instant::now();
-        let mut previous = before;
-        battle.step_profiled(|phase| {
-            if let Some(cost) = instructions::instructions()
-                .zip(previous)
-                .map(|(a, b)| a.saturating_sub(b))
-            {
-                match phases.iter_mut().find(|(p, _)| *p == phase) {
-                    Some((_, sum)) => *sum += cost,
-                    None => phases.push((phase, cost)),
-                }
-            }
-            previous = instructions::instructions();
-        });
+        meter.step(&mut battle);
         let elapsed = started.elapsed();
-        if let Some(cost) = instructions::instructions()
-            .zip(before)
-            .map(|(a, b)| a.saturating_sub(b))
-        {
-            *total.as_mut().unwrap() += cost;
-            if cost > peak.unwrap() {
-                peak = Some(cost);
-                peak_tick = Some(t);
-            }
-        }
         times.push(elapsed.as_secs_f64() * 1000.0);
         watch.observe(&battle);
         let work = battle.load().planning_work;
@@ -253,12 +227,9 @@ fn play(setup: &ScenarioDefinition, command: CommandEnvelope, seed: u64, seconds
     "standing": watch.finish(&battle),
     "rounds_launched": battle.load().rounds_launched,
     "cost": {"battle_build": built, "ticks": {
-        "instructions": total, "mean_instructions": total.map(|n| n / ticks),
-        "max_instructions": peak, "max_instruction_tick": peak_tick,
+        "instructions": meter.finish(),
         "wall_ms": {"p50": quantile(0.5), "p95": quantile(0.95), "p99": quantile(0.99), "max": times.last()},
         "ticks_over_33_ms": slow_ticks, "planning_work": planning.0,
-        "phase_instructions": total.map(|_| phases.iter()
-            .map(|(phase, n)| (format!("{phase:?}"), *n)).collect::<BTreeMap<_, _>>()),
         "max_planning_work": planning.1,
     }}})
 }

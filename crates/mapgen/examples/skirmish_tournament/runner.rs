@@ -66,6 +66,7 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         recon_range_m: 0.0,
         launcher_held_s: BTreeMap::new(),
         standing: Default::default(),
+        tick_cost: Default::default(),
         air: None,
         help_requests_raised: 0,
         help_requests_answered: 0,
@@ -124,6 +125,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     }
     let mut stagnant = 0;
     let mut watch = crate::standing::Watch::default();
+    let mut meter = crate::tick_cost::Meter::default();
     let mut previous: Option<ProgressSignature> = None;
     let mut cohesion_started = BTreeSet::new();
     let mut seen_help = BTreeSet::new();
@@ -167,7 +169,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 counts[1] += sample[1];
             }
         }
-        battle.step();
+        meter.step(&mut battle);
         watch.observe(&battle);
         report.ticks += 1;
         let tuning = battle.team_tuning();
@@ -495,6 +497,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     }
     report.battle_seconds = report.ticks as f64 / f64::from(inputs.rules.tick_hz);
     report.standing = watch.finish(&battle);
+    report.tick_cost = meter.finish();
     report.result = battle
         .observe(Side::Blue)
         .skirmish

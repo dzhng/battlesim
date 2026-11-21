@@ -27,10 +27,14 @@
 //! null); a confirmation run keeps it.
 
 mod inputs;
+#[path = "../../../sim/examples/common/instructions.rs"]
+mod instructions;
 mod model;
 mod runner;
 #[path = "../common/standing.rs"]
 mod standing;
+#[path = "../common/tick_cost.rs"]
+mod tick_cost;
 
 use contract::catalog::Faction;
 use inputs::Inputs;
