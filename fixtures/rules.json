@@ -31,7 +31,7 @@
     "max_expansions": 8
   },
   "navigation": {
-    "work_per_tick": 4000,
+    "work_per_tick": 12000,
     "search_cells_base": 20000,
     "search_cells_per_m": 200,
     "road_leg_m": 2000,
