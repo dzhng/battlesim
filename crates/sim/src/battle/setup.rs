@@ -179,6 +179,8 @@ impl Battle {
             crashes: Vec::new(),
             air_transits: Default::default(),
             ai_receipts: Vec::new(),
+            ai_estimates: 0,
+            ai_no_way: BTreeMap::new(),
         };
 
         // A force an authored scenario places in a skirmish counts as its

@@ -275,6 +275,11 @@ pub struct Battle {
     crashes: Vec<crate::crash::Crash>,
     air_transits: [Vec<AirTransit>; 3],
     ai_receipts: Vec<AiReceipt>,
+    /// Route times the AI seats' decisions have had worked out.
+    ai_estimates: u64,
+    /// The trips an AI seat found no way for, and when
+    /// (`skirmish_turn::NO_WAY_MEMORY_S`).
+    ai_no_way: BTreeMap<(UnitId, [u64; 2]), Tick>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -658,6 +663,12 @@ impl Battle {
 
     pub fn ai_receipts(&self) -> &[AiReceipt] {
         &self.ai_receipts
+    }
+
+    /// Route times the AI seats' decisions have had worked out: each is a
+    /// whole route, the dearest thing a decision does.
+    pub fn ai_estimates(&self) -> u64 {
+        self.ai_estimates
     }
 
     /// Doctrine pivots accumulated by the live policy instances, grouped by

@@ -2,6 +2,12 @@
 
 use super::*;
 
+/// A seat that found no way for a unit to a place does not have it worked
+/// out again for this long. A way that is not there is searched for as far
+/// as a search may go, the dearest thing a decision does, and seldom opens
+/// by the next decision.
+const NO_WAY_MEMORY_S: f64 = 30.0;
+
 impl Battle {
     pub(super) fn skirmish_ai_turn(&mut self) {
         if self.replaying.is_some() || self.finished() {
@@ -121,7 +127,10 @@ impl Battle {
                 // A decision weighs the same trip more than once: each is
                 // worked out once.
                 let mut asked = BTreeMap::new();
-                (
+                let mut no_way = std::mem::take(&mut self.ai_no_way);
+                let memory = (NO_WAY_MEMORY_S * f64::from(self.rules.tick_hz)) as Tick;
+                no_way.retain(|_, found| self.tick.saturating_sub(*found) < memory);
+                let orders = (
                     ai.decide(
                         crate::skirmish_ai::DecisionInput {
                             side,
@@ -132,13 +141,24 @@ impl Battle {
                         &frame,
                         &self.rules,
                         |unit, destination| {
-                            *asked
-                                .entry((unit, destination.map(f64::to_bits)))
-                                .or_insert_with(|| self.route_time(side, unit, destination))
+                            let trip = (unit, destination.map(f64::to_bits));
+                            if no_way.contains_key(&trip) {
+                                return None;
+                            }
+                            let time = *asked
+                                .entry(trip)
+                                .or_insert_with(|| self.route_time(side, unit, destination));
+                            if time.is_none() {
+                                no_way.insert(trip, self.tick);
+                            }
+                            time
                         },
                     ),
                     Vec::new(),
-                )
+                );
+                self.ai_estimates += asked.len() as u64;
+                self.ai_no_way = no_way;
+                orders
             };
             self.skirmish_ai.insert(id.clone(), ai);
             commands.push((index, id, side, orders, opening_conditions));

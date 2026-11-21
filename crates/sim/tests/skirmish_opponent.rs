@@ -288,6 +288,53 @@ fn a_point_a_move_would_refuse_has_no_route_time() {
     assert_eq!(battle.route_time(Side::Red, unit.id, off_map), None);
 }
 
+/// A seat weighs a move by having the way worked out, and a way that is not
+/// there is searched for as far as a search may go. Having found none for a
+/// unit, it does not have the same way worked out again at its next
+/// decisions: a wall does not open in five seconds.
+#[test]
+fn a_seat_that_found_no_way_does_not_ask_again_at_its_next_decision() {
+    // A scout squad to buy: a seat asks the way to a scout's post before
+    // sending it.
+    let mut rules = deck();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_recon",
+        json!({ "roster": { "factions": ["us"], "category": "rec", "family_name": "Test scouts", "variant": "Test" } }),
+    );
+    let mut setup = match_on(rules);
+    setup.skirmish.as_mut().unwrap().rules.preparation_s = 0;
+    setup.players[0].controller = contract::players::ControllerKind::ActiveAi;
+    // A wall from edge to edge, close in front of the U.S. entry: between
+    // it and the scouts' post, and every objective.
+    setup.map.props.push(
+        serde_json::from_value(json!({ "kind": "wall", "center": [400, 18], "yaw": 0,
+            "half_extents": [400, 0.5, 3] }))
+        .unwrap(),
+    );
+    let mut battle = Battle::new(&setup, 23);
+    let scouts = battle.rules().catalog.index("test_recon").unwrap();
+    battle.script_purchases("blue-1", vec![scouts], None);
+    let hz = u64::from(battle.rules().tick_hz);
+    // Until the scouts are in and the seat has asked their way.
+    while battle.ai_estimates() == 0 {
+        battle.step();
+        assert!(battle.tick() < 120 * hz, "the seat never asked a way");
+    }
+    let asked = battle.ai_estimates();
+    for _ in 0..12 * hz {
+        battle.step();
+    }
+    assert_eq!(
+        battle.ai_estimates(),
+        asked,
+        "the seat had a way it knows is not there worked out again"
+    );
+    let scouts = &battle.observe(Side::Blue).own[0];
+    assert!(scouts.position[1] < 18.0, "the scouts are past the wall");
+}
+
 #[test]
 fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
     let setup = against_an_opponent_with_artillery();
