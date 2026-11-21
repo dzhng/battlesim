@@ -72,14 +72,60 @@ pub(super) fn hull_fixed(unit: &Unit, spec: &MountSpec) -> bool {
     unit.is_vehicle() && !spec.turret && spec.on.is_none()
 }
 
-/// Whether a jet's fixed nose gun bears on a point in its authored range,
-/// within `cone_rad` of its heading.
-pub fn nose_on(unit: &Unit, target: V3, range: f64, cone_rad: f64) -> bool {
-    let delta = target - unit.position;
+/// Whether a jet's gun fixed along its nose, firing from `from`, bears on a
+/// point in its authored range: the point lies within `cone_rad` of its
+/// nose, heading and pitch both.
+pub fn nose_on(unit: &Unit, from: V3, target: V3, range: f64, cone_rad: f64) -> bool {
+    let delta = target - from;
+    let distance = delta.length();
     range.is_finite()
         && range >= 0.0
-        && delta.length() <= range
-        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x), cone_rad)
+        && distance <= range
+        && distance > 0.0
+        && unit.nose().dot(delta) >= distance * libm::cos(cone_rad)
+}
+
+/// A row a winged aircraft aims by its nose: fixed in the airframe and
+/// [`laid_by_flight`]. A seeker row aims by its cone, a guided one by its
+/// guidance and a bomb by its pass's release cue.
+pub(crate) fn nose_aimed(
+    unit: &Unit,
+    spec: &MountSpec,
+    def: &contract::weapons::WeaponDefinition,
+) -> bool {
+    unit.fixed_wing() && hull_fixed(unit, spec) && laid_by_flight(def)
+}
+
+/// A row a winged aircraft's flight lays when it is fixed in the airframe:
+/// unguided and powered (a gun, a rocket pod). Such a row only ever fires
+/// in flight, so its authored spread is its spread in flight, with no
+/// penalty for moving.
+pub(crate) fn laid_by_flight(def: &contract::weapons::WeaponDefinition) -> bool {
+    def.ballistics.guidance.is_none()
+        && def.ballistics.delivery == contract::ballistics::Delivery::Powered
+}
+
+/// Where a round fired from `origin` at `point`, moving at `velocity`, is
+/// sent, and the motion its solve leads: a row aimed by the nose sends it
+/// along the nose, as far out as the point, leading nothing, so it goes
+/// where the nose points and no nearer the point; any other row at the
+/// point, leading its motion.
+pub(super) fn boresight(
+    unit: &Unit,
+    spec: &MountSpec,
+    def: &contract::weapons::WeaponDefinition,
+    origin: V3,
+    point: V3,
+    velocity: V3,
+) -> (V3, V3) {
+    if nose_aimed(unit, spec, def) {
+        (
+            origin + unit.nose() * (point - origin).length(),
+            V3::default(),
+        )
+    } else {
+        (point, velocity)
+    }
 }
 
 /// Whether a winged aircraft heading along `yaw` has its nose on `bearing`,

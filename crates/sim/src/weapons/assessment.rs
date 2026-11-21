@@ -6,7 +6,7 @@ use contract::observation::ActionReason;
 
 use super::window_requests::assess_windows;
 use super::{
-    bearing_from, engage, guidance_clear, hull_fixed, nose_on, permitted, preferred_kind,
+    bearing_from, engage, guidance_clear, muzzle, nose_aimed, nose_on, permitted, preferred_kind,
     seeker_in_fov, FireContext, Mount, MountSpec, Resolved, Target,
 };
 use crate::flight::FiringSolution;
@@ -172,6 +172,20 @@ pub(super) fn seen_soldiers(
     }
 }
 
+/// The diving run a jet fires this row on: a pass's ground missile that does
+/// not fire on its own (a stand-off missile leaves whenever it can), on a
+/// run that dives. `None` for any other row, or a run that stays level.
+fn diving_run(
+    unit: &Unit,
+    weapon: &contract::weapons::WeaponDefinition,
+) -> Option<crate::air::pass::PassPlan> {
+    let missile = !weapon.fires_on_its_own
+        && crate::air::pass::pass_weapon(weapon)
+            == Some(crate::air::pass::PassWeapon::GroundMissile);
+    let plan = unit.air.as_ref()?.pass?;
+    (missile && plan.dive.is_some()).then_some(plan)
+}
+
 /// Whether this mount, loading kind `k`, can fire at `r.point` from here:
 /// its seeker cone, a winged aircraft's nose, a guided round's sight line,
 /// and a clear solution ([`engage`]).
@@ -197,18 +211,20 @@ fn aim(
         }
     }
     // A winged aircraft's flight, never a weapon, points the airframe, so a
-    // hull-fixed row it aims by the nose (unguided and powered: a fixed gun,
-    // a rocket pod) fires only nose-on. A seeker row aims by its cone, a
-    // guided one by its guidance and a bomb by its pass's release cue.
-    if unit.fixed_wing()
-        && hull_fixed(unit, spec)
-        && weapon.ballistics.guidance.is_none()
-        && weapon.ballistics.delivery == contract::ballistics::Delivery::Powered
-        && !r.fire(weapon).is_some_and(|fire| {
-            let cone = ctx.rules.air.fixed_wing.nose_on_deg.to_radians();
-            nose_on(unit, r.point, fire.range_m, cone)
+    // row it aims by the nose fires only with the target in its nose-on
+    // cone, seen from the muzzle, heading and pitch both. A missile a run
+    // that dives fires leaves in the dive, with the nose on the run's aim:
+    // off the rail before the pull-out, its target ahead to steer onto.
+    let cone = ctx.rules.air.fixed_wing.nose_on_deg.to_radians();
+    let bears = |point| {
+        r.fire(weapon).is_some_and(|fire| {
+            let from = muzzle(unit, mount, spec, ctx.rules, mount.bearing);
+            nose_on(unit, from, point, fire.range_m, cone)
         })
-    {
+    };
+    let held_for_the_dive = diving_run(unit, weapon)
+        .is_some_and(|run| run.dive != Some(crate::air::pass::Dive::Diving) || !bears(run.aim));
+    if held_for_the_dive || (nose_aimed(unit, spec, weapon) && !bears(r.point)) {
         return Err(ActionReason::NoFacingSlot);
     }
     // Shared identification supplies the target (or the interceptor lock a

@@ -12,6 +12,8 @@ fn state() -> FixedWingState {
         burner: 0.0,
         turn_rate_rad_s: 0.0,
         turn_sign: 0,
+        pitch: 0.0,
+        pitch_rate_rad_s: 0.0,
     }
 }
 
@@ -55,6 +57,7 @@ fn afterburner_ramps_to_speed_over_its_ramp_and_back() {
             turn: 0.0,
             agl_m: 250.0,
             burner: true,
+            nose_at: None,
         },
         &l,
         &|_| 0.0,
@@ -67,6 +70,7 @@ fn afterburner_ramps_to_speed_over_its_ramp_and_back() {
             turn: 0.0,
             agl_m: 250.0,
             burner: true,
+            nose_at: None,
         },
         &l,
         &|_| 0.0,
@@ -79,6 +83,7 @@ fn afterburner_ramps_to_speed_over_its_ramp_and_back() {
             turn: 0.0,
             agl_m: 250.0,
             burner: false,
+            nose_at: None,
         },
         &l,
         &|_| 0.0,
@@ -176,6 +181,7 @@ fn a_jet_rolls_into_a_turn_and_never_turns_faster_than_its_rate() {
                 turn: 1.0,
                 agl_m: 250.0,
                 burner: false,
+                nose_at: None,
             },
             &l,
             &|_| 0.0,
@@ -224,6 +230,7 @@ fn a_jet_rolls_out_onto_its_heading_without_overshooting() {
         let intent = Intent::Pursue {
             point: v2(libm::cos(wanted), libm::sin(wanted)) * 1e8,
             agl: 250.0,
+            nose_at: None,
         };
         let mut s = state();
         let settle_s = wanted.abs() / l.turn_rad_s + 2.0 * l.roll_in_s;
@@ -256,6 +263,7 @@ fn a_jet_never_drops_below_the_floor_over_relief() {
             turn: 0.0,
             agl_m: 0.0,
             burner: false,
+            nose_at: None,
         },
         &l,
         &|_| 500.0,
@@ -264,26 +272,43 @@ fn a_jet_never_drops_below_the_floor_over_relief() {
     assert!(s.pos.z - 500.0 >= l.floor_agl_m - 1e-9);
 }
 
+/// Over rolling ground a jet holds its height by pitching its nose to
+/// follow it: it flies along its nose, its pitch rate never steps, and it
+/// keeps near its height.
 #[test]
 fn a_jet_holds_cruise_over_rolling_ground_without_steps() {
     let l = wing_limits();
+    let dt = 0.1;
+    let ground = |p: V2| 20.0 * (p.x / 100.0).sin();
+    // The most its pitch rate can change in a tick, pulling at its hardest.
+    let step = l.max_turn_rad_s / l.pitch_in_s * dt;
     let mut s = state();
-    for i in 0..20 {
+    s.pos.z = ground(s.pos.xy()) + 250.0;
+    for i in 0..300 {
+        let before = s;
         s = fly(
             s,
             Steer {
                 turn: 0.0,
                 agl_m: 250.0,
                 burner: false,
+                nose_at: None,
             },
             &l,
-            &|p| 20.0 * (p.x / 100.0).sin(),
-            0.1,
+            &ground,
+            dt,
         );
         assert!(
-            (s.pos.z - (20.0 * (s.pos.x / 100.0).sin() + 250.0)).abs() < 30.0 * 0.1 + 1e-9,
-            "step {i}"
+            (s.pitch_rate_rad_s - before.pitch_rate_rad_s).abs() <= step + 1e-9,
+            "its pitch rate stepped at tick {i}"
         );
+        let climbed = s.pos.z - before.pos.z;
+        assert!(
+            (climbed - velocity(&s).z * dt).abs() < 1e-9,
+            "it left its nose's line at tick {i}"
+        );
+        let agl = s.pos.z - ground(s.pos.xy());
+        assert!((agl - 250.0).abs() < 15.0, "{agl:.1} m up at tick {i}");
     }
 }
 
@@ -298,6 +323,7 @@ fn a_jet_flies_straight_over_a_61m_tower() {
                 turn: 0.0,
                 agl_m: 250.0,
                 burner: false,
+                nose_at: None,
             },
             &l,
             &|p| {
@@ -346,6 +372,7 @@ fn a_jet_flying_to_a_far_goal_holds_a_straight_heading() {
     let intent = Intent::Pursue {
         point: v2(1_000.0, 0.0),
         agl: 250.0,
+        nose_at: None,
     };
     for _ in 0..120 {
         let command = steer(&intent, &s, &l, &bounds, 1.0 / 30.0);
@@ -411,6 +438,7 @@ fn an_attack_circles_the_targets_current_position() {
             &Intent::Pursue {
                 point: target,
                 agl: 100.0,
+                nose_at: None,
             },
             &s,
             &l,
@@ -482,6 +510,7 @@ fn the_edge_guard_holds_a_jet_its_margin_inside_every_edge() {
                     through: s.pos.xy(),
                     heading: out,
                     agl: 250.0,
+                    nose_at: None,
                 };
                 let command = steer(&intent, &s, &l, &bounds, dt);
                 s = fly(s, command, &l, &|_| 0.0, dt);
@@ -525,6 +554,7 @@ fn the_edge_guard_leaves_a_jet_that_can_still_turn_away() {
             through: s.pos.xy(),
             heading,
             agl: 250.0,
+            nose_at: None,
         };
         let command = steer(&intent, &s, &l, &bounds, dt);
         assert_eq!(

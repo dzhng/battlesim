@@ -45,7 +45,7 @@ pub fn task(
         Some(UnitOrder::AttackMove(order)) => {
             // A run at a target its side has lost or seen die is over.
             if let Some(pass) = pass.filter(|pass| {
-                pass.phase == PassPhase::Dive
+                pass.phase == PassPhase::Run
                     && super::knows_target(knowledge, pass.target)
                     && !target_is_destroyed(pass.target, knowledge)
             }) {
@@ -134,7 +134,7 @@ fn along_way_target(
             };
             let off = (track.position.xy() - (from + leg * projection)).length();
             super::engaging_rows(arsenal, unit, track.layer, Some(track.class))
-                .any(|(_, fire)| off <= fire.range_m)
+                .any(|row| off <= row.fire.range_m)
                 .then_some((off, id))
         })
         .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)))

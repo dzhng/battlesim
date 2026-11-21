@@ -535,6 +535,7 @@
     },
     "fixed_wing": {
       "strafe_ceiling_m": 130,
+      "strafe_dive_deg": 30,
       "bomb_ceiling_m": 200,
       "dogfight_band_agl_m": [
         150,
@@ -545,7 +546,8 @@
       "afterburner_scatter_multiplier": 1.8,
       "edge_margin_m": 300,
       "nose_on_deg": 2,
-      "roll_in_s": 1.5
+      "roll_in_s": 1.5,
+      "pitch_in_s": 0.5
     },
     "separation_m": 14
   },

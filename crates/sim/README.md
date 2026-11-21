@@ -339,7 +339,14 @@ of the ground) keys on the layer (`Unit::layer`), never on a kind of aircraft.
 How an airframe flies is its row's flight model (`Unit::fixed_wing`), never
 read off the layer: rotors hover (`movement::air`); wings never stop, attack
 in passes, dogfight only another winged aircraft in their own layer, and arrive and leave by the
-back edge, since they can't land at the base (`air`). A dogfight is a run of
+back edge, since they can't land at the base (`air`). A winged aircraft flies
+along its nose: its pitch is simulated state ([`air::fixed_wing`](src/air/fixed_wing.rs)),
+so a gun fixed in the airframe fires along the nose, from a muzzle its pitch
+carries, and only with the target inside its nose-on cone; the flight lays it,
+so its authored spread is its spread in flight, with no penalty for moving. A
+strafe dives the nose onto the aim ([`air::pass`](src/air/pass.rs)), and a
+missile the run fires (one that does not fire on its own) leaves in that dive,
+nose on, before the pull-out. A dogfight is a run of
 head-on passes ([`air::dogfight::intent`](src/air/dogfight.rs)): each jet
 flies at the other nose-on, so guns and missiles bear on the way in, slips
 past beside it, extends until they are as far apart as its weapons reach

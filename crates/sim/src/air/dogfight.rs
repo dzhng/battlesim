@@ -10,7 +10,7 @@ use crate::knowledge::Track;
 use crate::math::{v2, V2, V3};
 use crate::units::{AirState, Motion, Unit};
 
-use super::fixed_wing::FixedWingState;
+use super::fixed_wing::{FixedWingState, NoseAt};
 use super::steer::Intent;
 
 /// Whether two aircraft are past the break range in 3D: beyond it a fight
@@ -222,9 +222,16 @@ pub fn intent(
             flight.roll_in_s + (2.0 * separation_m / (own.speed_mps.max(1.0) * turn_rad_s)).sqrt();
         let sidestep = distance < closing.max(0.0) * slide_s;
         let aside = if sidestep { separation_m } else { 0.0 };
+        // Flying at it, it points its nose at the other, so its guns bear
+        // once it is in reach, never below the band's floor.
+        let nose_at = Some(NoseAt {
+            point: target_track.position,
+            lowest_agl_m: band[0],
+        });
         return Intent::Pursue {
             point: target + right * aside,
             agl,
+            nose_at,
         };
     }
     // It extends until they are as far apart as its weapons reach, so all
@@ -244,6 +251,7 @@ pub fn intent(
         return Intent::Pursue {
             point: own.pos.xy() + own_forward * turn_width,
             agl,
+            nose_at: None,
         };
     }
     let middle = centre - (own.pos.xy() + target) * 0.5;
@@ -251,6 +259,7 @@ pub fn intent(
     Intent::Pursue {
         point: target + side * turn_width,
         agl,
+        nose_at: None,
     }
 }
 
@@ -368,6 +377,8 @@ mod tests {
             burner: 0.0,
             turn_rate_rad_s: 0.0,
             turn_sign: 1,
+            pitch: 0.0,
+            pitch_rate_rad_s: 0.0,
         };
         let geometry = super::DogfightGeometry {
             separation_m: 14.0,

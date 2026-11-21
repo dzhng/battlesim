@@ -198,13 +198,13 @@ fn fly_runs(battle: &mut sim::battle::Battle, aim: [f64; 2], window_s: f64) -> F
         }
         if let Some((previous, began)) = current {
             flown.stretches.push((previous, began, now - began));
-            if previous == Some(PassPhase::Dive) {
+            if previous == Some(PassPhase::Run) {
                 let run = flown.runs.last_mut().unwrap();
                 run.end_s = Some(now);
                 run.fired = rounds(battle) - rounds_at_commit;
             }
         }
-        if phase == Some(PassPhase::Dive) {
+        if phase == Some(PassPhase::Run) {
             // The jet committed from where it was when this tick began.
             let to_aim = aim - at;
             let off = sim::math::wrap_angle(libm::atan2(to_aim.y, to_aim.x) - jet.yaw);
@@ -368,7 +368,7 @@ fn a_run_ends_when_its_target_dies() {
         let before = phase(&battle);
         battle.step();
         if !battle.unit(UnitId(2)).unwrap().alive() {
-            in_run_when_it_died = Some(before == Some(PassPhase::Dive));
+            in_run_when_it_died = Some(before == Some(PassPhase::Run));
             break;
         }
     }
@@ -381,7 +381,7 @@ fn a_run_ends_when_its_target_dies() {
     battle.step();
     assert_ne!(
         phase(&battle),
-        Some(PassPhase::Dive),
+        Some(PassPhase::Run),
         "the jet flew on at the dead tank"
     );
 }
@@ -443,7 +443,7 @@ fn every_order_ends_the_run_at_once() {
         libm::atan2(to_aim.y, to_aim.x)
     };
     let plan = |b: &sim::battle::Battle| b.unit(UnitId(0)).unwrap().air.unwrap().pass;
-    for phase in [PassPhase::LineUp, PassPhase::Dive] {
+    for phase in [PassPhase::LineUp, PassPhase::Run] {
         for (name, order) in &orders {
             let mut battle = run_battle(&["air_gun"], aim);
             let hz = f64::from(battle.rules().tick_hz);
@@ -491,7 +491,7 @@ fn every_order_ends_the_run_at_once() {
     let mut battle = run_battle(&["air_gun"], aim);
     for _ in 0..(60.0 * f64::from(battle.rules().tick_hz)) as u64 {
         battle.step();
-        if plan(&battle).is_some_and(|p| p.phase == PassPhase::Dive) {
+        if plan(&battle).is_some_and(|p| p.phase == PassPhase::Run) {
             break;
         }
     }
@@ -584,16 +584,17 @@ fn a_jet_circles_where_its_attack_ended() {
     }
 }
 
-/// Two jets strafe the same target in trail, the wingman a little above
-/// his lead. The wingman's rounds reach the lead's line only after the lead
-/// has flown on, so the lead's current pose is clear of them and the pose
-/// it flies into is not: the wingman holds rather than shoot it down.
+/// Two jets strafe the same target in trail, diving down the same line at
+/// it. The wingman's rounds reach the lead's line only after the lead has
+/// flown on, so the lead's current pose is clear of them and the pose it
+/// flies into is not: the wingman holds rather than shoot it down, and
+/// fires once his lead pulls out above the line ahead of him.
 #[test]
 fn a_wingman_in_trail_never_strafes_through_his_lead() {
     for behind_m in [50.0, 70.0, 100.0, 140.0] {
         let mut battle = trail_strafe(behind_m);
         let jets = [UnitId(0), UnitId(1)];
-        let mut fired = 0;
+        let (mut fired, mut held) = (0, false);
         for _ in 0..1200 {
             let blue: std::collections::BTreeMap<_, _> = battle
                 .rounds()
@@ -603,8 +604,10 @@ fn a_wingman_in_trail_never_strafes_through_his_lead() {
             battle.step();
             fired += battle
                 .rounds()
-                .filter(|(p, r)| r.unit == UnitId(1) && !blue.contains_key(&p.id))
+                .filter(|(p, r)| r.unit == WINGMAN && !blue.contains_key(&p.id))
                 .count();
+            held |= battle.unit(WINGMAN).unwrap().mounts[0].reason
+                == contract::observation::ActionReason::FriendlyInLine;
             for event in battle.flight_events() {
                 let sim::flight::FlightEvent::Impact(hit) = event else {
                     continue;
@@ -626,15 +629,23 @@ fn a_wingman_in_trail_never_strafes_through_his_lead() {
                 }
             }
         }
+        assert!(
+            held,
+            "{behind_m} m in trail: the wingman never held for his lead"
+        );
         // Holding is not a freeze: once his lead is clear he strafes too.
         assert!(fired > 0, "{behind_m} m in trail: the wingman never fired");
     }
 }
 
+/// The wingman of [`trail_strafe`]: its seeded run height lies under its
+/// lead's, so the lead pulls out of their shared dive first.
+const WINGMAN: UnitId = UnitId(0);
+
 /// A test-jet lead at (500, 2000) and its wingman `behind_m` behind it,
 /// both strafing the ground under a red tank 2.5 km east with their guns.
-/// The strafe band reaches well below cruise, so their seeded pass heights
-/// stand the wingman some metres above his lead.
+/// The strafe band reaches well below the floor's default, so their seeded
+/// run heights pull the lead out of the dive some metres above his wingman.
 fn trail_strafe(behind_m: f64) -> sim::battle::Battle {
     let mut rules = test_rules();
     fixtures::patch_catalog(
@@ -647,13 +658,12 @@ fn trail_strafe(behind_m: f64) -> sim::battle::Battle {
         }] }),
     );
     rules["air"]["high_air"]["floor_agl_m"] = json!(40);
-    rules["air"]["fixed_wing"]["strafe_ceiling_m"] = json!(240);
     let setup = serde_json::from_value(json!({
         "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "test_jet", "position": [500, 2000], "yaw": 0.0 },
             { "side": "blue", "kind": "test_jet", "position": [500.0 - behind_m, 2000], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_jet", "position": [500, 2000], "yaw": 0.0 },
             { "side": "red", "kind": "test_tank", "position": [3000, 2000], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
         ],
         "events": [], "scripts": []

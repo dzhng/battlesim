@@ -31,12 +31,13 @@ fn intent_agl(intent: Intent) -> f64 {
     }
 }
 
-/// Lining up, the jet climbs toward cruise; the run it commits to dives to
+/// A level run (one that fires nothing along the nose, a guided missile's):
+/// lining up, the jet climbs toward cruise; the run it commits to descends to
 /// its seeded height from above it, and from below it holds the height it
 /// has reached rather than climbing into the run. That height is above the
 /// ground under the jet, so a rise under it is not counted as its own.
 #[test]
-fn a_run_dives_from_the_height_its_climb_has_reached() {
+fn a_level_run_descends_from_the_height_its_climb_has_reached() {
     let wing = wing();
     let limits = wing_limits();
     let aim = v3(1000.0, 0.0, 0.0);
@@ -48,13 +49,14 @@ fn a_run_dives_from_the_height_its_climb_has_reached() {
             at: aim.xy(),
         },
         reach_m: 0.0,
+        dive: None,
     };
     let fresh = || {
         let mut plan = begin(
             &state(limits.cruise_agl_m),
             &limits,
             aim,
-            PassWeapon::Gun,
+            PassWeapon::GroundMissile,
             &wing,
             &mut Rng::new(9),
         );
@@ -81,7 +83,7 @@ fn a_run_dives_from_the_height_its_climb_has_reached() {
                 &aim_at,
                 0.05,
             );
-            assert_eq!(plan.phase, PassPhase::Dive);
+            assert_eq!(plan.phase, PassPhase::Run);
             assert_eq!(
                 intent_agl(intent),
                 flown,
@@ -113,7 +115,7 @@ fn a_jet_climbs_after_every_run_and_dives_on_the_next() {
                 .unwrap()
                 .pass
                 .map(|p| p.phase)
-                == Some(PassPhase::Dive)
+                == Some(PassPhase::Run)
         };
         // Per run, from its commit: its lowest on the run, and the highest
         // the climb after it reaches before the next run commits.
@@ -140,8 +142,10 @@ fn a_jet_climbs_after_every_run_and_dives_on_the_next() {
             "{weapon}: only {} runs in the window",
             runs.len()
         );
-        // The field is flat at zero: height is height above the ground.
-        for (i, &(low, _)) in runs.iter().enumerate() {
+        // The field is flat at zero: height is height above the ground. A
+        // run the window's end cuts off has not come down yet.
+        let finished = runs.len() - usize::from(was_diving);
+        for (i, &(low, _)) in runs[..finished].iter().enumerate() {
             assert!(
                 low <= ceiling + 1.0,
                 "{weapon}: run {i} stayed above its {ceiling} m ceiling, lowest {low:.0} m; runs {runs:?}"

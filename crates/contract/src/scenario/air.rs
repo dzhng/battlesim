@@ -56,6 +56,11 @@ pub struct RotorFlight {
 #[serde(deny_unknown_fields)]
 pub struct FixedWingFlight {
     pub strafe_ceiling_m: f64,
+    /// The dive a run fired along the nose (a gun's, a ground missile's)
+    /// pushes over into, degrees below the horizon: it flies in at the
+    /// height where a dive this steep meets its weapon's reach, and points
+    /// its nose at the aim once the aim lies this far below it.
+    pub strafe_dive_deg: f64,
     pub bomb_ceiling_m: f64,
     pub dogfight_band_agl_m: [f64; 2],
     pub dogfight_break_m: f64,
@@ -72,6 +77,9 @@ pub struct FixedWingFlight {
     /// at its `turn_deg_s`, or out of it: its turn rate never steps, and
     /// changes no faster on the way to its `max_turn_deg_s`.
     pub roll_in_s: f64,
+    /// Seconds a winged aircraft takes to build its pitch rate from none to
+    /// its `turn_deg_s`, or to ease it off: its pitch rate never steps.
+    pub pitch_in_s: f64,
 }
 
 impl AirRules {
@@ -101,13 +109,16 @@ impl AirRules {
             && wing.edge_margin_m >= 0.0
             && wing.nose_on_deg > 0.0
             && wing.nose_on_deg < 180.0
-            && wing.roll_in_s > 0.0;
+            && wing.roll_in_s > 0.0
+            && wing.pitch_in_s > 0.0
+            && wing.strafe_dive_deg > 0.0
+            && wing.strafe_dive_deg < 90.0;
         let ok = rotor_ok && wing_ok && self.separation_m > 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive, afterburner scatter at least 1, and the nose-on cone within (0, 180) degrees"
+                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive, afterburner scatter at least 1, the nose-on cone within (0, 180) degrees and the strafe dive within (0, 90) degrees"
                     .into(),
             )
         }

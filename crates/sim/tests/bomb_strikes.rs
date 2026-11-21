@@ -196,6 +196,7 @@ fn a_bombing_run_releases_at_its_release_point_and_is_over() {
         point: aim,
         release,
         reach_m: 50.0,
+        dive: None,
     };
     // 100 m/s in 0.6 s steps: 60 m a step.
     let dt = 0.6;
@@ -260,6 +261,7 @@ fn a_bomb_leaves_whenever_it_would_land_on_the_aim() {
                     at: v2(700.0, 0.0),
                 },
                 reach_m,
+                dive: None,
             };
             let (_, cue) = advance(
                 &mut plan,
@@ -314,6 +316,7 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
             at: v2(700.0, 0.0),
         },
         reach_m: 50.0,
+        dive: None,
     };
     // The east edge lies just past the aim: by the release point the jet,
     // heading straight at it, is at its point of no return.
@@ -326,7 +329,7 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
     let mut current = state(plan.agl);
     current.pos.x = 300.0;
     advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
-    assert_eq!(plan.phase, PassPhase::Dive);
+    assert_eq!(plan.phase, PassPhase::Run);
     // 100 m/s in 0.05 s steps: this step would carry it to the release point.
     current.pos.x = 697.0;
     let (_, cue) = advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);

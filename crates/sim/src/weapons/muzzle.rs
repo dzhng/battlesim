@@ -54,5 +54,23 @@ pub(super) fn muzzle(
         .muzzle
         .expect("hull mounts have a muzzle (catalog admission)");
     let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
-    placed_muzzle(unit.position, unit.yaw, spec, muzzle, carried, bearing)
+    let at = placed_muzzle(unit.position, unit.yaw, spec, muzzle, carried, bearing);
+    // A winged airframe carries its mounts with its pitch, about its
+    // position, as its model is drawn tilted.
+    let pitch = unit.pitch();
+    if pitch == 0.0 {
+        return at;
+    }
+    unit.position + pitched(at - unit.position, unit.yaw, pitch)
+}
+
+/// `offset` from a hull heading `yaw`, tilted nose up by `pitch` about the
+/// hull's lateral axis.
+fn pitched(offset: V3, yaw: f64, pitch: f64) -> V3 {
+    let forward = v2(libm::cos(yaw), libm::sin(yaw));
+    let left = v2(-forward.y, forward.x);
+    let (along, across) = (offset.xy().dot(forward), offset.xy().dot(left));
+    let (sin, cos) = libm::sincos(pitch);
+    let ahead = along * cos - offset.z * sin;
+    (forward * ahead + left * across).with_z(along * sin + offset.z * cos)
 }

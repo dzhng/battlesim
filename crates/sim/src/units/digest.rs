@@ -28,7 +28,9 @@ impl Unit {
                 .f64(a.velocity.z)
                 .f64(a.burner)
                 .f64(a.turn_rate_rad_s)
-                .f64(a.turn_sign as f64);
+                .f64(a.turn_sign as f64)
+                .f64(a.pitch)
+                .f64(a.pitch_rate_rad_s);
             d.opt_v2(a.last_goal);
             match a.settle {
                 Some(s) => d
@@ -55,7 +57,8 @@ impl Unit {
                         .f64(p.agl)
                         .opt_f64(p.run_agl)
                         .f64(p.heading)
-                        .u64(p.closing as u64);
+                        .u64(p.closing as u64)
+                        .u64(p.dive.map_or(0, |dive| dive as u64 + 1));
                 }
                 None => {
                     d.u64(0);

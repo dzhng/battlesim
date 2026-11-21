@@ -6,8 +6,8 @@ use contract::ids::UnitId;
 use contract::observation::ActionReason;
 
 use super::{
-    bearing_from, candidates, fire_from, infantry_offset, muzzle, FireContext, Mount, MountSpec,
-    Resolved, Target, Weapon,
+    bearing_from, boresight, candidates, fire_from, infantry_offset, muzzle, FireContext, Mount,
+    MountSpec, Resolved, Target, Weapon,
 };
 use crate::flight::{solved_timed_path, Aim, FiringSolution, NoSolution};
 use crate::lean;
@@ -235,10 +235,11 @@ pub(super) fn engage(
         if nearest_meeting > reach {
             return Err(ActionReason::OutOfRange);
         }
+        let (sent_to, leads) = boresight(unit, spec, &weapon.def, origin, r.point, r.velocity);
         let aim = Aim {
             origin,
-            target: r.point,
-            target_velocity: r.velocity,
+            target: sent_to,
+            target_velocity: leads,
             carrier,
         };
         match crate::flight::solve_fire(

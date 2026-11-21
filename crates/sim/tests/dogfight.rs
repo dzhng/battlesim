@@ -27,6 +27,8 @@ fn own(position: [f64; 3], heading: f64) -> FixedWingState {
         burner: 0.0,
         turn_rate_rad_s: 0.0,
         turn_sign: 1,
+        pitch: 0.0,
+        pitch_rate_rad_s: 0.0,
     }
 }
 
@@ -564,9 +566,11 @@ fn gun_armed_jets_shoot_each_other_down() {
         one_downed(&mut tight, 240),
         "tight-turning jets never gunned one down"
     );
+    // Wide turns give fewer passes, and rounds go only where each nose
+    // points, so their fight takes longer.
     let mut wide = duel_with(slow_turning_rules(&["air_gun"]), None);
     assert!(
-        one_downed(&mut wide, 240),
+        one_downed(&mut wide, 360),
         "wide-turning jets never gunned one down"
     );
 }

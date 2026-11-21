@@ -68,7 +68,7 @@ fn jet_runs(weapons: &[&str], targets: &[[f64; 2]], window_s: f64) -> (Battle, u
             .air
             .unwrap()
             .pass
-            .is_some_and(|p| p.phase == PassPhase::Dive);
+            .is_some_and(|p| p.phase == PassPhase::Run);
         fired |= jet.mounts.iter().map(|m| m.shots).sum::<u32>() > before;
         if diving && !now && fired {
             runs += 1;
@@ -221,6 +221,8 @@ fn jet_attacks_aircraft_then_moves(enemy: &str) {
         ]),
     );
     let mut c = Commander::new();
+    // It flies at the enemy until it sees it, so its run begins nose-on.
+    c.ok(&mut b, Side::Blue, drive([x + 3000.0, y]));
     let target = seen(&mut b);
     c.ok(&mut b, Side::Blue, attack(0, target));
     let away = [x, y + 1200.0];

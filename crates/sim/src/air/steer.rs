@@ -1,6 +1,6 @@
 use crate::math::{v2, wrap_angle, V2};
 
-use super::fixed_wing::{reserve, roll_rad_s2, FixedWingLimits, FixedWingState, Steer};
+use super::fixed_wing::{reserve, roll_rad_s2, FixedWingLimits, FixedWingState, NoseAt, Steer};
 
 /// The rectangle in which a fighting jet must remain.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -35,11 +35,15 @@ pub enum Intent {
         through: V2,
         heading: f64,
         agl: f64,
+        /// Pointing the nose at this instead of holding `agl`.
+        nose_at: Option<NoseAt>,
     },
     /// Fly at `point`, `agl` metres above ground.
     Pursue {
         point: V2,
         agl: f64,
+        /// Pointing the nose at this instead of holding `agl`.
+        nose_at: Option<NoseAt>,
     },
     Exit {
         to: V2,
@@ -272,6 +276,7 @@ fn intent_turn(
             through,
             heading,
             agl,
+            ..
         } => {
             let forward = crate::math::v2(libm::cos(heading), libm::sin(heading));
             let left = crate::math::v2(-forward.y, forward.x);
@@ -280,7 +285,7 @@ fn intent_turn(
             let wanted = heading - libm::atan2(cross_track, lookahead);
             (turn_toward(state.heading, wanted, limits, dt_s), agl)
         }
-        Intent::Pursue { point, agl } => {
+        Intent::Pursue { point, agl, .. } => {
             let direction = point - state.pos.xy();
             let wanted = if direction.length() > 1e-9 {
                 libm::atan2(direction.y, direction.x)
@@ -321,9 +326,14 @@ pub fn steer(
             turn = away;
         }
     }
+    let nose_at = match *intent {
+        Intent::Line { nose_at, .. } | Intent::Pursue { nose_at, .. } => nose_at,
+        Intent::Orbit { .. } | Intent::Exit { .. } => None,
+    };
     Steer {
         turn,
         agl_m,
         burner: false,
+        nose_at,
     }
 }
