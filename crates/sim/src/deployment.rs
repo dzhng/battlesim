@@ -1,13 +1,14 @@
 //! Reversible deployment (L01, L02): one progress value per deploying unit,
 //! counted in whole ticks so equal durations and reversals are exact, plus the
-//! posture the unit should hold while it has nowhere to go. Movement intent
-//! always heads toward packed; readiness for service and movement both read
-//! this owner, never a copy.
+//! posture the unit should hold while it has nowhere to go. Somewhere to go
+//! always heads toward packed; a move onto the ground under its own hull is
+//! nowhere to go. Readiness for service and movement both read this owner,
+//! never a copy.
 use contract::catalog::UnitType;
 use contract::observation::{DeploymentState, Posture};
 use contract::scenario::Rules;
 
-use crate::units::Unit;
+use crate::units::{Unit, UnitOrder};
 
 #[derive(Clone, Debug)]
 pub struct Deployment {
@@ -116,11 +117,31 @@ pub fn target(unit: &Unit) -> Option<Posture> {
             },
         );
     }
-    Some(if unit.movement_goal().is_some() && !unit.halted() {
-        Posture::Packed
-    } else {
-        d.stationary
-    })
+    Some(
+        if unit.movement_goal().is_some() && !unit.halted() && !stands_on_goal(unit) {
+            Posture::Packed
+        } else {
+            d.stationary
+        },
+    )
+}
+
+/// A move that asks nothing of a crew setting up or set up: it lands under
+/// the unit's own hull and names no facing. The crew has nowhere to go, so
+/// it stays set up and the move is done where it stands (`movement`). A
+/// packed unit drives onto its goal as any vehicle does.
+pub fn stands_on_goal(unit: &Unit) -> bool {
+    unit.deployment.as_ref().is_some_and(|d| !d.packed())
+        && unit
+            .orders
+            .front()
+            .and_then(UnitOrder::movement)
+            .is_some_and(|m| {
+                m.facing.is_none()
+                    && unit
+                        .ground_footprint()
+                        .is_some_and(|hull| hull.contains(m.destination, 0.0))
+            })
 }
 
 /// Service eligibility as far as setup goes: a deploying unit at full progress.

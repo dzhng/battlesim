@@ -364,6 +364,52 @@ fn a_queued_move_while_deployed_packs_first_then_moves_and_sets_up_on_arrival() 
 }
 
 #[test]
+fn a_move_onto_the_ground_under_its_own_hull_leaves_it_set_up() {
+    // Sent to where it already stands (the order lands under its own hull,
+    // naming no facing), the crew has nowhere to go and stays set up.
+    let (mut b, mut c) = deployed();
+    let start = xy(&b, SUPPLY);
+    let half = b.unit(SUPPLY).unwrap().hull.unwrap();
+    let under = [start[0] + 0.5 * half.x, start[1] + 0.5 * half.y];
+    for queued in [false, true] {
+        c.move_to(&mut b, SUPPLY, under, queued);
+        b.step();
+        let u = own(&b, SUPPLY);
+        assert!(u.goal.is_none(), "queued={queued}: the move is done: {u:?}");
+        assert_eq!(u.state, MoveState::Idle);
+        assert!(deployment::fully_deployed(b.unit(SUPPLY).unwrap()));
+        assert_eq!(xy(&b, SUPPLY), start);
+    }
+
+    // Anything that asks more of it still packs first: a move off its hull,
+    // a move queued behind the one on the spot, or a facing to turn to.
+    let beside = [start[0] + half.x + 2.0, start[1]];
+    let packs = |send: &dyn Fn(&mut Commander, &mut Battle)| {
+        let (mut b, mut c) = deployed();
+        send(&mut c, &mut b);
+        run(&mut b, 2);
+        assert!(!deployment::fully_deployed(b.unit(SUPPLY).unwrap()));
+        assert_eq!(own(&b, SUPPLY).state, MoveState::Packing);
+    };
+    packs(&|c, b| c.move_to(b, SUPPLY, beside, false));
+    packs(&|c, b| {
+        c.move_to(b, SUPPLY, under, false);
+        c.move_to(b, SUPPLY, beside, true);
+    });
+    packs(&|c, b| {
+        let order = Order::Move {
+            units: vec![SUPPLY],
+            gesture: 900,
+            goal: under,
+            route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: Some(1.0),
+        };
+        c.send(b, order, false);
+    });
+}
+
+#[test]
 fn an_explicit_pack_holds_a_stationary_unit_packed_and_deploy_cancels_movement() {
     let n = duration();
     let (mut b, mut c) = deployed();
