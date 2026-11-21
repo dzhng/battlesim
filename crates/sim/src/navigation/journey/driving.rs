@@ -122,6 +122,7 @@ impl Journey {
         grid: &NavGrid,
         roads: &RoadNet,
         mut driving: Box<Driving>,
+        allowance: u64,
     ) -> Stage {
         let pieces = driving.runs.len() + 2;
         // Where the piece in hand starts and ends: a run of road, or the
@@ -150,7 +151,7 @@ impl Journey {
             move |s: f64, k: usize| a + (b - a) * (s.min(span) / span) + left * k as f64
         };
         if let Some(mut search) = driving.search.take() {
-            search.advance(grid, 1);
+            search.advance(grid, allowance);
             if search.plan().is_none() {
                 driving.search = Some(search);
                 return Stage::Driving(driving);

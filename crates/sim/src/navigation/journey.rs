@@ -197,7 +197,7 @@ impl Journey {
     pub fn advance(&mut self, grid: &NavGrid, roads: &RoadNet, allowance: u64) -> u64 {
         let before = grid.work();
         while !matches!(self.stage, Stage::Done(_)) && grid.work() - before < allowance {
-            self.step(grid, roads);
+            self.step(grid, roads, allowance - (grid.work() - before));
         }
         grid.work() - before
     }
@@ -232,7 +232,9 @@ impl Journey {
         )
     }
 
-    fn step(&mut self, grid: &NavGrid, roads: &RoadNet) {
+    /// Take the stage in hand a step on. A search of the grid is given all
+    /// the `allowance` left, and stops where stepping it would have.
+    fn step(&mut self, grid: &NavGrid, roads: &RoadNet, allowance: u64) {
         let stage = std::mem::replace(
             &mut self.stage,
             Stage::Done(Plan::Blocked(super::BlockReason::NoRoute)),
@@ -250,7 +252,7 @@ impl Journey {
                 None => Stage::Terrain(probe),
             },
             Stage::Direct(mut search) => {
-                search.advance(grid, 1);
+                search.advance(grid, allowance);
                 if search.plan().is_some() {
                     Stage::Done(
                         self.finish_search(search)
@@ -303,8 +305,9 @@ impl Journey {
                     }
                 }
             }
-            Stage::Driving(driving) => self.drive(grid, roads, driving),
+            Stage::Driving(driving) => self.drive(grid, roads, driving, allowance),
             Stage::GoalProof(mut search, driving) => {
+                // Stepped singly: it is done as soon as it reaches there.
                 search.advance(grid, 1);
                 if search.reached_target() || search.plan().is_some() {
                     if search.exhausted() {
