@@ -496,7 +496,7 @@ fn take_route(
         unit.shunt = unit
             .shunt
             .take()
-            .filter(|s| !(s.legs.is_empty() && another_way))
+            .filter(|s| !(s.no_way() && another_way))
             .map(|s| Shunt { from: here, ..s });
     }
     if !request.detour.is_empty() {

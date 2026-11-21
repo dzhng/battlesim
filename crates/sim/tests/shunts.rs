@@ -268,7 +268,7 @@ fn a_truck_with_no_way_round_a_parked_one_does_not_keep_looking_for_one() {
     for _ in 0..30 * hz {
         b.step();
         let unit = b.unit(UnitId(1)).unwrap();
-        if let Some(shunt) = unit.shunt.as_ref().filter(|s| s.legs.is_empty()) {
+        if let Some(shunt) = unit.shunt.as_ref().filter(|s| s.no_way()) {
             if looked.last().is_none_or(|(tick, _)| *tick != shunt.tick) {
                 looked.push((shunt.tick, unit.route.clone()));
             }

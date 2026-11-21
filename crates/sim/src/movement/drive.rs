@@ -387,7 +387,7 @@ fn turn_clear(
 
 /// Whether a wheeled `unit` has looked for a shunt and found none.
 fn no_shunt(unit: &Unit) -> bool {
-    unit.shunt.as_ref().is_some_and(|s| s.legs.is_empty())
+    unit.shunt.as_ref().is_some_and(super::Shunt::no_way)
 }
 
 /// Whether `unit` turns on the spot this tick: tracks, and wheels that

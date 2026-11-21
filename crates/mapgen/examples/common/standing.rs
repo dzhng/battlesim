@@ -87,7 +87,7 @@ fn why(battle: &Battle, unit: &sim::units::Unit) -> Why {
         };
     }
     match &unit.shunt {
-        Some(shunt) if shunt.legs.is_empty() => Why::NoShunt,
+        Some(shunt) if shunt.no_way() => Why::NoShunt,
         Some(_) => Why::Shunting,
         None => Why::Held,
     }

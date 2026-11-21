@@ -69,10 +69,10 @@ pub(super) fn gives_way(ctx: &super::MovementContext, units: &[Unit], i: usize, 
     let standing = other.drive_speed_mps.abs() <= super::ROLLING_MPS;
     let parked = other.movement_goal().is_none();
     let mutual = other.blocker == Some(unit.id);
-    let found_no_way = other.shunt.as_ref().is_some_and(|s| s.legs.is_empty());
+    let found_no_way = other.shunt.as_ref().is_some_and(super::Shunt::no_way);
     wheeled
         && standing
         && (!mutual || unit.id > other.id || found_no_way)
         && (parked || waited(unit.headway.since()))
-        && (unit.shunt.as_ref()).is_none_or(|s| !s.legs.is_empty() && waited(s.tick))
+        && (unit.shunt.as_ref()).is_none_or(|s| !s.no_way() && waited(s.tick))
 }

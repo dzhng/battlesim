@@ -9,7 +9,8 @@
 //! route's end). Reverse is slower and every change of gear costs a stop,
 //! so it backs only where backing is quicker: out of a pocket the way it
 //! came, or a few metres to come round. The search is bounded; finding no
-//! way, the vehicle holds and looks again a little later.
+//! way, the vehicle turns on the spot toward its way ([`super::drive`]) and
+//! looks again a little later.
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 
@@ -70,6 +71,11 @@ pub struct Shunt {
 }
 
 impl Shunt {
+    /// Whether the search found no way.
+    pub fn no_way(&self) -> bool {
+        self.legs.is_empty()
+    }
+
     pub fn digest(&self, d: &mut crate::digest::Digest) {
         d.u64(self.legs.len() as u64);
         for leg in &self.legs {
@@ -438,7 +444,7 @@ pub(super) fn drive_on(
     tick: u64,
 ) -> Option<Motion> {
     let shunt = unit.shunt.as_mut()?;
-    if shunt.legs.is_empty() {
+    if shunt.no_way() {
         if (tick.saturating_sub(shunt.tick) as f64) < RETRY_S * (1.0 / dt) {
             return Some(hold(unit));
         }
