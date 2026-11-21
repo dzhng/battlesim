@@ -171,9 +171,7 @@ test("each road's beacons light one after another, inward from the edge, like a 
     const phases = beacons.map((v) => v.phase);
     // No beacon lights before one nearer the edge, they don't all light
     // together, and the run fits in one cycle, so it never reads backwards.
-    phases.forEach((p, i) =>
-      expect(p, `blue road at ${road}`).toBeGreaterThanOrEqual(phases[i - 1] ?? p),
-    );
+    expect(phases, `blue road at ${road}`).toEqual([...phases].sort((a, b) => a - b));
     expect(new Set(phases).size, `blue road at ${road}`).toBeGreaterThan(1);
     expect(phases[phases.length - 1] - phases[0], `blue road at ${road}`).toBeLessThan(1);
   }
