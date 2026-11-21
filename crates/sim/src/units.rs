@@ -513,8 +513,6 @@ impl Unit {
         }
     }
 
-    /// It flies on wings: never stopping, attacking in passes, arriving and
-    /// leaving by its back edge. False for a rotor aircraft and on the ground.
     /// The unit vector along its nose: along its yaw, at its pitch.
     pub fn nose(&self) -> V3 {
         crate::air::nose(self.yaw, self.pitch())
@@ -524,10 +522,13 @@ impl Unit {
     /// it flies along; anything else is level.
     pub fn pitch(&self) -> f64 {
         self.air
+            .as_ref()
             .filter(|_| self.fixed_wing())
             .map_or(0.0, |air| air.pitch)
     }
 
+    /// It flies on wings: never stopping, attacking in passes, arriving and
+    /// leaving by its back edge. False for a rotor aircraft and on the ground.
     pub fn fixed_wing(&self) -> bool {
         matches!(
             self.motion,

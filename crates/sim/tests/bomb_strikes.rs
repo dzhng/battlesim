@@ -329,7 +329,7 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
     let mut current = state(plan.agl);
     current.pos.x = 300.0;
     advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);
-    assert_eq!(plan.phase, PassPhase::Dive);
+    assert_eq!(plan.phase, PassPhase::Run);
     // 100 m/s in 0.05 s steps: this step would carry it to the release point.
     current.pos.x = 697.0;
     let (_, cue) = advance(&mut plan, &current, 150.0, &limits, &bounds, &aim_at, 0.05);

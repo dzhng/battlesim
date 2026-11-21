@@ -45,7 +45,7 @@ pub fn task(
         Some(UnitOrder::AttackMove(order)) => {
             // A run at a target its side has lost or seen die is over.
             if let Some(pass) = pass.filter(|pass| {
-                pass.phase == PassPhase::Dive
+                pass.phase == PassPhase::Run
                     && super::knows_target(knowledge, pass.target)
                     && !target_is_destroyed(pass.target, knowledge)
             }) {

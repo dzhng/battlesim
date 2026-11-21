@@ -676,12 +676,11 @@ fn fire(
             cycle.started = false;
             continue;
         }
-        // A row aimed by the nose fires where its nose points.
-        let aimed = nose_aimed(unit, spec, &weapon.def);
+        let (sent_to, leads) = boresight(unit, spec, &weapon.def, origin, point, r.velocity);
         let aim = Aim {
             origin,
-            target: boresight(unit, spec, &weapon.def, origin, point),
-            target_velocity: if aimed { V3::default() } else { r.velocity },
+            target: sent_to,
+            target_velocity: leads,
             carrier: unit.flight_velocity(),
         };
         // Cover widens the spread; it never softens a hit (V03).

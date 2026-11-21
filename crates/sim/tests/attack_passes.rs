@@ -226,7 +226,7 @@ fn every_loadout_fires_at_a_legal_target() {
             }
             battle.step();
             let pass = battle.unit(UnitId(0)).unwrap().air.unwrap().pass;
-            dived |= pass.is_some_and(|p| p.phase == PassPhase::Dive);
+            dived |= pass.is_some_and(|p| p.phase == PassPhase::Run);
         }
         assert!(
             fired(&battle),
@@ -598,7 +598,7 @@ fn an_explicit_attack_repeats_passes_until_the_target_dies() {
         let jet = battle.unit(UnitId(0)).unwrap();
         let run = jet
             .air
-            .is_some_and(|a| a.pass.is_some_and(|p| p.phase == PassPhase::Dive));
+            .is_some_and(|a| a.pass.is_some_and(|p| p.phase == PassPhase::Run));
         if run && !in_run {
             starts += 1;
         }
@@ -778,7 +778,7 @@ fn an_explicit_attack_keeps_passing_under_fire() {
         let jet = battle.unit(UnitId(0)).unwrap();
         let run = jet
             .air
-            .is_some_and(|a| a.pass.is_some_and(|p| p.phase == PassPhase::Dive));
+            .is_some_and(|a| a.pass.is_some_and(|p| p.phase == PassPhase::Run));
         if run && !in_run {
             starts += 1;
         }
@@ -966,7 +966,7 @@ fn a_bomb_carrier_strafes_a_helicopter_attacker_above_it() {
             "the jet flew a bomb run at a helicopter"
         );
         strafed |= pass.weapon == PassWeapon::Gun;
-        dived |= pass.phase == PassPhase::Dive;
+        dived |= pass.phase == PassPhase::Run;
     }
     assert!(strafed, "the jet never answered the helicopter");
     assert!(dived, "the jet's strafing run never dived in");

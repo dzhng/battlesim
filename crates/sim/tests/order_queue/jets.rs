@@ -68,7 +68,7 @@ fn jet_runs(weapons: &[&str], targets: &[[f64; 2]], window_s: f64) -> (Battle, u
             .air
             .unwrap()
             .pass
-            .is_some_and(|p| p.phase == PassPhase::Dive);
+            .is_some_and(|p| p.phase == PassPhase::Run);
         fired |= jet.mounts.iter().map(|m| m.shots).sum::<u32>() > before;
         if diving && !now && fired {
             runs += 1;

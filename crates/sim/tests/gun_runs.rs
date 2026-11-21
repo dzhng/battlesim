@@ -262,7 +262,7 @@ fn a_missile_pass_fires_the_gun_when_nose_on() {
             );
             fired_in_run = true;
         }
-        if fired_in_run && pass.is_none_or(|p| p.phase != PassPhase::Dive) {
+        if fired_in_run && pass.is_none_or(|p| p.phase != PassPhase::Run) {
             assert!(
                 unit.mounts[0].shots > 0,
                 "missile pass crossed without a nose-on gun burst"

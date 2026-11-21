@@ -37,7 +37,7 @@ fn intent_agl(intent: Intent) -> f64 {
 /// has reached rather than climbing into the run. That height is above the
 /// ground under the jet, so a rise under it is not counted as its own.
 #[test]
-fn a_run_dives_from_the_height_its_climb_has_reached() {
+fn a_level_run_descends_from_the_height_its_climb_has_reached() {
     let wing = wing();
     let limits = wing_limits();
     let aim = v3(1000.0, 0.0, 0.0);
@@ -83,7 +83,7 @@ fn a_run_dives_from_the_height_its_climb_has_reached() {
                 &aim_at,
                 0.05,
             );
-            assert_eq!(plan.phase, PassPhase::Dive);
+            assert_eq!(plan.phase, PassPhase::Run);
             assert_eq!(
                 intent_agl(intent),
                 flown,
@@ -115,7 +115,7 @@ fn a_jet_climbs_after_every_run_and_dives_on_the_next() {
                 .unwrap()
                 .pass
                 .map(|p| p.phase)
-                == Some(PassPhase::Dive)
+                == Some(PassPhase::Run)
         };
         // Per run, from its commit: its lowest on the run, and the highest
         // the climb after it reaches before the next run commits.

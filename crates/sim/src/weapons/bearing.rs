@@ -105,20 +105,26 @@ pub(crate) fn laid_by_flight(def: &contract::weapons::WeaponDefinition) -> bool 
         && def.ballistics.delivery == contract::ballistics::Delivery::Powered
 }
 
-/// Where a round fired from `origin` at `point` is sent: a row aimed by the
-/// nose sends it along the nose, as far out as the point, so it goes where
-/// the nose points and no nearer the point; any other row at the point.
+/// Where a round fired from `origin` at `point`, moving at `velocity`, is
+/// sent, and the motion its solve leads: a row aimed by the nose sends it
+/// along the nose, as far out as the point, leading nothing, so it goes
+/// where the nose points and no nearer the point; any other row at the
+/// point, leading its motion.
 pub(super) fn boresight(
     unit: &Unit,
     spec: &MountSpec,
     def: &contract::weapons::WeaponDefinition,
     origin: V3,
     point: V3,
-) -> V3 {
+    velocity: V3,
+) -> (V3, V3) {
     if nose_aimed(unit, spec, def) {
-        origin + unit.nose() * (point - origin).length()
+        (
+            origin + unit.nose() * (point - origin).length(),
+            V3::default(),
+        )
     } else {
-        point
+        (point, velocity)
     }
 }
 

@@ -198,13 +198,13 @@ fn fly_runs(battle: &mut sim::battle::Battle, aim: [f64; 2], window_s: f64) -> F
         }
         if let Some((previous, began)) = current {
             flown.stretches.push((previous, began, now - began));
-            if previous == Some(PassPhase::Dive) {
+            if previous == Some(PassPhase::Run) {
                 let run = flown.runs.last_mut().unwrap();
                 run.end_s = Some(now);
                 run.fired = rounds(battle) - rounds_at_commit;
             }
         }
-        if phase == Some(PassPhase::Dive) {
+        if phase == Some(PassPhase::Run) {
             // The jet committed from where it was when this tick began.
             let to_aim = aim - at;
             let off = sim::math::wrap_angle(libm::atan2(to_aim.y, to_aim.x) - jet.yaw);
@@ -368,7 +368,7 @@ fn a_run_ends_when_its_target_dies() {
         let before = phase(&battle);
         battle.step();
         if !battle.unit(UnitId(2)).unwrap().alive() {
-            in_run_when_it_died = Some(before == Some(PassPhase::Dive));
+            in_run_when_it_died = Some(before == Some(PassPhase::Run));
             break;
         }
     }
@@ -381,7 +381,7 @@ fn a_run_ends_when_its_target_dies() {
     battle.step();
     assert_ne!(
         phase(&battle),
-        Some(PassPhase::Dive),
+        Some(PassPhase::Run),
         "the jet flew on at the dead tank"
     );
 }
@@ -443,7 +443,7 @@ fn every_order_ends_the_run_at_once() {
         libm::atan2(to_aim.y, to_aim.x)
     };
     let plan = |b: &sim::battle::Battle| b.unit(UnitId(0)).unwrap().air.unwrap().pass;
-    for phase in [PassPhase::LineUp, PassPhase::Dive] {
+    for phase in [PassPhase::LineUp, PassPhase::Run] {
         for (name, order) in &orders {
             let mut battle = run_battle(&["air_gun"], aim);
             let hz = f64::from(battle.rules().tick_hz);
@@ -491,7 +491,7 @@ fn every_order_ends_the_run_at_once() {
     let mut battle = run_battle(&["air_gun"], aim);
     for _ in 0..(60.0 * f64::from(battle.rules().tick_hz)) as u64 {
         battle.step();
-        if plan(&battle).is_some_and(|p| p.phase == PassPhase::Dive) {
+        if plan(&battle).is_some_and(|p| p.phase == PassPhase::Run) {
             break;
         }
     }

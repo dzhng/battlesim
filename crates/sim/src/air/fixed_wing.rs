@@ -104,7 +104,10 @@ pub fn fly(
     let ground_z = ground(next_xy);
     let hold = |agl: f64| {
         let target_z = ground_z + agl.max(limits.floor_agl_m);
-        let climb = ((target_z - state.pos.z) / level_off_s(limits, state.speed_mps))
+        // It levels off over the time its nose takes to swing from level
+        // to its climb angle.
+        let climb_angle = libm::atan(limits.climb_mps / state.speed_mps.max(f64::MIN_POSITIVE));
+        let climb = ((target_z - state.pos.z) / pitch_swing_s(limits, climb_angle))
             .clamp(-limits.climb_mps, limits.climb_mps);
         libm::atan(climb / state.speed_mps.max(f64::MIN_POSITIVE))
     };
@@ -131,14 +134,6 @@ pub fn fly(
     }
     state.pos = next_xy.with_z(climbed.max(floor_z));
     state
-}
-
-/// Seconds over which it levels off onto a height: the time its pitch takes
-/// to swing from level to its climb angle at the rate it turns at, after
-/// its pitch rate builds.
-fn level_off_s(limits: &FixedWingLimits, speed_mps: f64) -> f64 {
-    let climb_angle = libm::atan(limits.climb_mps / speed_mps.max(f64::MIN_POSITIVE));
-    limits.pitch_in_s + climb_angle / limits.turn_rad_s.max(f64::MIN_POSITIVE)
 }
 
 /// Ease the pitch toward `wanted` at no more than `cap` radians a second:
@@ -181,10 +176,10 @@ pub fn pull_out_m(state: &FixedWingState, limits: &FixedWingLimits, dt: f64) -> 
         - state.speed_mps * libm::log(libm::cos(pitch)) / rate
 }
 
-/// Seconds it takes to push its nose over from level into a dive of
-/// `angle_rad` at the rate it turns at, its pitch rate built and eased off
-/// over `pitch_in_s`.
-pub fn push_over_s(limits: &FixedWingLimits, angle_rad: f64) -> f64 {
+/// Seconds it takes to swing its nose through `angle_rad` of pitch (pushing
+/// over into a dive, or levelling onto a climb) at the rate it turns at, its
+/// pitch rate built and eased off over `pitch_in_s`.
+pub fn pitch_swing_s(limits: &FixedWingLimits, angle_rad: f64) -> f64 {
     angle_rad / limits.turn_rad_s.max(f64::MIN_POSITIVE) + limits.pitch_in_s
 }
 

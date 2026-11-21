@@ -8,7 +8,7 @@ use crate::flight::Release;
 use crate::math::{v2, wrap_angle, V2, V3};
 use crate::weapons::nose_on_bearing;
 
-use super::fixed_wing::{pull_out_m, push_over_s, FixedWingLimits, FixedWingState, NoseAt};
+use super::fixed_wing::{pitch_swing_s, pull_out_m, FixedWingLimits, FixedWingState, NoseAt};
 use super::steer::{
     edge_guard, guard_short_of, inward_from, level_roll_lag_s, roll_lag_s, tightest_radius, Bounds,
     Intent,
@@ -59,7 +59,7 @@ pub enum PassPhase {
     /// drop point, or the jet itself: the gun has passed it) or the edge
     /// guard turns it away. A run fired along the nose dives at the aim on
     /// the way ([`Dive`]).
-    Dive,
+    Run,
 }
 
 /// How far down a run fired along the nose (one whose gun engages its
@@ -194,9 +194,9 @@ pub struct PassAim {
 /// The dive of a run fired along the nose: the height above the ground it
 /// flies in at, from which a dive at `angle_rad` toward the aim comes onto
 /// its line where it meets its weapon's reach (never under the floor), how
-/// far that lies above the aim, that angle, and how far ahead of
-/// where it starts pushing over its dive comes onto that line: half the
-/// ground it covers pushing over.
+/// far that lies above the aim, that angle, and how far ahead of where it
+/// starts pushing over its dive comes onto that line: half the ground it
+/// covers pushing over.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DiveRun {
     pub entry_agl_m: f64,
@@ -219,7 +219,7 @@ impl DiveRun {
     ) -> Self {
         // Pushing over, it sinks about its lead's worth of the line before
         // it is on it, so it flies in that much higher.
-        let lead_m = 0.5 * speed_mps * push_over_s(limits, angle_rad);
+        let lead_m = 0.5 * speed_mps * pitch_swing_s(limits, angle_rad);
         let on_line = reach_m * libm::sin(angle_rad) + lead_m * libm::tan(angle_rad);
         let entry_agl_m = (aim_agl_m + on_line).max(limits.floor_agl_m);
         Self {
@@ -238,7 +238,7 @@ impl PassAim {
     /// below its entry height.
     pub fn ends_short_m(&self) -> f64 {
         self.dive.map_or(self.release.ahead_m, |d| {
-            d.above_aim_m.max(0.0) / libm::tan(d.angle_rad).max(f64::MIN_POSITIVE) + d.lead_m
+            d.above_aim_m / libm::tan(d.angle_rad).max(f64::MIN_POSITIVE) + d.lead_m
         })
     }
 }
@@ -289,10 +289,11 @@ fn line_up(
     state: &FixedWingState,
     limits: &FixedWingLimits,
     bounds: &Bounds,
-    (ends_short, dives): (f64, bool),
+    run: &PassAim,
     guard: Option<f64>,
     dt: f64,
 ) -> (V2, f64) {
+    let (ends_short, dives) = (run.ends_short_m(), run.dive.is_some());
     let aim = plan.aim.xy();
     let to_aim = aim - state.pos.xy();
     let distance = to_aim.length();
@@ -427,7 +428,7 @@ pub fn advance(
         // swing its nose through more than its dive.
         let agl = match (plan.phase, plan.dive) {
             (_, Some(Dive::PulledOut)) => plan.agl,
-            (PassPhase::Dive, _) => dive.entry_agl_m.min(agl_m),
+            (PassPhase::Run, _) => dive.entry_agl_m.min(agl_m),
             _ => dive.entry_agl_m,
         };
         let intent = Intent::Line {
@@ -444,14 +445,14 @@ pub fn advance(
         // would carry the climb and fall long.
         PassPhase::LineUp if !cue => plan.run_agl = None,
         PassPhase::LineUp => {}
-        PassPhase::TurnIn | PassPhase::Dive if plan.run_agl.is_none() => {
+        PassPhase::TurnIn | PassPhase::Run if plan.run_agl.is_none() => {
             let descent_s = (agl_m - plan.agl).max(0.0) / limits.climb_mps.max(f64::MIN_POSITIVE);
             let near = run_in_m(state, limits, aim) <= state.speed_mps * descent_s;
-            if near || plan.phase == PassPhase::Dive {
+            if near || plan.phase == PassPhase::Run {
                 plan.run_agl = Some(plan.agl.min(agl_m).max(limits.floor_agl_m));
             }
         }
-        PassPhase::TurnIn | PassPhase::Dive => {}
+        PassPhase::TurnIn | PassPhase::Run => {}
     }
     let intent = Intent::Line {
         through,
@@ -464,8 +465,9 @@ pub fn advance(
 
 /// Move a dive on by one tick and return where it points the nose: at the
 /// aim from the tick the aim lies the dive's angle below the point it would
-/// come onto that line pushing over, until pulling out at its hardest would only just keep it above the
-/// run's height; nothing level or pulled out. Every new run starts level.
+/// come onto that line pushing over, until pulling out at its hardest would
+/// only just keep it above the run's height; nothing level or pulled out.
+/// Every new run starts level.
 fn dive_nose(
     plan: &mut PassPlan,
     state: &FixedWingState,
@@ -475,14 +477,14 @@ fn dive_nose(
     dive: DiveRun,
     dt: f64,
 ) -> Option<NoseAt> {
-    if plan.phase != PassPhase::Dive {
+    if plan.phase != PassPhase::Run {
         plan.dive = Some(Dive::Level);
         return None;
     }
     // It pushes over half the ground pushing over from its pitch now covers
     // early, so its dive comes onto the line through the aim at its angle.
     let swing = dive.angle_rad + state.pitch.max(0.0);
-    let lead = 0.5 * state.speed_mps * push_over_s(limits, swing);
+    let lead = 0.5 * state.speed_mps * pitch_swing_s(limits, swing);
     let to = aim - state.pos;
     let below = libm::atan2(-to.z, to.xy().length() - lead);
     let mut now = plan.dive.unwrap_or(Dive::Level);
@@ -522,9 +524,10 @@ fn advance_phase(
     let drop =
         plan.weapon == PassWeapon::Bomb && plan.closing && opening && landing.now <= aim.reach_m;
     plan.closing = !opening;
-    let (ends_short, dives) = (aim.ends_short_m(), aim.dive.is_some());
-    let aim = aim.point;
-    if plan.phase != PassPhase::Dive {
+    let run = aim;
+    let ends_short = run.ends_short_m();
+    let aim = run.point;
+    if plan.phase != PassPhase::Run {
         let to_aim = aim.xy() - state.pos.xy();
         let bearing = libm::atan2(to_aim.y, to_aim.x);
         plan.aim = aim;
@@ -532,10 +535,9 @@ fn advance_phase(
         // Short of where it must have its nose on for this run.
         let short = to_aim.length() > ends_short;
         if nose_on && short && !guarded {
-            plan.phase = PassPhase::Dive;
+            plan.phase = PassPhase::Run;
             plan.heading = bearing;
         } else {
-            let run = (ends_short, dives);
             let (through, heading) = line_up(plan, state, limits, bounds, run, guard, dt);
             if drop {
                 plan.phase = PassPhase::LineUp;

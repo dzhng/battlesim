@@ -157,7 +157,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             // A run flies at the aim it committed to; lining up, at the
             // target's point now.
             let point = pass_before
-                .filter(|p| p.phase == pass::PassPhase::Dive && p.target == target)
+                .filter(|p| p.phase == pass::PassPhase::Run && p.target == target)
                 .map_or_else(|| target_point(ctx, unit, target), |p| p.aim);
             if dogfightable(ctx.knowledge[unit.side.index()], target, unit.layer()) {
                 unit.air.as_mut().expect("an aircraft's flight state").pass = None;
@@ -190,7 +190,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                 dogfighting = true;
                 dogfight_intent(ctx, unit, &state, &limits, chase, point.xy())
             } else {
-                let weapons = pass_weapons(ctx, unit, (&state, &limits), target, point);
+                let weapons = pass_weapons(ctx, unit, &limits, state.speed_mps, target, point);
                 let chosen =
                     pass::choose_weapon(&weapons.iter().map(|(w, ..)| *w).collect::<Vec<_>>());
                 if let Some(weapon) = chosen {
@@ -404,7 +404,8 @@ pub(crate) fn dogfightable(
 fn pass_weapons(
     ctx: &MovementContext,
     unit: &Unit,
-    (state, limits): (&FixedWingState, &FixedWingLimits),
+    limits: &FixedWingLimits,
+    speed_mps: f64,
     target: Target,
     aim: V3,
 ) -> Vec<PassWeaponAim> {
@@ -425,7 +426,7 @@ fn pass_weapons(
         .map(|reach| {
             let angle = ctx.rules.air.fixed_wing.strafe_dive_deg.to_radians();
             let aim_agl = aim.z - ctx.world.height_at(aim.x, aim.y).unwrap_or(0.0);
-            pass::DiveRun::new(reach, angle, aim_agl.max(0.0), limits, state.speed_mps)
+            pass::DiveRun::new(reach, angle, aim_agl.max(0.0), limits, speed_mps)
         });
     for (weapon, mode) in rows
         .iter()

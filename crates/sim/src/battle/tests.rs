@@ -106,7 +106,7 @@ fn upgrading_a_jets_move_breaks_off_its_run() {
     air.pass = Some(crate::air::pass::PassPlan {
         target: Target::Unit(UnitId(1)),
         aim: v3(2000.0, 2000.0, 0.0),
-        phase: crate::air::pass::PassPhase::Dive,
+        phase: crate::air::pass::PassPhase::Run,
         weapon: crate::air::pass::PassWeapon::Gun,
         agl: 120.0,
         run_agl: Some(120.0),
