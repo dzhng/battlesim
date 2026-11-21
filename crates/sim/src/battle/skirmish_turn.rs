@@ -111,6 +111,9 @@ impl Battle {
                 orders.push(Order::Ready);
                 (orders, conditions)
             } else {
+                // A decision weighs the same trip more than once: each is
+                // worked out once.
+                let mut asked = BTreeMap::new();
                 (
                     ai.decide(
                         crate::skirmish_ai::DecisionInput {
@@ -121,7 +124,11 @@ impl Battle {
                         },
                         &frame,
                         &self.rules,
-                        |unit, destination| self.route_time(side, unit, destination),
+                        |unit, destination| {
+                            *asked
+                                .entry((unit, destination.map(f64::to_bits)))
+                                .or_insert_with(|| self.route_time(side, unit, destination))
+                        },
                     ),
                     Vec::new(),
                 )
