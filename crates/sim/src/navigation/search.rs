@@ -43,6 +43,18 @@ struct SearchTile {
     expanded: [u32; TILE_SAMPLES],
 }
 
+impl SearchTile {
+    /// Whether reaching the cell at `at` for `g` in `generation` would be
+    /// its first or a cheaper way there. A cell is settled once it is
+    /// expanded (the estimate is not exact enough for a later, cheaper way
+    /// to it to be worth the work of expanding it again); until then only a
+    /// cost that is less counts.
+    fn improves(&self, at: usize, generation: u32, g: f64) -> bool {
+        self.expanded[at] != generation
+            && (self.stamp[at] != generation || g.partial_cmp(&self.g[at]) == Some(Ordering::Less))
+    }
+}
+
 struct Component {
     bounds: [usize; 4],
     members: Digest,
@@ -119,15 +131,10 @@ impl Scratch {
         first
     }
 
-    /// Whether reaching `k` at cost `g` would be its first or a cheaper way
-    /// there, as [`Self::relax`] judges it.
+    /// Whether [`Self::relax`] would reach `k` at cost `g`.
     fn improves(&self, k: usize, g: f64) -> bool {
         let (key, at) = self.location(k);
-        self.tiles.get(&key).is_none_or(|tile| {
-            tile.expanded[at] != self.generation
-                && (tile.stamp[at] != self.generation
-                    || g.partial_cmp(&tile.g[at]) == Some(Ordering::Less))
-        })
+        (self.tiles.get(&key)).is_none_or(|tile| tile.improves(at, self.generation, g))
     }
 
     /// Reach `k` at `value` if that is its first or a cheaper way there.
@@ -141,16 +148,10 @@ impl Scratch {
                 expanded: [0; TILE_SAMPLES],
             })
         });
-        let first = tile.stamp[at] != self.generation;
-        // A cell is settled once it is expanded (the estimate is not exact
-        // enough for a later, cheaper way to it to be worth the work of
-        // expanding it again). Until then only a cost that is less counts.
-        let settled = tile.expanded[at] == self.generation;
-        let cheaper = value.g.partial_cmp(&tile.g[at]) == Some(Ordering::Less);
-        if settled || (!first && !cheaper) {
+        if !tile.improves(at, self.generation, value.g) {
             return false;
         }
-        if first {
+        if tile.stamp[at] != self.generation {
             if let Some(component) = &mut self.component {
                 let (x, y) = (k % self.nx, k / self.nx);
                 component.bounds[0] = component.bounds[0].min(x);
