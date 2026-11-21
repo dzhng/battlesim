@@ -195,9 +195,11 @@ export async function rulerTour(ctx) {
     (await ruler()) === null && !(await shownText()).shown,
   );
 
-  // A contact's area: right-click it with an armed unit selected. Scout
-  // along the southern forest edge until their own sight identifies an enemy,
-  // then withdraw beyond that sight. Admission alone proves neither journey.
+  // A contact's area: right-click it with an armed unit selected. Scout east
+  // along the road, whose view runs past the ridge, until their own sight
+  // identifies an enemy, then withdraw beyond that sight. Off the road the
+  // ridge hides red while red's anti-tank team, at its wood's edge, spots
+  // the scouts for its tank. Admission alone proves neither journey.
   o = await obs(page);
   const scoutId = o.own.find((u) => u.kind === "test_recon").id;
   await stageStreetMoves(
@@ -208,7 +210,7 @@ export async function rulerTour(ctx) {
         kind: "move",
         units: [scoutId],
         gesture: 2900,
-        goal: [450, 620],
+        goal: [450, 780],
         route: "shortest",
       },
       {
@@ -216,7 +218,7 @@ export async function rulerTour(ctx) {
           kind: "move",
           units: [scoutId],
           gesture: 2901,
-          goal: [550, 910],
+          goal: [700, 780],
           route: "shortest",
         },
         queued: true,
