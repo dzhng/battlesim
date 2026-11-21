@@ -35,6 +35,15 @@ impl Primitive {
     }
 }
 
+/// One stretch of a river, between two of its rounded samples.
+struct Stretch {
+    river: u32,
+    /// The first of its two samples.
+    sample: u32,
+    /// The limits its water lies inside.
+    water: [f64; 4],
+}
+
 pub(super) struct SurfaceIndex {
     areas: Vec<SurfaceArea>,
     primitives: Vec<Primitive>,
@@ -46,9 +55,8 @@ pub(super) struct SurfaceIndex {
     triangles: Vec<f32>,
     boundaries: Vec<f32>,
     rivers: Vec<River>,
-    /// Each bucket's river stretches: the river, and the first of the
-    /// stretch's two rounded samples.
-    stretches: WordMap<(i32, i32), Vec<(u32, u32)>>,
+    /// Each bucket's river stretches.
+    stretches: WordMap<(i32, i32), Vec<Stretch>>,
     swamps: Vec<Swamp>,
     /// Each swamp's water surface (`Swamp::surface_z`).
     swamp_levels: Vec<f64>,
@@ -89,15 +97,15 @@ impl SurfaceIndex {
         for (river, definition) in rivers.iter().enumerate() {
             for (stretch, pair) in definition.samples().windows(2).enumerate() {
                 let reach = pair[0].half_width_m.max(pair[1].half_width_m);
-                let [x0, y0, x1, y1] =
-                    index.bucket_bounds(limits(&[pair[0].xy, pair[1].xy], reach));
+                let water = limits(&[pair[0].xy, pair[1].xy], reach);
+                let [x0, y0, x1, y1] = index.bucket_bounds(water);
                 for j in y0..=y1 {
                     for i in x0..=x1 {
-                        index
-                            .stretches
-                            .entry((i, j))
-                            .or_default()
-                            .push((river as u32, stretch as u32));
+                        index.stretches.entry((i, j)).or_default().push(Stretch {
+                            river: river as u32,
+                            sample: stretch as u32,
+                            water,
+                        });
                     }
                 }
             }
@@ -311,39 +319,58 @@ impl SurfaceIndex {
     /// `reach` of it, each with its river's index. A stretch may be given
     /// more than once, and stretches farther off may be given too.
     pub fn river_sections(&self, p: V2, reach: f64) -> impl Iterator<Item = (usize, Section)> + '_ {
+        self.stretches_near(p, reach)
+            .map(move |stretch| self.section(stretch, p))
+    }
+
+    fn stretches_near(&self, p: V2, reach: f64) -> impl Iterator<Item = &Stretch> {
         let [x0, y0, x1, y1] =
             self.bucket_bounds([p.x - reach, p.y - reach, p.x + reach, p.y + reach]);
         (y0..=y1)
             .flat_map(move |j| (x0..=x1).map(move |i| (i, j)))
             .filter_map(|key| self.stretches.get(&key))
             .flatten()
-            .map(move |&(river, stretch)| {
-                let samples = self.rivers[river as usize].samples();
-                let stretch = stretch as usize;
-                (
-                    river as usize,
-                    section(&samples[stretch], &samples[stretch + 1], [p.x, p.y]),
-                )
+    }
+
+    fn section(&self, stretch: &Stretch, p: V2) -> (usize, Section) {
+        let samples = self.rivers[stretch.river as usize].samples();
+        let first = stretch.sample as usize;
+        (
+            stretch.river as usize,
+            section(&samples[first], &samples[first + 1], [p.x, p.y]),
+        )
+    }
+
+    /// The river of each stretch with water within `margin` of `p`. Only a
+    /// stretch whose limits come that near is measured: a bucket holds many
+    /// stretches of a winding river, and this is asked of every step a
+    /// mover weighs.
+    fn wet(&self, p: V2, margin: f64) -> impl Iterator<Item = usize> + '_ {
+        // Far more than the rounding of a section's distance.
+        let slack = margin + 1e-6;
+        self.stretches_near(p, margin)
+            .filter(move |stretch| {
+                let [x, y, max_x, max_y] = stretch.water;
+                p.x >= x - slack && p.x <= max_x + slack && p.y >= y - slack && p.y <= max_y + slack
             })
+            .map(move |stretch| self.section(stretch, p))
+            .filter(move |(_, s)| s.inside_m >= -margin)
+            .map(|(river, _)| river)
     }
 
     /// Whether `p` is water: inside the closed edge of any river's stretch.
     pub fn water_at(&self, p: V2) -> bool {
-        !self.rivers.is_empty() && self.river_sections(p, 0.0).any(|(_, s)| s.inside_m >= 0.0)
+        self.wet(p, 0.0).next().is_some()
     }
 
     /// Whether `p` is in the water of river `river`.
     pub fn in_river(&self, river: usize, p: V2) -> bool {
-        self.river_sections(p, 0.0)
-            .any(|(id, s)| id == river && s.inside_m >= 0.0)
+        self.wet(p, 0.0).any(|id| id == river)
     }
 
     /// Whether `p` is water or within `margin` of its edge.
     pub fn water_near(&self, p: V2, margin: f64) -> bool {
-        !self.rivers.is_empty()
-            && self
-                .river_sections(p, margin)
-                .any(|(_, s)| s.inside_m >= -margin)
+        self.wet(p, margin).next().is_some()
     }
 
     pub fn swamps(&self) -> &[Swamp] {
