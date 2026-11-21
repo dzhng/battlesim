@@ -399,7 +399,10 @@
   border-bottom-color: rgb(var(--hud-accent));
 }
 /* Settings' asset credits: folded under a label in the plate's small caps,
-   its chevron turning down as it opens onto the credits as notes. */
+   its chevron turning down as it opens onto the credits as notes. The chevron
+   centres on the line box, but capitals sit a little above that centre (no
+   descenders), so it is lifted a pixel to meet the letters' own middle. Open,
+   the turned V keeps its ink in the box's lower half, so it lifts further. */
 .menu-credits summary {
   display: inline-flex;
   align-items: center;
@@ -416,6 +419,8 @@
 }
 .menu-credits summary::before {
   content: "";
+  position: relative;
+  top: -1px;
   width: 5px;
   height: 5px;
   border: solid rgb(var(--hud-accent));
@@ -423,6 +428,7 @@
   transform: rotate(-45deg);
 }
 .menu-credits[open] summary::before {
+  top: -3px;
   transform: rotate(45deg);
 }
 .menu-credits summary:hover {
