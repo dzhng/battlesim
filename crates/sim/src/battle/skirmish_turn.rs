@@ -50,6 +50,7 @@ impl Battle {
                 .expect("red plan"),
         ];
         let mut commands = Vec::new();
+        let mut deciding = None;
         for (index, player) in player_defs.iter().enumerate() {
             if player.controller != contract::players::ControllerKind::ActiveAi {
                 continue;
@@ -60,10 +61,16 @@ impl Battle {
             let Some(mut ai) = self.skirmish_ai.remove(&id) else {
                 continue;
             };
-            if !ai.wants_decision(self.tick) {
+            // A side's decisions are a tick's worth of planning. Its seats
+            // decide together, as a team's push sets off together; the
+            // opening is every side's at once, and after it the sides take
+            // turns, a tick apart.
+            let taken = self.tick > 0 && deciding.is_some_and(|other| other != side);
+            if taken || !ai.wants_decision(self.tick) {
                 self.skirmish_ai.insert(id, ai);
                 continue;
             }
+            deciding = Some(side);
             let player_plan =
                 plans[side.index()].for_player(contract::players::PlayerIndex(index as u16));
             let entry_index =
