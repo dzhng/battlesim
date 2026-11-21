@@ -6,9 +6,8 @@
 //! goal. A mover's lane is the free width of the road: where a known body
 //! stands in or beside its own side of it, the mover moves over toward the
 //! middle (and past it, while its own middle stays on the road) and comes
-//! back to its side after the body, starting over back along the stretch it
-//! found clear when it cannot from that stretch's end; only a road with no
-//! free width is searched round. A run nothing gets past closes its arc and
+//! back to its side after the body; only a road with no free width is
+//! searched round. A run nothing gets past closes its arc and
 //! the graph is asked again. With no road worth taking, or by the shortest
 //! policy, the leg is one search across the grid ([`RouteSearch`]). A
 //! wheeled mover's route then has its corners rounded to what it can drive
@@ -292,8 +291,6 @@ impl Journey {
                                     out: Vec::new(),
                                     piece: 0,
                                     checked: 0.0,
-                                    committed: 0.0,
-                                    leading: false,
                                     off_lane: None,
                                     search: None,
                                     sought: (joined, 0),

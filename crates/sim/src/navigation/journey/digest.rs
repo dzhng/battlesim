@@ -72,8 +72,6 @@ impl Driving {
     pub(super) fn digest(&self, d: &mut Digest) {
         d.u64(self.piece as u64)
             .f64(self.checked)
-            .f64(self.committed)
-            .u64(self.leading as u64)
             .u64(self.out.len() as u64)
             .u64(self.search.is_some() as u64);
         d.u64(self.candidate as u64)
