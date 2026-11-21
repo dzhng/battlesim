@@ -11,7 +11,6 @@
 import { cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { shippedRules } from "@web/shippedRules";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import { gameContactStyle } from "@apps/battle-lab/src/gameFog";
@@ -32,9 +31,9 @@ import {
   type ReadoutLayerHandle,
 } from "@web/battle/present/readouts";
 import type { ContactView, IdentifiedView, OwnUnitView } from "@web/battle/sim/observationView";
-import { TEST_CATALOG, UNITS, WithTestCatalog } from "./catalog";
+import { TEST_CATALOG, UNITS, WithTestCatalog, TEST_RULES } from "./catalog";
 
-const RULES = shippedRules as unknown as PanelRules;
+const RULES = TEST_RULES as unknown as PanelRules;
 const name = (kind: string) => UNITS.type(kind).name.toUpperCase();
 const OWNER = "BLUE 2 · AI";
 

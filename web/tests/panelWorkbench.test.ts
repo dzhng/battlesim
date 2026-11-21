@@ -2,9 +2,8 @@
 // The panel workbench shows every panel the battle can draw: every row kind
 // the derivation (`panelRows.ts`) can produce appears in its specimens, so a
 // new state row, unit type, weapon row or reason can't slip past review.
-import { shippedRules } from "@web/shippedRules";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
-import { TEST_CATALOG } from "./catalog";
+import { TEST_CATALOG, TEST_RULES } from "./catalog";
 import { expect, test } from "vitest";
 import { panelSpecimens } from "@apps/battle-lab/src/panelSpecimens";
 import { REASON_MARK } from "../src/battle/present/infoPanel";
@@ -28,7 +27,9 @@ const UNITS = new UnitCatalog({
   units: TEST_CATALOG.units.view.units.filter((type) => standIns.includes(type.id)),
 });
 
-const RULES = shippedRules as unknown as PanelRules;
+// The rules as the panels page and the battle get them: resolved, so a
+// weapon row that `extends` another carries the name it inherits.
+const RULES = TEST_RULES as unknown as PanelRules;
 const specimens = panelSpecimens({ ...TEST_CATALOG, units: UNITS }, RULES);
 const rows = specimens.flatMap((s) => s.panel.weapons);
 const kinds = rows.flatMap((w) => w.kinds);

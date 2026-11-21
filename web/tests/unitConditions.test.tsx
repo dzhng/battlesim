@@ -1,7 +1,6 @@
 // A condition on the whole unit (its fire order, suppression, entering a
 // building, a reserve running out) is said once, as the unit's own row and as an icon by its name
 // that every card keeps, compact too; never repeated on each weapon's row.
-import { shippedRules } from "@web/shippedRules";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
@@ -10,11 +9,11 @@ import { InfoPanel } from "../src/battle/present/infoPanel";
 import { iconSvg } from "../src/battle/present/icons";
 import { LOW_RESERVE, ownPanel, type PanelRules } from "../src/battle/present/panelRows";
 import type { OwnUnitView } from "../src/battle/sim/observationView";
-import { TEST_CATALOG } from "./catalog";
+import { TEST_CATALOG, TEST_RULES } from "./catalog";
 
 afterEach(cleanup);
 
-const RULES = shippedRules as unknown as PanelRules;
+const RULES = TEST_RULES as unknown as PanelRules;
 
 /** An icon's markup as the page serialises it. */
 function markup(icon: string): string {
